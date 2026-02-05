@@ -559,7 +559,8 @@ def get_kmem_cache_padding_sz() -> int:
     if "CONFIG_SLAB_VIRTUAL" in kernel.kconfig():
         off = None
         # per cpu cache always exists because CONFIG_SLAB_VIRTUAL -> !CONFIG_SLUB_TINY
-        kmem_cache_cpu = pwndbg.aglib.memory.read_pointer_width(get_kmem_cache())
+        kmem_cache_addr = get_kmem_cache()
+        kmem_cache_cpu = pwndbg.aglib.memory.read_pointer_width(kmem_cache_addr)
         slabs = []
         for i in range(pwndbg.aglib.kernel.nproc()):
             _cache_cpu = int(pwndbg.aglib.kernel.per_cpu(kmem_cache_cpu, i))
@@ -573,8 +574,8 @@ def get_kmem_cache_padding_sz() -> int:
                 if pwndbg.aglib.memory.is_kernel(ptr):
                     slabs.append(ptr)
         for slab in slabs:
-            for i in range(0, 0x10):
-                # find *slab_cache which should be in slab virtual range
+            for i in range(1, 0x10):  # skip the first slab ptr, find the ptr to kmem_cache
+                # find kmem_cache ptr which should be in slab virtual range (allocated with SLUB)
                 addr = slab + i * ptrsize
                 if not pwndbg.aglib.memory.is_kernel(addr):
                     continue
@@ -585,7 +586,7 @@ def get_kmem_cache_padding_sz() -> int:
             if off is not None:
                 break
         if off is None:
-            off = 0x38  # default value for mitigation-6.12
+            off = 7 * ptrsize  # default value for mitigation-6.12
     return off
 
 
@@ -672,6 +673,16 @@ def kmem_cache_structs(node_cache_pad: int) -> str:
         /* irrelevant fields*/
     }};
     """
+    if "CONFIG_SLAB_VIRTUAL" in kernel.kconfig():
+        # TODO: the size of freed_slabs_lock is inaccurate but I'm not sure how to handle it
+        result += """
+        struct kmem_cache_virtual {
+            int freed_slabs_lock; // spinlock_t -> this struct is complex cuz its config dep
+            struct list_head freed_slabs;
+            struct list_head freed_slabs_min;
+            unsigned long nr_freed_pages;
+        };
+        """
     return result
 
 
@@ -736,6 +747,9 @@ def recover_slab_typeinfo() -> str:
         struct kmem_cache_order_objects min;
 #if KVERSION < KERNEL_VERSION(5, 19, 0)
         struct kmem_cache_order_objects max;
+#endif
+#ifdef CONFIG_SLAB_VIRTUAL
+        struct kmem_cache_virtual virtual;
 #endif
         gfp_t allocflags;		/* gfp flags to use on each alloc */
         int refcount;			/* Refcount for slab cache destroy */
