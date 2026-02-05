@@ -23,8 +23,6 @@ import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
-from pwndbg.aglib.kernel.paging import ArchPagingInfo
-from pwndbg.aglib.kernel.paging import PagewalkResult
 from pwndbg.lib import Status
 from pwndbg.lib import TypeNotFound
 from pwndbg.lib import TypeNotRecovered
