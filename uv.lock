@@ -142,27 +142,27 @@ filecache = [
 
 [[package]]
 name = "capstone"
+version = "5.0.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d5/b0/1f126035a4cbc6f488b97e4bd57a46a28b6ba29ca8b938cbda840601a18a/capstone-5.0.6.tar.gz", hash = "sha256:b11a87d67751b006b9b44428d59c99512e6d6c89cf7dff8cdd92d9065628b5a0", size = 2945704, upload-time = "2025-03-23T16:03:40.795Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cd/9a/d9c11e090fa03dfc61a03a57ba44c6a07370f4ac5814f2a5804bfd40ee8b/capstone-5.0.6-py3-none-macosx_10_9_universal2.whl", hash = "sha256:0bca16e1c3ca1b928df6103b3889dcb6df7b05392d75a0b7af3508798148b899", size = 2177082, upload-time = "2025-03-23T16:03:27.815Z" },
+    { url = "https://files.pythonhosted.org/packages/66/28/72a0be2325e6ee459f27cdcd835d3eee6fed5136321b5f7be41b41dc8656/capstone-5.0.6-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:539191906a34ad1c573ec12b787b2caf154ea41175db6ded9def00aea8151099", size = 1180215, upload-time = "2025-03-23T16:03:29.409Z" },
+    { url = "https://files.pythonhosted.org/packages/54/93/7b8fb02661d47a2822d5b640df804ef310417144af02e6db3446f174c4b5/capstone-5.0.6-py3-none-macosx_11_0_arm64.whl", hash = "sha256:e0b87b283905e4fc43635ca04cf26f4a5d9e8375852e5464d38938f3a28c207a", size = 1192757, upload-time = "2025-03-23T16:03:30.966Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/a2/d1bdb7260ade8165182979ea16098ef3a37c01316140511a611e549dbfe3/capstone-5.0.6-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fa7892f0c89455078c18f07d2d309fb07baa53061b8f9a63db1ea00d41a46726", size = 1458413, upload-time = "2025-03-23T16:03:32.04Z" },
+    { url = "https://files.pythonhosted.org/packages/78/7f/ec0687bbe8f6b128f1d41d90ec7cedfd1aaaa4ecb1ae8d334acc7dad8013/capstone-5.0.6-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0358855773100bb91ae6681fabce7299df83156945ba943f6211061a592c54a6", size = 1481605, upload-time = "2025-03-23T16:03:33.526Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/1d/77bb0f79e1dacdfdcc0679c747d9ca24cc621095e09bdb665e7dd0c580ae/capstone-5.0.6-py3-none-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:667d6466dab1522fa5e9659be5cf1aca83e4fc3da7d15d0e5e6047f71fb46c4a", size = 1480730, upload-time = "2025-03-23T16:03:34.601Z" },
+    { url = "https://files.pythonhosted.org/packages/72/63/07437972f68d0b2ba13e1705a6994404c9c961afbadc342c5b6fcf1de652/capstone-5.0.6-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:45c0e25500dd8d283d3b70f2e10cebfec93ab8bdaf6af9a763a0a999b4705891", size = 1457992, upload-time = "2025-03-23T16:03:35.75Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/53/f371e86493a2ae659b5a493c3cc23122974e83a1f53d3a5638d7bb7ac371/capstone-5.0.6-py3-none-musllinux_1_2_i686.whl", hash = "sha256:22f1f2f118f8fa1d1c5c90bca90e75864d55e16349b3c03aaea0e86b4a45d2a9", size = 1484184, upload-time = "2025-03-23T16:03:37.05Z" },
+    { url = "https://files.pythonhosted.org/packages/df/c3/8b842ae32949c3570581164619c2f69001c6d8da566dc2e490372032b0d6/capstone-5.0.6-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:bc23cf634f51d0e53bdd04ea53ccfff7fc9060dfe58dff1e1b260ce40e5538ff", size = 1485357, upload-time = "2025-03-23T16:03:38.133Z" },
+    { url = "https://files.pythonhosted.org/packages/da/72/ff7894c2fb5716d9a3ce9c27ba34b29d991a11d8442d2ef0fcdc5564ba7e/capstone-5.0.6-py3-none-win_amd64.whl", hash = "sha256:761c3deae00b22ac697081cdae1383bb90659dd0d79387a09cf5bdbb22b17064", size = 1271345, upload-time = "2025-03-23T16:03:39.649Z" },
+]
+
+[[package]]
+name = "capstone6pwndbg"
 version = "6.0.0a6"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7e/de/936bf6f9c1cea84a56612b9ddef868ac074b50faaa9de57e83d73905600b/capstone-6.0.0a6.tar.gz", hash = "sha256:c5c2d3a6ca8568d156a44f763e7f5930d9c1c43b3db3a687ced01fd77e25dcbb", size = 4907562, upload-time = "2026-01-13T16:24:56.37Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f1/5c/39687b3ab960beeb61a6284661c33ccd8a56ac9e778ba8f8875766c8a822/capstone-6.0.0a6-cp314-cp314t-macosx_10_13_x86_64.whl", hash = "sha256:43998d259550d6ed21f3c78d4d4cebb7bb8c041f2c062c88bd9bd1a64c7b83fd", size = 1883323, upload-time = "2026-01-13T16:24:30.478Z" },
-    { url = "https://files.pythonhosted.org/packages/b4/4e/1e1f6b68714e879006cdd9b99cb7a03abc2540b0d3d6c20b70ce2e75b6fe/capstone-6.0.0a6-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:734845075e84ca9780f19da0df6abdfaedbdee050c965ad73895fa87fc04f1fc", size = 1978936, upload-time = "2026-01-13T16:24:32.122Z" },
-    { url = "https://files.pythonhosted.org/packages/1e/59/97d48bf3b68d1dbc50b736936d24c8f70ac3bfd7a81ee14bcba72d3a88e3/capstone-6.0.0a6-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b7548bb5c1bbcc8fca34136c2142aee4eea6cc3e9084544c7878fa87350546cc", size = 2236357, upload-time = "2026-01-13T16:24:33.162Z" },
-    { url = "https://files.pythonhosted.org/packages/ce/80/b97866f8c4e10f875e4da12c5553740c03bb90e232db73c9657610168f75/capstone-6.0.0a6-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:45d8857ac7bce8c8387e5a4c33150ad45e165cd7330913eeca6d55adba8d4cc6", size = 2290793, upload-time = "2026-01-13T16:24:34.578Z" },
-    { url = "https://files.pythonhosted.org/packages/03/d7/c2307be86c1ac6fafbfb4de0b43d36935b7577e2b0d5bf96fcaf7d565a60/capstone-6.0.0a6-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:33c95893262f873e4276a3518bbe19f20cec4af9aa306022a453e60f2cdba366", size = 2243589, upload-time = "2026-01-13T16:24:36.087Z" },
-    { url = "https://files.pythonhosted.org/packages/a5/5d/ef3cfa381b7082cde0a3924631a16b89990859d7f0033c37bec239471cf2/capstone-6.0.0a6-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:be3ac9213e011843759f8b9709b49fe8aa38ba61350f117a2b0e2c98402aec7f", size = 2290838, upload-time = "2026-01-13T16:24:37.535Z" },
-    { url = "https://files.pythonhosted.org/packages/ea/6a/a47940cdedbad3f5779f73260fb7b923fdafe9c183f36c6b034278e7d1de/capstone-6.0.0a6-cp314-cp314t-win_amd64.whl", hash = "sha256:658a34542e17b434a1685dd6aa5f4d9e6898d9664eea1d8380aed3899ff05ef1", size = 2326193, upload-time = "2026-01-13T16:24:38.976Z" },
-    { url = "https://files.pythonhosted.org/packages/5d/a2/e513f5d9bb47ed85556e1e4076d7fbabcb35e910f98bc2685c78b991b9a0/capstone-6.0.0a6-cp314-cp314t-win_arm64.whl", hash = "sha256:7d4ce016e88b059d60838c8ccc6a7fb43285bf36461dd8601f2b6d20e602d161", size = 2273961, upload-time = "2026-01-13T16:24:40.161Z" },
-    { url = "https://files.pythonhosted.org/packages/10/99/39136865b1acd43b4c7d788c464d5dc1333036ed9c1a2c45323974c49875/capstone-6.0.0a6-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:f1c9d38b03d4793f7a401defaa2b1b0162069a50b1a7c0d0665342cd2f0ea4a7", size = 1883071, upload-time = "2026-01-13T16:24:41.611Z" },
-    { url = "https://files.pythonhosted.org/packages/e5/3c/1e6c9f021df585db7ddf20dc0e47ca12a17e5ebdb4521271d5418629c97a/capstone-6.0.0a6-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:21bc081b721819ca499b18ba57e23c51d51829187dd19db0649cb53f31e87deb", size = 1978684, upload-time = "2026-01-13T16:24:43.738Z" },
-    { url = "https://files.pythonhosted.org/packages/51/9b/84e7ce7a3f5662ed013964e8122b8aa9ba75f4312a6216efa7a0bb1525ef/capstone-6.0.0a6-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:e13c1f96a578f155c1e91887a21d80d6b9d9ad7b34edea48032a0338e3090e75", size = 2236120, upload-time = "2026-01-13T16:24:45.582Z" },
-    { url = "https://files.pythonhosted.org/packages/2e/fc/7c2086498b156a0fe1ecb935f725933e472445002eba7ee2b43e75faf399/capstone-6.0.0a6-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c2e0e6992c37dbdd0435675d0a5fdd97107d5ee7e6201b85dea7b54c83a320c2", size = 2290563, upload-time = "2026-01-13T16:24:47.105Z" },
-    { url = "https://files.pythonhosted.org/packages/e4/12/badf35f8a5aecb9cac2196b333905ac3b3ad46aa7c10f6c8f3e849ef2dcd/capstone-6.0.0a6-cp38-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:6f88f6a014033b2c4312a2049e969044e49df70a42e20191a43c12d620133e9d", size = 2243353, upload-time = "2026-01-13T16:24:49.486Z" },
-    { url = "https://files.pythonhosted.org/packages/90/0a/b144c505ff6c0b07d848ee7064303edece4f6e029860bc6d92560d3a500a/capstone-6.0.0a6-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:69d10adf1de51bfb76b43a139a8ae143e89533c96a839a93f6d9d60e7ecb1695", size = 2290602, upload-time = "2026-01-13T16:24:51.504Z" },
-    { url = "https://files.pythonhosted.org/packages/12/63/28177d24d25bbcf5fb9993d14b1c0a3b109646264d732a18ec960af8399e/capstone-6.0.0a6-cp38-abi3-win_amd64.whl", hash = "sha256:cfdcfb2f92d1726f2b25c3d8a84ee433c9e1b5a7cb238393295950c920ab28d5", size = 2264544, upload-time = "2026-01-13T16:24:52.922Z" },
-    { url = "https://files.pythonhosted.org/packages/ad/05/a46639b6cacc93c630b44784fbc3d5860fc10c70a94c949a04c171630474/capstone-6.0.0a6-cp38-abi3-win_arm64.whl", hash = "sha256:af7c9e6361f5e5cad9f647ea5688dbeba50bcba6339121e3868ee8f63a06eecd", size = 2217986, upload-time = "2026-01-13T16:24:55.176Z" },
-]
+sdist = { url = "https://files.pythonhosted.org/packages/c5/49/a72bad494a2338fe9cd2e4472e30a6975542c62ae90018a7ddec2c744bd4/capstone6pwndbg-6.0.0a6.tar.gz", hash = "sha256:447689457cbfd1d48faf495e68a90b1ef73f1d08fbfd9297ff7d5cc471d94187", size = 4908125, upload-time = "2026-02-04T20:37:07.635Z" }
 
 [[package]]
 name = "certifi"
@@ -1740,7 +1740,7 @@ name = "pwndbg"
 version = "2025.10.20"
 source = { editable = "." }
 dependencies = [
-    { name = "capstone" },
+    { name = "capstone6pwndbg" },
     { name = "decomp2dbg" },
     { name = "ipython" },
     { name = "niche-elf" },
@@ -1813,7 +1813,7 @@ tests = [
 
 [package.metadata]
 requires-dist = [
-    { name = "capstone", specifier = "==6.0.0a6" },
+    { name = "capstone6pwndbg", specifier = "==6.0.0a6" },
     { name = "decomp2dbg", specifier = "==3.14.1" },
     { name = "gdb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", specifier = "==17.1.0.post2", index = "https://mirrors.loong64.com/pypi/simple" },
     { name = "gdb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'gdb') or (sys_platform != 'linux' and extra == 'gdb')", specifier = "==17.1.0.post2" },

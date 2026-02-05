@@ -36,7 +36,6 @@ dependencies = [
     "decomp2dbg==3.14.1",
     # Used for symbol syncing (e.g. klookup --apply and decompiler integration)
     "niche-elf==0.3.6",
-    "capstone>=5.0.6",
 ]
 
 [project.optional-dependencies]
