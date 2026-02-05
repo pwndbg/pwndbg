@@ -35,8 +35,7 @@ def only_after_first_prompt(
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
             if first_prompt:
                 return func(*args, **kwargs)
-            else:
-                return value_before
+            return value_before
 
         return wrapper
 

@@ -6,13 +6,13 @@ authors = [{ name = "Dominik 'disconnect3d' Czarnota", email = "dominik.b.czarno
 requires-python = ">=3.10, <4"
 readme = "README.md"
 dependencies = [
-    "capstone==6.0.0a5",
+    "capstone6pwndbg==6.0.0a6",
     "unicorn>=2.1.4,<3",
     "pwntools>=4.14.1,<5",
     "sortedcontainers>=2.4.0,<3",
     "tabulate>=0.9.0,<0.10",
     "typing-extensions>=4.15.0,<5",
-    "pycparser~=2.23",
+    "pycparser~=3.0",
     "pyelftools>=0.32,<0.33",
     "pygments>=2.19.2,<3",
     "psutil>=7.0.0,<8",
@@ -122,12 +122,12 @@ select = [
     "SLOT",   # flake8-slots
     "FLY",    # flynt
     "PGH",    # pygrep-hooks
+    "RET505", # flake8-return: superfluous-else-return
     "RET506", # flake8-return: superfluous-else-raise
     "RET507", # flake8-return: superfluous-else-continue
     "RET508", # flake8-return: superfluous-else-break
     "UP",      # pyugprade
     # We want to enable the below lints, but they currently return too many errors
-    # "RET505", # flake8-return: superfluous-else-return
     # "SLF" # flake8-self
     # "SIM", # flake8-simplify
     # "PTH", # flake8-use-pathlib
@@ -156,7 +156,7 @@ builtins-ignorelist = [
 [tool.ruff.lint.isort]
 force-single-line = true
 known-third-party = [
-    "capstone",
+    "capstone6pwndbg",
     "unicorn",
     "pycparser",
     "gdb",
@@ -255,7 +255,7 @@ warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = [
-    "capstone.*",
+    "capstone6pwndbg.*",
     "unicorn.*",
     "pwnlib.*",
     "ropgadget.*",

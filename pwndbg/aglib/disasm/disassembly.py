@@ -9,7 +9,7 @@ import collections
 import re
 from collections.abc import Callable
 
-from capstone import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
 
 import pwndbg
 import pwndbg.aglib
@@ -20,6 +20,7 @@ import pwndbg.aglib.disasm.loongarch64
 import pwndbg.aglib.disasm.mips
 import pwndbg.aglib.disasm.ppc
 import pwndbg.aglib.disasm.riscv
+import pwndbg.aglib.disasm.sparc
 import pwndbg.aglib.disasm.x86
 import pwndbg.aglib.memory
 import pwndbg.emu.emulator
@@ -61,6 +62,13 @@ Enabling this may make disassembly slower.
 # Any larger changes of the program counter will cause the cache to reset.
 
 next_addresses_cache: set[int] = set()
+
+# The disassembly system isn't able to remember that an instruction is a delay slot instruction when it is disassembled in isolation
+# from the branch is belongs to.
+# This cache is used to handle this. Each address points to the branch that created the delay slot.
+delay_slot_cache: collections.defaultdict[int, PwndbgInstruction | None] = collections.defaultdict(
+    lambda: None
+)
 
 
 # Register GDB event listeners for all stop events
@@ -123,13 +131,10 @@ def get_previous_instruction(
                 linear=linear,
             )
         return result
-    else:
-        prev_address = backward_cache[address]
-        return (
-            one(prev_address, from_cache=use_cache, put_backward_cache=False)
-            if prev_address
-            else None
-        )
+    prev_address = backward_cache[address]
+    return (
+        one(prev_address, from_cache=use_cache, put_backward_cache=False) if prev_address else None
+    )
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -344,6 +349,26 @@ def one_with_config():
     return None
 
 
+def set_visual_split(set_ins: PwndbgInstruction, check_ins: PwndbgInstruction, linear: bool):
+    """
+    Internal helper function to set the .split property for display purposes.
+
+    This should only be called when the callee knows that a split should be created.
+
+    set_ins is the instruction that we are modifying
+
+    checks_ins is the one used to check what type of split is necessary.
+    The same as set_ins unless it's a delay slot.
+    """
+    if not linear and (
+        check_ins.next != check_ins.address + check_ins.size
+        or check_ins.force_unconditional_jump_target
+    ):
+        set_ins.split = SplitType.BRANCH_TAKEN
+    else:
+        set_ins.split = SplitType.BRANCH_NOT_TAKEN
+
+
 # Return (list of PwndbgInstructions, index in list where instruction.address = passed in address)
 def near(
     address,
@@ -389,8 +414,7 @@ def near(
             match = re.search(r"Memory at address (\w+) unavailable\.", str(e))
             if match:
                 return ([], -1)
-            else:
-                raise
+            raise
 
     # By using the same assistant for all the instructions disassembled in this pass, we can track and share information across the instructions
     assistant = pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
@@ -476,11 +500,11 @@ def near(
         # 1. We know the instruction is "jump_like" - it mutates the PC. We don't necessarily know the target, but know it can have one.
         # 2. The instruction has an explicitly resolved target which is not the next instruction in memory
         # 3. The instruction repeats (like x86 `REP`)
+        split_insn = insn
         if insn.jump_like or insn.has_jump_target or insn.next == insn.address:
-            split_insn = insn
-
-            # If this instruction has a delay slot, disassemble the delay slot instruction
-            # And append it to the list
+            # This branch handles delay slots. Delay slots have an interesting quirk in debuggers:
+            # sometimes the debugger can pause in the delay slot, and sometimes the debugger will
+            # automatically step over it.
             if insn.causes_branch_delay:
                 # Delay slots are instructions after branches that always execute.
                 # Unicorn cannot be paused in a delay slot instruction.
@@ -493,6 +517,10 @@ def near(
                 # There might not be a valid instruction at the branch delay slot
                 if split_insn is None:
                     break
+
+                next_addresses_cache.add(split_insn.address)
+
+                delay_slot_cache[split_insn.address] = insn
 
                 insns.append(split_insn)
 
@@ -510,14 +538,18 @@ def near(
                 ):
                     target = insn.target
 
-            if not linear and (
-                insn.next != insn.address + insn.size or insn.force_unconditional_jump_target
-            ):
-                split_insn.split = SplitType.BRANCH_TAKEN
-            else:
-                split_insn.split = SplitType.BRANCH_NOT_TAKEN
+            set_visual_split(split_insn, insn, linear)
 
-        # Address to disassemble & emulate
+        # Handle edge case where debugger is paused on the delay slot instruction
+        # Force the disassembly flow to follow the direction of the branch
+        if (cached_ins := delay_slot_cache[insn.address]) is not None:
+            if not cached_ins.call_like and (
+                cached_ins.is_unconditional_jump or cached_ins.is_conditional_jump_taken
+            ):
+                target = insn.next = cached_ins.next
+
+            set_visual_split(insn, cached_ins, linear)
+
         next_addresses_cache.add(target)
 
         # The emulator is stepped within this call
@@ -553,6 +585,7 @@ ALL_DISASSEMBLY_ASSISTANTS: dict[
         "loongarch64"
     ),
     "powerpc": lambda: pwndbg.aglib.disasm.ppc.PowerPCDisassemblyAssistant("powerpc"),
+    "sparc": lambda: pwndbg.aglib.disasm.sparc.SparcDisassemblyAssistant("sparc"),
 }
 
 

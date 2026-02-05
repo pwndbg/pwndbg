@@ -239,8 +239,7 @@ class DecompilerConnection:
                         + ".\n"
                     )
                 return
-            else:
-                self._binary_base_addr = start_addr
+            self._binary_base_addr = start_addr
         else:
             self._binary_base_addr = start_addr
 
@@ -762,8 +761,7 @@ class IntegrationManager:
         decompilerid: DecompilerID | None = self.decompiler_id()
         if decompilerid is not None:
             return decompilerid.value
-        else:
-            return "???"
+        return "???"
 
     def version_string(self) -> str | None:
         """
@@ -1065,8 +1063,7 @@ class IntegrationManager:
         if self._connection is not None:
             ans = self._connection.focus_address(mapped_addr)
             return ans if ans is not None else False
-        else:
-            return False
+        return False
 
 
 manager: IntegrationManager = IntegrationManager()

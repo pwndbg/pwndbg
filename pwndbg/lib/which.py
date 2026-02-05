@@ -82,5 +82,4 @@ def which(name: str, all: bool = False) -> set[str] | str | None:
                 return p
     if all:
         return out
-    else:
-        return None
+    return None

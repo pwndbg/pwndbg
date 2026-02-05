@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from capstone import *  # noqa: F403
-from capstone.mips import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.mips import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib.disasm.arch
@@ -88,12 +88,12 @@ CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
     MIPS_INS_BNEZ: lambda ops: ops[0] != 0,
     MIPS_INS_BEQ: lambda ops: ops[0] == ops[1],
     MIPS_INS_BNE: lambda ops: ops[0] != ops[1],
-    MIPS_INS_BGEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) >= 0,
-    MIPS_INS_BGEZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) >= 0,
-    MIPS_INS_BGTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) > 0,
-    MIPS_INS_BLEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) <= 0,
-    MIPS_INS_BLTZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) < 0,
-    MIPS_INS_BLTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) < 0,
+    MIPS_INS_BGEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) >= 0,
+    MIPS_INS_BGEZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) >= 0,
+    MIPS_INS_BGTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) > 0,
+    MIPS_INS_BLEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) <= 0,
+    MIPS_INS_BLTZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) < 0,
+    MIPS_INS_BLTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) < 0,
 }
 
 CONDITION_RESOLVERS[MIPS_INS_ALIAS_BEQZ] = CONDITION_RESOLVERS[MIPS_INS_BEQZ]

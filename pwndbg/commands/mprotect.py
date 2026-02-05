@@ -53,7 +53,7 @@ def prot_str_to_val(protstr: str) -> int:
             if k in protstr:
                 prot_int |= v
         return prot_int
-    elif all(x in "RWX" for x in protstr):
+    if all(x in "RWX" for x in protstr):
         prot_int = 0
         for c in protstr:
             if c == "R":
@@ -63,11 +63,10 @@ def prot_str_to_val(protstr: str) -> int:
             elif c == "X":
                 prot_int |= 4
         return prot_int
-    else:
-        try:
-            return int(protstr, 0)
-        except ValueError:
-            raise ValueError("Invalid protection string passed into mprotect")
+    try:
+        return int(protstr, 0)
+    except ValueError:
+        raise ValueError("Invalid protection string passed into mprotect")
 
 
 def prot_val_to_str(protval: int) -> str:

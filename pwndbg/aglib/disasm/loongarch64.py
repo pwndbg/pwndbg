@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from capstone import *  # noqa: F403
-from capstone.loongarch import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.loongarch import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib.disasm.arch
@@ -21,10 +21,10 @@ CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
     LOONGARCH_INS_BNEZ: lambda ops: ops[0] != 0,
     LOONGARCH_INS_BEQ: lambda ops: ops[0] == ops[1],
     LOONGARCH_INS_BNE: lambda ops: ops[0] != ops[1],
-    LOONGARCH_INS_BGE: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8)
-    >= bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrsize * 8),
-    LOONGARCH_INS_BLT: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8)
-    < bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrsize * 8),
+    LOONGARCH_INS_BGE: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+    >= bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
+    LOONGARCH_INS_BLT: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+    < bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
     LOONGARCH_INS_BLTU: lambda ops: ops[0] < ops[1],
     LOONGARCH_INS_BGEU: lambda ops: ops[0] >= ops[1],
 }

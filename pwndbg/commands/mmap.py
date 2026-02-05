@@ -117,11 +117,10 @@ def parse_str_or_int(val: str | int, parser):
         if candidate != 0:
             return candidate
         return int(val, 0)
-    elif isinstance(val, int):
+    if isinstance(val, int):
         return val
-    else:
-        # Getting here is a bug, we shouldn't be seeing other types at all.
-        raise TypeError(f"invalid type for value: {type(val)}")
+    # Getting here is a bug, we shouldn't be seeing other types at all.
+    raise TypeError(f"invalid type for value: {type(val)}")
 
 
 @pwndbg.commands.Command(

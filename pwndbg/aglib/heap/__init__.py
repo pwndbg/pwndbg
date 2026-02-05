@@ -5,7 +5,10 @@ from typing import Any
 
 import pwndbg
 import pwndbg.aglib.heap.heap
+import pwndbg.aglib.proc
+import pwndbg.dbg_mod
 import pwndbg.lib.config
+import pwndbg.libc
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 from pwndbg.lib.config import Scope
@@ -141,12 +144,13 @@ def reset() -> None:
 
 @pwndbg.config.trigger(resolve_heap_via_heuristic)
 def resolve_heap(is_first_run: bool = False) -> None:
+    global pwndbg
     import pwndbg.aglib.heap.ptmalloc
 
     global current
     if resolve_heap_via_heuristic == "force":
         current = pwndbg.aglib.heap.ptmalloc.HeuristicHeap()
-        if not is_first_run and pwndbg.aglib.proc.alive() and current.libc_has_debug_syms():
+        if not is_first_run and pwndbg.aglib.proc.alive() and pwndbg.libc.has_debug_info():
             print(
                 message.warn(
                     "You are going to resolve the heap via heuristic even though you have libc debug symbols."

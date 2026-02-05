@@ -44,6 +44,13 @@ def alive() -> bool:
     return pwndbg.dbg.selected_inferior().alive()
 
 
+def is_core_file() -> bool:
+    """
+    Returns whether the loaded program is a corefile
+    """
+    return pwndbg.dbg.selected_inferior().is_core_file()
+
+
 def stopped_with_signal() -> bool:
     """
     Returns whether the program has stopped with a signal
@@ -86,7 +93,7 @@ def dump_elf_data_section() -> tuple[int, int, bytes] | None:
     """
     import pwndbg.aglib.elf
 
-    return pwndbg.aglib.elf.dump_section_by_name(exe(), ".data", try_local_path=True)
+    return pwndbg.aglib.elf.section_by_name(exe(), ".data", try_local_path=True)
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -96,9 +103,7 @@ def dump_relocations_by_section_name(section_name: str) -> tuple[Relocation, ...
     """
     import pwndbg.aglib.elf
 
-    return pwndbg.aglib.elf.dump_relocations_by_section_name(
-        exe(), section_name, try_local_path=True
-    )
+    return pwndbg.aglib.elf.relocations_by_section_name(exe(), section_name, try_local_path=True)
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -151,8 +156,7 @@ def OnlyWithArch(arch_names: list[str]) -> Callable[[Callable[P, T]], Callable[P
         def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> T | None:
             if pwndbg.aglib.arch.name in arch_names:
                 return function(*a, **kw)
-            else:
-                return None
+            return None
 
         return _OnlyWithArch
 

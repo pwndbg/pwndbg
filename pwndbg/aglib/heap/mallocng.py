@@ -875,10 +875,9 @@ class Meta:
         me = 1 << idx
         if self.freed_mask & me:
             return SlotState.FREED
-        elif self.avail_mask & me:
+        if self.avail_mask & me:
             return SlotState.AVAIL
-        else:
-            return SlotState.ALLOCATED
+        return SlotState.ALLOCATED
 
     @staticmethod
     def sizeof() -> int:
@@ -1120,7 +1119,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         self.ctx_addr: int = 0
         self.ctx: MallocContext | None = None
-        self.has_debug_syms: bool = False
+        self.has_internal_syms: bool = False
 
     def init_if_needed(self) -> bool:
         """
@@ -1146,7 +1145,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         self.ctx_addr = 0
         self.ctx = None
-        self.has_debug_syms = False
+        self.has_internal_syms = False
 
         # We will go in optimistically, and let set_ctx_addr() potentially
         # prove us wrong.
@@ -1167,13 +1166,13 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         ctx_addr_maybe: int | None = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
         if ctx_addr_maybe is not None:
             self.ctx_addr = ctx_addr_maybe
-            self.has_debug_syms = True
+            self.has_internal_syms = True
             self.ctx = MallocContext(self.ctx_addr)
             return
 
         # No debug information :(
         self.ctx_addr = 0
-        self.has_debug_syms = False
+        self.has_internal_syms = False
 
         # We will find the __malloc_context object by searching memory for
         # the secret.
@@ -1228,8 +1227,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         self.ctx_addr = addr
                         self.ctx = maybe_ctx
                         return
-                    else:
-                        known_invalid.add(addr)
+                    known_invalid.add(addr)
 
             for addr, mapname in possible:
                 if addr in known_invalid:
@@ -1249,8 +1247,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         self.ctx_addr = addr
                         self.ctx = maybe_ctx
                         return
-                    else:
-                        known_invalid.add(addr)
+                    known_invalid.add(addr)
 
             print(
                 message.warn(
@@ -1295,10 +1292,6 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     f"Found a match @ {self.ctx_addr:#x}. A bit suspicious but we will roll with it.\n"
                 )
             )
-
-    @override
-    def libc_has_debug_syms(self) -> bool:
-        return self.has_debug_syms
 
     def find_slot(
         self, address: int, metadata: bool = False, shallow: bool = False
@@ -1464,8 +1457,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         found, _ = self.find_slot(address, metadata, shallow)
         if found is None:
             return 0
-        else:
-            return found.start
+        return found.start
 
     def get_free_metas(self) -> dict[int, tuple[int, Meta]]:
         """

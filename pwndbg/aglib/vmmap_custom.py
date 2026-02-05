@@ -93,11 +93,11 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
                 print(
                     message.warn(
                         f"Warning: Avoided exploring possible address {address_maybe:#x}.\n"
-                        f"You can explicitly explore it with `vmmap-explore {page_start:#x}`"
+                        f"You can explicitly explore it with `vmmap-explore {page_start:#x}` or disable automatic exploration with `set auto-explore-pages no`."
                     )
                 )
         return None
-    elif auto_explore.value == "no":
+    if auto_explore.value == "no":
         return None
 
     address_maybe = pwndbg.lib.memory.page_align(address_maybe)

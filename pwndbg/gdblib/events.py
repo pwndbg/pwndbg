@@ -167,10 +167,10 @@ To address this, you have three options:
 
 2. Replace '{message.hint("continue")}' with '{
                 message.hint('pi gdb.execute("continue")')
-            }' and use '{message.hint("set gdb-workaround-stop-event 2")}'.
+            }' and use '{message.hint("set gdb-workaround-stop-event disabled-deadlock")}'.
    This change reduces the likelihood of deadlocks, while preserving pwndbg functionality.
 
-3. Run '{message.hint("set gdb-workaround-stop-event 1")}', allowing you to keep '{
+3. Run '{message.hint("set gdb-workaround-stop-event enabled")}', allowing you to keep '{
                 message.hint("continue")
             }' as is.
    However, this setting may cause pwndbg or gdb.execute to behave asynchronously/unpredictably.
@@ -223,7 +223,7 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
             # https://github.com/pwndbg/pwndbg/issues/2576
             gdb.post_event(_loop_until_thread_ok)
             return
-        elif event_type == gdb.events.stop:
+        if event_type == gdb.events.stop:
             # Workaround to issue with gdb `commands \n continue \n end` - Selected thread is running
             # https://github.com/pwndbg/pwndbg/issues/425
             if gdb_workaround_stop_event == ENABLED:
