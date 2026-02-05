@@ -20,7 +20,7 @@ and [CHEATSHEET][CHEATSHEET] (feel free to print it!). If you have any questions
 
 Vanilla GDB and LLDB are terrible to use for reverse engineering and exploit development.
 Typing `x/30gx $rsp` or navigating cumbersome LLDB commands is not fun and often provides
-minimal information. The year is 2025, and core debuggers still lack many user-friendly
+minimal information. The year is 2026, and core debuggers still lack many user-friendly
 features such as a robust hexdump command. WinDbg users are completely lost when they
 occasionally need to bump into GDB or LLDB.
 

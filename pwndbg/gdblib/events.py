@@ -167,10 +167,10 @@ To address this, you have three options:
 
 2. Replace '{message.hint("continue")}' with '{
                 message.hint('pi gdb.execute("continue")')
-            }' and use '{message.hint("set gdb-workaround-stop-event 2")}'.
+            }' and use '{message.hint("set gdb-workaround-stop-event disabled-deadlock")}'.
    This change reduces the likelihood of deadlocks, while preserving pwndbg functionality.
 
-3. Run '{message.hint("set gdb-workaround-stop-event 1")}', allowing you to keep '{
+3. Run '{message.hint("set gdb-workaround-stop-event enabled")}', allowing you to keep '{
                 message.hint("continue")
             }' as is.
    However, this setting may cause pwndbg or gdb.execute to behave asynchronously/unpredictably.

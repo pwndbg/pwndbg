@@ -3,6 +3,7 @@ from __future__ import annotations
 import pwndbg.auxv
 import pwndbg.chain
 import pwndbg.commands
+import pwndbg.lib.cache
 from pwndbg.commands import CommandCategory
 
 
@@ -26,7 +27,7 @@ def auxv_explore() -> None:
     old_value = pwndbg.config.auto_explore_auxv.value
     pwndbg.config.auto_explore_auxv.value = "yes"
     try:
-        pwndbg.auxv.get.cache.clear()
+        pwndbg.lib.cache.clear_function_cache(pwndbg.auxv.get)
         pwndbg.auxv.get()
     finally:
         pwndbg.config.auto_explore_auxv.value = old_value

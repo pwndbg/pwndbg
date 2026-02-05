@@ -94,7 +94,7 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
                 print(
                     message.warn(
                         f"Warning: Avoided exploring possible address {address_maybe:#x}.\n"
-                        f"You can explicitly explore it with `vmmap-explore {page_start:#x}`"
+                        f"You can explicitly explore it with `vmmap-explore {page_start:#x}` or disable automatic exploration with `set auto-explore-pages no`."
                     )
                 )
                 if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.memory.is_kernel(page_start):

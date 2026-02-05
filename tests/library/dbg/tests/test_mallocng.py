@@ -346,7 +346,6 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: Path):
 )
 async def test_mallocng_find(ctrl: Controller, binary: Path):
     import pwndbg
-    import pwndbg.aglib
     import pwndbg.color as color
 
     await launch_to(ctrl, binary, "break_here")

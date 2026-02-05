@@ -32,6 +32,7 @@ from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
 from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
+from pwndbg.lib import TypeNotRecovered
 
 log = logging.getLogger(__name__)
 
@@ -232,6 +233,14 @@ class CommandObj:
             _debugger: pwndbg.dbg_mod.Debugger, arguments: str, is_interactive: bool
         ) -> None:
             self.invoke(arguments, is_interactive)
+
+        if self.subcommand_names is not None and len(self.subcommand_names) > 0:
+            # In order to add `help <main> <sub>` support, the main
+            # command needs to be registered as a prefix command in
+            # GDB. Since this causes help info duplication, for now
+            # we simply show a hint to use `--help`
+            potential_newline: str = "" if self.aliases else "\n"
+            self.help_str += f"{potential_newline}Hint: Use `{self.command_name} <subcmd> --help` if you want to see subcommand information."
 
         # Keep a handle to the command and its aliases so we can
         # easily remove them if necessary (not supported with GDB).
@@ -512,8 +521,9 @@ class CommandObj:
                 print("Feel free to re-enable manually.")
             else:
                 print()
-        except pwndbg.aglib.kernel.TypeNotRecovered as e:
-            print(message.warn(f"recovering {e.name} failed with error:\n{e}"))
+        except TypeNotRecovered as e:
+            print(message.error(f"recovering {e.name} failed with error:"))
+            print(e)
             if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
                 print(
                     message.warn(
@@ -1074,6 +1084,7 @@ def load_commands() -> None:
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
+    import pwndbg.commands.errno
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
     import pwndbg.commands.godbg
@@ -1103,7 +1114,6 @@ def load_commands() -> None:
     import pwndbg.commands.linkmap
     import pwndbg.commands.mallocng
     import pwndbg.commands.memoize
-    import pwndbg.commands.misc
     import pwndbg.commands.mmap
     import pwndbg.commands.mprotect
     import pwndbg.commands.msr
@@ -1120,6 +1130,7 @@ def load_commands() -> None:
     import pwndbg.commands.procinfo
     import pwndbg.commands.profiler
     import pwndbg.commands.ptmalloc2
+    import pwndbg.commands.pwndbg_
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr
     import pwndbg.commands.rizin

@@ -22,7 +22,11 @@ async def test_symbol_get(ctrl: Controller) -> None:
         # and it will be set by the program copying from register to the stack
         # (we pass `to_string=True` to suppress the context output)
         await ctrl.execute_and_capture("nextret")
-        p = int(pwndbg.dbg.selected_frame().evaluate_expression("p"))
+
+        frame = pwndbg.dbg.selected_frame()
+        assert frame is not None
+        p = int(frame.evaluate_expression("p"))
+
         return pwndbg.dbg.selected_inferior().symbol_name_at_address(p)
 
     assert (await get_next_ptr()) == "main"
