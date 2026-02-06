@@ -13,8 +13,11 @@ import pwndbg.color as color
 import pwndbg.color.context as ctx_color
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.commands.kbpf
 import pwndbg.commands.ktask
+import pwndbg.commands.parse_seccomp
 from pwndbg.aglib.disasm.arch import DisassemblyAssistant
+from pwndbg.commands.ktask import Kthread
 from pwndbg.lib.exception import IndentContextManager
 from pwndbg.lib.regs import BitFlags
 
@@ -24,7 +27,7 @@ fmode_flags = BitFlags([("R", 0), ("W", 1), ("X", 5)])
 _KCURRENT = None
 
 
-def get_kcurrent() -> pwndbg.commands.ktask.Kthread | None:
+def get_kcurrent() -> Kthread | None:
     global _KCURRENT
     if _KCURRENT is None:
         return None
@@ -36,7 +39,7 @@ def get_kcurrent() -> pwndbg.commands.ktask.Kthread | None:
     return None
 
 
-def select_kthread_from_pid(pid: int | None) -> pwndbg.commands.ktask.Kthread | None:
+def select_kthread_from_pid(pid: int | None) -> Kthread | None:
     pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo()
     kthread = None
     if pid is None:
@@ -44,7 +47,7 @@ def select_kthread_from_pid(pid: int | None) -> pwndbg.commands.ktask.Kthread | 
             return kthread
         t = pwndbg.aglib.kernel.current_task()
         if pwndbg.aglib.memory.is_kernel(t):
-            kthread = pwndbg.commands.ktask.Kthread(t)
+            kthread = Kthread(t)
         if not kthread:
             print(message.warn("current task not found"))
     else:
@@ -163,6 +166,9 @@ def ksighand(pid: int) -> None:
         return
     indent.print(thread)
     with indent:
+        if not thread.user_task:
+            indent.print(message.warn("not user task"))
+            return
         for i, (handler, flags) in enumerate(thread.sighand):
             m = pwndbg.aglib.signal.PER_ARCH_SIGNAL_MAPPINGS[pwndbg.aglib.arch.name]
             if i not in m:
@@ -177,6 +183,38 @@ def ksighand(pid: int) -> None:
                     handler = pwndbg.chain.format(handler)
             flags = color.yellow(f"0x{flags:016x}")
             indent.print(name, flags, handler)
+
+
+parser = argparse.ArgumentParser(
+    description="Displays information about the seccomp of a user task."
+)
+parser.add_argument("pid", nargs="?", type=int, help="")
+
+
+@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
+@pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWhenPagingEnabled
+@pwndbg.commands.OnlyWithKernelSymbols
+def kseccomp(pid: int) -> None:
+    thread = select_kthread_from_pid(pid)
+    if not thread:
+        return
+    indent.print(thread)
+    with indent:
+        if not thread.user_task:
+            indent.print(message.warn("not user task"))
+            return
+        progs = thread.seccomp()
+        if progs is None:
+            indent.print(message.warn("task not seccomp'd"))
+            return
+        for i, prog in enumerate(progs):
+            pwndbg.commands.kbpf.print_bpf_prog_metadata(i, int(prog), prog, indent)
+            result = pwndbg.commands.parse_seccomp._parse_seccomp(
+                int(prog["orig_prog"]["filter"]), int(prog["orig_prog"]["len"])
+            )
+            for line in result.splitlines():
+                indent.print(line)
 
 
 parser = argparse.ArgumentParser(

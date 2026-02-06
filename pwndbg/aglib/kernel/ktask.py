@@ -4,9 +4,11 @@ import os
 from collections.abc import Generator
 
 import pwndbg
+import pwndbg.aglib.kernel.bpf
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
@@ -1018,3 +1020,62 @@ def resolve_addr_if_file(mm: int | pwndbg.dbg_mod.Value, addr: int) -> str:
         if int(vma["vm_start"]) <= addr < int(vma["vm_end"]):
             return get_filepath(vma["vm_file"])
     return ""
+
+
+@pwndbg.aglib.kernel.typeinfo_recovery("struct seccomp", requires_kversion=True)
+def recover_seccomp_typeinfo(_filter: int) -> str:
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    result = pwndbg.aglib.kernel.symbol.COMMON_TYPES
+    result += pwndbg.aglib.kernel.bpf.get_struct_bpf_prog()
+    result += f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
+    off = None
+    for i in range(1, 10):
+        ptr = pwndbg.aglib.memory.read_pointer_width(_filter + i * ptrsize)
+        page = pwndbg.aglib.vmmap.find(ptr)
+        if page and "vmalloc" in page.objfile:
+            off = (i - 1) * ptrsize
+            break
+    assert off is not None, f"cannot find seccomp_filter->prog (filter @ {hex(_filter)})"
+    result += f"""
+    struct seccomp_filter {{
+        char _pad[{off}];
+        struct seccomp_filter *prev;
+        struct bpf_prog *prog;
+    }};
+    """
+    result += """
+    struct seccomp {
+        int mode;
+#if KVERSION >= KERNEL_VERSION(5, 9, 0)
+        atomic_t filter_count;
+#endif
+        struct seccomp_filter *filter;
+    };
+    """
+    return result
+
+
+def seccomp(task: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
+    # recover seccomp on a task by task basis cuz it doesn't always exist
+    krelease = pwndbg.aglib.kernel.krelease()
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    val = task.dereference().type._offsetof("sighand")
+    assert val
+    start = int(task) + val
+    val = pwndbg.aglib.typeinfo.lookup_types("sigset_t").sizeof
+    assert val > 0
+    start += val * 3 + ptrsize * 2 + val + ptrsize * 4
+    seccomp = _filter = None
+    for i in range(5):
+        if pwndbg.aglib.memory.uint(start + i * ptrsize) > 0x1000:  # mode
+            continue
+        additional = 1 if pwndbg.aglib.arch.ptrsize == 8 or (krelease and krelease < (5, 9)) else 2
+        val = pwndbg.aglib.memory.read_pointer_width(start + (i + additional) * ptrsize)
+        if pwndbg.aglib.kernel.in_kmem_cache(val, "kmalloc-", strict=False):
+            seccomp = start + i * ptrsize
+            _filter = val
+            break
+    if seccomp is None or _filter is None:
+        return None
+    recover_seccomp_typeinfo(_filter)
+    return pwndbg.aglib.memory.get_typed_pointer("struct seccomp", seccomp)

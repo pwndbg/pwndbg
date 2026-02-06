@@ -13,6 +13,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.exception import IndentContextManager
 
@@ -36,6 +37,8 @@ BPF_MAP_ARRAY_TYPES = (
     "BPF_MAP_TYPE_ARRAY",
     "BPF_MAP_TYPE_PROG_ARRAY",
 )
+
+indent = IndentContextManager()
 
 
 def handle_bpf_aux_reg_for_insns_bytes(insns_bytes):
@@ -119,8 +122,24 @@ def parse_xa_node(xa_node):
     return result
 
 
-def print_bpf_progs(verbose):
-    indent = IndentContextManager()
+def print_bpf_prog_metadata(
+    idx: int | None, slot: int | None, bpf_prog: pwndbg.dbg_mod.Value, indent: IndentContextManager
+) -> None:
+    t = bpf_prog["type"].value_to_human_readable()
+    attach_t = bpf_prog["expected_attach_type"].value_to_human_readable()
+    prefix = ""
+    if idx is not None and slot is not None:
+        prefix = indent.prefix(f"[0x{idx:02x}] {indent.addr_hex(slot)}")
+    indent.print(f"{prefix} (type: {message.success(t)}, attach: {message.success(attach_t)})")
+    with indent:
+        func = int(bpf_prog["bpf_func"])
+        aux = int(bpf_prog["aux"])
+        jited_len = int(bpf_prog["jited_len"])
+        desc = f"func @ {indent.aux_hex(func)} (jited_len: {indent.aux_hex(jited_len)}), aux @ {indent.aux_hex(aux)}"
+        indent.print(desc)
+
+
+def print_bpf_progs(verbose: int) -> None:
     prog_idr = pwndbg.aglib.kernel.prog_idr()
     if int(prog_idr) == 0:
         print(message.warn("cannot find prog_idr"))
@@ -134,18 +153,8 @@ def print_bpf_progs(verbose):
     with indent:
         for idx, slot in enumerate(slots):
             bpf_prog = pwndbg.aglib.memory.get_typed_pointer("struct bpf_prog", slot)
-            t = bpf_prog["type"].value_to_human_readable()
-            attach_t = bpf_prog["expected_attach_type"].value_to_human_readable()
-            prefix = indent.prefix(f"[0x{idx:02x}] {indent.addr_hex(slot)}")
-            indent.print(
-                f"{prefix} (type: {message.success(t)}, attach: {message.success(attach_t)})"
-            )
+            print_bpf_prog_metadata(idx, slot, bpf_prog, indent)
             with indent:
-                func = int(bpf_prog["bpf_func"])
-                aux = int(bpf_prog["aux"])
-                jited_len = int(bpf_prog["jited_len"])
-                desc = f"func @ {indent.aux_hex(func)} (jited_len: {indent.aux_hex(jited_len)}), aux @ {indent.aux_hex(aux)}"
-                indent.print(desc)
                 if verbose > 0:
                     cs = capstone.Cs(
                         capstone.CS_ARCH_BPF,
@@ -183,8 +192,7 @@ def print_bpf_progs(verbose):
                             indent.print(f"{indent.addr_hex(address)}\t{mnemonic}\t{opstr}")
 
 
-def print_bpf_maps(verbose):
-    indent = IndentContextManager()
+def print_bpf_maps(verbose: int) -> None:
     map_idr = pwndbg.aglib.kernel.map_idr()
     if int(map_idr) == 0:
         print(message.warn("cannot find map_idr"))

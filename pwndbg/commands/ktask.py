@@ -222,6 +222,22 @@ class Kthread:
                 return val
         return None
 
+    def seccomp(self) -> list[pwndbg.dbg_mod.Value] | None:
+        task = self.thread
+        seccomp = None
+        if task.dereference().type.has_field("seccomp"):
+            seccomp = task["seccomp"].address
+        if seccomp is None:
+            seccomp = pwndbg.aglib.kernel.ktask.seccomp(task)
+            if seccomp is None:
+                return None
+        result = []
+        cur = seccomp["filter"]
+        while int(cur):
+            result.append(cur["prog"])
+            cur = cur["prev"]
+        return result
+
     def __str__(self) -> str:
         prefix = str(pwndbg.config.backtrace_prefix)
         kcurrent = pwndbg.commands.kcurrent.select_kthread_from_pid(None)

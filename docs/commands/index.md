@@ -94,6 +94,7 @@
 -  [knft-list-rules](kernel/knft-list-rules.md) - Dump netfilter rules form a specific chain
 -  [knft-list-sets](kernel/knft-list-sets.md) - Dump netfilter sets from a specific table
 -  [knft-list-tables](kernel/knft-list-tables.md) - Dump netfliter tables from a specific network namespace
+-  [kseccomp](kernel/kseccomp.md) - Displays information about the seccomp of a user task.
 -  [ksighand](kernel/ksighand.md) - Displays information about the signal handlers of a user task.
 -  [kstack](kernel/kstack.md) - Displays information about the stack of a task.
 -  [ksyscalls](kernel/ksyscalls.md) - Displays Linux syscall table, including names and addresses of syscalls.
