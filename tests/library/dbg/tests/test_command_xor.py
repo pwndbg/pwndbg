@@ -18,6 +18,7 @@ async def test_command_xor_with_dbg_execute(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 
     before = pwndbg.aglib.regs.sp
+    assert before is not None
     pwndbg.aglib.memory.write(before, b"aaaaaaaa")
     await ctrl.execute("xor $sp ' ' 4")
     after = pwndbg.aglib.memory.read(before, 8)
@@ -35,7 +36,7 @@ async def test_command_xor_with_int(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 
     before = pwndbg.aglib.regs.sp
-    assert isinstance(before, int)
+    assert before is not None
     pwndbg.aglib.memory.write(before, b"aaaaaaaa")
     await ctrl.execute(f"xor {before} ' ' 4")
     after = pwndbg.aglib.memory.read(before, 8)
@@ -53,6 +54,7 @@ async def test_command_xor_with_hex(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 
     before = pwndbg.aglib.regs.sp
+    assert before is not None
     before_hex = hex(before)
     assert isinstance(before_hex, str)
     pwndbg.aglib.memory.write(before, b"aaaaaaaa")
@@ -70,6 +72,7 @@ async def test_command_memfrob(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 
     before = pwndbg.aglib.regs.sp
+    assert before is not None
     pwndbg.aglib.memory.write(before, b"aaaaaaaa")
     memfrob(before, 4)
     after = pwndbg.aglib.memory.read(before, 8)

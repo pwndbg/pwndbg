@@ -39,22 +39,36 @@ def get_venv_path(src_root: Path):
     venv_path_env = os.environ.get("PWNDBG_VENV_PATH")
     if venv_path_env:
         return Path(venv_path_env).expanduser().resolve()
-    else:
-        return src_root / ".venv"
+    return src_root / ".venv"
 
 
 def main() -> None:
     src_root = Path(__file__).parent.resolve()
-    venv_path = get_venv_path(src_root)
-    if not venv_path.exists():
-        print(
-            f"\nCannot find Pwndbg virtualenv directory: {venv_path}. Please (re-)run setup.sh from the Pwndbg source folder.\n"
-            "(see https://pwndbg.re/dev/setup/#installing-from-source)",
-            flush=True,
-        )
-        os._exit(1)
 
-    fixup_paths(src_root, venv_path)
+    skip_venv = False
+    try:
+        # This can fail if Pwndbg is not installed to system site-packages
+        # on our regular virtualenv setup
+        from pwndbginit.common import is_system_installation
+
+        # If Pwndbg is installed by distro package manager, skip virtualenv check
+        if is_system_installation(src_root):
+            skip_venv = True
+    except ImportError:
+        pass
+
+    if not skip_venv:
+        venv_path = get_venv_path(src_root)
+        if not venv_path.exists():
+            print(
+                f"\nCannot find Pwndbg virtualenv directory: {venv_path}. Please (re-)run setup.sh from the Pwndbg source folder.\n"
+                "(see https://pwndbg.re/dev/setup/#installing-from-source)",
+                flush=True,
+            )
+            os._exit(1)
+
+        fixup_paths(src_root, venv_path)
+
     from pwndbginit.gdbinit import main_try
 
     main_try()

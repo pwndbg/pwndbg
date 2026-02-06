@@ -1,11 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
-from typing import Callable
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 import pwndbg
 import pwndbg.color
@@ -42,15 +39,14 @@ def int_to_string(num: int) -> str:
     """
     if max_decimal_number == -1:
         return f"{num}"
-    elif max_decimal_number == 0:
+    if max_decimal_number == 0:
         return f"{num:#x}"
-    elif abs(num) > max_decimal_number:
+    if abs(num) > max_decimal_number:
         return f"{num:#x}"
-    else:
-        return f"{num}"
+    return f"{num}"
 
 
-def int_pair_to_string(num1: int, num2: int) -> Tuple[str, str]:
+def int_pair_to_string(num1: int, num2: int) -> tuple[str, str]:
     """
     Converts an integer pair to a string pair.
 
@@ -61,12 +57,11 @@ def int_pair_to_string(num1: int, num2: int) -> Tuple[str, str]:
     """
     if max_decimal_number == -1:
         return f"{num1}", f"{num2}"
-    elif max_decimal_number == 0:
+    if max_decimal_number == 0:
         return f"{num1:#x}", f"{num2:#x}"
-    elif abs(num1) > max_decimal_number or abs(num2) > max_decimal_number:
+    if abs(num1) > max_decimal_number or abs(num2) > max_decimal_number:
         return f"{num1:#x}", f"{num2:#x}"
-    else:
-        return f"{num1}", f"{num2}"
+    return f"{num1}", f"{num2}"
 
 
 config_property_name_color = theme.add_color_param(
@@ -114,27 +109,27 @@ class Property:
     # Extra explanation, may be list, e.g.
     #   hdr reserved: 0x5  describes: end - p - n
     #                      use ftr reserved
-    extra: str | List[str] = ""
+    extra: str | list[str] = ""
     # Will print the value as hex and use the address's
     # mapping's color.
     is_addr: bool = False
     # Will turn an integer into its hex representation.
     use_hex: bool = True
     # Override the color used by from_properties().
-    name_color_func: Optional[Callable[[str], str]] = None
-    value_color_func: Optional[Callable[[str], str]] = None
+    name_color_func: Callable[[str], str] | None = None
+    value_color_func: Callable[[str], str] | None = None
 
 
 def from_properties(
     title: str,
-    properties: List[Property],
+    properties: list[Property],
     *,
     preamble: str = "",
     value_offset: int = 14,
     extra_offset: int = 16,
-    title_color_func: Optional[Callable[[str], str]] = None,
-    name_color_func: Optional[Callable[[str], str]] = None,
-    value_color_func: Optional[Callable[[str], str]] = None,
+    title_color_func: Callable[[str], str] | None = None,
+    name_color_func: Callable[[str], str] | None = None,
+    value_color_func: Callable[[str], str] | None = None,
     indent_size: int = 2,
 ) -> str:
     """
@@ -242,7 +237,7 @@ def from_properties(
     return text
 
 
-def nlines_to_range(nlines: int, current: int, total: int) -> Tuple[int, int]:
+def nlines_to_range(nlines: int, current: int, total: int) -> tuple[int, int]:
     """
     When you want to get nlines of output around a certain interesting line, returns
     the range to use.

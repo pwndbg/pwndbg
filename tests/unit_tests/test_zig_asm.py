@@ -188,7 +188,8 @@ def test_zig_asm_compiles(arch):
     if uc_arch is None:
         pytest.skip("unsupported by Unicorn")
 
-    mu = uc.Uc(uc_arch, uc_mode, uc_cpu)
+    # mypy only sees the python2 declaration?
+    mu = uc.unicorn.Uc(uc_arch, uc_mode, uc_cpu)  # type: ignore[call-arg]
 
     # Map 4KB memory at 0x20000
     ADDRESS = 0x20000

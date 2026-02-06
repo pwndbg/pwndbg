@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import Optional
 
 import pwndbg.aglib.kernel.nftables
 import pwndbg.commands
@@ -26,7 +25,7 @@ parser.add_argument("nsid", type=int, nargs="?", help="Network Namespace ID")
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
-def knft_dump(nsid: Optional[int] = None):
+def knft_dump(nsid: int | None = None):
     nft = pwndbg.aglib.kernel.nftables.Nftables.find(nsid=nsid)
     if nft is None:
         print("No netns found")
@@ -45,7 +44,7 @@ parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
-def knft_list_tables(nsid: Optional[int] = None):
+def knft_list_tables(nsid: int | None = None):
     nft = pwndbg.aglib.kernel.nftables.Nftables.find(nsid=nsid)
     if nft is None:
         print("No netns found")
@@ -71,7 +70,7 @@ parser.add_argument("table_name", nargs="?", type=str, help="Table name")
 @pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_chains(
-    table_family: Optional[int] = None, table_name: Optional[str] = None, nsid: Optional[int] = None
+    table_family: int | None = None, table_name: str | None = None, nsid: int | None = None
 ):
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Table.find(
@@ -102,10 +101,10 @@ parser.add_argument("chain_name", nargs="?", type=str, help="Chain name")
 @pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_rules(
-    table_family: Optional[int] = None,
-    table_name: Optional[str] = None,
-    chain_name: Optional[str] = None,
-    nsid: Optional[int] = None,
+    table_family: int | None = None,
+    table_name: str | None = None,
+    chain_name: str | None = None,
+    nsid: int | None = None,
 ):
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Chain.find(
@@ -136,11 +135,11 @@ parser.add_argument("rule_id", nargs="?", type=int, help="Rule Handle ID")
 @pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_exprs(
-    table_family: Optional[int] = None,
-    table_name: Optional[str] = None,
-    chain_name: Optional[str] = None,
-    rule_id: Optional[int] = None,
-    nsid: Optional[int] = None,
+    table_family: int | None = None,
+    table_name: str | None = None,
+    chain_name: str | None = None,
+    rule_id: int | None = None,
+    nsid: int | None = None,
 ):
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Rule.find(
@@ -173,7 +172,7 @@ parser.add_argument("table_name", nargs="?", type=str, help="Table name")
 @pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_sets(
-    table_family: Optional[int] = None, table_name: Optional[str] = None, nsid: Optional[int] = None
+    table_family: int | None = None, table_name: str | None = None, nsid: int | None = None
 ):
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Table.find(
@@ -202,7 +201,7 @@ parser.add_argument("table_name", nargs="?", type=str, help="Table name")
 @pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_objects(
-    table_family: Optional[int] = None, table_name: Optional[str] = None, nsid: Optional[int] = None
+    table_family: int | None = None, table_name: str | None = None, nsid: int | None = None
 ):
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Table.find(
@@ -231,7 +230,7 @@ parser.add_argument("table_name", nargs="?", type=str, help="Table name")
 @pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_flowtables(
-    table_family: Optional[int] = None, table_name: Optional[str] = None, nsid: Optional[int] = None
+    table_family: int | None = None, table_name: str | None = None, nsid: int | None = None
 ):
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Table.find(

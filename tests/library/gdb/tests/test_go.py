@@ -7,6 +7,8 @@ from . import get_binary
 GOSAMPLE_X64 = get_binary("gosample.x86-64.out")
 GOSAMPLE_X86 = get_binary("gosample.i386.out")
 
+# NOTE: Not the same as the dbg/ test!!!
+
 
 def test_typeinfo_go_x64():
     """

@@ -7,8 +7,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
-from typing import Tuple
 
 
 def hash_file(file_path: str | Path) -> str:
@@ -24,13 +22,13 @@ def hash_file(file_path: str | Path) -> str:
 
 def run_uv_install(
     binary_path: os.PathLike[str], src_root: Path, venv_path: Path, dev: bool = False
-) -> Tuple[str, str, int]:
+) -> tuple[str, str, int]:
     # Check if the package was installed using: `uv tool install --editable .[lldb,gdb]`
     # Tools are located at: ${HOME}/.local/share/uv/tools/${TOOL_NAME}/uv-receipt.toml
     is_tool_install = (venv_path / "uv-receipt.toml").exists()
     if is_tool_install:
         tool_name = venv_path.name
-        command: List[str] = [str(binary_path), "tool", "upgrade", tool_name]
+        command: list[str] = [str(binary_path), "tool", "upgrade", tool_name]
     else:
         # We don't want to quietly uninstall dependencies by just specifying
         # `--extra gdb` so we will be conservative and pull all extras in.
@@ -93,13 +91,16 @@ def update_deps(src_root: Path) -> None:
             print(stdout)
     else:
         print(stderr, file=sys.stderr)
+        print("\x1b[31mERROR: Pwndbg failed to update with the above uv error.\x1b[0m")
+        print(
+            "\x1b[31m"
+            "ERROR: Re-run with PWNDBG_NO_AUTOUPDATE=1 if you intend to run without an update."
+            "\x1b[0m"
+        )
+        sys.exit(return_code)
 
 
-def skip_autoupdate(src_root) -> bool:
-    no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE") is not None
-    if no_auto_update:
-        return True
-
+def is_system_installation(src_root: Path) -> bool:
     # If pwndbg is installed in `/venv/lib/pythonX.Y/site-packages/pwndbg/`,
     # the `.pwndbg_root` file will not exist because `src_root` will point to the
     # `/venv/lib/pythonX.Y/site-packages/` directory, not the original source directory
@@ -108,6 +109,17 @@ def skip_autoupdate(src_root) -> bool:
     # and the condition will be False, allowing auto-update.
     is_system_install = not (src_root / ".pwndbg_root").exists()
     if is_system_install:
+        return True
+
+    return False
+
+
+def skip_autoupdate(src_root: Path) -> bool:
+    no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE") is not None
+    if no_auto_update:
+        return True
+
+    if is_system_installation(src_root):
         return True
 
     return False

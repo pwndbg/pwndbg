@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
-from typing import Callable
 
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
@@ -59,12 +59,11 @@ def attempt_colorized_symbol(
     symbol = pwndbg.aglib.symbol.resolve_addr(address)
     if symbol:
         return get(address, symbol)
-    else:
-        var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
-        if var is None:
-            var = decompiler_stack_variables.get(address)
-        if var is not None:
-            return get(address, f"{{{var}}}")
+    var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
+    if var is None:
+        var = decompiler_stack_variables.get(address)
+    if var is not None:
+        return get(address, f"{{{var}}}")
     return None
 
 
@@ -73,7 +72,10 @@ def attempt_colorized_symbol(
 #
 # TODO: Remove the exception for gdb.Value case from `pwndbg.color.memory.get`.
 def get(
-    address: int | pwndbg.dbg_mod.Value | Any, text: str | None = None, prefix: str | None = None
+    address: int | pwndbg.dbg_mod.Value | Any,
+    text: str | None = None,
+    prefix: str | None = None,
+    page: pwndbg.lib.memory.Page | None = None,
 ) -> str:
     """
     Returns a colorized string representing the provided address.
@@ -84,7 +86,8 @@ def get(
         prefix: Optional text to set at beginning in the return value string, followed by a space, without modifiying the original text.
     """
     address = int(address)
-    page = pwndbg.aglib.vmmap.find(address)
+    if page is None:  # if we know the containing page, don't bother to find it as an optimization
+        page = pwndbg.aglib.vmmap.find(address)
 
     color: Callable[[str], str]
 
@@ -119,7 +122,7 @@ def get(
     return color(text)
 
 
-def legend():
+def legend() -> str:
     return "LEGEND: " + " | ".join(
         (
             c.stack("STACK"),

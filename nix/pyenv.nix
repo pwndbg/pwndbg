@@ -22,6 +22,7 @@ let
 
   pkgsNeedSetuptools = [
     "capstone"
+    "capstone6pwndbg"
     "unicorn"
     "parso"
     "paramiko"
@@ -77,7 +78,6 @@ let
     "coverage"
     "mypy-extensions"
     "pytest"
-    "pytest-cov"
     "mypy"
     "vermin"
     # decomp2dbg deps
@@ -92,6 +92,7 @@ let
     "pyhidra"
     "ply"
     # end of decomp2dbg deps
+    "niche-elf"
   ];
   pkgsNeedFlitcore = [
     "typing-extensions"
@@ -168,7 +169,13 @@ let
           buildInputs = [ python3 ];
         }
         // lib.optionalAttrs stdenv.hostPlatform.isDarwin {
-          NIX_CFLAGS_COMPILE = "-DkIOMainPortDefault=0";
+          postPatch = ''
+            # stick to the old SDK name for now
+            # https://developer.apple.com/documentation/iokit/kiomasterportdefault/
+            # https://developer.apple.com/documentation/iokit/kiomainportdefault/
+            substituteInPlace psutil/arch/osx/cpu.c \
+              --replace-fail kIOMainPortDefault kIOMasterPortDefault
+          '';
         }
       )
     ) { };
@@ -179,6 +186,21 @@ let
         stdenv,
       }:
       prev.capstone.overrideAttrs (
+        old:
+        lib.optionalAttrs (isBuildSource old) {
+          nativeBuildInputs = old.nativeBuildInputs ++ [
+            cmake
+          ];
+        }
+      )
+    ) { };
+
+    capstone6pwndbg = pkgs.callPackage (
+      {
+        cmake,
+        stdenv,
+      }:
+      prev.capstone6pwndbg.overrideAttrs (
         old:
         lib.optionalAttrs (isBuildSource old) {
           nativeBuildInputs = old.nativeBuildInputs ++ [
@@ -275,25 +297,23 @@ let
       })
     ) { };
 
+    jpype1 = pkgs.callPackage (
+      { python3 }:
+      prev.jpype1.overrideAttrs (old: {
+        buildInputs =
+          (old.buildInputs or [ ])
+          ++ lib.optionals isCross [
+            python3
+          ];
+      })
+    ) { };
+
     ghidra-bridge = pkgs.callPackage (
       { }:
       prev.ghidra-bridge.overrideAttrs (old: {
         postPatch = ''
           substituteInPlace ./setup.py \
             --replace-fail 'git describe --tags' 'echo ${old.version}'
-        '';
-      })
-    ) { };
-
-    decomp2dbg = pkgs.callPackage (
-      { stdenv }:
-      prev.decomp2dbg.overrideAttrs (old: {
-        postPatch = lib.optionalString (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) ''
-          substituteInPlace ./setup.py \
-            --replace-fail "sys.argv.append(name.replace('.', '_').replace('-', '_'))" "sys.argv.append('macosx_11_0_arm64')"
-        '' + lib.optionalString (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64) ''
-          substituteInPlace ./setup.py \
-            --replace-fail "sys.argv.append(name.replace('.', '_').replace('-', '_'))" "sys.argv.append('macosx_10_9_x86_64')"
         '';
       })
     ) { };

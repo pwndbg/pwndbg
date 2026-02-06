@@ -3,12 +3,14 @@
 
 ```text
 usage: decompiler-integration [-h]
-                              {connect,c,disconnect,d,sync,s,jump,j,install,decomp,list,l,setbase}
+                              {connect,c,disconnect,d,sync,s,jump,j,install,decomp,list,l,setbase,setpath}
                               ...
 
 ```
 
 Control Pwndbg decompiler integration.
+
+See https://pwndbg.re/dev/tutorials/decompiler-integration/ for usage instructions.
 
 **Alias:** di
 ### Positional arguments
@@ -67,7 +69,7 @@ usage: decompiler-integration sync [-h]
 
 Sync data from the decompiler.
 
-Check out `help set decompiler-auto-sync`.
+Check out `help set decompiler-autosync-syms` and `help set decompiler-autosync-vars`.
 
 **Alias:** s
 #### Optional arguments
@@ -85,7 +87,7 @@ usage: decompiler-integration jump [-h] [addr]
 
 Make the decompiler's cursor jump to the PC.
 
-Check out `help set decompiler-auto-jump`.
+Check out `help set decompiler-autojump`.
 
 **Alias:** j
 #### Positional arguments
@@ -238,11 +240,45 @@ needed when debugging a kernel module.
 
 If you wish to re-enable automatic base address detection, set this value to -1 (or
 restart Pwndbg).
+
+Setting this automatically unsets the `di setpath` value.
 #### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |binary_addr|Memory address of the decompiled binary in the address space|
+
+#### Optional arguments
+
+|Short|Long|Help|
+| :--- | :--- | :--- |
+|-h|--help|show this help message and exit|
+
+### **decompiler-integration setpath**
+
+```text
+usage: decompiler-integration setpath [-h] path
+
+```
+
+Manually set the path of the binary as loaded in memory.
+
+Normally, Pwndbg will use the file path that the decompiler reports for the binary and
+check it against all files mapped into memory to find the correct base address.
+
+If for some reason the file names differ or your binary does not show up in the memory
+mappings, you can manually specify the actual path of the binary as loaded in memory (
+the one reported by /proc/<pid>/maps i.e. vmmap).
+
+If you wish to re-enable automatic base address detection, set this value to "" (or
+restart Pwndbg).
+
+Setting this automatically unsets the `di setbase` value.
+#### Positional arguments
+
+|Positional Argument|Help|
+| :--- | :--- |
+|binary_path|File path of the decompiled binary as loaded in memory|
 
 #### Optional arguments
 

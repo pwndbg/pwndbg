@@ -1,28 +1,52 @@
 from __future__ import annotations
 
+import functools
 import random
 import re
+from collections.abc import Callable
+from typing import TypeVar
 
 import gdb
 import pytest
+from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
+import pwndbg.aglib.kernel.symbol
+import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
+import pwndbg.color
+
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
+def KernelTest(func: Callable[P, T]) -> Callable[P, T | None]:
+    @functools.wraps(func)
+    def wrapper(*a: P.args, **kw: P.kwargs) -> T | None:
+        # TODO: trigger NEW_OBJFILE event instead
+        pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux()
+        return func(*a, **kw)
+
+    return wrapper
+
+
+@KernelTest
 def test_command_kchecksec():
     res = gdb.execute("kchecksec", to_string=True)
     assert res != ""  # for F841 warning
     # TODO: do something with res
 
 
+@KernelTest
 def test_command_kcmdline():
     res = gdb.execute("kcmdline", to_string=True)
     assert res != ""  # for F841 warning
     # TODO: do something with res
 
 
+@KernelTest
 def test_command_kconfig():
     res = gdb.execute("kconfig", to_string=True)
     assert "CONFIG_IKCONFIG = y" in res
@@ -31,6 +55,7 @@ def test_command_kconfig():
     assert "CONFIG_IKCONFIG = y" in res
 
 
+@KernelTest
 def test_command_kdmesg():
     if not pwndbg.aglib.kernel.has_debug_info():
         res = gdb.execute("kdmesg", to_string=True)
@@ -48,6 +73,7 @@ def test_command_kdmesg():
     )
 
 
+@KernelTest
 def test_command_kmod():
     if not pwndbg.aglib.kernel.has_debug_symbols("find_module_all"):
         res = gdb.execute("kmod", to_string=True)
@@ -57,6 +83,7 @@ def test_command_kmod():
     assert "Kernel modules address found at" in res or "The modules symbol was not found." in res
 
 
+@KernelTest
 def test_command_ksyscalls():
     if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("ksyscalls", to_string=True)
@@ -67,6 +94,7 @@ def test_command_ksyscalls():
     assert "entries found at" in res or "sys_call_table symbol was not found" in res
 
 
+@KernelTest
 def test_command_ktask():
     if not pwndbg.aglib.kernel.has_debug_info():
         res = gdb.execute("ktask", to_string=True)
@@ -81,11 +109,13 @@ def test_command_ktask():
         assert res in res2
 
 
+@KernelTest
 def test_command_kversion():
     res = gdb.execute("kversion", to_string=True)
     assert "Linux version" in res
 
 
+@KernelTest
 def test_command_slab_list():
     if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab list", to_string=True)
@@ -96,13 +126,12 @@ def test_command_slab_list():
     assert "kmalloc" in res
 
 
+@KernelTest
 def test_command_slab_info():
     if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab info kmalloc-512", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
-    if not pwndbg.aglib.kernel.has_debug_info():
-        pwndbg.aglib.kernel.slab.load_slab_typeinfo()
     for cache in pwndbg.aglib.kernel.slab.caches():
         cache_name = cache.name
         res = gdb.execute(f"slab info {cache_name}", to_string=True)
@@ -115,13 +144,14 @@ def test_command_slab_info():
     assert "not found" in res
 
 
+@KernelTest
 def test_command_slab_contains():
     if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab contains 0x123", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
 
-    pwndbg.aglib.kernel.slab.load_slab_typeinfo()
+    pwndbg.aglib.kernel.slab.recover_slab_typeinfo()
     # retrieve a valid slab object address (first address from freelist)
     addrs, slab_cache = get_slab_object_address()
     addr = addrs[0]
@@ -131,6 +161,7 @@ def test_command_slab_contains():
     assert "cpu" in res or "node" in res
 
 
+@KernelTest
 @pytest.mark.skipif(
     pwndbg.aglib.arch.name not in ["i386", "x86-64"],
     reason="function page_offset is only implemented for x86",
@@ -183,6 +214,7 @@ def get_slab_object_address():
 #     gdb.execute(f"msr MSR_LSTAR -w {prev_msr_lstar}")
 
 
+@KernelTest
 def test_command_kernel_vmmap():
     res = gdb.execute("vmmap", to_string=True)
     assert all(
@@ -208,6 +240,7 @@ def get_buddy_freelist_elements(out):
     return result
 
 
+@KernelTest
 @pytest.mark.skipif(
     not pwndbg.aglib.kernel.has_debug_symbols(), reason="test requires debug symbols"
 )
@@ -264,6 +297,7 @@ def check_0x100_bytes(address, physmap_addr):
     assert all(expected[i] == actual[i] for i in range(0x100))
 
 
+@KernelTest
 def test_command_pagewalk():
     address = pwndbg.aglib.kernel.kbase()
     if address is None:
@@ -296,6 +330,7 @@ def test_command_pagewalk():
     assert res.splitlines()[-1] == "address is not mapped"
 
 
+@KernelTest
 @pytest.mark.skipif(
     not pwndbg.aglib.kernel.has_debug_symbols(), reason="test requires debug symbols"
 )
@@ -307,6 +342,7 @@ def test_command_paging():
         assert pagetype in out
         page = int(out.splitlines()[1].split()[2], 16)
         physmap_addr = int(out.splitlines()[0].split()[-1], 16)
+        physmap_addr = pwndbg.aglib.kernel.phys_to_virt(physmap_addr)
         # the first 0x100 bytes of the resolved address should match the original
         check_0x100_bytes(addr, physmap_addr)
         phys_addr = pwndbg.aglib.kernel.virt_to_phys(physmap_addr)
@@ -320,6 +356,7 @@ def test_command_paging():
         assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
 
     pi = pwndbg.aglib.kernel.arch_paginginfo()
+    assert pi is not None
     # kbase, slab, buddy, vmemmap
     kbase = pwndbg.aglib.kernel.kbase()
     test_command_paging_helper("initialized", kbase)
@@ -332,10 +369,13 @@ def test_command_paging():
     if len(matches) > 0 and "free_area" in res:  # only pages in free_area is marked "buddy"
         buddy = int(matches[-1], 16)
         test_command_paging_helper("buddy", buddy)
-    if pwndbg.aglib.kernel.krelease() >= (6, 10):
+
+    krelease = pwndbg.aglib.kernel.krelease()
+    assert krelease is not None
+    if krelease >= (6, 10):
         # the slab marker is only added after v6.10
         res = gdb.execute("slab info -v -p kmalloc-32", to_string=True)
-        matches = get_slab_freelist_elements(res)
+        matches = get_buddy_freelist_elements(res)
         if len(matches) > 0:
             slab = int(matches[-1].split()[-1], 16)
             test_command_paging_helper("slab", slab)

@@ -10,8 +10,7 @@ import errno
 import os
 import shutil
 import tempfile
-from typing import Iterator
-from typing import Tuple
+from collections.abc import Iterator
 
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
@@ -50,7 +49,7 @@ def get_proc_exe_file() -> str:
 def can_download_remote_file() -> bool:
     if not pwndbg.aglib.remote.is_remote():
         return False
-    elif pwndbg.aglib.qemu.is_qemu_kernel():
+    if pwndbg.aglib.qemu.is_qemu_kernel():
         return False
 
     # Some[1] gdb servers don't implement vFile packets.
@@ -155,6 +154,13 @@ def is_vfile_qemu_user_bug() -> bool:
     # but instead, it returns the data as a decimal integer (%d).
     # [1] https://github.com/qemu/qemu/blob/b14d0649628cbe88ac0ef35fcf58cd1fc22735b8/gdbstub/user-target.c#L322
     if not pwndbg.aglib.qemu.is_qemu_usermode():
+        return False
+
+    # The bug was fixed in QEMU version v10.0.0-rc0 but the qGDBServerVersion packet wasn't added until v10.1.0-rc0
+    # Therefore, check the simple case of whether the QEMU version >= v10.1.0
+    # and fallback to the old check method otherwise to handle the gap between v10.0.0 and v10.1.0
+    version = pwndbg.aglib.qemu.qemu_gdbserver_version()
+    if version is not None and version >= (10, 1, 0):
         return False
 
     # On a bugged QEMU version, the response is `F-1,36`
@@ -265,7 +271,7 @@ def gdb_memtox_inverse(data: bytes) -> bytes:
     return buffer
 
 
-def vfile_pread(fd: int, size: int, offset: int) -> Tuple[int, bytes]:
+def vfile_pread(fd: int, size: int, offset: int) -> tuple[int, bytes]:
     """
     Reads data from a file descriptor.
 

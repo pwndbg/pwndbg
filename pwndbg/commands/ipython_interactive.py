@@ -5,6 +5,7 @@ Command to start an interactive IPython prompt.
 from __future__ import annotations
 
 import sys
+from collections.abc import Iterator
 from contextlib import contextmanager
 
 import gdb
@@ -16,16 +17,20 @@ from pwndbg.commands import CommandCategory
 
 
 @contextmanager
-def switch_to_ipython_env():
-    """We need to change stdout/stderr to the default ones, otherwise we can't use tab or autocomplete"""
-    # Save GDB's excepthook
+def switch_to_ipython_env() -> Iterator[None]:
     saved_excepthook = sys.excepthook
-    # Switch to default stdout/stderr
-    with pwndbg.lib.stdio.stdio:
-        yield
-    # Restore Python's default ps1, ps2, and excepthook for GDB's `pi` command
-    sys.ps1 = ">>> "
-    sys.ps2 = "... "
+    try:
+        saved_ps = sys.ps1, sys.ps2
+    except AttributeError:
+        saved_ps = None
+    yield
+    # Restore Python's default `ps1`, `ps2`, and `excepthook`
+    # to ensure proper behavior of the GDB repl.
+    if saved_ps is not None:
+        sys.ps1, sys.ps2 = saved_ps
+    else:
+        del sys.ps1
+        del sys.ps2
     sys.excepthook = saved_excepthook
 
 
@@ -46,7 +51,13 @@ def ipi() -> None:
             return
         code4ipython = """import jedi
 import pwn
+from pwndbg.aglib.ipi_helpers import get_ipi_namespace, get_banner
 jedi.Interpreter._allow_descriptor_getattr_default = False
-IPython.embed(colors='neutral',banner1='',confirm_exit=False,simple_prompt=False, user_ns=globals())
+# Get pwndbg helpers and merge with globals
+_ipi_helpers = get_ipi_namespace()
+_user_ns = {**globals(), **_ipi_helpers}
+# Print banner
+print(get_banner(), end="")
+IPython.embed(colors='neutral',banner1='',confirm_exit=False,simple_prompt=False, user_ns=_user_ns)
 """
         gdb.execute(f"py\n{code4ipython}")

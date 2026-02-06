@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import argparse
 import os.path
-from typing import Tuple
 
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
@@ -19,6 +18,7 @@ import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.dbg_mod
+import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.color import cyan
 from pwndbg.color import green
@@ -36,12 +36,11 @@ def pages_filter(gdbval_or_str):
         return lambda page: module_name in page.objfile
 
     # returns an address filter
-    elif isinstance(gdbval_or_str, integer_types):
+    if isinstance(gdbval_or_str, integer_types):
         addr = gdbval_or_str
         return lambda page: addr in page
 
-    else:
-        raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
+    raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
 
 
 def print_vmmap_table_header(prefix: str = "") -> None:
@@ -71,7 +70,7 @@ def print_vmmap_gaps_table_header() -> None:
     print(header)
 
 
-def calculate_total_memory(pages: Tuple[Page, ...]) -> None:
+def calculate_total_memory(pages: tuple[Page, ...]) -> None:
     total = 0
     for page in pages:
         total += page.memsz
@@ -112,7 +111,7 @@ def print_gap(current: Page, last_map: Page):
     )
 
 
-def print_vmmap_gaps(pages: Tuple[Page, ...]) -> None:
+def print_vmmap_gaps(pages: tuple[Page, ...]) -> None:
     """
     Indicates the size of adjacent memory regions and unmapped gaps between them in process memory
     """
@@ -326,7 +325,7 @@ def vmmap(
             if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):
                 display_text = str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)
 
-        print(mem_color.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
+        print(mem_color.get(page.vaddr, text=display_text, prefix=backtrace_prefix, page=page))
 
     flush_shared_cache_info()
     if shared_cache_collapsed > 0:
@@ -379,7 +378,7 @@ def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
     page = pwndbg.lib.memory.Page(start, size, perm, offset, pwndbg.aglib.arch.ptrsize)
     pwndbg.aglib.vmmap_custom.add_custom_page(page)
 
-    print("%r added" % page)
+    print(f"{page!r} added")
 
 
 parser = argparse.ArgumentParser(description="Explore a page, trying to guess permissions.")
@@ -398,7 +397,7 @@ def vmmap_explore(address: int) -> None:
     old_value = pwndbg.config.auto_explore_pages.value
     pwndbg.config.auto_explore_pages.value = "yes"
     try:
-        pwndbg.aglib.vmmap.find.cache.clear()
+        pwndbg.lib.cache.clear_function_cache(pwndbg.aglib.vmmap.find)
         page = pwndbg.aglib.vmmap.find(address)
     finally:
         pwndbg.config.auto_explore_pages.value = old_value
@@ -473,4 +472,4 @@ def vmmap_load(filename) -> None:
 
     for page in pages:
         pwndbg.aglib.vmmap_custom.add_custom_page(page)
-        print("%r added" % page)
+        print(f"{page!r} added")

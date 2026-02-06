@@ -6,9 +6,7 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Callable
-from typing import Dict
-from typing import List
+from collections.abc import Callable
 from typing import NamedTuple
 
 import pwndbg
@@ -182,9 +180,9 @@ class ColorParamSpec(NamedTuple):
 
 
 class ColorConfig:
-    def __init__(self, namespace: str, params: List[ColorParamSpec]) -> None:
+    def __init__(self, namespace: str, params: list[ColorParamSpec]) -> None:
         self._namespace = namespace
-        self._params: Dict[str, theme.ColorParameter] = {}
+        self._params: dict[str, theme.ColorParameter] = {}
         for param in params:
             self._params[param.name] = theme.add_color_param(
                 f"{self._namespace}-{param.name}-color", param.default, param.doc
@@ -199,7 +197,7 @@ class ColorConfig:
 
 
 def generateColorFunction(
-    config: str | Parameter, _globals: Dict[str, Callable[[str], str]] = globals()
+    config: str | Parameter, _globals: dict[str, Callable[[str], str]] = globals()
 ) -> Callable[[object], str]:
     # the `config` here may be a config Parameter object
     # and if we run with disable_colors or if the config value

@@ -4,12 +4,16 @@ import argparse
 import math
 import re
 
-import capstone
+from capstone6pwndbg import CS_ARCH_BPF
+from capstone6pwndbg import CS_MODE_BPF_EXTENDED
+from capstone6pwndbg import CS_MODE_LITTLE_ENDIAN
+from capstone6pwndbg import Cs
 
 import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.bpf
 import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
@@ -146,9 +150,9 @@ def print_bpf_progs(verbose):
                 desc = f"func @ {indent.aux_hex(func)} (jited_len: {indent.aux_hex(jited_len)}), aux @ {indent.aux_hex(aux)}"
                 indent.print(desc)
                 if verbose > 0:
-                    cs = capstone.Cs(
-                        capstone.CS_ARCH_BPF,
-                        capstone.CS_MODE_LITTLE_ENDIAN | capstone.CS_MODE_BPF_EXTENDED,
+                    cs = Cs(
+                        CS_ARCH_BPF,
+                        CS_MODE_LITTLE_ENDIAN | CS_MODE_BPF_EXTENDED,
                     )
                     num_insns = int(bpf_prog["len"])
                     insns = int(bpf_prog["insns"].address)
@@ -234,9 +238,9 @@ def print_bpf_maps(verbose):
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
-def kbpf(verbose: int, print_progs: bool, print_maps: bool):
-    if not pwndbg.aglib.kernel.has_debug_info():
-        pwndbg.aglib.kernel.bpf.load_bpf_typeinfo()
+@pwndbg.commands.WarnOnKernelConfigRandstruct
+def kbpf(verbose: int, print_progs: bool, print_maps: bool) -> None:
+    pwndbg.aglib.kernel.bpf.recover_bpf_typeinfo()
     if pwndbg.aglib.typeinfo.load("struct idr") is None:
         return
     if not print_progs and not print_maps:

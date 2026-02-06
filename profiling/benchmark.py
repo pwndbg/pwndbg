@@ -1,17 +1,20 @@
+from __future__ import annotations
 
-from typing import Callable
-import gdb
 import argparse
+import cProfile
 import pstats
 import time
-import cProfile
+from collections.abc import Callable
+
+import gdb
+
 import pwndbg
-import pwndbg.commands
-import pwndbg.commands.context
-import pwndbg.lib.cache
 import pwndbg.aglib
 import pwndbg.aglib.vmmap
+import pwndbg.commands
+import pwndbg.commands.context
 import pwndbg.commands.telescope
+import pwndbg.lib.cache
 
 COUNT = 100
 
@@ -23,18 +26,20 @@ def run_benchmark(name: str, prefix: str, callback: Callable, count=COUNT) -> fl
     profiler = cProfile.Profile()
 
     profiler.enable()
-    
+
     for _ in range(count):
         callback()
 
     profiler.disable()
 
     pstats_file_name_base = f"{prefix}-{count}-{name}-{int(time.time())}"
-    profiler.dump_stats(f"{pstats_file_name_base}.pstats")
+    filename = f"{pstats_file_name_base}.pstats"
+    profiler.dump_stats(filename)
 
     full_time = pstats.Stats(profiler).total_tt
 
     print(f"Time elapsed: {full_time}. Average time: {full_time / count}")
+    print(f"Saved benchmark data to {filename}")
 
     return full_time / count
 
@@ -58,8 +63,8 @@ def benchmark_context(name: str):
     ## Benchmark the `context` command, no caching
 
     def run_with_clear():
-        pwndbg.commands.context.context.function()
         pwndbg.lib.cache.clear_caches()
+        pwndbg.commands.context.context.function()
 
     run_benchmark(
         name,
@@ -146,7 +151,7 @@ def benchmark_large_telescope(name: str):
     stack_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack))
     start = stack_page.start
     len = stack_page.memsz
-    
+
     def print_all_stack():
         pwndbg.commands.telescope.telescope(start, len // pwndbg.aglib.arch.ptrsize)
 

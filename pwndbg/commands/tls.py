@@ -46,7 +46,7 @@ def tls(pthread_self=False, all: bool = False) -> None:
         else pwndbg.aglib.tls.find_address_with_pthread_self()
     )
     if pwndbg.aglib.memory.is_readable_address(tls_base):
-        print(message.success("Thread Local Storage (TLS) base: %#x" % tls_base))
+        print(message.success(f"Thread Local Storage (TLS) base: {tls_base:#x}"))
         print(message.success("TLS is located at:"))
         print(message.notice(pwndbg.aglib.vmmap.find(tls_base)))
 

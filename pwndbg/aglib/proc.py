@@ -7,10 +7,7 @@ related information.
 from __future__ import annotations
 
 import functools
-from typing import Callable
-from typing import List
-from typing import Optional
-from typing import Tuple
+from collections.abc import Callable
 from typing import TypeVar
 
 from elftools.elf.relocation import Relocation
@@ -47,6 +44,13 @@ def alive() -> bool:
     return pwndbg.dbg.selected_inferior().alive()
 
 
+def is_core_file() -> bool:
+    """
+    Returns whether the loaded program is a corefile
+    """
+    return pwndbg.dbg.selected_inferior().is_core_file()
+
+
 def stopped_with_signal() -> bool:
     """
     Returns whether the program has stopped with a signal
@@ -76,32 +80,30 @@ def binary_base_addr() -> int:
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def binary_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def binary_vmmap() -> tuple[pwndbg.lib.memory.Page, ...]:
     import pwndbg.aglib.vmmap
 
     return tuple(p for p in pwndbg.aglib.vmmap.get() if p.objfile == exe())
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_elf_data_section() -> Tuple[int, int, bytes] | None:
+def dump_elf_data_section() -> tuple[int, int, bytes] | None:
     """
     Dump .data section of current process's ELF file
     """
     import pwndbg.aglib.elf
 
-    return pwndbg.aglib.elf.dump_section_by_name(exe(), ".data", try_local_path=True)
+    return pwndbg.aglib.elf.section_by_name(exe(), ".data", try_local_path=True)
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_relocations_by_section_name(section_name: str) -> Tuple[Relocation, ...] | None:
+def dump_relocations_by_section_name(section_name: str) -> tuple[Relocation, ...] | None:
     """
     Dump relocations of a section by section name of current process's ELF file
     """
     import pwndbg.aglib.elf
 
-    return pwndbg.aglib.elf.dump_relocations_by_section_name(
-        exe(), section_name, try_local_path=True
-    )
+    return pwndbg.aglib.elf.relocations_by_section_name(exe(), section_name, try_local_path=True)
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -141,7 +143,7 @@ def OnlyWhenQemuKernel(func: Callable[P, T]) -> Callable[P, T | None]:
     return wrapper
 
 
-def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[P, T]], Callable[P, Optional[T]]]:
+def OnlyWithArch(arch_names: list[str]) -> Callable[[Callable[P, T]], Callable[P, T | None]]:
     """Decorates function to work only with the specified archictectures."""
     for arch in arch_names:
         if arch not in pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES:
@@ -149,13 +151,12 @@ def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[P, T]], Callable[P
                 f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
             )
 
-    def decorator(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+    def decorator(function: Callable[P, T]) -> Callable[P, T | None]:
         @functools.wraps(function)
-        def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+        def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> T | None:
             if pwndbg.aglib.arch.name in arch_names:
                 return function(*a, **kw)
-            else:
-                return None
+            return None
 
         return _OnlyWithArch
 

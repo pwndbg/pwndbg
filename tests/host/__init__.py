@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Coroutine
 from enum import Enum
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Any
-from typing import Awaitable
-from typing import Callable
-from typing import Coroutine
-from typing import Dict
-from typing import List
 
 
 def _collection_from_pytest(
     result: CompletedProcess[str], pwndbg_root: Path, pytest_root: Path
-) -> List[str]:
+) -> list[str]:
     """
     Given the output of a completed Pytest collection, return a list of tests.
     """
@@ -45,15 +43,20 @@ def _result_from_pytest(result: CompletedProcess[str], duration_ns: int) -> Test
     # Determine high-granularity status from process output, if possible.
     stdout_status = None
     stdout_context = None
+
+    # Check for the result string in STDOUT of the test.
+    # Exceptions raised by the test function itself print the result without newline.
+    # Context string can sometimes span multiple lines, only the one line is captured. This can
+    # happen anywhere withing the context string, so matching is not easy.
     if result.stdout is not None:
         entries = re.search(
-            r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)( .*::.* -)?( (.*))?",
+            r"(?:\x1b\[3.m)?(PASSED|FAILED|SKIPPED|XPASS|XFAIL)(?:\x1b\[0m)?(?: .*::.* -)?(?: (.*))?",
             result.stdout,
             re.MULTILINE,
         )
         if entries:
-            stdout_status = entries[2]
-            stdout_context = entries[5]
+            stdout_status = entries[1]
+            stdout_context = entries[2]
 
     # If possible, augment the status with the high-granularity output.
     if stdout_status is not None:
@@ -142,7 +145,7 @@ class TestHost:
         """
         raise NotImplementedError()
 
-    def collect(self) -> List[str]:
+    def collect(self) -> list[str]:
         """
         Collect the names of all the tests available to this host.
         """
@@ -151,7 +154,7 @@ class TestHost:
 
 class Controller:
     def launch(
-        self, binary: Path, args: List[str] = [], env: Dict[str, str] = {}
+        self, binary: Path, args: list[str] = [], env: dict[str, str] = {}
     ) -> Awaitable[None]:
         """
         Launch the binary with the given path, relative to the binaries folder
@@ -209,6 +212,15 @@ class Controller:
         debugging information / symbols).
 
         This should be called before .launch().
+        """
+        raise NotImplementedError()
+
+    async def generate_core_file(self, path: Path) -> None:
+        """
+        Generate a core file at `path` and switch the debugger
+        to debugging that core file.
+
+        After this returns `pwndbg.dbg.selected_inferior().is_core_file()` must be True
         """
         raise NotImplementedError()
 

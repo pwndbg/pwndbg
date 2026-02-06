@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import Generator
-from typing import List
-from typing import Set
-from typing import Tuple
+from collections.abc import Generator
 
 import pwndbg
 import pwndbg.aglib.kernel.symbol
@@ -17,6 +14,7 @@ from pwndbg.aglib.kernel.macros import swab
 
 
 def caches() -> Generator[SlabCache, None, None]:
+    recover_slab_typeinfo()
     slab_caches = pwndbg.aglib.kernel.slab_caches()
     if slab_caches is None:
         # Symbol not found
@@ -76,7 +74,7 @@ _flags = {
 }
 
 
-def get_flags_list(flags: int) -> List[str]:
+def get_flags_list(flags: int) -> list[str]:
     return [flag_name for flag_name, mask in _flags.items() if flags & mask]
 
 
@@ -174,7 +172,7 @@ class SlabCache:
         return int(self._slab_cache["align"])
 
     @property
-    def flags(self) -> List[str]:
+    def flags(self) -> list[str]:
         return get_flags_list(int(self._slab_cache["flags"]))
 
     @property
@@ -296,7 +294,7 @@ class CpuCache:
         return Slab(_slab.dereference(), cpu_cache=self, is_active=True)
 
     @property
-    def partial_slabs(self) -> List[Slab]:
+    def partial_slabs(self) -> list[Slab]:
         partial_slabs = []
         if not self._cpu_cache.dereference().type.has_field("partial"):
             return []
@@ -321,7 +319,7 @@ class NodeCache:
         return int(self._node_cache)
 
     @property
-    def partial_slabs(self) -> List[Slab]:
+    def partial_slabs(self) -> list[Slab]:
         ret = []
         for slab in for_each_entry(
             self._node_cache["partial"], f"struct {slab_struct_type()}", "slab_list"
@@ -399,18 +397,17 @@ class Slab:
             return 0
         if self._slab.type.has_field("pobjects"):
             return int(self._slab["pobjects"])
-        else:
-            # calculate approx obj count in half-full slabs (as done in kernel)
-            # Note, this is a very bad approximation and could/should probably
-            # be replaced by a more accurate method
-            return (self.slabs * self.slab_cache.oo_objects) // 2
+        # calculate approx obj count in half-full slabs (as done in kernel)
+        # Note, this is a very bad approximation and could/should probably
+        # be replaced by a more accurate method
+        return (self.slabs * self.slab_cache.oo_objects) // 2
 
     @property
     def freelist(self) -> Freelist:
         return Freelist(int(self._slab["freelist"]), self)
 
     @property
-    def free_objects(self) -> Set[int]:
+    def free_objects(self) -> set[int]:
         result = set()
         for obj in self.freelist:
             result.add(obj)
@@ -424,14 +421,17 @@ class Slab:
 
 
 def find_containing_slab_cache(addr: int) -> SlabCache | None:
-    page = pwndbg.aglib.memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
-    head_page = compound_head(page)
+    recover_slab_typeinfo()  # throws a separate exception
+    try:
+        page = pwndbg.aglib.memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
+        head_page = compound_head(page)
 
-    slab_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
-    assert slab_type is not None, "Symbol slab not found"
-
-    slab = head_page.cast(slab_type)
-    return SlabCache(slab["slab_cache"])
+        slab_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
+        slab = head_page.cast(slab_type)
+        return SlabCache(slab["slab_cache"])
+    except Exception:
+        pass
+    return None
 
 
 #########################################
@@ -455,7 +455,7 @@ def kmem_cache_node_pad_sz(val):
     return None
 
 
-def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
+def kmem_cache_pad_sz(kconfig) -> tuple[int, int]:
     # find the distance between the first kmem_cache's name and its first node cache
     # the name for the first kmem_cache (most likely) has the name "kmem_cache"
     # and the global var is also named "kmem_cache"
@@ -492,7 +492,7 @@ def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
             assert node_cache_pad, "can't find kmem_cache node"
             distance = 8 if "CONFIG_SLAB_FREELIST_RANDOM" in kconfig else 0
             return distance, node_cache_pad
-        elif "CONFIG_SLAB_FREELIST_RANDOM" in kconfig:
+        if "CONFIG_SLAB_FREELIST_RANDOM" in kconfig:
             for i in range(3, 0x20):
                 ptr = kmem_cache + name_off + i * 8
                 val = pwndbg.aglib.memory.u64(ptr)
@@ -622,12 +622,8 @@ def kmem_cache_structs(node_cache_pad):
     return result
 
 
-def load_slab_typeinfo():
-    if pwndbg.aglib.typeinfo.lookup_types("struct kmem_cache") is not None:
-        return
-    if pwndbg.aglib.kernel.symbol.kversion_cint() is None:
-        return
-    pwndbg.aglib.kernel.symbol.load_common_structs()
+@pwndbg.aglib.kernel.typeinfo_recovery("struct kmem_cache", requires_kversion=True)
+def recover_slab_typeinfo() -> str:
     kconfig = pwndbg.aglib.kernel.kconfig()
     defs = []
     configs = (
@@ -707,5 +703,4 @@ def load_slab_typeinfo():
         struct kmem_cache_node *node[{pwndbg.aglib.kernel.num_numa_nodes()}];
     }};
     """
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "slab_structs", True)
+    return result

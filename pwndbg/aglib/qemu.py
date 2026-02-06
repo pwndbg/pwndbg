@@ -6,6 +6,20 @@ from __future__ import annotations
 
 import pwndbg
 import pwndbg.lib.cache
+import pwndbg.lib.qemu
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def qemu_gdbserver_version() -> tuple[int, ...] | None:
+    """
+    Returns QEMU version. Works since QEMU 10.1.0
+    """
+    inferior = pwndbg.dbg.selected_inferior()
+    if not inferior.is_remote():
+        return None
+
+    response = inferior.send_remote("qGDBServerVersion")
+    return pwndbg.lib.qemu.parse_qgdbserverversion(response)
 
 
 @pwndbg.lib.cache.cache_until("stop")

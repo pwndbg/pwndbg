@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-from typing import Dict
-from typing import Set
 from typing import Union
 
 import pwndbg.aglib
 import pwndbg.aglib.typeinfo
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import TypeCode
+from pwndbg.lib import TypeNotFound
 from pwndbg.lib.memory import PAGE_SIZE
 
-GdbDict = Dict[str, Union["GdbDict", int]]
+GdbDict = dict[str, Union["GdbDict", int]]
 
 
 MMAP_MIN_ADDR = 0x8000
@@ -44,6 +44,9 @@ def readtype(type: pwndbg.dbg_mod.Type, addr: int) -> int:
     Arguments:
         type: GDB type to read
         addr: Address at which the value to be read resides
+
+    Raises:
+        TypeNotFound: If the type does not exist in the debugger.
 
     Returns:
         `int`
@@ -233,7 +236,7 @@ def u(addr: int, size: int | None = None) -> int:
     to the pointer width.
     """
     if size is None:
-        size = pwndbg.aglib.arch.ptrsize * 8
+        size = pwndbg.aglib.arch.ptrbits
     return {8: u8, 16: u16, 32: u32, 64: u64}[size](addr)
 
 
@@ -289,13 +292,18 @@ def cast_pointer(
 def get_typed_pointer(
     type: str | pwndbg.dbg_mod.Type, addr: int | pwndbg.dbg_mod.Value
 ) -> pwndbg.dbg_mod.Value:
-    """Look up a type by name if necessary and return a Value of addr cast to that type"""
+    """
+    Look up a type by name if necessary and return a Value of addr cast to that type.
+
+    Raises:
+        TypeNotFound: If the type does not exist in the debugger.
+    """
     if addr is None:
         return None
     if isinstance(type, str):
         real_type = pwndbg.aglib.typeinfo.load(type)
         if real_type is None:
-            raise ValueError(f"Type '{type}' not found")
+            raise TypeNotFound(f"Type '{type}' not found")
     elif isinstance(type, pwndbg.dbg_mod.Type):
         real_type = type
     else:
@@ -306,7 +314,12 @@ def get_typed_pointer(
 def get_typed_pointer_value(
     type_name: str | pwndbg.dbg_mod.Type, addr: int | pwndbg.dbg_mod.Value
 ) -> pwndbg.dbg_mod.Value:
-    """Read the pointer value of addr cast to type specified by type_name"""
+    """
+    Read the pointer value of addr cast to type specified by type_name.
+
+    Raises:
+        TypeNotFound: If the type does not exist in the debugger.
+    """
     return get_typed_pointer(type_name, addr).dereference()
 
 
@@ -367,17 +380,21 @@ def update_min_addr() -> None:
 def fetch_struct_as_dictionary(
     struct_name: str,
     struct_address: int | pwndbg.dbg_mod.Value,
-    include_only_fields: Set[str] | None = None,
-    exclude_fields: Set[str] | None = None,
+    include_only_fields: set[str] | None = None,
+    exclude_fields: set[str] | None = None,
 ) -> GdbDict:
+    """
+    Raises:
+        TypeNotFound: If the type does not exist in the debugger.
+    """
     fetched_struct = get_typed_pointer_value("struct " + struct_name, struct_address)
     return pack_struct_into_dictionary(fetched_struct, include_only_fields, exclude_fields)
 
 
 def pack_struct_into_dictionary(
     fetched_struct: pwndbg.dbg_mod.Value,
-    include_only_fields: Set[str] | None = None,
-    exclude_fields: Set[str] | None = None,
+    include_only_fields: set[str] | None = None,
+    exclude_fields: set[str] | None = None,
 ) -> GdbDict:
     struct_as_dictionary = {}
 
@@ -409,13 +426,13 @@ def convert_pwndbg_value_to_python_value(dbg_value: pwndbg.dbg_mod.Value) -> int
 
     if ty.code == TypeCode.POINTER or ty.code == TypeCode.INT:
         return int(dbg_value)
-    elif ty.code == TypeCode.STRUCT:
+    if ty.code == TypeCode.STRUCT:
         return pack_struct_into_dictionary(dbg_value)
 
     raise NotImplementedError
 
 
-def resolve_renamed_struct_field(struct_name: str, possible_field_names: Set[str]) -> str:
+def resolve_renamed_struct_field(struct_name: str, possible_field_names: set[str]) -> str:
     struct_types = pwndbg.dbg.selected_inferior().types_with_name(f"struct {struct_name}")
     if len(struct_types) == 0:
         raise pwndbg.dbg_mod.Error(f"could not find type 'struct {struct_name}'")

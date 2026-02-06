@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Dict
-from typing import Tuple
 
 ALL_DEBUGGERS = ["gdb", "lldb"]
 
@@ -19,7 +17,7 @@ def get_files_in_dir(directory) -> list[str]:
     return file_paths
 
 
-def verify_existence(filenames: list[str], base_path: str) -> Tuple[list[str], list[str]]:
+def verify_existence(filenames: list[str], base_path: str) -> tuple[list[str], list[str]]:
     current = get_files_in_dir(base_path)
     current = [os.path.join(base_path, x) for x in current]
 
@@ -41,7 +39,7 @@ def verify_existence(filenames: list[str], base_path: str) -> Tuple[list[str], l
     return missing, extra
 
 
-def update_files_simple(filename_to_markdown: Dict[str, str]):
+def update_files_simple(filename_to_markdown: dict[str, str]):
     """
     Fix files so they are up to date with the sources. This also
     creates new files if needed.
@@ -59,7 +57,7 @@ def update_files_simple(filename_to_markdown: Dict[str, str]):
             file.write(markdown)
 
 
-def verify_files_simple(filename_to_markdown: Dict[str, str], skip: list[str] = []) -> str | None:
+def verify_files_simple(filename_to_markdown: dict[str, str], skip: list[str] = []) -> str | None:
     """
     Verify all the markdown files are up to date with the sources.
 
@@ -79,7 +77,7 @@ def verify_files_simple(filename_to_markdown: Dict[str, str], skip: list[str] = 
             return f"File {filename} does not exist."
 
         file_data = ""
-        with open(filename, "r") as file:
+        with open(filename) as file:
             file_data = file.read()
             if file_data != markdown:
                 return f"File {filename} differs from auto-generated output."

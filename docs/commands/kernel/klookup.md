@@ -13,7 +13,7 @@ Lookup kernel symbols
 
 |Positional Argument|Help|
 | :--- | :--- |
-|symbol|Address or symbol name to lookup|
+|symbol|Address or symbol name to lookup (default: '')|
 
 ### Optional arguments
 

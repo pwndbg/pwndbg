@@ -14,15 +14,10 @@ else:
     from enum import Enum
 
 import typing
+from collections import OrderedDict as OrderedDictType
+from collections.abc import Callable
 from typing import Any
-from typing import Callable
-from typing import Dict
 from typing import Generic
-from typing import List
-from typing import OrderedDict as OrderedDictType
-from typing import Set
-from typing import Tuple
-from typing import Type
 from typing import TypeVar
 
 import pwndbg
@@ -36,9 +31,11 @@ import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.memory as mem_color
-import pwndbg.glibc
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+import pwndbg.libc
+import pwndbg.libc.glibc
 from pwndbg.color import message
 
 PREV_INUSE = 1
@@ -57,9 +54,7 @@ NSMALLBINS = 64
 if typing.TYPE_CHECKING:
     import pwndbg.aglib.heap.structs
 
-    TheType = TypeVar(
-        "TheType", pwndbg.dbg_mod.Type, typing.Type[pwndbg.aglib.heap.structs.CStruct2GDB]
-    )
+    TheType = TypeVar("TheType", pwndbg.dbg_mod.Type, type[pwndbg.aglib.heap.structs.CStruct2GDB])
     TheValue = TypeVar("TheValue", pwndbg.dbg_mod.Value, pwndbg.aglib.heap.structs.CStruct2GDB)
 else:
     TheType = TypeVar("TheType")
@@ -85,22 +80,22 @@ class BinType(str, Enum):
     UNSORTED = "unsortedbin"
     NOT_IN_BIN = "not_in_bin"
 
-    def valid_fields(self) -> List[str]:
+    def valid_fields(self) -> list[str]:
         if self in [BinType.FAST, BinType.TCACHE]:
             return ["fd"]
-        elif self in [BinType.SMALL, BinType.UNSORTED]:
+        if self in [BinType.SMALL, BinType.UNSORTED]:
             return ["fd", "bk"]
-        elif self == BinType.LARGE:
+        if self == BinType.LARGE:
             return ["fd", "bk", "fd_nextsize", "bk_nextsize"]
-        else:  # BinType.NOT_IN_BIN
-            return []
+        # BinType.NOT_IN_BIN
+        return []
 
 
 class Bin:
     def __init__(
         self,
-        fd_chain: List[int],
-        bk_chain: List[int] | None = None,
+        fd_chain: list[int],
+        bk_chain: list[int] | None = None,
         count: int | None = None,
         is_corrupted: bool = False,
     ) -> None:
@@ -142,9 +137,8 @@ class Bins:
             # Handle this case here, so we don't assign a str to an int-type variable
             if "all" in self.bins:
                 return self.bins["all"].contains_chunk(chunk)
-            else:
-                return False
-        elif self.bin_type == BinType.LARGE:
+            return False
+        if self.bin_type == BinType.LARGE:
             # All the other bins (other than unsorted) store chunks of the same
             # size in a bin, so we can use the size directly. But the largebin
             # stores a range of sizes, so we need to compute which bucket this
@@ -193,7 +187,7 @@ class ChunkField(int, Enum):
     BK_NEXTSIZE = 6
 
 
-def fetch_chunk_metadata(address: int, include_only_fields: Set[ChunkField] | None = None):
+def fetch_chunk_metadata(address: int, include_only_fields: set[ChunkField] | None = None):
     prev_size_field_name = pwndbg.aglib.memory.resolve_renamed_struct_field(
         "malloc_chunk", {"prev_size", "mchunk_prev_size"}
     )
@@ -204,7 +198,7 @@ def fetch_chunk_metadata(address: int, include_only_fields: Set[ChunkField] | No
     if include_only_fields is None:
         fetched_struct = pwndbg.aglib.memory.fetch_struct_as_dictionary("malloc_chunk", address)
     else:
-        requested_fields: Set[str] = set()
+        requested_fields: set[str] = set()
 
         for field in include_only_fields:
             if field is ChunkField.PREV_SIZE:
@@ -275,7 +269,7 @@ class Chunk:
         self._prev_size: int | None = None
         self._size: int | None = None
         self._real_size: int | None = None
-        self._flags: Dict[str, bool] | None = None
+        self._flags: dict[str, bool] | None = None
         self._non_main_arena: bool | None = None
         self._is_mmapped: bool | None = None
         self._prev_inuse: bool | None = None
@@ -333,7 +327,7 @@ class Chunk:
         return self._real_size
 
     @property
-    def flags(self) -> Dict[str, bool] | None:
+    def flags(self) -> dict[str, bool] | None:
         if self._flags is None:
             if (
                 self.size is not None
@@ -451,8 +445,7 @@ class Chunk:
         next = Chunk(self.address + self.real_size, arena=self.arena)
         if pwndbg.aglib.memory.is_readable_address(next.address):
             return next
-        else:
-            return None
+        return None
 
     def __contains__(self, addr: int) -> bool:
         """
@@ -569,8 +562,8 @@ class Heap:
         return self.start <= addr < self.end
 
     def __str__(self) -> str:
-        fmt = "[%%%ds]" % (pwndbg.aglib.arch.ptrsize * 2)
-        return message.hint(fmt % (hex(self.first_chunk.address))) + mem_color.c.heap(
+        width = pwndbg.aglib.arch.ptrsize * 2
+        return message.hint(f"[{hex(self.first_chunk.address):>{width}s}]") + mem_color.c.heap(
             str(pwndbg.aglib.vmmap.find(self.start))
         )
 
@@ -614,9 +607,9 @@ class Arena:
         self._flags = None
         self._non_contiguous = None
         self._have_fastchunks = None
-        self._fastbinsY: List[int] | None = None
-        self._bins: List[int] | None = None
-        self._binmap: List[int] | None = None
+        self._fastbinsY: list[int] | None = None
+        self._bins: list[int] | None = None
+        self._binmap: list[int] | None = None
         self._next: int | None = None
         self._next_free: int | None = None
         self._system_mem = None
@@ -682,7 +675,7 @@ class Arena:
         return self._top
 
     @property
-    def fastbinsY(self) -> List[int]:
+    def fastbinsY(self) -> list[int]:
         if self._fastbinsY is None:
             self._fastbinsY = []
             try:
@@ -694,7 +687,7 @@ class Arena:
         return self._fastbinsY
 
     @property
-    def bins(self) -> List[int]:
+    def bins(self) -> list[int]:
         if self._bins is None:
             self._bins = []
             try:
@@ -706,7 +699,7 @@ class Arena:
         return self._bins
 
     @property
-    def binmap(self) -> List[int]:
+    def binmap(self) -> list[int]:
         if self._binmap is None:
             self._binmap = []
             try:
@@ -777,7 +770,7 @@ class Arena:
     def fastbins(self) -> Bins:
         size = pwndbg.aglib.arch.ptrsize * 2
         fd_offset = pwndbg.aglib.arch.ptrsize * 2
-        safe_lnk = pwndbg.glibc.check_safe_linking()
+        safe_lnk = pwndbg.libc.glibc.check_safe_linking(pwndbg.libc.version())
         result = Bins(BinType.FAST)
         for i in range(NFASTBINS):
             size += pwndbg.aglib.arch.ptrsize * 2
@@ -792,12 +785,12 @@ class Arena:
         return result
 
     def __str__(self) -> str:
-        prefix = "[%%%ds]    " % (pwndbg.aglib.arch.ptrsize * 2)
-        prefix_len = len(prefix % (""))
-        res = [message.hint(prefix % hex(self.address)) + str(self.heaps[0])]
+        width = pwndbg.aglib.arch.ptrsize * 2
+        prefix_fmt = f"[{{:>{width}s}}]    "
+        prefix_len = len(prefix_fmt.format(""))
+        res = [message.hint(prefix_fmt.format(hex(self.address))) + str(self.heaps[0])]
         for h in self.heaps[1:]:
             res.append(" " * prefix_len + str(h))
-
         return "\n".join(res)
 
 
@@ -1022,10 +1015,9 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         """Pick the appropriate largebin_reverse_lookup_ function for this architecture."""
         if pwndbg.aglib.arch.ptrsize == 8:
             return self.largebin_reverse_lookup_64[index]
-        elif self.malloc_alignment == 16:
+        if self.malloc_alignment == 16:
             return self.largebin_reverse_lookup_32_big[index]
-        else:
-            return self.largebin_reverse_lookup_32[index]
+        return self.largebin_reverse_lookup_32[index]
 
     def largebin_size_range_from_index(self, index: int):
         largest_largebin = self.largebin_index(pwndbg.aglib.arch.ptrmask) - 64
@@ -1047,9 +1039,9 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def arenas(self) -> Tuple[Arena, ...]:
+    def arenas(self) -> tuple[Arena, ...]:
         """Return a tuple of all current arenas."""
-        arenas: List[Arena] = []
+        arenas: list[Arena] = []
         main_arena = self.main_arena
         if main_arena:
             arenas.append(main_arena)
@@ -1111,7 +1103,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         mp = self.mp
         if "tcache_small_bins" in mp.type.keys():
             return int(mp["tcache_small_bins"])
-        elif "tcache_bins" in mp.type.keys():
+        if "tcache_bins" in mp.type.keys():
             return int(mp["tcache_bins"])
         return None
 
@@ -1127,7 +1119,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     @pwndbg.lib.cache.cache_until("objfile")
     def malloc_alignment(self) -> int:
         """Corresponds to MALLOC_ALIGNMENT in glibc malloc.c"""
-        if pwndbg.aglib.arch.name == "i386" and pwndbg.glibc.get_version() >= (2, 26):
+        if pwndbg.aglib.arch.name == "i386" and pwndbg.libc.version() >= (2, 26):
             # i386 will override it to 16 when GLIBC version >= 2.26
             # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
             return 16
@@ -1169,7 +1161,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         if addr:
             return pwndbg.aglib.memory.u32(addr) > 0
         # glibc 2.42 replaced __libc_multiple_threads with __libc_single_threaded
-        elif addr := pwndbg.aglib.symbol.lookup_symbol_addr("__libc_single_threaded"):
+        if addr := pwndbg.aglib.symbol.lookup_symbol_addr("__libc_single_threaded"):
             return pwndbg.aglib.memory.u32(addr) == 0
         return len(pwndbg.dbg.selected_inferior().threads()) > 1
 
@@ -1179,7 +1171,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             return self.minsize
         return (req + self.size_sz + self.malloc_align_mask) & ~self.malloc_align_mask
 
-    def chunk_flags(self, size: int) -> Tuple[int, int, int]:
+    def chunk_flags(self, size: int) -> tuple[int, int, int]:
         return (
             size & PREV_INUSE,
             size & IS_MMAPPED,
@@ -1230,22 +1222,20 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     def get_bins(self, bin_type: BinType, addr: int | None = None) -> Bins | None:
         if bin_type == BinType.TCACHE:
             return self.tcachebins(addr)
-        elif bin_type == BinType.FAST:
+        if bin_type == BinType.FAST:
             return self.fastbins(addr)
-        elif bin_type == BinType.UNSORTED:
+        if bin_type == BinType.UNSORTED:
             return self.unsortedbin(addr)
-        elif bin_type == BinType.SMALL:
+        if bin_type == BinType.SMALL:
             return self.smallbins(addr)
-        elif bin_type == BinType.LARGE:
+        if bin_type == BinType.LARGE:
             return self.largebins(addr)
-        else:
-            return None
+        return None
 
     def fastbin_index(self, size: int):
         if pwndbg.aglib.arch.ptrsize == 8:
             return (size >> 4) - 2
-        else:
-            return (size >> 3) - 2
+        return (size >> 3) - 2
 
     def fastbins(self, arena_addr: int | None = None) -> Bins | None:
         """Returns: chain or None"""
@@ -1268,7 +1258,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
         # this will break expected output during tests, so we skip it
         if (
-            pwndbg.glibc.get_version() >= (2, 42)
+            pwndbg.libc.version() >= (2, 42)
             and not hasattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued")
             and os.environ.get("PWNDBG_IN_TEST") is None
         ):
@@ -1288,7 +1278,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         entries = tcache["entries"]
 
         num_tcachebins = entries.type.sizeof // entries.type.target().sizeof
-        safe_lnk = pwndbg.glibc.check_safe_linking()
+        safe_lnk = pwndbg.libc.glibc.check_safe_linking(pwndbg.libc.version())
 
         def tidx2usize(idx: int):
             """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""
@@ -1298,7 +1288,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         for i in range(num_tcachebins):
             size = self._request2size(tidx2usize(i))
             count = int(counts[i])
-            if pwndbg.glibc.get_version() >= (2, 42):
+            if pwndbg.libc.version() >= (2, 42):
                 count = int(self.mp["tcache_count"]) - count
             chain = pwndbg.chain.get(
                 int(entries[i]),
@@ -1310,7 +1300,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             result.bins[size] = Bin(chain, count=count)
         return result
 
-    def check_chain_corrupted(self, chain_fd: List[int], chain_bk: List[int]) -> bool:
+    def check_chain_corrupted(self, chain_fd: list[int], chain_bk: list[int]) -> bool:
         """
         Checks if the doubly linked list (of a {unsorted, small, large} bin)
         defined by chain_fd, chain_bk is corrupted.
@@ -1325,21 +1315,20 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             # If the chain lengths aren't equal, the chain is corrupted
             # The vast majority of corruptions will be caught here
             return True
-        elif len(chain_fd) < 2 or len(chain_bk) < 2:
+        if len(chain_fd) < 2 or len(chain_bk) < 2:
             # Chains containing less than two entries are corrupted, as the smallest
             # chain (an empty bin) would look something like `[main_arena+88, 0]`.
             return True
-        elif len(chain_fd) == len(chain_bk) == 2:
+        if len(chain_fd) == len(chain_bk) == 2:
             # Check if the bin points to itself (is empty)
 
             if chain_fd != chain_bk:
                 return True
-            elif chain_fd[-1] != 0:
+            if chain_fd[-1] != 0:
                 return True
-            else:
-                bin_chk = Chunk(chain_fd[0])
-                if not (bin_chk.fd == bin_chk.bk == chain_fd[0]):
-                    return True
+            bin_chk = Chunk(chain_fd[0])
+            if not (bin_chk.fd == bin_chk.bk == chain_fd[0]):
+                return True
 
         else:
             chain_sz = len(chain_fd) - (1 if chain_fd[-1] == 0 else 0)
@@ -1373,7 +1362,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
     def bin_at(
         self, index: int, arena_addr: int | None = None
-    ) -> Tuple[List[int], List[int], bool] | None:
+    ) -> tuple[list[int], list[int], bool] | None:
         """
         Modeled after glibc's bin_at function - so starts indexing from 1
         https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-security/view/head:/malloc/malloc.c#L1394
@@ -1551,10 +1540,9 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         """Pick the appropriate largebin_index_ function for this architecture."""
         if pwndbg.aglib.arch.ptrsize == 8:
             return self.largebin_index_64(sz)
-        elif self.malloc_alignment == 16:
+        if self.malloc_alignment == 16:
             return self.largebin_index_32_big(sz)
-        else:
-            return self.largebin_index_32(sz)
+        return self.largebin_index_32(sz)
 
     def is_initialized(self):
         raise NotImplementedError()
@@ -1562,21 +1550,10 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     def is_statically_linked(self) -> bool:
         return not pwndbg.dbg.selected_inferior().is_dynamically_linked()
 
-    def libc_has_debug_syms(self) -> bool:
-        """
-        The `struct malloc_chunk` comes from debugging symbols and it will not be there
-        for statically linked binaries
-        """
-        return (
-            pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
-            and pwndbg.aglib.symbol.lookup_symbol_addr("global_max_fast", prefer_static=True)
-            is not None
-        )
-
 
 class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Value]):
     def can_be_resolved(self) -> bool:
-        if not self.libc_has_debug_syms():
+        if not pwndbg.libc.has_debug_info():
             return False
         # Check if thread_arena is needed and available, but if the binary is not multithreaded, then we don't care
         # Note: it's possible that we unstripped the libc but still don't have libthread_db.so
@@ -1614,8 +1591,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
                 if thread_arena_value:
                     return Arena(pwndbg.aglib.memory.read_pointer_width(thread_arena_addr))
             return None
-        else:
-            return self.main_arena
+        return self.main_arena
 
     @property
     def thread_cache(self) -> pwndbg.dbg_mod.Value | None:
@@ -1763,23 +1739,25 @@ class SymbolUnresolvableError(Exception):
 
 class HeuristicHeap(
     GlibcMemoryAllocator[
-        typing.Type["pwndbg.aglib.heap.structs.CStruct2GDB"],
+        type["pwndbg.aglib.heap.structs.CStruct2GDB"],
         "pwndbg.aglib.heap.structs.CStruct2GDB",
     ]
 ):
     def __init__(self) -> None:
         super().__init__()
         self._structs_module: types.ModuleType | None = None
-        self._thread_arena_values: Dict[int, int] = {}
-        self._thread_caches: Dict[int, Any] = {}
+        self._thread_arena_values: dict[int, int] = {}
+        self._thread_caches: dict[int, Any] = {}
 
     @property
     def struct_module(self) -> types.ModuleType | None:
-        if not self._structs_module and pwndbg.glibc.get_version():
+        if not self._structs_module and pwndbg.libc.version() != (-1, -1):
             try:
                 self._structs_module = importlib.reload(
                     importlib.import_module("pwndbg.aglib.heap.structs")
                 )
+            except AssertionError:
+                raise
             except Exception:
                 pass
         return self._structs_module
@@ -1801,8 +1779,8 @@ class HeuristicHeap(
                 data_section = pwndbg.aglib.proc.dump_elf_data_section()
                 data_section_address = pwndbg.aglib.proc.get_section_address_by_name(".data")
             else:
-                data_section = pwndbg.glibc.dump_elf_data_section()
-                data_section_address = pwndbg.glibc.get_section_address_by_name(".data")
+                data_section = pwndbg.libc.section_by_name(".data")
+                data_section_address = pwndbg.libc.section_address_by_name(".data")
             if data_section and data_section_address:
                 data_section_offset, size, data_section_data = data_section
                 # Try to find the default main_arena struct in the .data section
@@ -1829,7 +1807,7 @@ class HeuristicHeap(
                             section_name
                         )
                     else:
-                        relocations = pwndbg.glibc.dump_relocations_by_section_name(section_name)
+                        relocations = pwndbg.libc.relocations_by_section_name(section_name)
                     if not relocations:
                         continue
 
@@ -1900,12 +1878,12 @@ class HeuristicHeap(
         # TODO/FIXME: Can we determine the tcache_bins existence more reliable?
 
         # There is no debug symbols, we determine the tcache_bins existence by checking glibc version only
-        return self.is_initialized() and pwndbg.glibc.get_version() >= (2, 26)
+        return self.is_initialized() and pwndbg.libc.version() >= (2, 26)
 
     def prompt_for_brute_force_thread_arena_permission(self) -> bool:
         """Check if the user wants to brute force the thread_arena's value."""
         print(
-            message.notice("We cannot determine the %s\n" % message.hint("thread_arena"))
+            message.notice("We cannot determine the {}\n".format(message.hint("thread_arena")))
             + message.notice(
                 "Will you want to brute force it in the memory to determine the address? (y/N)\n"
             )
@@ -1918,7 +1896,7 @@ class HeuristicHeap(
     def prompt_for_brute_force_thread_cache_permission(self) -> bool:
         """Check if the user wants to brute force the tcache's value."""
         print(
-            message.notice("We cannot determine the %s\n" % message.hint("tcache"))
+            message.notice("We cannot determine the {}\n".format(message.hint("tcache")))
             + message.notice(
                 "Will you want to brute force it in the memory to determine the address instead of assuming it's at the beginning of the current thread's heap? (y/N)\n"
             )
@@ -1947,14 +1925,14 @@ class HeuristicHeap(
 
     def brute_force_tls_reference_in_got_section(
         self, tls_address: int, validator: Callable[[int], bool]
-    ) -> Tuple[int, int] | None:
+    ) -> tuple[int, int] | None:
         """Brute force the TLS-reference in the .got section to that can pass the validator."""
         # Note: This highly depends on the correctness of the TLS address
         print(message.notice("Brute forcing the TLS-reference in the .got section..."))
         if self.is_statically_linked():
             got_address = pwndbg.aglib.proc.get_section_address_by_name(".got")
         else:
-            got_address = pwndbg.glibc.get_section_address_by_name(".got")
+            got_address = pwndbg.libc.section_address_by_name(".got")
         if not got_address:
             print(message.warn("Cannot find the address of the .got section."))
             return None
@@ -1977,7 +1955,7 @@ class HeuristicHeap(
 
     def brute_force_thread_local_variable_near_tls_base(
         self, tls_address: int, validator: Callable[[int], bool]
-    ) -> Tuple[int, int] | None:
+    ) -> tuple[int, int] | None:
         """Brute force the thread-local variable near the TLS base address that can pass the validator."""
         print(
             message.notice(
@@ -2063,7 +2041,7 @@ class HeuristicHeap(
             return self.main_arena
 
     @property
-    def thread_cache(self) -> "pwndbg.aglib.heap.structs.TcachePerthreadStruct" | None:
+    def thread_cache(self) -> pwndbg.aglib.heap.structs.TcachePerthreadStruct | None:
         """Locate a thread's tcache struct. We try to find its address in Thread Local Storage (TLS) first,
         and if that fails, we guess it's at the first chunk of the heap.
         """
@@ -2078,7 +2056,7 @@ class HeuristicHeap(
         if thread_cache_via_config:
             self._thread_cache = tps(thread_cache_via_config)
             return self._thread_cache
-        elif thread_cache_via_symbol:
+        if thread_cache_via_symbol:
             thread_cache_struct_addr = pwndbg.aglib.memory.read_pointer_width(
                 thread_cache_via_symbol
             )
@@ -2147,7 +2125,7 @@ class HeuristicHeap(
         return self._thread_cache
 
     @property
-    def mp(self) -> "pwndbg.aglib.heap.structs.CStruct2GDB":
+    def mp(self) -> pwndbg.aglib.heap.structs.CStruct2GDB:
         mp_via_config = int(str(pwndbg.config.mp), 0)
         mp_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr("mp_", prefer_static=True)
         if mp_via_config or mp_via_symbol:
@@ -2158,9 +2136,9 @@ class HeuristicHeap(
                 section = pwndbg.aglib.proc.dump_elf_data_section()
                 section_address = pwndbg.aglib.proc.get_section_address_by_name(".data")
             else:
-                section = pwndbg.glibc.dump_elf_data_section()
-                section_address = pwndbg.glibc.get_section_address_by_name(".data")
-            if section and section_address:
+                section = pwndbg.libc.section_by_name(".data")
+                section_address = pwndbg.libc.section_address_by_name(".data")
+            if section is not None and section_address:
                 _, _, data = section
 
                 # try to find the default mp_ struct in the .data section
@@ -2193,7 +2171,7 @@ class HeuristicHeap(
         default = (64 * self.size_sz // 4 + self.size_sz) & ~self.malloc_align_mask
         print(
             message.warn(
-                "global_max_fast symbol not found, using the default value: 0x%x" % default
+                f"global_max_fast symbol not found, using the default value: 0x{default:x}"
             )
         )
         print(
@@ -2205,21 +2183,21 @@ class HeuristicHeap(
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def heap_info(self) -> Type["pwndbg.aglib.heap.structs.HeapInfo"] | None:
+    def heap_info(self) -> type[pwndbg.aglib.heap.structs.HeapInfo] | None:
         if not self.struct_module:
             return None
         return self.struct_module.HeapInfo
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def malloc_chunk(self) -> Type["pwndbg.aglib.heap.structs.MallocChunk"] | None:
+    def malloc_chunk(self) -> type[pwndbg.aglib.heap.structs.MallocChunk] | None:
         if not self.struct_module:
             return None
         return self.struct_module.MallocChunk
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def malloc_state(self) -> Type["pwndbg.aglib.heap.structs.MallocState"] | None:
+    def malloc_state(self) -> type[pwndbg.aglib.heap.structs.MallocState] | None:
         if not self.struct_module:
             return None
         return self.struct_module.MallocState
@@ -2228,39 +2206,39 @@ class HeuristicHeap(
     @pwndbg.lib.cache.cache_until("objfile")
     def tcache_perthread_struct(
         self,
-    ) -> Type["pwndbg.aglib.heap.structs.TcachePerthreadStruct"] | None:
+    ) -> type[pwndbg.aglib.heap.structs.TcachePerthreadStruct] | None:
         if not self.struct_module:
             return None
         return self.struct_module.TcachePerthreadStruct
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def tcache_entry(self) -> Type["pwndbg.aglib.heap.structs.TcacheEntry"] | None:
+    def tcache_entry(self) -> type[pwndbg.aglib.heap.structs.TcacheEntry] | None:
         if not self.struct_module:
             return None
         return self.struct_module.TcacheEntry
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def mallinfo(self) -> Type["pwndbg.aglib.heap.structs.CStruct2GDB"] | None:
+    def mallinfo(self) -> type[pwndbg.aglib.heap.structs.CStruct2GDB] | None:
         # TODO/FIXME: Currently, we don't need to create a new class for `struct mallinfo` because we never use it.
         raise NotImplementedError("`struct mallinfo` is not implemented yet.")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def malloc_par(self) -> Type["pwndbg.aglib.heap.structs.MallocPar"] | None:
+    def malloc_par(self) -> type[pwndbg.aglib.heap.structs.MallocPar] | None:
         if not self.struct_module:
             return None
         return self.struct_module.MallocPar
 
-    def get_heap(self, addr: int) -> "pwndbg.aglib.heap.structs.HeapInfo" | None:
+    def get_heap(self, addr: int) -> pwndbg.aglib.heap.structs.HeapInfo | None:
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
         hi = self.heap_info
         return hi(heap_for_ptr(addr))
 
     def get_tcache(
         self, tcache_addr: int | None = None
-    ) -> "pwndbg.aglib.heap.structs.TcachePerthreadStruct" | None:
+    ) -> pwndbg.aglib.heap.structs.TcachePerthreadStruct | None:
         if tcache_addr is None:
             return self.thread_cache
 
@@ -2298,10 +2276,8 @@ class HeuristicHeap(
                 sbrk_region.vaddr = sbrk_base
 
                 return sbrk_region
-            else:
-                raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
-        else:
-            raise SymbolUnresolvableError("mp_")
+            raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
+        raise SymbolUnresolvableError("mp_")
 
     def is_initialized(self) -> bool:
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.

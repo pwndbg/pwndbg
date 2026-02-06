@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import dataclass
-from typing import Tuple
 
 BASE_PATH = os.path.join("docs", "commands")
 
@@ -19,8 +18,8 @@ class ExtractedCommand:
     notes: str
     pure_epilog: str
     usage: str
-    positionals: list[Tuple[str, str]]
-    optionals: list[Tuple[str, str, str]]
+    positionals: list[tuple[str, str]]
+    optionals: list[tuple[str, str, str]]
     subcommands: list[ExtractedCommand]
 
 

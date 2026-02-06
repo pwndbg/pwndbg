@@ -7,9 +7,9 @@ from __future__ import annotations
 import os
 import subprocess
 import typing
-from typing import Dict
+from pathlib import Path
+from typing import Any
 from typing import Literal
-from typing import Tuple
 
 import gdb
 import pytest
@@ -43,7 +43,7 @@ COMPILATION_TARGETS: list[COMPILATION_TARGETS_TYPE] = list(
 )
 
 # Tuple contains (Zig target,extra_cli_args,qemu_suffix),
-COMPILE_AND_RUN_INFO: Dict[COMPILATION_TARGETS_TYPE, Tuple[str, Tuple[str, ...], str]] = {
+COMPILE_AND_RUN_INFO: dict[COMPILATION_TARGETS_TYPE, tuple[str, tuple[str, ...], str]] = {
     "aarch64": ("aarch64-freestanding", (), "aarch64"),
     "aarch64_be": ("aarch64_be-freestanding", (), "aarch64_be"),
     "arm": ("arm-freestanding", (), "arm"),
@@ -82,7 +82,6 @@ def reserve_port(ip: str = "127.0.0.1", port: int = 0) -> str:
     import errno
     from socket import SO_REUSEADDR
     from socket import SOL_SOCKET
-    from socket import error as SocketError
     from socket import socket
 
     port = int(port)
@@ -90,7 +89,7 @@ def reserve_port(ip: str = "127.0.0.1", port: int = 0) -> str:
         s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         try:
             s.bind((ip, port))
-        except SocketError as e:
+        except OSError as e:
             # socket.error: EADDRINUSE Address already in use
             if e.errno == errno.EADDRINUSE and port != 0:
                 s.bind((ip, 0))
@@ -130,7 +129,7 @@ def qemu_assembly_run():
 
     ensure_qemu_port()
 
-    qemu: subprocess.Popen = None
+    qemu: subprocess.Popen[Any] | None = None
 
     def _start_binary(asm: str, arch: COMPILATION_TARGETS_TYPE):
         nonlocal qemu
@@ -142,14 +141,14 @@ def qemu_assembly_run():
 
         # Place assembly and compiled binary in a temporary folder
         # named /tmp/pwndbg-*
-        tmpdir = tempfile.tempdir()
+        tmpdir: Path = tempfile.tempdir()
 
-        asm_file = os.path.join(tmpdir, "input.S")
+        asm_file: Path = tmpdir / "input.S"
 
         with open(asm_file, "w") as f:
             f.write(asm)
 
-        compiled_file = os.path.join(tmpdir, "out.elf")
+        compiled_file: Path = tmpdir / "out.elf"
 
         # Build the binary with Zig
         zig_executable = get_zig_executable()
@@ -159,14 +158,13 @@ def qemu_assembly_run():
                 "cc",
                 *extra_cli_args,
                 f"--target={zig_target}",
-                asm_file,
+                str(asm_file),
                 "-o",
-                compiled_file,
+                str(compiled_file),
             ],
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
+            capture_output=True,
+            text=True,
         )
 
         if compile_process.returncode != 0:
@@ -196,6 +194,7 @@ def qemu_assembly_run():
 
     yield _start_binary
 
+    assert qemu is not None
     qemu.kill()
 
 
@@ -207,7 +206,7 @@ def qemu_start_binary():
     Argument `path` is the path to the binary
     """
 
-    qemu: subprocess.Popen = None
+    qemu: subprocess.Popen[Any] | None = None
 
     ensure_qemu_port()
 
@@ -243,4 +242,5 @@ def qemu_start_binary():
 
     yield _start_binary
 
+    assert qemu is not None
     qemu.kill()

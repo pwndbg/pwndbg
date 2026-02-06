@@ -13,7 +13,7 @@ Since you need to be able to use plugins in your decompiler, this means you need
 
 To install the appropriate decompiler plugin simply run
 ```{.bash .copy}
-di install <name of your decompiler>
+di install ida|binja|ghidra|angr
 ```
 inside of Pwndbg, and you are ready to go. For more information, see `di install --help`. **Do not install decomp2dbg manually**, because we take care to get the proper version and set up symlinks. If you already have it installed, `di install` will override that cleanly. You are still able to use decomp2dbg outside of Pwndbg, even if you install it Pwndbg's `di install`.
 
@@ -29,7 +29,7 @@ di sync
 ```
 manually after you start the debugged process.
 
-Since syncing symbols with the decompiler can be expensive, we do not do it automatically by default. So, everytime you want to sync functions / global variables with the decompiler, simply re-run `di sync`. If you want this to be automatic, check out `help set decompiler-autosync-syms`. Function-local variables are synced automatically by default.
+Syncing symbols with the decompiler can be expensive so we do not do it automatically by default. So, everytime you want to sync functions / global variables with the decompiler, simply re-run `di sync`. If you want this to be automatic, check out `help set decompiler-autosync-syms`. Function-local variables are synced automatically by default.
 
 ## Features
 

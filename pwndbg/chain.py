@@ -4,8 +4,6 @@ Dereference and format pointer chains.
 
 from __future__ import annotations
 
-from typing import List
-
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
@@ -40,7 +38,7 @@ def get(
     hard_end: int = 0,
     include_start: bool = True,
     safe_linking: bool = False,
-) -> List[int] | None:
+) -> list[int] | None:
     """
     Recursively dereferences an address. For bare metal, it will stop when the address is not in any of vmmap pages to avoid redundant dereference.
 
@@ -102,7 +100,7 @@ config_contiguous = theme.add_param(
 
 
 def format(
-    value: int | List[int] | None,
+    value: int | list[int] | None,
     limit: int = LIMIT,
     code: bool = True,
     offset: int = 0,

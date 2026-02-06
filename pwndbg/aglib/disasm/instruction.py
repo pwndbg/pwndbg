@@ -3,69 +3,67 @@ from __future__ import annotations
 import typing
 from collections import defaultdict
 from enum import Enum
-from typing import Dict
-from typing import List
 from typing import Protocol
-from typing import Set
 
 import pwnlib
-from capstone import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
 
 # Reverse lookup tables for debug printing
-from capstone import CS_AC
-from capstone import CS_GRP
-from capstone import CS_OP
-from capstone.aarch64 import AARCH64_INS_BL
-from capstone.aarch64 import AARCH64_INS_BLR
-from capstone.aarch64 import AARCH64_INS_BR
-from capstone.arm import ARM_INS_TBB
-from capstone.arm import ARM_INS_TBH
-from capstone.loongarch import LOONGARCH_INS_ALIAS_JR
-from capstone.loongarch import LOONGARCH_INS_B
-from capstone.loongarch import LOONGARCH_INS_BL
-from capstone.loongarch import LOONGARCH_INS_CALL36
-from capstone.loongarch import LOONGARCH_INS_JIRL
-from capstone.mips import MIPS_INS_ALIAS_B
-from capstone.mips import MIPS_INS_ALIAS_BAL
-from capstone.mips import MIPS_INS_B
-from capstone.mips import MIPS_INS_BAL
-from capstone.mips import MIPS_INS_BLTZAL
-from capstone.mips import MIPS_INS_J
-from capstone.mips import MIPS_INS_JAL
-from capstone.mips import MIPS_INS_JALR
-from capstone.mips import MIPS_INS_JALR_HB
-from capstone.mips import MIPS_INS_JR
-from capstone.ppc import PPC_INS_B
-from capstone.ppc import PPC_INS_BA
-from capstone.ppc import PPC_INS_BL
-from capstone.ppc import PPC_INS_BLA
-from capstone.riscv import RISCV_INS_C_J
-from capstone.riscv import RISCV_INS_C_JAL
-from capstone.riscv import RISCV_INS_C_JALR
-from capstone.riscv import RISCV_INS_C_JR
-from capstone.riscv import RISCV_INS_JAL
-from capstone.riscv import RISCV_INS_JALR
-from capstone.sparc import SPARC_INS_ALIAS_CALL
-from capstone.sparc import SPARC_INS_CALL
-from capstone.sparc import SPARC_INS_JMPL
-from capstone.systemz import SYSTEMZ_INS_B
-from capstone.systemz import SYSTEMZ_INS_BAL
-from capstone.systemz import SYSTEMZ_INS_BALR
-from capstone.systemz import SYSTEMZ_INS_BR
-from capstone.systemz import SYSTEMZ_INS_BRAS
-from capstone.systemz import SYSTEMZ_INS_BRASL
-from capstone.systemz import SYSTEMZ_INS_J
-from capstone.systemz import SYSTEMZ_INS_JL
-from capstone.x86 import X86_INS_CALL
-from capstone.x86 import X86_INS_JMP
-from capstone.x86 import X86_INS_RET
-from capstone.x86 import X86Op
+from capstone6pwndbg import CS_AC
+from capstone6pwndbg import CS_GRP
+from capstone6pwndbg import CS_OP
+from capstone6pwndbg.aarch64 import AARCH64_INS_BL
+from capstone6pwndbg.aarch64 import AARCH64_INS_BLR
+from capstone6pwndbg.aarch64 import AARCH64_INS_BR
+from capstone6pwndbg.arm import ARM_INS_TBB
+from capstone6pwndbg.arm import ARM_INS_TBH
+from capstone6pwndbg.loongarch import LOONGARCH_INS_ALIAS_JR
+from capstone6pwndbg.loongarch import LOONGARCH_INS_B
+from capstone6pwndbg.loongarch import LOONGARCH_INS_BL
+from capstone6pwndbg.loongarch import LOONGARCH_INS_CALL36
+from capstone6pwndbg.loongarch import LOONGARCH_INS_JIRL
+from capstone6pwndbg.mips import MIPS_INS_ALIAS_B
+from capstone6pwndbg.mips import MIPS_INS_ALIAS_BAL
+from capstone6pwndbg.mips import MIPS_INS_B
+from capstone6pwndbg.mips import MIPS_INS_BAL
+from capstone6pwndbg.mips import MIPS_INS_BLTZAL
+from capstone6pwndbg.mips import MIPS_INS_J
+from capstone6pwndbg.mips import MIPS_INS_JAL
+from capstone6pwndbg.mips import MIPS_INS_JALR
+from capstone6pwndbg.mips import MIPS_INS_JALR_HB
+from capstone6pwndbg.mips import MIPS_INS_JR
+from capstone6pwndbg.ppc import PPC_INS_B
+from capstone6pwndbg.ppc import PPC_INS_BA
+from capstone6pwndbg.ppc import PPC_INS_BL
+from capstone6pwndbg.ppc import PPC_INS_BLA
+from capstone6pwndbg.riscv import RISCV_INS_C_J
+from capstone6pwndbg.riscv import RISCV_INS_C_JAL
+from capstone6pwndbg.riscv import RISCV_INS_C_JALR
+from capstone6pwndbg.riscv import RISCV_INS_C_JR
+from capstone6pwndbg.riscv import RISCV_INS_JAL
+from capstone6pwndbg.riscv import RISCV_INS_JALR
+from capstone6pwndbg.sparc import SPARC_INS_ALIAS_BA
+from capstone6pwndbg.sparc import SPARC_INS_ALIAS_CALL
+from capstone6pwndbg.sparc import SPARC_INS_CALL
+from capstone6pwndbg.sparc import SPARC_INS_JMPL
+from capstone6pwndbg.systemz import SYSTEMZ_INS_B
+from capstone6pwndbg.systemz import SYSTEMZ_INS_BAL
+from capstone6pwndbg.systemz import SYSTEMZ_INS_BALR
+from capstone6pwndbg.systemz import SYSTEMZ_INS_BR
+from capstone6pwndbg.systemz import SYSTEMZ_INS_BRAS
+from capstone6pwndbg.systemz import SYSTEMZ_INS_BRASL
+from capstone6pwndbg.systemz import SYSTEMZ_INS_J
+from capstone6pwndbg.systemz import SYSTEMZ_INS_JL
+from capstone6pwndbg.x86 import X86_INS_CALL
+from capstone6pwndbg.x86 import X86_INS_JMP
+from capstone6pwndbg.x86 import X86_INS_RET
+from capstone6pwndbg.x86 import X86Op
 from typing_extensions import override
 
 from pwndbg.dbg_mod import DisassembledInstruction
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally
-UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
+UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
     CS_ARCH_X86: {X86_INS_CALL, X86_INS_RET, X86_INS_JMP},
     CS_ARCH_MIPS: {
         MIPS_INS_J,
@@ -78,7 +76,12 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
         MIPS_INS_B,
         MIPS_INS_ALIAS_B,
     },
-    CS_ARCH_SPARC: {SPARC_INS_CALL, SPARC_INS_ALIAS_CALL, SPARC_INS_JMPL},
+    CS_ARCH_SPARC: {
+        SPARC_INS_CALL,
+        SPARC_INS_ALIAS_CALL,
+        SPARC_INS_JMPL,
+        SPARC_INS_ALIAS_BA,
+    },
     CS_ARCH_ARM: {
         ARM_INS_TBB,
         ARM_INS_TBH,
@@ -113,7 +116,7 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
 }
 
 # See: https://github.com/capstone-engine/capstone/issues/2448
-BRANCH_AND_LINK_INSTRUCTIONS: Dict[int, Set[int]] = defaultdict(set)
+BRANCH_AND_LINK_INSTRUCTIONS: dict[int, set[int]] = defaultdict(set)
 BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
     MIPS_INS_BAL,
     MIPS_INS_BLTZAL,
@@ -171,9 +174,9 @@ class PwndbgInstruction(Protocol):
     size: int
     mnemonic: str
     op_str: str
-    groups: Set[int]
+    groups: set[int]
     id: int
-    operands: List[EnhancedOperand]
+    operands: list[EnhancedOperand]
     asm_string: str
     next: int
     target: int
@@ -189,7 +192,7 @@ class PwndbgInstruction(Protocol):
     causes_branch_delay: bool
     split: SplitType
     emulated: bool
-    register_writes: Dict[int, int]
+    register_writes: dict[int, int]
 
     @property
     def call_like(self) -> bool: ...
@@ -249,7 +252,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Ex: 'RAX, RDX'
         """
 
-        self.groups: Set[int] = set(cs_insn.groups)
+        self.groups: set[int] = set(cs_insn.groups)
         """
         Capstone instruction groups that we belong to.
         Groups that apply to all architectures: CS_GRP_INVALID | CS_GRP_JUMP | CS_GRP_CALL | CS_GRP_RET | CS_GRP_INT | CS_GRP_IRET | CS_GRP_PRIVILEGE | CS_GRP_BRANCH_RELATIVE
@@ -269,7 +272,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         if self.cs_insn._cs.arch == CS_ARCH_X86 and self.cs_insn._cs.syntax == CS_OPT_SYNTAX_ATT:
             self.cs_insn.operands.reverse()
 
-        self.operands: List[EnhancedOperand] = [EnhancedOperand(op) for op in self.cs_insn.operands]
+        self.operands: list[EnhancedOperand] = [EnhancedOperand(op) for op in self.cs_insn.operands]
 
         # ***********
         # The following member variables are set during instruction enhancement
@@ -540,7 +543,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
         Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else "None"}
-        Raw asm: {"%-06s %s" % (self.mnemonic, self.op_str)}
+        Raw asm: f"{self.mnemonic:-<6} {self.op_str}"
         New asm: {self.asm_string}
         Next: {self.next:#x}
         Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}
@@ -573,6 +576,9 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         if hasattr(self.cs_insn, "cc"):
             info += f"\n\tARM condition code: {self.cs_insn.cc}"
             info += f"\n\tThumb mode: {1 if self.cs_insn._cs._mode & CS_MODE_THUMB else 0}"
+
+        if hasattr(self.cs_insn, "cc_field"):
+            info += f"\n\tSPARC cc_field: {self.cs_insn.cc_field}"
 
         return info
 
