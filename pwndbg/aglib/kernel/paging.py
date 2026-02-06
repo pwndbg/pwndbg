@@ -503,6 +503,7 @@ class x86_64PagingInfo(ArchPagingInfo):
     def slab_to_virt(self, slab: int) -> int:
         a = pwndbg.aglib.typeinfo.load("struct slab")
         # default is true for mitigation-6.12
+        # TODO: use heuristics to derive the size of the struct
         slab_size = (14 * pwndbg.aglib.arch.ptrsize) if not a else a.sizeof
         idx = (slab - self.slab_virtual) // slab_size
         return self.SLAB_DATA_BASE_ADDR + self.page_size * idx

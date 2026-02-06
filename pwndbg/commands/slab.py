@@ -48,12 +48,8 @@ parser_info.add_argument("names", metavar="name", type=str, nargs="+", help="")
 parser_info.add_argument("-v", "--verbose", action="store_true", help="")
 parser_info.add_argument("-c", "--cpu", type=int, help="CPU to display")
 parser_info.add_argument("-n", "--node", type=int, help="")
-parser_info.add_argument(
-    "-p", "--partial-only", action="store_true", help="only displays partial lists"
-)
-parser_info.add_argument(
-    "-a", "--active-only", action="store_true", help="only displays the active list"
-)
+parser_info.add_argument("-p", "--partial", action="store_true", help="displays partial lists")
+parser_info.add_argument("-a", "--active", action="store_true", help="displays the active list")
 
 parser_contains = subparsers.add_parser("contains", description="Get the cache for an address.")
 parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", help="")
@@ -64,28 +60,22 @@ parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", h
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def slab(
-    command,
-    filter_=None,
-    names=[],
-    verbose=False,
-    addresses=[],
-    cpu=None,
-    node=None,
-    partial_only=False,
-    active_only=False,
+    command: str,
+    names: list[str],
+    addresses: list[str],
+    filter_: str | None,
+    verbose: bool = False,
+    cpu: int | None = None,
+    node: int | None = None,
+    partial: bool = False,
+    active: bool = False,
 ) -> None:
     pwndbg.aglib.kernel.slab.recover_slab_typeinfo()
     if command == "list":
         slab_list(filter_)
     elif command == "info":
-        partial, active = True, True
-        if partial_only and active_only:
-            print(message.warn("partial_only and active_only are both specified"))
-            return
-        if partial_only:
-            active = False
-        if active_only:
-            partial = False
+        if not partial and not active:
+            partial = active = True
         for name in names:
             slab_info(name, verbose, cpu, node, active, partial)
     elif command == "contains":
