@@ -61,7 +61,7 @@ parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", h
 @pwndbg.commands.OnlyWhenPagingEnabled
 def slab(
     command: str,
-    filter_: str | None,
+    filter_: str | None = None,
     names: list[str] | None = None,
     verbose: bool = False,
     addresses: list[str] | None = None,
