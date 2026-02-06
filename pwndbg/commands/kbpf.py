@@ -4,7 +4,10 @@ import argparse
 import math
 import re
 
-import capstone
+from capstone6pwndbg import CS_ARCH_BPF
+from capstone6pwndbg import CS_MODE_BPF_EXTENDED
+from capstone6pwndbg import CS_MODE_LITTLE_ENDIAN
+from capstone6pwndbg import Cs
 
 import pwndbg
 import pwndbg.aglib.kernel
@@ -147,9 +150,9 @@ def print_bpf_progs(verbose):
                 desc = f"func @ {indent.aux_hex(func)} (jited_len: {indent.aux_hex(jited_len)}), aux @ {indent.aux_hex(aux)}"
                 indent.print(desc)
                 if verbose > 0:
-                    cs = capstone.Cs(
-                        capstone.CS_ARCH_BPF,
-                        capstone.CS_MODE_LITTLE_ENDIAN | capstone.CS_MODE_BPF_EXTENDED,
+                    cs = Cs(
+                        CS_ARCH_BPF,
+                        CS_MODE_LITTLE_ENDIAN | CS_MODE_BPF_EXTENDED,
                     )
                     num_insns = int(bpf_prog["len"])
                     insns = int(bpf_prog["insns"].address)

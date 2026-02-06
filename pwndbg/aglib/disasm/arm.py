@@ -6,8 +6,8 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 from typing import Literal
 
-from capstone import *  # noqa: F403
-from capstone.arm import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.arm import *  # noqa: F403
 from pwnlib.util.misc import align_down
 from typing_extensions import override
 

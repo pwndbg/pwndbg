@@ -6,7 +6,7 @@ authors = [{ name = "Dominik 'disconnect3d' Czarnota", email = "dominik.b.czarno
 requires-python = ">=3.10, <4"
 readme = "README.md"
 dependencies = [
-    "capstone==6.0.0a6",
+    "capstone6pwndbg==6.0.0a6",
     "unicorn>=2.1.4,<3",
     "pwntools>=4.14.1,<5",
     "sortedcontainers>=2.4.0,<3",
@@ -156,7 +156,7 @@ builtins-ignorelist = [
 [tool.ruff.lint.isort]
 force-single-line = true
 known-third-party = [
-    "capstone",
+    "capstone6pwndbg",
     "unicorn",
     "pycparser",
     "gdb",
@@ -251,7 +251,7 @@ disable_error_code = ["index", "name-defined", "attr-defined"]
 
 [[tool.mypy.overrides]]
 module = [
-    "capstone.*",
+    "capstone6pwndbg.*",
     "unicorn.*",
     "pwnlib.*",
     "ropgadget.*",
