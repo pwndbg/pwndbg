@@ -61,10 +61,10 @@ parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", h
 @pwndbg.commands.OnlyWhenPagingEnabled
 def slab(
     command: str,
-    names: list[str],
-    addresses: list[str],
     filter_: str | None,
+    names: list[str] | None = None,
     verbose: bool = False,
+    addresses: list[str] | None = None,
     cpu: int | None = None,
     node: int | None = None,
     partial: bool = False,
@@ -74,11 +74,13 @@ def slab(
     if command == "list":
         slab_list(filter_)
     elif command == "info":
+        assert names
         if not partial and not active:
             partial = active = True
         for name in names:
             slab_info(name, verbose, cpu, node, active, partial)
     elif command == "contains":
+        assert addresses
         for addr in addresses:
             slab_contains(addr)
 
