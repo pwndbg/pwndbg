@@ -33,6 +33,7 @@ import pwndbg.lib.memory
 import pwndbg.lib.path
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import selection
+from pwndbg.lib import TypeNotFound
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.regs import reg_sets
@@ -1581,8 +1582,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         try:
             tls_base_typed = pwndbg.aglib.memory.get_typed_pointer("typedef tcbhead_t", tls_base)
-        except ValueError:
-            # We get a ValueError here if glibc does not have debug info.
+        except TypeNotFound:
+            # We get a TypeNotFound here if glibc does not have debug info.
             return None
 
         for module_id in range(self.target.GetNumModules() + 1):

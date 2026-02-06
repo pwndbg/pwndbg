@@ -9,7 +9,7 @@ import re
 import string
 from typing import NamedTuple
 
-import capstone as C
+import capstone6pwndbg as C
 import unicorn as U
 import unicorn.ppc_const
 

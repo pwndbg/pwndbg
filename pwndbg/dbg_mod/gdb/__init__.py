@@ -1651,11 +1651,20 @@ class GDB(pwndbg.dbg_mod.Debugger):
             is_home_loaded = True
 
         disable_local = not gdb.parameter("auto-load local-gdbinit")
-        should_load_local = (
-            not disable_local
-            and local_file.exists()
-            and not (is_home_loaded and home_file.samefile(local_file))
-        )
+        try:
+            should_load_local = (
+                not disable_local
+                and local_file.exists()
+                and not (is_home_loaded and home_file.samefile(local_file))
+            )
+        except PermissionError:
+            print(
+                message.warn(
+                    f"WARNING: Skipped loading {local_file} because you don't have the correct permissions."
+                )
+            )
+            should_load_local = False
+
         if should_load_local:
             load_source("./.gdbinit")
 

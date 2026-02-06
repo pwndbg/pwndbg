@@ -1011,7 +1011,7 @@ Whether to skip repeating lines in vis command output.
 
 
 
-**Default:** on  
+**Default:** off  
 
 ----------
 

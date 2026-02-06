@@ -32,6 +32,7 @@ from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
 from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
+from pwndbg.lib import TypeNotRecovered
 
 log = logging.getLogger(__name__)
 
@@ -520,8 +521,9 @@ class CommandObj:
                 print("Feel free to re-enable manually.")
             else:
                 print()
-        except pwndbg.aglib.kernel.TypeNotRecovered as e:
-            print(message.warn(f"recovering {e.name} failed with error:\n{e}"))
+        except TypeNotRecovered as e:
+            print(message.error(f"recovering {e.name} failed with error:"))
+            print(e)
             if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
                 print(
                     message.warn(

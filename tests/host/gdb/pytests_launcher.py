@@ -15,6 +15,21 @@ from ... import host
 
 
 class _GDBController(host.Controller):
+    def _gdb_execute(self, command: str) -> None:
+        """Execute a GDB command and print the command to output."""
+        print(f"pwndbg> {command}")
+        gdb.execute(command)
+
+    def _show_context(self) -> None:
+        """
+        Display context after stops during tests.
+
+        We run the context command directly instead of using prompt_hook()
+        because prompt_hook() also fires events via after_reload(), which
+        can cause event handlers to trigger multiple times.
+        """
+        self._gdb_execute("context")
+
     async def launch(
         self, binary_path: Path, args: list[str] = [], env: dict[str, str] = {}
     ) -> None:
@@ -28,45 +43,52 @@ class _GDBController(host.Controller):
             pytest.skip(f"{os.path.basename(binary_path)} does not exist. Platform not supported.")
 
         os.environ["PWNDBG_IN_TEST"] = "1"
-        gdb.execute(f"file {binary_path}")
-        gdb.execute("set exception-verbose on")
-        gdb.execute("set width 80")
-        gdb.execute("set context-reserve-lines never")
+        self._gdb_execute(f"file {binary_path}")
+        self._gdb_execute("set exception-verbose on")
+        self._gdb_execute("set width 80")
+        self._gdb_execute("set context-reserve-lines never")
         os.environ["COLUMNS"] = "80"
         for k, v in env.items():
-            gdb.execute(f"set environment {k}={v}")
-        gdb.execute("starti " + " ".join(args))
+            self._gdb_execute(f"set environment {k}={v}")
+        self._gdb_execute("starti " + " ".join(args))
+        self._show_context()
 
     async def cont(self) -> None:
-        gdb.execute("continue")
+        self._gdb_execute("continue")
+        self._show_context()
 
     async def execute(self, command: str) -> None:
         from pwndbg.dbg_mod import Error
 
         try:
-            gdb.execute(command)
+            self._gdb_execute(command)
         except gdb.error as e:
             raise Error(e)
 
     async def execute_and_capture(self, command: str) -> str:
-        return gdb.execute(command, to_string=True)
+        print(f"pwndbg> {command}")
+        result = gdb.execute(command, to_string=True)
+        print(result)
+        return result
 
     async def step_instruction(self) -> None:
-        gdb.execute("stepi")
+        self._gdb_execute("stepi")
+        self._show_context()
 
     async def finish(self) -> None:
-        gdb.execute("finish")
+        self._gdb_execute("finish")
+        self._show_context()
 
     async def select_thread(self, tid: int) -> None:
-        gdb.execute(f"thread {tid}")
+        self._gdb_execute(f"thread {tid}")
 
     async def disable_debuginfod(self) -> None:
-        gdb.execute("set debug-file-directory")
-        gdb.execute("set debuginfod enabled off")
+        self._gdb_execute("set debug-file-directory")
+        self._gdb_execute("set debuginfod enabled off")
 
     async def generate_core_file(self, path: Path) -> None:
-        gdb.execute(f"generate-core-file {path}")
-        gdb.execute(f"core-file {path}")
+        self._gdb_execute(f"generate-core-file {path}")
+        self._gdb_execute(f"core-file {path}")
 
 
 def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> None:

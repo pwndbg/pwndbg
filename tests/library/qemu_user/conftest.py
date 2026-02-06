@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import subprocess
 import typing
+from pathlib import Path
 from typing import Any
 from typing import Literal
 
@@ -140,14 +141,14 @@ def qemu_assembly_run():
 
         # Place assembly and compiled binary in a temporary folder
         # named /tmp/pwndbg-*
-        tmpdir = tempfile.tempdir()
+        tmpdir: Path = tempfile.tempdir()
 
-        asm_file = os.path.join(tmpdir, "input.S")
+        asm_file: Path = tmpdir / "input.S"
 
         with open(asm_file, "w") as f:
             f.write(asm)
 
-        compiled_file = os.path.join(tmpdir, "out.elf")
+        compiled_file: Path = tmpdir / "out.elf"
 
         # Build the binary with Zig
         zig_executable = get_zig_executable()
@@ -157,9 +158,9 @@ def qemu_assembly_run():
                 "cc",
                 *extra_cli_args,
                 f"--target={zig_target}",
-                asm_file,
+                str(asm_file),
                 "-o",
-                compiled_file,
+                str(compiled_file),
             ],
             stdin=subprocess.PIPE,
             capture_output=True,

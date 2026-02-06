@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import ctypes
 import hashlib
-import os
 import re
 import subprocess
 from enum import Enum
+from pathlib import Path
 from typing import Any
 
 from tabulate import tabulate
@@ -53,7 +53,7 @@ ONEGADGET_COLOR = {
     "light_green": lambda x: colorize(x, "\x1b[38;5;82m"),
     "light_purple": lambda x: colorize(x, "\x1b[38;5;153m"),
 }
-ONEGADGET_CACHEDIR = pwndbg.lib.tempfile.cachedir("onegadget")
+ONEGADGET_CACHEDIR: Path = pwndbg.lib.tempfile.cachedir("onegadget")
 
 
 class CheckSatResult(Enum):
@@ -274,8 +274,8 @@ def run_onegadget() -> str:
     """
     libc_path = pwndbg.aglib.file.get_file(str(pwndbg.libc.filepath()))
     # We need cache because onegadget might be slow
-    cache_file = os.path.join(ONEGADGET_CACHEDIR, compute_file_hash(libc_path))
-    if os.path.exists(cache_file):
+    cache_file: Path = ONEGADGET_CACHEDIR / compute_file_hash(libc_path)
+    if cache_file.exists():
         # Cache hit
         with open(cache_file) as f:
             return f.read()
