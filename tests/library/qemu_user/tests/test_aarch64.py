@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gdb
 import pytest
-from capstone.aarch64_const import AARCH64_INS_BL
+from capstone6pwndbg.aarch64_const import AARCH64_INS_BL
 
 import pwndbg
 import pwndbg.aglib.disasm.disassembly

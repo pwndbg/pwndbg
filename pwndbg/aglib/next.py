@@ -8,7 +8,8 @@ from __future__ import annotations
 import re
 from itertools import chain
 
-import capstone
+from capstone6pwndbg import CS_GRP_INT
+from capstone6pwndbg import CS_GRP_RET
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
@@ -19,7 +20,7 @@ from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import message
 from pwndbg.dbg_mod import BreakpointLocation
 
-interrupts = {capstone.CS_GRP_INT}
+interrupts = {CS_GRP_INT}
 
 
 def next_int(address=None, honor_current_branch=False):
@@ -192,7 +193,7 @@ async def break_next_ret(ec: pwndbg.dbg_mod.ExecutionController, address=None):
         if not ins:
             break
 
-        if capstone.CS_GRP_RET in ins.groups:
+        if CS_GRP_RET in ins.groups:
             return ins
 
 

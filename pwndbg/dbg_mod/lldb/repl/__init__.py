@@ -425,6 +425,7 @@ def run(
                                     action._command, output, dbg, driver, relay
                                 )
                                 last_result = output.buffer.getvalue()
+                                print(last_result.decode("utf-8", errors="surrogateescape"))
                         else:
                             should_continue = exec_repl_command(
                                 action._command, sys.stdout, dbg, driver, relay
@@ -1166,6 +1167,10 @@ def process_launch(
             return
         case LaunchResultEarlyExit():
             print_warn("process exited early")
+            if sys.platform == "darwin":
+                print_hint(
+                    "It may be that you are trying to launch a protected binary on a SIP enabled system."
+                )
             return
 
     # Continue execution if the user hasn't requested for a stop at the entry
@@ -1247,6 +1252,10 @@ def _attach_with_info(
             return
         case LaunchResultEarlyExit():
             print_warn("process exited early")
+            if sys.platform == "darwin":
+                print_hint(
+                    "It may be that you are trying to attach to a protected binary on a SIP enabled system."
+                )
             auto.close()
             return
 

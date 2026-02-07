@@ -1,11 +1,6 @@
 name: Lint
 on:
   pull_request:
-    paths:
-      - "**"
-      - "!mkdocs.yml"
-      - "!docs/**"
-      - "!*.md"
 
 concurrency:
   # PRs: cancel in-progress runs (only test latest)
@@ -13,7 +8,26 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Use dorny/paths-filter instead of on.paths so that skipped jobs report
+  # as passed to branch protection, allowing docs-only PRs to merge.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - '**'
+              - '!mkdocs.yml'
+              - '!docs/**'
+              - '!*.md'
+
   lint:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false
       matrix:

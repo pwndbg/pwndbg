@@ -116,16 +116,33 @@ def _get_frame_stack_variables(frame: gdb.Frame) -> tuple[tuple[int, int, str], 
 
     variables = []
     while block:
+        # Workaround for GDB bug:
+        # https://sourceware.org/bugzilla/show_bug.cgi?id=33861
+        # https://github.com/pwndbg/pwndbg/issues/3693
+        # This constant is the size of .text on a lightweight kernel build
+        # with debug info. It is okay if we accidentally break here even though we
+        # shouldn't. The borked block has `block.end - block.start == 0x224f58a`
+        # on my repro.
+        if block.end - block.start > 0x127E000:
+            break
+
         for sym in block:
             if not (sym.is_variable or sym.is_argument):
                 continue
 
             try:
                 value = sym.value(frame)
+                # value.address can be None
+                # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Values-From-Inferior.html#Values-From-Inferior:~:text=Variable%3A%20Value%2Eaddress
+                # https://sourceware.org/bugzilla/show_bug.cgi?id=33860
+                if value.address is None:
+                    continue
+
                 addr = int(value.address)
                 size = value.type.sizeof
                 variables.append((addr, addr + size, sym.name))
-            except (gdb.error, AttributeError, TypeError):
+            except (gdb.error, AttributeError):
+                # FIXME: We should get rid of this try-except in favour of checking the necessary conditions beforehand.
                 continue
 
         block = block.superblock
@@ -1634,11 +1651,20 @@ class GDB(pwndbg.dbg_mod.Debugger):
             is_home_loaded = True
 
         disable_local = not gdb.parameter("auto-load local-gdbinit")
-        should_load_local = (
-            not disable_local
-            and local_file.exists()
-            and not (is_home_loaded and home_file.samefile(local_file))
-        )
+        try:
+            should_load_local = (
+                not disable_local
+                and local_file.exists()
+                and not (is_home_loaded and home_file.samefile(local_file))
+            )
+        except PermissionError:
+            print(
+                message.warn(
+                    f"WARNING: Skipped loading {local_file} because you don't have the correct permissions."
+                )
+            )
+            should_load_local = False
+
         if should_load_local:
             load_source("./.gdbinit")
 

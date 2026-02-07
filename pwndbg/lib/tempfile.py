@@ -7,20 +7,21 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
+from pathlib import Path
 
 import pwndbg.lib.cache
 
 
 @pwndbg.lib.cache.cache_until("forever")
-def tempdir() -> str:
+def tempdir() -> Path:
     """
     Returns a safe and unpredictable temporary directory with pwndbg prefix.
     """
-    return tempfile.mkdtemp(prefix="pwndbg-")
+    return Path(tempfile.mkdtemp(prefix="pwndbg-"))
 
 
 @pwndbg.lib.cache.cache_until("forever")
-def cachedir(namespace: str | None = None) -> str:
+def cachedir(namespace: str | None = None) -> Path:
     """
     Returns and potentially creates a persistent safe cachedir location
     based on XDG_CACHE_HOME or ~/.cache or LOCALAPPDATA (Windows)
@@ -35,4 +36,4 @@ def cachedir(namespace: str | None = None) -> str:
     if namespace:
         cachedir = os.path.join(cachedir, namespace)
     os.makedirs(cachedir, exist_ok=True)
-    return cachedir
+    return Path(cachedir)
