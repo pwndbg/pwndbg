@@ -33,6 +33,7 @@ import pwndbg.color.memory as mem_color
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
+import pwndbg.dbg_mod
 import pwndbg.integration
 import pwndbg.lib.cache
 import pwndbg.lib.config
@@ -298,10 +299,9 @@ def output(section: str) -> OutputWrapper:
     target = outputs.get(section, str(config_output))
     if not target or target == "stdout":
         return StdOutput()
-    elif callable(target):
+    if callable(target):
         return CallOutput(target)
-    else:
-        return FileOutput(target, "w")
+    return FileOutput(target, "w")
 
 
 parser = argparse.ArgumentParser(description="Sets the output of a context section.")
@@ -1351,7 +1351,9 @@ def context_disasm(
     syntax = pwndbg.aglib.disasm.disassembly.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(iter(pwndbg.aglib.disasm.disassembly.get_disassembler.cache.values()), None)
+    cs = next(
+        iter(getattr(pwndbg.aglib.disasm.disassembly.get_disassembler, "cache").values()), None
+    )
 
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
     if cs is not None and cs.syntax != syntax:
@@ -1398,9 +1400,7 @@ theme.add_param("code-prefix", "►", "prefix marker for 'context code' command"
 # All of these are also used for the decompilation context^^
 
 
-@pwndbg.lib.cache.cache_until("objfile")
-def get_highlight_source(filename: str) -> tuple[str, ...]:
-    # Notice that the code is cached
+def get_highlight_source_uncached(filename: str) -> tuple[str, ...]:
     with open(filename, encoding="utf-8", errors="ignore") as f:
         source = f.read()
 
@@ -1410,6 +1410,12 @@ def get_highlight_source(filename: str) -> tuple[str, ...]:
     source_lines = source.split("\n")
     source_lines = tuple(line.rstrip() for line in source_lines)
     return source_lines
+
+
+@pwndbg.lib.cache.cache_until("objfile")
+def get_highlight_source(filename: str) -> tuple[str, ...]:
+    # Notice that the code is cached
+    return get_highlight_source_uncached(filename)
 
 
 def get_filename_and_formatted_source(height: int | None = None) -> tuple[str, list[str], int]:
@@ -1596,12 +1602,11 @@ thread_status_messages = {
 def get_thread_status(thread: gdb.InferiorThread) -> str:
     if thread.is_running():
         return thread_status_messages["running"]
-    elif thread.is_stopped():
+    if thread.is_stopped():
         return thread_status_messages["stopped"]
-    elif thread.is_exited():
+    if thread.is_exited():
         return thread_status_messages["exited"]
-    else:
-        return "unknown"
+    return "unknown"
 
 
 @serve_context_history
@@ -1698,9 +1703,8 @@ def context_threads(
     return out
 
 
-@pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
-@pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
-@pwndbg.dbg.event_handler(EventType.CONTINUE, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+@pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.SAVE_SIGNAL)
+@pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.SAVE_SIGNAL)
 def save_signal() -> None:
     global last_signal
     last_signal = result = []

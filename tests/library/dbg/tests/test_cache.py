@@ -29,7 +29,7 @@ async def test_cache_single_value(ctrl: Controller) -> None:
     # so that `x` should not change as well
     assert foo() == x == 1
 
-    foo.cache.clear()
+    cache.clear_function_cache(foo)
 
     assert foo() == x == 2
     assert foo() == x == 2
@@ -64,7 +64,7 @@ async def test_cache_args_kwargs_properly(ctrl: Controller) -> None:
     assert foo("abc") == (1, "abc", (), {}) and x == 2
     assert foo(100, 200) == (2, 100, (200,), {}) and x == 2
 
-    foo.cache.clear()
+    cache.clear_function_cache(foo)
 
     assert foo("abc") == (3, "abc", (), {}) and x == 3
     assert foo("abc") == (3, "abc", (), {}) and x == 3

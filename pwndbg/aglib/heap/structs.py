@@ -8,7 +8,7 @@ from typing import cast
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.glibc
+import pwndbg.libc
 from pwndbg.lib.ctypes import Structure
 
 
@@ -21,11 +21,13 @@ def request2size(req: int) -> int:
 def fastbin_index(size: int) -> int:
     if pwndbg.aglib.arch.ptrsize == 8:
         return (size >> 4) - 2
-    else:
-        return (size >> 3) - 2
+    return (size >> 3) - 2
 
 
-GLIBC_VERSION = pwndbg.glibc.get_version()
+# Operating under the assumption that the pwndbg/libc/ code can figure out
+# that we are using glibc with at least as good accuracy as the ptmalloc code.
+assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
+GLIBC_VERSION = pwndbg.libc.version()
 # TODO: Move these heap constants and macros to elsewhere, because pwndbg/aglib/heap/ptmalloc.py also uses them, we are duplicating them here.
 SIZE_SZ = pwndbg.aglib.arch.ptrsize
 MINSIZE = pwndbg.aglib.arch.ptrsize * 4

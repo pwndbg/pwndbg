@@ -18,6 +18,7 @@ import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.dbg_mod
+import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.color import cyan
 from pwndbg.color import green
@@ -35,12 +36,11 @@ def pages_filter(gdbval_or_str):
         return lambda page: module_name in page.objfile
 
     # returns an address filter
-    elif isinstance(gdbval_or_str, integer_types):
+    if isinstance(gdbval_or_str, integer_types):
         addr = gdbval_or_str
         return lambda page: addr in page
 
-    else:
-        raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
+    raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
 
 
 def print_vmmap_table_header(prefix: str = "") -> None:
@@ -397,7 +397,7 @@ def vmmap_explore(address: int) -> None:
     old_value = pwndbg.config.auto_explore_pages.value
     pwndbg.config.auto_explore_pages.value = "yes"
     try:
-        pwndbg.aglib.vmmap.find.cache.clear()
+        pwndbg.lib.cache.clear_function_cache(pwndbg.aglib.vmmap.find)
         page = pwndbg.aglib.vmmap.find(address)
     finally:
         pwndbg.config.auto_explore_pages.value = old_value

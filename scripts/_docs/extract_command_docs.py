@@ -17,6 +17,7 @@ import os
 # I tried every other solution, it doesn't work :).
 import shutil
 from dataclasses import asdict
+from pathlib import Path
 
 shutil.get_terminal_size = lambda fallback=(80, 24): os.terminal_size((80, 24))
 
@@ -88,6 +89,9 @@ def distill_parser(parser: argparse.ArgumentParser) -> ExtractedParserData:
             # The formatter decides if the default should be shown.
             param_help = formatter._expand_help(action)
 
+            # Sanitize username from home path out.
+            param_help = param_help.replace(str(Path.home()), "/home/user")
+
             positionals.append((action.dest, param_help))
             used_actions[this_id] = True
 
@@ -115,6 +119,9 @@ def distill_parser(parser: argparse.ArgumentParser) -> ExtractedParserData:
             # The formatter decides if the default should be shown.
             param_help = formatter._expand_help(action)
 
+            # Sanitize username from home path out.
+            param_help = param_help.replace(str(Path.home()), "/home/user")
+
             optionals.append((short_name, long_name, param_help))
             used_actions[this_id] = True
 
@@ -129,6 +136,8 @@ def distill_one_subcommand(cmdname, parser: argparse.ArgumentParser) -> Extracte
     filename = "<is subcommand>"
     description = parser.description
     assert description
+    # Sanitize username from home path out.
+    description = description.replace(str(Path.home()), "/home/user")
     # We will fix the aliases up later.
     aliases: list[str] = []
     examples = ""
@@ -217,6 +226,12 @@ def distill_sources(commandobjs: list[CommandObj]) -> list[ExtractedCommand]:
         # Extract data from the parser
         parser_data: ExtractedParserData = distill_parser(cmdobj.parser)
         subcommands: list[ExtractedCommand] = distill_subcommands(cmdobj.parser)
+
+        # Sanitize username from home path out.
+        description = description.replace(str(Path.home()), "/home/user")
+        examples = examples.replace(str(Path.home()), "/home/user")
+        notes = notes.replace(str(Path.home()), "/home/user")
+        pure_epilog = pure_epilog.replace(str(Path.home()), "/home/user")
 
         # Construct and append the final result
         extracted.append(

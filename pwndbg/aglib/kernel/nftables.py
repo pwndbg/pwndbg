@@ -44,7 +44,7 @@ class NftFields:
         t = self.__annotations__.get(name)
         if t == "str":
             return self._addr[name].string()
-        elif t == "int":
+        if t == "int":
             return int(self._addr[name])
 
         raise AttributeError(f"'{t}' this type hint is not supported on field '{name}'")

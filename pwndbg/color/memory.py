@@ -3,9 +3,13 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+import pwndbg.aglib.qemu
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
+import pwndbg.dbg_mod
+import pwndbg.lib.memory
+import pwndbg.lib.pretty_print
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import normal
@@ -59,12 +63,11 @@ def attempt_colorized_symbol(
     symbol = pwndbg.aglib.symbol.resolve_addr(address)
     if symbol:
         return get(address, symbol)
-    else:
-        var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
-        if var is None:
-            var = decompiler_stack_variables.get(address)
-        if var is not None:
-            return get(address, f"{{{var}}}")
+    var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
+    if var is None:
+        var = decompiler_stack_variables.get(address)
+    if var is not None:
+        return get(address, f"{{{var}}}")
     return None
 
 
@@ -100,7 +103,10 @@ def get(
         color = c.code
     elif not page.write:
         color = c.rodata
-    elif any(keyword in page.objfile for keyword in ("[heap", "physmap", "vmalloc")):
+    elif "[heap" in page.objfile or (
+        pwndbg.aglib.qemu.is_qemu_kernel()
+        and any(keyword in page.objfile for keyword in ("physmap", "vmalloc", "slab virtual"))
+    ):
         color = c.heap
     elif page.rw:
         color = c.data

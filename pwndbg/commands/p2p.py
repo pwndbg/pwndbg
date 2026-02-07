@@ -51,8 +51,7 @@ def address_range(section: str) -> list[AddrRange] | tuple[int, int] | None:
 
     if pages:
         return [AddrRange(page.start, page.end) for page in pages]
-    else:
-        parser.error(f'Memory page with name "{pwndbg.color.red(section)}" does not exist!')
+    parser.error(f'Memory page with name "{pwndbg.color.red(section)}" does not exist!')
 
 
 parser = argparse.ArgumentParser(

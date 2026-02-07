@@ -30,6 +30,7 @@ import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.auxv
+import pwndbg.dbg_mod
 import pwndbg.lib
 import pwndbg.lib.cache
 import pwndbg.lib.config
@@ -38,6 +39,7 @@ import pwndbg.lib.memory
 import pwndbg.lib.zig
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
+from pwndbg.lib import Status
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -210,11 +212,11 @@ def get_vmlinux_unrand_base(elf_filepath: str):
     return None
 
 
-def dump_section_by_name(
+def section_by_name(
     filepath: str, section_name: str, try_local_path: bool = False
 ) -> tuple[int, int, bytes] | None:
     """
-    Dump the content of a section from an ELF file, return the start address, size and content.
+    Return the content of a section from an ELF file, as a (start address, size, content) tuple.
     """
     # TODO: We should have some cache mechanism or something at `pndbg.aglib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
     local_path = pwndbg.aglib.file.get_file(filepath, try_local_path=try_local_path)
@@ -225,11 +227,12 @@ def dump_section_by_name(
         return (section["sh_addr"], section["sh_size"], section.data()) if section else None
 
 
-def dump_relocations_by_section_name(
+def relocations_by_section_name(
     filepath: str, section_name: str, try_local_path: bool = False
-) -> tuple[Relocation, ...] | None:
+) -> tuple[Relocation, ...]:
     """
-    Dump the relocation entries of a section from an ELF file, return a generator of Relocation objects.
+    Return the relocation entries of a section from an ELF file as a (possibly empty)
+    tuple of Relocation objects.
     """
     # TODO: We should have some cache mechanism or something at `pndbg.aglib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
     local_path = pwndbg.aglib.file.get_file(filepath, try_local_path=try_local_path)
@@ -238,7 +241,7 @@ def dump_relocations_by_section_name(
         elffile = ELFFile(f)
         section = elffile.get_section_by_name(section_name)
         if section is None or not isinstance(section, RelocationSection):
-            return None
+            return ()
         return tuple(section.iter_relocations())
 
 
@@ -502,29 +505,42 @@ gcc_compiler_path = pwndbg.config.add_param(
 )
 
 
-def compile_with_flags(gcc_extra_flags):
+def compile_with_flags(compiler_flags: list[str]) -> Status:
+    """
+    Compile a C program.
+
+    If the `gcc_compiler_path` argument is set, gcc will be used, otherwise
+    zig (the python package) will be used.
+
+    Arguments:
+        compiler_flags: The flags to pass to the compiler, including the input and
+            output files.
+
+    Returns:
+        A status object carrying an error message if compilation failed.
+    """
     if gcc_compiler_path != "":
-        compiler_flags = [gcc_compiler_path]
+        compiler_cmdline = [str(gcc_compiler_path)]
     else:
         try:
-            compiler_flags = pwndbg.lib.zig.flags(pwndbg.aglib.arch)
+            compiler_cmdline = pwndbg.lib.zig.flags(pwndbg.aglib.arch)
         except ValueError as exception:
-            print(message.error(exception))
-            return False
+            return Status.fail(str(exception))
 
-    gcc_cmd = compiler_flags + gcc_extra_flags
+    gcc_cmd: list[str] = compiler_cmdline + compiler_flags
 
     try:
-        subprocess.run(gcc_cmd, check=True, text=True)
-        return True
+        # capture_output=True makes it so the compilation errors are not instantly
+        # dumped to the user, but are in the CalledProcessError object.
+        # https://docs.python.org/3/library/subprocess.html#subprocess.run:~:text=stdout%20and%20stderr%20if%20they%20were%20captured
+        subprocess.run(gcc_cmd, check=True, text=True, capture_output=True)
+        return Status()
     except subprocess.CalledProcessError as exception:
-        print(message.error(exception))
-        print(
-            message.error(
-                f"Failed to compile {gcc_extra_flags[0]}. Please fix any compilation errors there may be."
-            )
+        return Status.fail(
+            str(exception)
+            + f"\nStdout: {exception.stdout}"
+            + f"\nStderr: {exception.stderr}"
+            + f"\nFailed to compile {compiler_flags[0]}. Please fix any compilation errors there may be."
         )
     except Exception as exception:
-        print(message.error(exception))
-        print(message.error("An error occurred while generating the debug symbols."))
-    return False
+        return Status.fail(str(exception) + "\nAn error occurred while compiling.")

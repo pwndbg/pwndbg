@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from capstone import *  # noqa: F403
-from capstone.ppc_const import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.ppc_const import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib.disasm.arch
@@ -47,26 +47,26 @@ def is_branch_taken(cr: int, ctr: int, bi: int, bo: int) -> bool | None:
     if (bo & 0b11110) == 0b00000:  # 0000x
         ctr -= 1
         return ctr != 0 and not condition
-    elif (bo & 0b11110) == 0b00010:  # 0001x
+    if (bo & 0b11110) == 0b00010:  # 0001x
         ctr -= 1
         return ctr == 0 and not condition
-    elif (bo & 0b11100) == 0b00100:  # 001xx
+    if (bo & 0b11100) == 0b00100:  # 001xx
         return not condition
-    elif (bo & 0b11110) == 0b01000:  # 0100x
+    if (bo & 0b11110) == 0b01000:  # 0100x
         ctr -= 1
         return ctr != 0 and condition
-    elif (bo & 0b11110) == 0b01010:  # 0101x
+    if (bo & 0b11110) == 0b01010:  # 0101x
         ctr -= 1
         return ctr == 0 and condition
-    elif (bo & 0b11100) == 0b01100:  # 011xx
+    if (bo & 0b11100) == 0b01100:  # 011xx
         return condition
-    elif (bo & 0b10110) == 0b10000:  # 1x00x
+    if (bo & 0b10110) == 0b10000:  # 1x00x
         ctr -= 1
         return ctr != 0
-    elif (bo & 0b10110) == 0b10010:  # 1x01x
+    if (bo & 0b10110) == 0b10010:  # 1x01x
         ctr -= 1
         return ctr == 0
-    elif (bo & 0b10100) == 0b10100:  # 1x1xx
+    if (bo & 0b10100) == 0b10100:  # 1x1xx
         return True
 
     # This case should never be reached
