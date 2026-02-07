@@ -87,14 +87,20 @@ def kstack(pid: int | None = None) -> None:
             indent.print(color.red("canary") + f" = {canary:#x}")
         regs, syscall_reg = task.pt_regs()
         if regs:
-            namelen = max(len(reg) for reg, _ in regs)
-            for reg, val in regs:
-                _val = pwndbg.chain.format(val)
-                desc = DisassemblyAssistant._syscall_name(val)
-                if reg == syscall_reg and desc:
-                    _val += f" ({color.red(desc)})"
-                reg = f"{reg:<{namelen}}"
-                indent.print(color.red(reg) + " = " + _val)
+            # so that it doesn't warn on user addresses
+            old_val = pwndbg.config.auto_explore_pages.value
+            pwndbg.config.auto_explore_pages.value = "no"
+            try:
+                namelen = max(len(reg) for reg, _ in regs)
+                for reg, val in regs:
+                    _val = pwndbg.chain.format(val)
+                    desc = DisassemblyAssistant._syscall_name(val)
+                    if reg == syscall_reg and desc:
+                        _val += f" ({color.red(desc)})"
+                    reg = f"{reg:<{namelen}}"
+                    indent.print(color.red(reg) + " = " + _val)
+            finally:
+                pwndbg.config.auto_explore_pages.value = old_val
 
 
 parser = argparse.ArgumentParser(
