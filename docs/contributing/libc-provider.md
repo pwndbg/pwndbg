@@ -1,4 +1,4 @@
-# Implementing support for a new libc
+# Implementing Libc support
 
 A [C Standard Library](https://en.wikipedia.org/wiki/C_standard_library) (libc) is the standard library for C. Other languages will also very often interface with the libc to avoid reimplementing all the operating system interfacing. As such, the libc is used by almost every dynamically linked program on a given system.
 
@@ -13,6 +13,8 @@ Interestingly, although we do not yet support bionic (the android libc), we do s
 Say you want to add bionic support. You would create a `pwndbg/libc/bionic.py` file, implement all the functions specified in `pwndbg.libc.dispatch.LibcProvider` there, and add the `bionic` module to `pwndbg.libc.facade._libc_implementations`. After you implement all the functions, you would add a test file called `test_bionic.py`, equivalent to the one called `test_musl.py`.
 
 For development, it will be necessary for you to get the source code of the libc, to know how to compile it, and to know how to dynamically and statically link programs with it.
+
+For all of the binutils tools used below (e.g. `nm`, `objcopy`, `readelf`) you can use the LLVM version of the same tool (`llvm-nm`, `llvm-objcopy`, `llvm-readelf`) if you are operating on cross-architecture binaries since the default binutils package on most distributions only supports the host architecture, while the LLVM ones have support for all architectures baked in.
 
 ## Note on static linking
 
