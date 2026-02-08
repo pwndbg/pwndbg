@@ -15,8 +15,6 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.radare2
-import pwndbg.rizin
 
 parser = argparse.ArgumentParser(description="Displays the loaded Linux kernel modules.")
 parser.add_argument(
