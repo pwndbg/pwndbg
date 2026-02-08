@@ -88,10 +88,11 @@ def kmod(module_name=None, path=None) -> None:
         if len(table) == 1:
             addr = table[0][0]
             pwndbg.dbg.selected_inferior().add_symbol_file(path, addr)
-            if pwndbg.config.decompiler == "radare2":
-                pwndbg.radare2.r2cmd(["o", path, addr])
-            elif pwndbg.config.decompiler == "rizin":
-                pwndbg.rizin.rzcmd(["o", path, addr])
+            # FIXME: Reintroduce rizin/radare2 support here.
+            # if pwndbg.config.decompiler == "radare2":
+            #     pwndbg.radare2.r2cmd(["o", path, addr])
+            # elif pwndbg.config.decompiler == "rizin":
+            #     pwndbg.rizin.rzcmd(["o", path, addr])
         elif len(table) > 1:
             print(message.warn("Multiple modules detected with the given filter"))
         else:

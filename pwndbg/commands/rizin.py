@@ -100,5 +100,5 @@ pwndbg> rzpipe pdf @ sym.main
     """,
 )
 @pwndbg.commands.OnlyWithFile
-def rzpipe(arguments) -> None:
+def rzpipe(arguments: list[str]) -> None:
     print(pwndbg.rizin.rzcmd(arguments))

@@ -4,13 +4,23 @@ Radare2 integration with r2pipe.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pwndbg.aglib.elf
+import pwndbg.aglib.kernel
+import pwndbg.aglib.proc
+import pwndbg.aglib.qemu
 import pwndbg.lib.cache
 from pwndbg.color import message
+from pwndbg.lib import ErrorCode
+from pwndbg.lib import Status
+
+if TYPE_CHECKING:
+    import r2pipe as r2pipe_mod
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def r2pipe():
+def r2pipe() -> r2pipe_mod.open | Status:
     """
     Spawn and return a r2pipe handle for the current process file.
 
@@ -19,45 +29,52 @@ def r2pipe():
     binary.
     After opening the handle, the binary is automatically analyzed.
 
-    Raises ImportError if r2pipe python library is not available.
-    Raises Exception if anything goes fatally wrong.
-
-    Returns a r2pipe.open handle.
+    If successful, returns the handle, otherwise returns a failing Status.
     """
     filename = pwndbg.aglib.proc.exe()
-    if not filename:
-        raise Exception("Could not find objfile to create a r2pipe for")
+    if filename is None:
+        return Status.fail("Could not find objfile to create a r2pipe for.")
 
-    import r2pipe
+    try:
+        import r2pipe as r2pipe_mod
+    except ImportError:
+        return Status.coded_fail(
+            ErrorCode.NO_IMPORT, "Could not import r2pipe python library. Is it installed?"
+        )
 
     if pwndbg.aglib.qemu.is_qemu_kernel():
         flags = ["-e", "bin.cache=true", "-e", "bin.relocs.apply=true"]
         if (kbase := pwndbg.aglib.kernel.kbase()) and filename == pwndbg.aglib.proc.exe():
-            flags.extend(
-                [
-                    "-e",
-                    "bin.baddr=" + hex(kbase - pwndbg.aglib.elf.get_vmlinux_unrand_base(filename)),
-                ]
-            )
-        r2 = r2pipe.open(filename, flags)
+            urand = pwndbg.aglib.elf.get_vmlinux_unrand_base(filename)
+            if urand is not None:
+                flags.extend(
+                    [
+                        "-e",
+                        "bin.baddr=" + hex(kbase - urand),
+                    ]
+                )
+        r2 = r2pipe_mod.open(filename, flags)
     else:
         flags = ["-e", "io.cache=true"]
-        if pwndbg.aglib.elf.get_elf_info(filename).is_pie and pwndbg.aglib.elf.exe():
-            flags.extend(["-B", hex(pwndbg.aglib.elf.exe().address)])
-        r2 = r2pipe.open(filename, flags=flags)
+        exe = pwndbg.aglib.elf.exe()
+        if pwndbg.aglib.elf.get_elf_info(filename).is_pie and exe is not None:
+            flags.extend(["-B", hex(exe.address)])
+        r2 = r2pipe_mod.open(filename, flags=flags)
     # LD -> list supported decompilers (e cmd.pdc=?)
     # Outputs for example: pdc\npdg
-    if "pdg" not in r2.cmd("LD").split("\n"):
-        raise Exception("radare2 plugin r2ghidra must be installed and available from r2")
+    if "pdg" not in str(r2.cmd("LD")).split("\n"):
+        return Status.coded_fail(
+            ErrorCode.NO_IMPORT, "radare2 plugin r2ghidra must be installed and available from r2."
+        )
     return r2
 
 
-def r2cmd(arguments) -> str:
-    try:
-        r2 = r2pipe()
-        return r2.cmd(" ".join(arguments))
-    except ImportError:
-        return message.error("Could not import r2pipe python library. Is it installed?")
-    except Exception as e:
-        return message.error(e)
-    return ""
+def r2cmd(arguments: list[str]) -> str:
+    """
+    Return result of rizin command or error string.
+    """
+    r2 = r2pipe()
+    if isinstance(r2, Status):
+        # Since we got a status, it must be a failure.
+        return message.error(r2.message)
+    return str(r2.cmd(" ".join(arguments)))
