@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pwndbg.color
-
 from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
@@ -15,6 +13,8 @@ async def test_context_disasm_loop_instruction(ctrl: Controller) -> None:
     This makes sure that when stepping through tight loops, the correct
     sequence of executed instructions is recorded
     """
+    import pwndbg.color
+
     await ctrl.launch(LOOP_INSTRUCTION_BINARY)
 
     await ctrl.execute("set context-disasm-lines 30")
