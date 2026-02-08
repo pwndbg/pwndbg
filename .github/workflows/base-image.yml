@@ -92,7 +92,7 @@ jobs:
 
       - name: Restore Docker cache mounts
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             uv-${{ matrix.platform_base.tag_name }}
