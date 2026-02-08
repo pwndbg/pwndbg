@@ -188,6 +188,9 @@ def get_previous_instruction(
         if prev_node is not None:
             return prev_node.instruction
 
+    # We cannot be sure about the sequence of instructions that led us here
+    return None
+
 
 @pwndbg.lib.cache.cache_until("objfile")
 def get_disassembler(cs_info: tuple[int, int]) -> Cs:
