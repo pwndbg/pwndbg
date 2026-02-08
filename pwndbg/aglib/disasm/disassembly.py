@@ -78,11 +78,7 @@ def enhance_cache_listener() -> None:
     if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
         computed_instruction_cache.clear()
-
         instruction_sequence_linked_list_map.clear()
-
-    # TODO: edge case,  go back to self
-    # should just clear the backward cache here... but that clears the ENTIRE CACHE FOR ALL OF THE PROGRAM...
 
 
 @pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED)
@@ -139,11 +135,11 @@ instruction_sequence_linked_list_map: collections.defaultdict[
 
 # Dict of Address -> previous Address executed
 # Used to display instructions that led to current instruction
-backward_cache: collections.defaultdict[int, int] = collections.defaultdict(lambda: None)
+backward_cache: collections.defaultdict[int, int | None] = collections.defaultdict(lambda: None)
 
 
 # This allows use to retain the annotation strings from previous instructions
-computed_instruction_cache: collections.defaultdict[int, PwndbgInstruction] = (
+computed_instruction_cache: collections.defaultdict[int, PwndbgInstruction | None] = (
     collections.defaultdict(lambda: None)
 )
 
@@ -196,6 +192,7 @@ def get_previous_instruction(
         if prev_node is not None:
             return prev_node.instruction
 
+    # Fallback mechanism
     prev_address = backward_cache[address]
     return (
         one_with_cache_policy(prev_address, from_cache=use_cache, put_backward_cache=False)
@@ -205,7 +202,7 @@ def get_previous_instruction(
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_disassembler(cs_info: tuple[int, int]):
+def get_disassembler(cs_info: tuple[int, int]) -> Cs:
     arch, mode = cs_info
 
     mode |= pwndbg.aglib.arch.get_capstone_endianness()
@@ -263,13 +260,13 @@ def get_one_instruction(
 # according to the caching policy of the arguments
 def one_with_cache_policy(
     address: int,
-    emu: pwndbg.emu.emulator.Emulator = None,
-    enhance=True,
-    from_cache=False,
-    put_cache=False,
-    put_backward_cache=True,
-    linear=False,
-    assistant: DisassemblyAssistant = None,
+    emu: pwndbg.emu.emulator.Emulator | None = None,
+    enhance: bool = True,
+    from_cache: bool = False,
+    put_cache: bool = False,
+    put_backward_cache: bool = True,
+    linear: bool = False,
+    assistant: DisassemblyAssistant | None = None,
 ) -> PwndbgInstruction | None:
     if from_cache:
         cached = computed_instruction_cache[address]
@@ -296,8 +293,8 @@ def one_with_cache_policy(
 def one(
     address: int = None,
     emu: pwndbg.emu.emulator.Emulator = None,
-    enhance=True,
-    assistant: DisassemblyAssistant = None,
+    enhance: bool = True,
+    assistant: DisassemblyAssistant | None = None,
 ) -> PwndbgInstruction | None:
     if address is None:
         address = pwndbg.aglib.regs.pc
@@ -425,7 +422,9 @@ def one_with_config():
     return None
 
 
-def set_visual_split(set_ins: PwndbgInstruction, check_ins: PwndbgInstruction, linear: bool):
+def set_visual_split(
+    set_ins: PwndbgInstruction, check_ins: PwndbgInstruction, linear: bool
+) -> None:
     """
     Internal helper function to set the .split property for display purposes.
 
