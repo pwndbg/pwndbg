@@ -1193,11 +1193,19 @@
          <lastmod>2026-02-08</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/radare2/</loc>
+         <lastmod>2026-02-08</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/regs_mod/</loc>
          <lastmod>2026-02-08</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/remote/</loc>
+         <lastmod>2026-02-08</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/rizin/</loc>
          <lastmod>2026-02-08</lastmod>
     </url>
     <url>
@@ -1373,6 +1381,10 @@
          <lastmod>2026-02-08</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/decompiler_integration/</loc>
+         <lastmod>2026-02-08</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/commands/dev/</loc>
          <lastmod>2026-02-08</lastmod>
     </url>
@@ -1430,10 +1442,6 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/commands/ignore/</loc>
-         <lastmod>2026-02-08</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/integration/</loc>
          <lastmod>2026-02-08</lastmod>
     </url>
     <url>
@@ -1761,6 +1769,10 @@
          <lastmod>2026-02-08</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/dintegration/</loc>
+         <lastmod>2026-02-08</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/emu/</loc>
          <lastmod>2026-02-08</lastmod>
     </url>
@@ -1842,10 +1854,6 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/hexdump/</loc>
-         <lastmod>2026-02-08</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/integration/</loc>
          <lastmod>2026-02-08</lastmod>
     </url>
     <url>
@@ -2010,14 +2018,6 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/profiling/</loc>
-         <lastmod>2026-02-08</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/radare2/</loc>
-         <lastmod>2026-02-08</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/rizin/</loc>
          <lastmod>2026-02-08</lastmod>
     </url>
     <url>
