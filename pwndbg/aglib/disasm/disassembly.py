@@ -75,6 +75,7 @@ delay_slot_cache: collections.defaultdict[int, PwndbgInstruction | None] = colle
 # Register GDB event listeners for all stop events
 @pwndbg.dbg.event_handler(EventType.STOP)
 def enhance_cache_listener() -> None:
+    [print(hex(x)) for x in next_addresses_cache]
     if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
         computed_instruction_cache.clear()
@@ -133,11 +134,6 @@ instruction_sequence_linked_list_map: collections.defaultdict[
 ] = collections.defaultdict(lambda: None)
 
 
-# Dict of Address -> previous Address executed
-# Used to display instructions that led to current instruction
-backward_cache: collections.defaultdict[int, int | None] = collections.defaultdict(lambda: None)
-
-
 # This allows use to retain the annotation strings from previous instructions
 computed_instruction_cache: collections.defaultdict[int, PwndbgInstruction | None] = (
     collections.defaultdict(lambda: None)
@@ -191,14 +187,6 @@ def get_previous_instruction(
         saveptr.node = prev_node
         if prev_node is not None:
             return prev_node.instruction
-
-    # Fallback mechanism
-    prev_address = backward_cache[address]
-    return (
-        one_with_cache_policy(prev_address, from_cache=use_cache, put_backward_cache=False)
-        if prev_address
-        else None
-    )
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -280,8 +268,6 @@ def one_with_cache_policy(
     if insn is not None:
         if put_backward_cache:
             linear_backward_cache[insn.address + insn.size] = insn.address
-            if not linear:
-                backward_cache[insn.next] = insn.address
 
         if put_cache:
             computed_instruction_cache[address] = insn
@@ -563,7 +549,7 @@ def near(
     # Now, continue forwards.
 
     # A set of all the addresses after the PC that we have disassembled in this pass
-    new_addresses_seen: set[int] = {address}
+    new_addresses_seen: set[int] = set()
 
     next_addresses_cache.clear()
     next_addresses_cache.add(current.target)
@@ -624,10 +610,6 @@ def near(
                 next_addresses_cache.add(split_insn.address)
 
                 delay_slot_cache[split_insn.address] = insn
-
-                backward_cache[insn.next] = split_insn.address
-                backward_cache[split_insn.address + split_insn.size] = split_insn.address
-                backward_cache[split_insn.address] = insn.address
 
                 instruction_sequence_head = InstructionSequenceNode(
                     instruction_sequence_head, split_insn
