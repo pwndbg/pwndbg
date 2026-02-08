@@ -14,7 +14,7 @@ import pwndbg.color.memory
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.memory
 from pwndbg.aglib.disasm.disassembly import get_disassembler
 from pwndbg.commands import CommandCategory

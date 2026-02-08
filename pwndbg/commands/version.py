@@ -17,7 +17,7 @@ from urllib.parse import quote
 import pwndbg
 import pwndbg.aglib
 import pwndbg.commands
-import pwndbg.integration
+import pwndbg.dintegration
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import DebuggerType

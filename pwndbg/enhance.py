@@ -20,7 +20,7 @@ import pwndbg.aglib.strings
 import pwndbg.aglib.vmmap
 import pwndbg.color.enhance as E
 import pwndbg.color.memory
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.pretty_print
 from pwndbg import color
 

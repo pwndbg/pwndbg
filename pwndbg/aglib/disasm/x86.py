@@ -13,7 +13,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.memory as mem_color
 import pwndbg.color.message as message
-import pwndbg.integration
+import pwndbg.dintegration
 from pwndbg.aglib.disasm.arch import memory_or_register_assign
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand

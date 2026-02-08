@@ -23,7 +23,7 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.color.memory
 import pwndbg.hexdump
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.cache
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message

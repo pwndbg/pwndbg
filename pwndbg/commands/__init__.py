@@ -26,7 +26,7 @@ import pwndbg.aglib.symbol
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.exception
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.libc
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator

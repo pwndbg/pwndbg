@@ -334,7 +334,7 @@ def nearpc(
         #         " "
         #         * (len(pwndbg.color.unstylize(line)) - len(pwndbg.color.unstylize(asm).lstrip()))
         #         + c.integration_comments(x)
-        #         for x in pwndbg.integration.provider.get_comment_lines(instr.address)
+        #         for x in pwndbg.dintegration.provider.get_comment_lines(instr.address)
         #     ]
 
         # For Comment Function

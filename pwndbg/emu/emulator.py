@@ -24,7 +24,7 @@ import pwndbg.color.enhance as E
 import pwndbg.color.memory as mem_color
 import pwndbg.dbg_mod
 import pwndbg.enhance
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.memory
 import pwndbg.lib.regs
 from pwndbg import color

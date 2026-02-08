@@ -34,7 +34,7 @@ import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.dbg_mod
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.pretty_print as pretty_print

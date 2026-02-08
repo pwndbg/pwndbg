@@ -16,7 +16,7 @@ import pwndbg.color.context as ctx_color
 import pwndbg.color.memory as mem_color
 import pwndbg.color.message as message
 import pwndbg.color.syntax_highlight as H
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.config
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP

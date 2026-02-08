@@ -9,7 +9,7 @@ from typing_extensions import override
 
 import pwndbg.aglib.disasm.arch
 import pwndbg.color.memory as mem_color
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP

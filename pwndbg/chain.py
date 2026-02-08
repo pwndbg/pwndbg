@@ -10,7 +10,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.color.memory as mem_color
 import pwndbg.dbg_mod
 import pwndbg.enhance
-import pwndbg.integration
+import pwndbg.dintegration
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
