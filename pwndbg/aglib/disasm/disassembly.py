@@ -75,7 +75,6 @@ delay_slot_cache: collections.defaultdict[int, PwndbgInstruction | None] = colle
 # Register GDB event listeners for all stop events
 @pwndbg.dbg.event_handler(EventType.STOP)
 def enhance_cache_listener() -> None:
-    [print(hex(x)) for x in next_addresses_cache]
     if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
         computed_instruction_cache.clear()
