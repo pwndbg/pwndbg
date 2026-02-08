@@ -62,7 +62,7 @@ def all_versions():
         f"Pwnlib:   {module_version('pwnlib')}",
     )
 
-    integration_ver_text: str | None = pwndbg.integration.manager.version_string()
+    integration_ver_text: str | None = pwndbg.dintegration.manager.version_string()
     if integration_ver_text is not None:
         return most + (integration_ver_text,)
     return most

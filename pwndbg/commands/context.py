@@ -1476,7 +1476,7 @@ def context_code(
     if should_decompile and pwndbg.aglib.regs.pc is not None:
         nlines = max(int(source_disasm_lines), height or 0)
         # Will be None if we aren't connected or decompilation fails.
-        code: list[str] | None = pwndbg.integration.manager.decompile_pretty(
+        code: list[str] | None = pwndbg.dintegration.manager.decompile_pretty(
             pwndbg.aglib.regs.pc, nlines
         )
         if code is None:

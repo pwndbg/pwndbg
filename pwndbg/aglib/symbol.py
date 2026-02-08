@@ -114,4 +114,4 @@ def resolve_addr(addr: int) -> str | None:
     if symbol_name:
         return symbol_name
 
-    return pwndbg.integration.manager.symbol_at_address(addr)
+    return pwndbg.dintegration.manager.symbol_at_address(addr)

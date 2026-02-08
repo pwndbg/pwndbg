@@ -25,8 +25,8 @@ import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
-import pwndbg.exception
 import pwndbg.dintegration
+import pwndbg.exception
 import pwndbg.libc
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
@@ -514,9 +514,9 @@ class CommandObj:
             # If yes, we need to throw the connection out and fix up the manager's
             # state. The manager has not yet realized that the connection is doomed,
             # so we can check like this if we *were* connected.
-            if pwndbg.integration.manager.is_connected():
-                decompiler_name = pwndbg.integration.manager.decompiler_name()
-                pwndbg.integration.manager.disconnect()
+            if pwndbg.dintegration.manager.is_connected():
+                decompiler_name = pwndbg.dintegration.manager.decompiler_name()
+                pwndbg.dintegration.manager.disconnect()
                 print(message.hint(f" Automatically disabled {decompiler_name} integration."))
                 print("Feel free to re-enable manually.")
             else:
