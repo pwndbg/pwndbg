@@ -387,8 +387,8 @@ def nearpc(
                 for ch in heap:
                     # Find the chunk in this heap the corresponds to the address
                     # we're trying to access.
-                    pair_offset = address - ch.address
-                    if pair_offset >= 0 and pair_offset < ch.real_size:
+                    offset = address - ch.address
+                    if offset >= 0 and offset < ch.real_size:
                         chunk = ch
                         break
                 if chunk is None:
@@ -595,8 +595,6 @@ def nearpc(
         else:
             branch_vis_string = None
             empty_line_branch_vis_string = ""
-
-        # line = " ".join(filter(None, (flow, prefix, address_str, opcodes, symbol, asm)))
 
         # Example line:
         # ► 0x7ffff7f1aeb6 0f bd c0    <__strrchr_avx2+70>    bsr    eax, eax
