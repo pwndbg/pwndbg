@@ -16,7 +16,7 @@ import pwndbg.color.disasm
 import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.lib.config
-from pwndbg.aglib.disasm.instruction import SplitType
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction, SplitType
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import blue
@@ -150,6 +150,219 @@ offset_to_color_map = {
 def colorize_branch_vis_line(offset: int, string: str):
     return offset_to_color_map.get(offset, lambda x: str(x))(string)
 
+def preprocess_branch_visualization(instructions: list) -> tuple[dict[int, list[JumpRange]], dict[JumpRange, int], int]:
+        """
+        Returns (pair_map dictionary,pair_id dictionary, maximum_pair_id)
+        """
+        jumps: list[JumpRange] = []
+
+        # Map of every address to every jump range it belongs in
+        pair_map: dict[int, list[JumpRange]] = defaultdict(list)
+
+        # For a given jump range, it has a unique ID compared to every other jump range it overlaps with
+        # This allows us to display each jump range at a different visual offset
+        pair_id: dict[JumpRange, int] = defaultdict(lambda: -1)
+
+        # -2 because at least two columns are needed: one for the "<" or ">" branch ends, and one for pair id 0
+        maximum_pair_id = COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION - 2
+
+        # Find all instructions eligible for branch visualization
+        for instruction in instructions:
+            if instruction.jump_like and instruction.has_jump_target and not instruction.call_like:
+                jumps.append(JumpRange(instruction.address, instruction.target))
+
+        # Population structure mapping every address to each jump range it belongs to
+        for instruction in instructions:
+            for pair in jumps:
+                if pair.contains(instruction.address):
+                    pair_map[instruction.address].append(pair)
+
+        # Preprocess each pair to assign a unique ID to all overlapping ranges.
+        for pair1 in jumps:
+            cur_offset = 0
+            for pair2 in jumps:
+                if pair1 == pair2:
+                    continue
+
+                if pair1.overlaps(pair2):
+                    # These two jump ranges overlap! Make sure pair1 has a larger offset!
+                    if pair_id[pair2] >= cur_offset:
+                        cur_offset = pair_id[pair2] + 1
+
+            # We only want a maximum number of columns
+            pair_id[pair1] = min(cur_offset, maximum_pair_id)
+
+        # Sort lists of jump ranges by ascending id
+        for instruction in instructions:
+            pairs = pair_map[instruction.address]
+            pairs.sort(key=lambda x: pair_id[x])
+
+        return pair_map, pair_id, maximum_pair_id
+
+def create_branch_visualization_strings(
+        pair_map: dict[int, list[JumpRange]], 
+        pair_id: dict[JumpRange, int],
+        maximum_pair_id: int,
+        addr: int
+    ) -> tuple[str,str]:
+    """
+    Returns tuple of (string, string for empty line)
+    """
+    # This string has ANSI colors in it
+    branch_vis_string = ""
+
+    # Length of the string ignoring ANSI color codes
+    branch_vis_string_len = 0
+
+    # This is the string placed in to the empty lines after branches
+    empty_line_branch_vis_string = ""
+    empty_line_branch_vis_string_len = 0
+
+    # First, handle creating the horizontal lines (handling all the jumps that are start or end here)
+    for pair in pair_map[addr]:
+        # Due to preprocessing, we are iterating jump ranges at this address in order of smallest to largest id
+        pair_offset = pair_id[pair]
+
+        # The number of new columns to create in the string in this pass
+        expand_amount = min(pair_offset, pair_offset - branch_vis_string_len + 1)
+
+        # If a forward jump
+        if pair.forward:
+            if pair.start == addr:
+                if branch_vis_string:
+                    branch_vis_string = (
+                        colorize_branch_vis_line(
+                            pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                        )
+                        + branch_vis_string
+                    )
+                    branch_vis_string_len += 1 + expand_amount
+                else:
+                    branch_vis_string = colorize_branch_vis_line(
+                        pair_offset,
+                        TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
+                    )
+                    branch_vis_string_len += 2 + expand_amount
+            elif pair.end == addr:
+                if branch_vis_string:
+                    branch_vis_string = (
+                        colorize_branch_vis_line(
+                            pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                        )
+                        + branch_vis_string
+                    )
+                    branch_vis_string_len += 1 + expand_amount
+                else:
+                    branch_vis_string = colorize_branch_vis_line(
+                        pair_offset,
+                        BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
+                    )
+                    branch_vis_string_len += 2 + expand_amount
+        else:
+            # Backwards jump
+            if pair.start == addr:
+                if branch_vis_string:
+                    branch_vis_string = (
+                        colorize_branch_vis_line(
+                            pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                        )
+                        + branch_vis_string
+                    )
+                    branch_vis_string_len += 1 + expand_amount
+                else:
+                    branch_vis_string = colorize_branch_vis_line(
+                        pair_offset,
+                        BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
+                    )
+                    branch_vis_string_len += 2 + expand_amount
+            elif pair.end == addr:
+                if branch_vis_string:
+                    branch_vis_string = (
+                        colorize_branch_vis_line(
+                            pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                        )
+                        + branch_vis_string
+                    )
+                    branch_vis_string_len += 1 + expand_amount
+                else:
+                    branch_vis_string = colorize_branch_vis_line(
+                        pair_offset,
+                        TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
+                    )
+                    branch_vis_string_len += 2 + expand_amount
+        if pair_offset == maximum_pair_id:
+            # We don't have any more column space for more jump ranges
+            break
+
+    # Secondly, handle the vertical lines passing through this address
+
+    # This loop has multiple ways exit due to reaching the full column space
+    # It's easier to track this with a variable.
+    last_iteration = False
+
+    for pair in pair_map[addr]:
+        if last_iteration:
+            break
+
+        pair_offset = pair_id[pair]
+
+        vert_symbol = VERT_SYMBOL
+        if not pair.forward:
+            vert_symbol = DOTTED_VERTICAL
+
+        # First, handle creating the vertical lines that pass through the empty row created after branches (if it exists)
+        if pair.forward:
+            # If this pair ended at this address, nothing goes into the empty line after it
+            if pair.end == addr:
+                continue
+        else:
+            # If a backwards jump started here, nothing goes in the empty line after it
+            if pair.start == addr:
+                continue
+
+        if pair_offset == maximum_pair_id:
+            last_iteration = True
+
+        # A single column is always taken for the < or > characters
+        target_column = pair_offset + 1
+
+        num_empty_lines = min(
+            target_column, target_column - empty_line_branch_vis_string_len
+        )
+        empty_line_branch_vis_string = (
+            colorize_branch_vis_line(
+                pair_offset,
+                vert_symbol + (" " * num_empty_lines),
+            )
+            + empty_line_branch_vis_string
+        )
+        empty_line_branch_vis_string_len += 1 + num_empty_lines
+
+        # Now, create the string for the non-empty line
+        if pair.start == addr or pair.end == addr:
+            continue
+
+        # Only add to the string if the space hasn't been taking by a horizontal line
+        if branch_vis_string_len <= target_column:
+            empty_lines = min(target_column, target_column - branch_vis_string_len)
+            branch_vis_string = (
+                colorize_branch_vis_line(
+                    pair_offset,
+                    vert_symbol + (" " * empty_lines),
+                )
+                + branch_vis_string
+            )
+            branch_vis_string_len += 1 + empty_lines
+
+    branch_vis_string = rjust_colored(
+        branch_vis_string, COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION
+    )
+    empty_line_branch_vis_string = rjust_colored(
+        empty_line_branch_vis_string, COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION
+    )
+
+    return branch_vis_string, empty_line_branch_vis_string
+
 
 def nearpc(
     pc: int | None = None,
@@ -221,49 +434,7 @@ def nearpc(
 
     # If doing branch visualization, preprocess some datastructures
     if branch_visualization:
-        jumps: list[JumpRange] = []
-
-        # Map of every address to every jump range it belongs in
-        pair_map: dict[int, list[JumpRange]] = defaultdict(list)
-
-        # For a given jump range, it has a unique ID compared to every other jump range it overlaps with
-        # This allows us to display each jump range at a different visual offset
-        pair_id: dict[JumpRange, int] = defaultdict(lambda: -1)
-
-        # -2 because at least two columns are needed: one for the "<" or ">" branch ends, and one for pair id 0
-        maximum_pair_id = COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION - 2
-
-        # Find all instructions eligible for branch visualization
-        for instruction in instructions:
-            if instruction.jump_like and instruction.has_jump_target and not instruction.call_like:
-                jumps.append(JumpRange(instruction.address, instruction.target))
-
-        # Population structure mapping every address to each jump range it belongs to
-        for instruction in instructions:
-            for pair in jumps:
-                if pair.contains(instruction.address):
-                    pair_map[instruction.address].append(pair)
-
-        # Preprocess each pair to assign a unique ID to all overlapping ranges.
-        for pair1 in jumps:
-            cur_offset = 0
-            for pair2 in jumps:
-                if pair1 == pair2:
-                    continue
-
-                if pair1.overlaps(pair2):
-                    # These two jump ranges overlap! Make sure pair1 has a larger offset!
-                    if pair_id[pair2] >= cur_offset:
-                        cur_offset = pair_id[pair2] + 1
-
-            # We only want a maximum number of columns
-            pair_id[pair1] = min(cur_offset, maximum_pair_id)
-
-        # Sort lists of jump ranges by ascending id
-        for instruction in instructions:
-            pairs = pair_map[instruction.address]
-            pairs.sort(key=lambda x: pair_id[x])
-            # print([pair_id[x] for x in pairs])
+        pair_map, pair_id, maximum_pair_id = preprocess_branch_visualization(instructions)
 
     if pwndbg.aglib.memory.peek(pc) and not instructions:
         result.append(message.error(f"Invalid instructions at {pc:#x}"))
@@ -437,161 +608,7 @@ def nearpc(
                 opcodes = ctx_color.highlight(opcodes)
 
         if branch_visualization:
-            addr = instruction.address
-
-            # This string has ANSI colors in it
-            branch_vis_string = ""
-
-            # Length of the string ignoring ANSI color codes
-            branch_vis_string_len = 0
-
-            # This is the string placed in to the empty lines after branches
-            empty_line_branch_vis_string = ""
-            empty_line_branch_vis_string_len = 0
-
-            # First, handle creating the horizontal lines (handling all the jumps that are start or end here)
-            for pair in pair_map[addr]:
-                # Due to preprocessing, we are iterating jump ranges at this address in order of smallest to largest id
-                pair_offset = pair_id[pair]
-
-                # The number of new columns to create in the string in this pass
-                expand_amount = min(pair_offset, pair_offset - branch_vis_string_len + 1)
-
-                # If a forward jump
-                if pair.forward:
-                    if pair.start == addr:
-                        if branch_vis_string:
-                            branch_vis_string = (
-                                colorize_branch_vis_line(
-                                    pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
-                                )
-                                + branch_vis_string
-                            )
-                            branch_vis_string_len += 1 + expand_amount
-                        else:
-                            branch_vis_string = colorize_branch_vis_line(
-                                pair_offset,
-                                TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
-                            )
-                            branch_vis_string_len += 2 + expand_amount
-                    elif pair.end == addr:
-                        if branch_vis_string:
-                            branch_vis_string = (
-                                colorize_branch_vis_line(
-                                    pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
-                                )
-                                + branch_vis_string
-                            )
-                            branch_vis_string_len += 1 + expand_amount
-                        else:
-                            branch_vis_string = colorize_branch_vis_line(
-                                pair_offset,
-                                BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
-                            )
-                            branch_vis_string_len += 2 + expand_amount
-                else:
-                    # Backwards jump
-                    if pair.start == addr:
-                        if branch_vis_string:
-                            branch_vis_string = (
-                                colorize_branch_vis_line(
-                                    pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
-                                )
-                                + branch_vis_string
-                            )
-                            branch_vis_string_len += 1 + expand_amount
-                        else:
-                            branch_vis_string = colorize_branch_vis_line(
-                                pair_offset,
-                                BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
-                            )
-                            branch_vis_string_len += 2 + expand_amount
-                    elif pair.end == addr:
-                        if branch_vis_string:
-                            branch_vis_string = (
-                                colorize_branch_vis_line(
-                                    pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
-                                )
-                                + branch_vis_string
-                            )
-                            branch_vis_string_len += 1 + expand_amount
-                        else:
-                            branch_vis_string = colorize_branch_vis_line(
-                                pair_offset,
-                                TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
-                            )
-                            branch_vis_string_len += 2 + expand_amount
-                if pair_offset == maximum_pair_id:
-                    # We don't have any more column space for more jump ranges
-                    break
-
-            # Secondly, handle the vertical lines passing through this address
-
-            # This loop has multiple ways exit due to reaching the full column space
-            # It's easier to track this with a variable.
-            last_iteration = False
-
-            for pair in pair_map[addr]:
-                if last_iteration:
-                    break
-
-                pair_offset = pair_id[pair]
-
-                vert_symbol = VERT_SYMBOL
-                if not pair.forward:
-                    vert_symbol = DOTTED_VERTICAL
-
-                # First, handle creating the vertical lines that pass through the empty row created after branches (if it exists)
-                if pair.forward:
-                    # If this pair ended at this address, nothing goes into the empty line after it
-                    if pair.end == addr:
-                        continue
-                else:
-                    # If a backwards jump started here, nothing goes in the empty line after it
-                    if pair.start == addr:
-                        continue
-
-                if pair_offset == maximum_pair_id:
-                    last_iteration = True
-
-                # A single column is always taken for the < or > characters
-                target_column = pair_offset + 1
-
-                num_empty_lines = min(
-                    target_column, target_column - empty_line_branch_vis_string_len
-                )
-                empty_line_branch_vis_string = (
-                    colorize_branch_vis_line(
-                        pair_offset,
-                        vert_symbol + (" " * num_empty_lines),
-                    )
-                    + empty_line_branch_vis_string
-                )
-                empty_line_branch_vis_string_len += 1 + num_empty_lines
-
-                # Now, create the string for the non-empty line
-                if pair.start == addr or pair.end == addr:
-                    continue
-
-                # Only add to the string if the space hasn't been taking by a horizontal line
-                if branch_vis_string_len <= target_column:
-                    empty_lines = min(target_column, target_column - branch_vis_string_len)
-                    branch_vis_string = (
-                        colorize_branch_vis_line(
-                            pair_offset,
-                            vert_symbol + (" " * empty_lines),
-                        )
-                        + branch_vis_string
-                    )
-                    branch_vis_string_len += 1 + empty_lines
-
-            branch_vis_string = rjust_colored(
-                branch_vis_string, COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION
-            )
-            empty_line_branch_vis_string = rjust_colored(
-                empty_line_branch_vis_string, COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION
-            )
-
+            branch_vis_string, empty_line_branch_vis_string = create_branch_visualization_strings(pair_map, pair_id, maximum_pair_id, instruction.address)
         else:
             branch_vis_string = None
             empty_line_branch_vis_string = ""
@@ -610,7 +627,7 @@ def nearpc(
 
         line = " ".join(printable_elements)
 
-        # Adjust the padding for the branch visualization string
+        # Adjust the padding for the branch visualization string for the empty line
         branch_vis_padding = (
             -1  # -1 because there's a space between all printable_elements, so n-1 spaces
             + len(printable_elements)
