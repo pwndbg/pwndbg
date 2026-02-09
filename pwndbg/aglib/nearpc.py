@@ -33,7 +33,7 @@ from pwndbg.color import white
 from pwndbg.color import yellow
 
 
-def ljust_padding(lst) -> tuple[list[str], int]:
+def ljust_padding(lst: list[str]) -> tuple[list[str], int]:
     """
     Returns (list of padded strings, max length of string)
     """
@@ -147,15 +147,15 @@ offset_to_color_map = {
 }
 
 
-def colorize(offset: int, string: str):
+def colorize_branch_vis_line(offset: int, string: str):
     return offset_to_color_map.get(offset, lambda x: str(x))(string)
 
 
 def nearpc(
-    pc: int = None,
-    lines: int = None,
+    pc: int | None = None,
+    lines: int | None = None,
     back_lines: int = 0,
-    total_lines: int = None,
+    total_lines: int | None = None,
     emulate=False,
     repeat=False,
     use_cache=False,
@@ -462,14 +462,14 @@ def nearpc(
                     if pair.start == addr:
                         if branch_vis_string:
                             branch_vis_string = (
-                                colorize(
+                                colorize_branch_vis_line(
                                     pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
                                 )
                                 + branch_vis_string
                             )
                             branch_vis_string_len += 1 + expand_amount
                         else:
-                            branch_vis_string = colorize(
+                            branch_vis_string = colorize_branch_vis_line(
                                 pair_offset,
                                 TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
                             )
@@ -477,14 +477,14 @@ def nearpc(
                     elif pair.end == addr:
                         if branch_vis_string:
                             branch_vis_string = (
-                                colorize(
+                                colorize_branch_vis_line(
                                     pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
                                 )
                                 + branch_vis_string
                             )
                             branch_vis_string_len += 1 + expand_amount
                         else:
-                            branch_vis_string = colorize(
+                            branch_vis_string = colorize_branch_vis_line(
                                 pair_offset,
                                 BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
                             )
@@ -494,14 +494,14 @@ def nearpc(
                     if pair.start == addr:
                         if branch_vis_string:
                             branch_vis_string = (
-                                colorize(
+                                colorize_branch_vis_line(
                                     pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
                                 )
                                 + branch_vis_string
                             )
                             branch_vis_string_len += 1 + expand_amount
                         else:
-                            branch_vis_string = colorize(
+                            branch_vis_string = colorize_branch_vis_line(
                                 pair_offset,
                                 BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
                             )
@@ -509,14 +509,14 @@ def nearpc(
                     elif pair.end == addr:
                         if branch_vis_string:
                             branch_vis_string = (
-                                colorize(
+                                colorize_branch_vis_line(
                                     pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
                                 )
                                 + branch_vis_string
                             )
                             branch_vis_string_len += 1 + expand_amount
                         else:
-                            branch_vis_string = colorize(
+                            branch_vis_string = colorize_branch_vis_line(
                                 pair_offset,
                                 TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
                             )
@@ -561,7 +561,7 @@ def nearpc(
                     target_column, target_column - empty_line_branch_vis_string_len
                 )
                 empty_line_branch_vis_string = (
-                    colorize(
+                    colorize_branch_vis_line(
                         pair_offset,
                         vert_symbol + (" " * num_empty_lines),
                     )
@@ -577,7 +577,7 @@ def nearpc(
                 if branch_vis_string_len <= target_column:
                     empty_lines = min(target_column, target_column - branch_vis_string_len)
                     branch_vis_string = (
-                        colorize(
+                        colorize_branch_vis_line(
                             pair_offset,
                             vert_symbol + (" " * empty_lines),
                         )
