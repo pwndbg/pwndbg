@@ -20,7 +20,6 @@ from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import blue
-from pwndbg.color import cyan
 from pwndbg.color import green
 from pwndbg.color import light_gray
 from pwndbg.color import light_green
@@ -30,13 +29,16 @@ from pwndbg.color import message
 from pwndbg.color import purple
 from pwndbg.color import red
 from pwndbg.color import rjust_colored
-from pwndbg.color import strip
 from pwndbg.color import white
+from pwndbg.color import yellow
 
 
-def ljust_padding(lst):
+def ljust_padding(lst) -> tuple[list[str], int]:
+    """
+    Returns (list of padded strings, max length of string)
+    """
     longest_len = max(map(len, lst)) if lst else 0
-    return [s.ljust(longest_len) for s in lst]
+    return [s.ljust(longest_len) for s in lst], longest_len
 
 
 c = ColorConfig(
@@ -119,6 +121,36 @@ class JumpRange:
         return max(self.min, other.min) <= min(self.max, other.max)
 
 
+COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION = 20
+
+# Symbols used in branch visualization
+TOP_LEFT_CORNER = "┌"
+BOT_LEFT_CORNER = "└"
+HORZ_SYMBOL = "─"
+VERT_SYMBOL = "│"
+START_SYMBOL = "<"
+END_SYMBOL = ">"
+DOTTED_VERTICAL = "╎"
+
+offset_to_color_map = {
+    0: white,
+    1: red,
+    2: green,
+    3: purple,
+    4: blue,
+    5: white,
+    6: yellow,
+    7: light_red,
+    8: light_purple,
+    9: light_gray,
+    10: light_green,
+}
+
+
+def colorize(offset: int, string: str):
+    return offset_to_color_map.get(offset, lambda x: str(x))(string)
+
+
 def nearpc(
     pc: int = None,
     lines: int = None,
@@ -129,7 +161,6 @@ def nearpc(
     use_cache=False,
     linear=False,
     branch_visualization=False,
-    where: int = 0,
 ) -> list[str]:
     """
     Disassemble near a specified address.
@@ -188,47 +219,51 @@ def nearpc(
         linear=linear,
     )
 
+    # If doing branch visualization, preprocess some datastructures
     if branch_visualization:
         jumps: list[JumpRange] = []
 
-        ## The following section contain setup for branch visualization logic
-        # Map of address to pairs
+        # Map of every address to every jump range it belongs in
         pair_map: dict[int, list[JumpRange]] = defaultdict(list)
-        pair_offsets: dict[JumpRange, int] = defaultdict(lambda: -1)
 
-        # Map each address to the list of jump ranges that contain it
+        # For a given jump range, it has a unique ID compared to every other jump range it overlaps with
+        # This allows us to display each jump range at a different visual offset
+        pair_id: dict[JumpRange, int] = defaultdict(lambda: -1)
+
+        # -2 because at least two columns are needed: one for the "<" or ">" branch ends, and one for pair id 0
+        maximum_pair_id = COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION - 2
+
+        # Find all instructions eligible for branch visualization
         for instruction in instructions:
             if instruction.jump_like and instruction.has_jump_target and not instruction.call_like:
                 jumps.append(JumpRange(instruction.address, instruction.target))
 
-        # Generate map to address to jump it belongs in
+        # Population structure mapping every address to each jump range it belongs to
         for instruction in instructions:
             for pair in jumps:
                 if pair.contains(instruction.address):
                     pair_map[instruction.address].append(pair)
 
-        # Preprocess each pair to assign a unique ID to all overlapping ranges
+        # Preprocess each pair to assign a unique ID to all overlapping ranges.
         for pair1 in jumps:
-            # TODO: don't default to -1! Default to 0 if no overlaps?
-            cur_offset = -1
+            cur_offset = 0
             for pair2 in jumps:
                 if pair1 == pair2:
                     continue
 
                 if pair1.overlaps(pair2):
-                    if pair_offsets[pair2] >= cur_offset:
-                        # TODO: this is safe, but we could find a "hole" in between the lines where this offset could go
-                        # Basically, for all the pairs this overlaps with, pick the highest
-                        # value not in the list of those id's.
-                        cur_offset = pair_offsets[pair2] + 1
+                    # These two jump ranges overlap! Make sure pair1 has a larger offset!
+                    if pair_id[pair2] >= cur_offset:
+                        cur_offset = pair_id[pair2] + 1
 
-            pair_offsets[pair1] = cur_offset
+            # We only want a maximum number of columns
+            pair_id[pair1] = min(cur_offset, maximum_pair_id)
 
         # Sort lists of jump ranges by ascending id
         for instruction in instructions:
             pairs = pair_map[instruction.address]
-            pairs.sort(key=lambda x: pair_offsets[x])
-            # print([pair_offsets[x] for x in pairs])
+            pairs.sort(key=lambda x: pair_id[x])
+            # print([pair_id[x] for x in pairs])
 
     if pwndbg.aglib.memory.peek(pc) and not instructions:
         result.append(message.error(f"Invalid instructions at {pc:#x}"))
@@ -249,8 +284,11 @@ def nearpc(
 
     # Pad out all of the symbols and addresses
     if pwndbg.config.left_pad_disasm and not repeat:
-        symbols = ljust_padding(symbols)
-        addresses = ljust_padding(addresses)
+        symbols, symbols_max_length = ljust_padding(symbols)
+        addresses, addresses_max_length = ljust_padding(addresses)
+    else:
+        symbols_max_length = max(map(len, symbols)) if symbols else 0
+        addresses_max_length = max(map(len, addresses)) if addresses else 0
 
     assembly_strings = pwndbg.color.disasm.instructions_and_padding(instructions)
 
@@ -267,16 +305,16 @@ def nearpc(
     breakpoint_prefix = c.breakpoint(breakpoint_prefix)
 
     # Print out each instruction
-    for i, (address_str, symbol, instr, asm) in enumerate(
+    for i, (address_str, symbol, instruction, asm) in enumerate(
         zip(addresses, symbols, instructions, assembly_strings)
     ):
         # Show prefix only on the specified address and don't show it while in repeat-mode
         # or when showing current instruction for the second time
-        show_prefix = instr.address == pc and not repeat and i == index_of_pc
+        show_prefix = instruction.address == pc and not repeat and i == index_of_pc
         is_breakpoint = False
         if show_prefix:
             prefix = current_insn_prefix
-        elif instr.address in breakpoint_locations:
+        elif instruction.address in breakpoint_locations:
             # If the instruction is not the current instruction and a breakpoint,
             # show the breakpoint sign
             prefix = breakpoint_prefix
@@ -292,7 +330,7 @@ def nearpc(
         # symbol is fetched from gdb and it can be e.g. '<main+8>'
         # In case there are duplicate instances of an instruction (tight loop),
         # ones that the instruction pointer is not at stick out a little, to indicate the repetition
-        elif not pwndbg.config.highlight_pc or instr.address != pc or repeat:
+        elif not pwndbg.config.highlight_pc or instruction.address != pc or repeat:
             address_str = c.address(address_str)
             symbol = c.symbol(symbol)
         elif pwndbg.config.highlight_pc and i == index_of_pc:
@@ -306,16 +344,16 @@ def nearpc(
         # the user anything we can figure out about the memory it's trying to
         # access.
         # mem_access = ""
-        if instr.address == pc and False:
+        if instruction.address == pc and False:
             accesses = []
-            for operand in instr.operands:
+            for operand in instruction.operands:
                 if operand.type != CS_OP_MEM:
                     continue
                 address = operand.mem.disp
 
                 base = operand.mem.base
                 if base > 0:
-                    address += pwndbg.aglib.regs.read_reg(instr.reg_name(base))
+                    address += pwndbg.aglib.regs.read_reg(instruction.reg_name(base))
 
                 vmmap = pwndbg.aglib.vmmap.get()
                 page = next((page for page in vmmap if address in page), None)
@@ -349,8 +387,8 @@ def nearpc(
                 for ch in heap:
                     # Find the chunk in this heap the corresponds to the address
                     # we're trying to access.
-                    offset = address - ch.address
-                    if offset >= 0 and offset < ch.real_size:
+                    pair_offset = address - ch.address
+                    if pair_offset >= 0 and pair_offset < ch.real_size:
                         chunk = ch
                         break
                 if chunk is None:
@@ -383,20 +421,182 @@ def nearpc(
         opcodes = ""
         if show_opcode_bytes > 0:
             opcodes = (opcode_separator_bytes * " ").join(
-                f"{c:02x}" for c in instr.bytes[: int(show_opcode_bytes)]
+                f"{c:02x}" for c in instruction.bytes[: int(show_opcode_bytes)]
             )
             # Must add +3 at minimum, due to truncated instructions adding "..."
             align = show_opcode_bytes * 2 + 3
             if opcode_separator_bytes > 0:
                 # add the length of the maximum number of separators to the alignment
                 align += (show_opcode_bytes - 1) * opcode_separator_bytes  # type: ignore[operator]
-            if len(instr.bytes) > show_opcode_bytes:
+            if len(instruction.bytes) > show_opcode_bytes:
                 opcodes += pwndbg.color.gray("...")
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))
             opcodes = opcodes.ljust(align)
             if pwndbg.config.highlight_pc and i == index_of_pc:
                 opcodes = ctx_color.highlight(opcodes)
+
+        if branch_visualization:
+            addr = instruction.address
+
+            # This string has ANSI colors in it
+            branch_vis_string = ""
+
+            # Length of the string ignoring ANSI color codes
+            branch_vis_string_len = 0
+
+            # This is the string placed in to the empty lines after branches
+            empty_line_branch_vis_string = ""
+            empty_line_branch_vis_string_len = 0
+
+            # First, handle creating the horizontal lines (handling all the jumps that are start or end here)
+            for pair in pair_map[addr]:
+                # Due to preprocessing, we are iterating jump ranges at this address in order of smallest to largest id
+                pair_offset = pair_id[pair]
+
+                # The number of new columns to create in the string in this pass
+                expand_amount = min(pair_offset, pair_offset - branch_vis_string_len + 1)
+
+                # If a forward jump
+                if pair.forward:
+                    if pair.start == addr:
+                        if branch_vis_string:
+                            branch_vis_string = (
+                                colorize(
+                                    pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                                )
+                                + branch_vis_string
+                            )
+                            branch_vis_string_len += 1 + expand_amount
+                        else:
+                            branch_vis_string = colorize(
+                                pair_offset,
+                                TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
+                            )
+                            branch_vis_string_len += 2 + expand_amount
+                    elif pair.end == addr:
+                        if branch_vis_string:
+                            branch_vis_string = (
+                                colorize(
+                                    pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                                )
+                                + branch_vis_string
+                            )
+                            branch_vis_string_len += 1 + expand_amount
+                        else:
+                            branch_vis_string = colorize(
+                                pair_offset,
+                                BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
+                            )
+                            branch_vis_string_len += 2 + expand_amount
+                else:
+                    # Backwards jump
+                    if pair.start == addr:
+                        if branch_vis_string:
+                            branch_vis_string = (
+                                colorize(
+                                    pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                                )
+                                + branch_vis_string
+                            )
+                            branch_vis_string_len += 1 + expand_amount
+                        else:
+                            branch_vis_string = colorize(
+                                pair_offset,
+                                BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
+                            )
+                            branch_vis_string_len += 2 + expand_amount
+                    elif pair.end == addr:
+                        if branch_vis_string:
+                            branch_vis_string = (
+                                colorize(
+                                    pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                                )
+                                + branch_vis_string
+                            )
+                            branch_vis_string_len += 1 + expand_amount
+                        else:
+                            branch_vis_string = colorize(
+                                pair_offset,
+                                TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
+                            )
+                            branch_vis_string_len += 2 + expand_amount
+                if pair_offset == maximum_pair_id:
+                    # We don't have any more column space for more jump ranges
+                    break
+
+            # Secondly, handle the vertical lines passing through this address
+
+            # This loop has multiple ways exit due to reaching the full column space
+            # It's easier to track this with a variable.
+            last_iteration = False
+
+            for pair in pair_map[addr]:
+                if last_iteration:
+                    break
+
+                pair_offset = pair_id[pair]
+
+                vert_symbol = VERT_SYMBOL
+                if not pair.forward:
+                    vert_symbol = DOTTED_VERTICAL
+
+                # First, handle creating the vertical lines that pass through the empty row created after branches (if it exists)
+                if pair.forward:
+                    # If this pair ended at this address, nothing goes into the empty line after it
+                    if pair.end == addr:
+                        continue
+                else:
+                    # If a backwards jump started here, nothing goes in the empty line after it
+                    if pair.start == addr:
+                        continue
+
+                if pair_offset == maximum_pair_id:
+                    last_iteration = True
+
+                # A single column is always taken for the < or > characters
+                target_column = pair_offset + 1
+
+                num_empty_lines = min(
+                    target_column, target_column - empty_line_branch_vis_string_len
+                )
+                empty_line_branch_vis_string = (
+                    colorize(
+                        pair_offset,
+                        vert_symbol + (" " * num_empty_lines),
+                    )
+                    + empty_line_branch_vis_string
+                )
+                empty_line_branch_vis_string_len += 1 + num_empty_lines
+
+                # Now, create the string for the non-empty line
+                if pair.start == addr or pair.end == addr:
+                    continue
+
+                # Only add to the string if the space hasn't been taking by a horizontal line
+                if branch_vis_string_len <= target_column:
+                    empty_lines = min(target_column, target_column - branch_vis_string_len)
+                    branch_vis_string = (
+                        colorize(
+                            pair_offset,
+                            vert_symbol + (" " * empty_lines),
+                        )
+                        + branch_vis_string
+                    )
+                    branch_vis_string_len += 1 + empty_lines
+
+            branch_vis_string = rjust_colored(
+                branch_vis_string, COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION
+            )
+            empty_line_branch_vis_string = rjust_colored(
+                empty_line_branch_vis_string, COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION
+            )
+
+        else:
+            branch_vis_string = None
+            empty_line_branch_vis_string = ""
+
+        # line = " ".join(filter(None, (flow, prefix, address_str, opcodes, symbol, asm)))
 
         # Example line:
         # ► 0x7ffff7f1aeb6 0f bd c0    <__strrchr_avx2+70>    bsr    eax, eax
@@ -406,137 +606,25 @@ def nearpc(
         # symbol        = <__strrchr_avx2+70>
         # asm           = bsr    eax, eax           (jump target/annotation would go here too)
 
-        if branch_visualization:
-            TOP_LEFT_CORNER = "┌"
-            BOT_LEFT_CORNER = "└"
-            HORZ_SYMBOL = "─"
-            VERT_SYMBOL = "│"
-            START_SYMBOL = "<"
-            END_SYMBOL = ">"
-            DOTTED_VERTICAL = "╎"
+        printable_elements = list(
+            filter(None, (prefix, address_str, opcodes, symbol, branch_vis_string, asm))
+        )
 
-            PADDING_FOR_FLOW = 15
+        line = " ".join(printable_elements)
 
-            addr = instr.address
-            # Compute lines
-
-            offset_to_color_map = {
-                0: white,
-                1: red,
-                2: green,
-                3: blue,
-                4: white,
-                5: purple,
-                6: cyan,
-                7: light_red,
-                8: light_purple,
-                9: light_gray,
-                10: light_green,
-            }
-
-            def colorize(offset: int, string: str):
-                return offset_to_color_map.get(offset, lambda x: str(x))(string)
-
-            # Find the one that starts here
-            flow = ""
-            for pair in pair_map[addr]:
-                offset = pair_offsets[pair] + 1
-
-                amount = min(offset, offset - len(strip(flow)))
-
-                # If a forward jump
-                if pair.forward:
-                    if pair.start == addr:
-                        if flow:
-                            flow = colorize(offset, TOP_LEFT_CORNER + (amount) * HORZ_SYMBOL) + flow
-                        else:
-                            flow = colorize(
-                                offset, TOP_LEFT_CORNER + (amount) * HORZ_SYMBOL + START_SYMBOL
-                            )
-                    elif pair.end == addr:
-                        if flow:
-                            # flow = colorize(offset,strip(flow)[:-1] + END_SYMBOL)
-                            flow = colorize(offset, BOT_LEFT_CORNER + (amount) * HORZ_SYMBOL) + flow
-                        else:
-                            flow = colorize(
-                                offset, BOT_LEFT_CORNER + (amount) * HORZ_SYMBOL + END_SYMBOL
-                            )
-                else:
-                    # Backwards jump
-                    if pair.start == addr:
-                        if flow:
-                            flow = colorize(offset, BOT_LEFT_CORNER + (amount) * HORZ_SYMBOL) + flow
-                        else:
-                            flow = colorize(
-                                offset, BOT_LEFT_CORNER + (amount) * HORZ_SYMBOL + START_SYMBOL
-                            )
-                    elif pair.end == addr:
-                        if flow:
-                            # flow = colorize(offset,strip(flow)[:-1] + END_SYMBOL)
-                            flow = colorize(offset, TOP_LEFT_CORNER + (amount) * HORZ_SYMBOL) + flow
-                        else:
-                            flow = colorize(
-                                offset, TOP_LEFT_CORNER + (amount) * HORZ_SYMBOL + END_SYMBOL
-                            )
-
-            # repeat_flow is the string placed in to the empty lines after branches
-            # It contains no --> or <--
-            repeat_flow = ""
-            for pair in pair_map[addr]:
-                offset = pair_offsets[pair] + 1
-                spacing_offset = offset + 1
-
-                local_vert_symbol = VERT_SYMBOL
-                if not pair.forward:
-                    local_vert_symbol = DOTTED_VERTICAL
-
-                if pair.forward:
-                    # If ending here, don't add to repeat flow
-                    if pair.end == addr:
-                        continue
-                else:
-                    # Backwards jmp, at start
-                    if pair.start == addr:
-                        # Not when going backwards!
-                        continue
-
-                repeat_flow = (
-                    colorize(
-                        offset,
-                        local_vert_symbol
-                        + (" " * (min(spacing_offset, spacing_offset - len(strip(repeat_flow))))),
-                    )
-                    + repeat_flow
-                )
-
-                if pair.start == addr or pair.end == addr:
-                    continue
-
-                if len(strip(flow)) <= spacing_offset:
-                    flow = (
-                        colorize(
-                            offset,
-                            local_vert_symbol
-                            + " " * (min(spacing_offset, spacing_offset - len(strip(flow)))),
-                        )
-                        + flow
-                    )
-
-            flow = rjust_colored(flow, PADDING_FOR_FLOW)
-            repeat_flow = rjust_colored(repeat_flow, PADDING_FOR_FLOW)
-        else:
-            flow = None
-            repeat_flow = ""
-
-        # mem_access was on this list, but not used due to the `and False` in the code that sets it above
-        # line = " ".join(filter(None, (flow, prefix, address_str, opcodes, symbol, asm)))
-
-        if where == 0:
-            line = " ".join(filter(None, (flow, prefix, address_str, opcodes, symbol, asm)))
-        else:
-            line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, flow, asm)))
-            longest_len = len(strip(prefix)) + max(map(len, symbols)) + max(map(len, addresses))
-            repeat_flow = rjust_colored(repeat_flow, longest_len + PADDING_FOR_FLOW + 3)
+        # Adjust the padding for the branch visualization string
+        branch_vis_padding = (
+            -1  # -1 because there's a space between all printable_elements, so n-1 spaces
+            + len(printable_elements)
+            + len(prefix_sign)
+            + addresses_max_length
+            + len(opcodes)
+            + symbols_max_length
+        )
+        empty_line_branch_vis_string = rjust_colored(
+            empty_line_branch_vis_string,
+            branch_vis_padding + COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION,
+        )
         # FIXME(provider, integration): can we look into doing this on the decompiler side?
         # if show_comments:
         #     # Pull comments from integration if possible
@@ -550,7 +638,9 @@ def nearpc(
         # For Comment Function
         try:
             line += " " * 10 + ctx_color.comment(
-                pwndbg.commands.comments.file_lists[pwndbg.aglib.proc.exe()][hex(instr.address)]
+                pwndbg.commands.comments.file_lists[pwndbg.aglib.proc.exe()][
+                    hex(instruction.address)
+                ]
             )
         except Exception:
             pass
@@ -561,18 +651,18 @@ def nearpc(
         # determine the number of arguments.
         if show_args:
             result.extend(
-                f"{'':>8}{arg}" for arg in pwndbg.arguments.format_args(instruction=instr)
+                f"{'':>8}{arg}" for arg in pwndbg.arguments.format_args(instruction=instruction)
             )
 
         # If this instruction deserves a down arrow to indicate a taken branch
-        if instr.split == SplitType.BRANCH_TAKEN:
-            result.append(repeat_flow + c.branch_marker(f"{nearpc_branch_marker}"))
+        if instruction.split == SplitType.BRANCH_TAKEN:
+            result.append(empty_line_branch_vis_string + c.branch_marker(f"{nearpc_branch_marker}"))
 
         # Otherwise if it's a branch and it *is* contiguous, just put an empty line.
-        elif instr.split == SplitType.BRANCH_NOT_TAKEN:
+        elif instruction.split == SplitType.BRANCH_NOT_TAKEN:
             if nearpc_branch_marker_contiguous:
-                if repeat_flow:
-                    result.append(repeat_flow)
+                if empty_line_branch_vis_string:
+                    result.append(empty_line_branch_vis_string)
                 else:
                     result.append(f"{nearpc_branch_marker_contiguous}")
 
