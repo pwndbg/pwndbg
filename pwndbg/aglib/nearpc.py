@@ -627,18 +627,19 @@ def nearpc(
 
         line = " ".join(printable_elements)
 
-        # Adjust the padding for the branch visualization string for the empty line
-        branch_vis_padding = (
-            -1  # -1 because there's a space between all printable_elements, so n-1 spaces
-            + len(printable_elements)
-            + len(prefix_sign)
-            + addresses_max_length
-            + len(opcodes)
-            + symbols_max_length
-        )
-        empty_line_branch_vis_string = rjust_colored(
-            empty_line_branch_vis_string,
-            branch_vis_padding + COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION,
+        if branch_visualization:
+            # Adjust the padding for the branch visualization string for the empty line
+            branch_vis_padding = (
+                -1  # -1 because there's a space between all printable_elements, so n-1 spaces
+                + len(printable_elements)
+                + len(prefix_sign)
+                + addresses_max_length
+                + len(opcodes)
+                + symbols_max_length
+            )
+            empty_line_branch_vis_string = rjust_colored(
+                empty_line_branch_vis_string,
+                branch_vis_padding + COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION,
         )
         # FIXME(provider, integration): can we look into doing this on the decompiler side?
         # if show_comments:
