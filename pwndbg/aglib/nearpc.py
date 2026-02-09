@@ -16,7 +16,8 @@ import pwndbg.color.disasm
 import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.lib.config
-from pwndbg.aglib.disasm.instruction import PwndbgInstruction, SplitType
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import blue
