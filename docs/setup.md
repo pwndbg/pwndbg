@@ -184,6 +184,7 @@ Note that these version of commands use a [fork of GDB/LLDB that we maintain](ht
 ### Updating while installed from source
 To upgrade, run `git pull` in the cloned repository to get the latest changes.
 
+## Setup for development
 
-For more complex setups from source and for development, see [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source).
+For getting setup for development, see [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source).
 
