@@ -29,6 +29,7 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
+import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.path
 from pwndbg.dbg_mod import EventHandlerPriority
@@ -317,6 +318,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         return None
 
     @override
+    @pwndbg.lib.cache.cache_until("forever")
     def stack_variables(self) -> tuple[tuple[int, int, str], ...]:
         return _get_frame_stack_variables(self.inner)
 
