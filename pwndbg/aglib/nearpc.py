@@ -121,6 +121,9 @@ class JumpRange:
     def overlaps(self, other: JumpRange) -> bool:
         return max(self.min, other.min) <= min(self.max, other.max)
 
+    def __repr__(self) -> str:
+        return f"JumpRange({hex(self.start)}, {hex(self.end)})"
+
 
 COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION = 20
 
@@ -132,6 +135,7 @@ VERT_SYMBOL = "│"
 START_SYMBOL = "<"
 END_SYMBOL = ">"
 DOTTED_VERTICAL = "╎"
+UP_SYMBOL = "▲"
 
 offset_to_color_map = {
     0: white,
@@ -148,16 +152,23 @@ offset_to_color_map = {
 }
 
 
+# Allows to the branch visualization work across repeated uses of nearpc
+# Maps the jump range to the id it was given.
+last_run_ids: dict[JumpRange, int] = {}
+
+
 def colorize_branch_vis_line(offset: int, string: str):
     return offset_to_color_map.get(offset, lambda x: str(x))(string)
 
 
 def preprocess_branch_visualization(
-    instructions: list[PwndbgInstruction],
+    instructions: list[PwndbgInstruction], repeat: bool
 ) -> tuple[dict[int, list[JumpRange]], dict[JumpRange, int], int]:
     """
     Returns (pair_map dictionary,pair_id dictionary, maximum_pair_id)
     """
+    global last_run_ids
+
     jumps: list[JumpRange] = []
 
     # Map of every address to every jump range it belongs in
@@ -175,14 +186,32 @@ def preprocess_branch_visualization(
         if instruction.jump_like and instruction.has_jump_target and not instruction.call_like:
             jumps.append(JumpRange(instruction.address, instruction.target))
 
+    # Of the jumpranges we processed last time, which ones do we keep? Relevant for repeat nearpc
+    continued_ranges: set[JumpRange] = set()
+
     # Population structure mapping every address to each jump range it belongs to
     for instruction in instructions:
         for pair in jumps:
             if pair.contains(instruction.address):
                 pair_map[instruction.address].append(pair)
 
+        if repeat:
+            for pair, y in last_run_ids.items():
+                if pair.contains(instruction.address):
+                    pair_map[instruction.address].append(pair)
+                    continued_ranges.add(pair)
+
+    if repeat:
+        for pair in continued_ranges:
+            pair_id[pair] = last_run_ids[pair]
+            jumps.append(pair)
+
     # Preprocess each pair to assign a unique ID to all overlapping ranges.
     for pair1 in jumps:
+        # If this was from a repeat range, ignore it
+        if pair_id[pair1] >= 0:
+            continue
+
         cur_offset = 0
         for pair2 in jumps:
             if pair1 == pair2:
@@ -201,6 +230,8 @@ def preprocess_branch_visualization(
         pairs = pair_map[instruction.address]
         pairs.sort(key=lambda x: pair_id[x])
 
+    last_run_ids = pair_id
+
     return pair_map, pair_id, maximum_pair_id
 
 
@@ -209,6 +240,7 @@ def create_branch_visualization_strings(
     pair_id: dict[JumpRange, int],
     maximum_pair_id: int,
     addr: int,
+    is_first_address: bool,
 ) -> tuple[str, str]:
     """
     Returns tuple of (string, string for empty line)
@@ -311,9 +343,15 @@ def create_branch_visualization_strings(
 
         pair_offset = pair_id[pair]
 
-        vert_symbol = VERT_SYMBOL
+        vert_symbol = empty_line_vert_symbol = VERT_SYMBOL
+
         if not pair.forward:
-            vert_symbol = DOTTED_VERTICAL
+            empty_line_vert_symbol = DOTTED_VERTICAL
+            if not is_first_address:
+                vert_symbol = DOTTED_VERTICAL
+            else:
+                # Handle edge case: during repeated nearpc, entering a region that has a jump that goes backwards
+                vert_symbol = UP_SYMBOL
 
         # First, handle creating the vertical lines that pass through the empty row created after branches (if it exists)
         if pair.forward:
@@ -335,7 +373,7 @@ def create_branch_visualization_strings(
         empty_line_branch_vis_string = (
             colorize_branch_vis_line(
                 pair_offset,
-                vert_symbol + (" " * num_empty_lines),
+                empty_line_vert_symbol + (" " * num_empty_lines),
             )
             + empty_line_branch_vis_string
         )
@@ -435,7 +473,7 @@ def nearpc(
 
     # If doing branch visualization, preprocess some datastructures
     if branch_visualization:
-        pair_map, pair_id, maximum_pair_id = preprocess_branch_visualization(instructions)
+        pair_map, pair_id, maximum_pair_id = preprocess_branch_visualization(instructions, repeat)
 
     if pwndbg.aglib.memory.peek(pc) and not instructions:
         result.append(message.error(f"Invalid instructions at {pc:#x}"))
@@ -610,7 +648,7 @@ def nearpc(
 
         if branch_visualization:
             branch_vis_string, empty_line_branch_vis_string = create_branch_visualization_strings(
-                pair_map, pair_id, maximum_pair_id, instruction.address
+                pair_map, pair_id, maximum_pair_id, instruction.address, i == 0
             )
         else:
             branch_vis_string = None
