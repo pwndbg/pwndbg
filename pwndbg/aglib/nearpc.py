@@ -245,6 +245,10 @@ def create_branch_visualization_strings(
     """
     Returns tuple of (string, string for empty line)
     """
+
+    if len(pair_id) == 0:
+        return None, None
+
     # This string has ANSI colors in it
     branch_vis_string = ""
 
@@ -668,7 +672,7 @@ def nearpc(
 
         line = " ".join(printable_elements)
 
-        if branch_visualization:
+        if branch_visualization and branch_vis_string:
             # Adjust the padding for the branch visualization string for the empty line
             branch_vis_padding = (
                 -1  # -1 because there's a space between all printable_elements, so n-1 spaces
