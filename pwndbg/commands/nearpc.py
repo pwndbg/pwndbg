@@ -49,8 +49,8 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "-v",
-    "--visual",
+    "-b",
+    "--branch",
     action="store_true",
     help="Whether to show branch visualizations.",
 )
@@ -66,7 +66,7 @@ def nearpc(
     emulate=False,
     use_cache=False,
     linear=True,
-    visual=False,
+    branch=False,
 ) -> None:
     """
     Disassemble near a specified address.
@@ -105,7 +105,7 @@ def nearpc(
                 repeat=nearpc.repeat,
                 use_cache=use_cache,
                 linear=linear,
-                branch_visualization=visual,
+                branch_visualization=branch,
             )
         )
     )
