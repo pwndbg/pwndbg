@@ -55,17 +55,12 @@ RUN python3 -m venv /venv && \
     rm -rf ~/.cache/
 
 WORKDIR /pwndbg
-COPY ./uv.lock /pwndbg/
-COPY ./pyproject.toml /pwndbg/
 
-# pyproject.toml requires these files, pip install would fail
-RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
-
-RUN . /venv/bin/activate && \
-    uv sync --all-groups --all-extras && \
-    rm -rf ~/.cargo/registry/ && \
-    rm -rf ~/.cache/
-
-RUN rm README.md && rm -rf pwndbg
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    --mount=type=cache,target=/root/.cargo/registry,sharing=locked \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    . /venv/bin/activate && \
+    uv sync --locked --no-install-project --all-groups --all-extras
 
 ENV PATH="${PWNDBG_VENV_PATH}/bin:${PATH}"

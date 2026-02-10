@@ -22,6 +22,8 @@ class ErrorCode(Enum):
     """Generic failure"""
     NO_STRUCTURE_FILE = 2
     """We tried to load a structure, but the associated structure file doesn't exist."""
+    NO_IMPORT = 3
+    """We tried to import a python library but it is not installed."""
 
 
 @dataclass
