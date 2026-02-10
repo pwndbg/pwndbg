@@ -50,7 +50,7 @@ parser.add_argument(
 
 parser.add_argument(
     "-n",
-    "--no_branch",
+    "--no-branch",
     action="store_true",
     help="Disable showing branch visualizations.",
 )
