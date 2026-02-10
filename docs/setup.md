@@ -170,13 +170,22 @@ cd pwndbg
 ./setup.sh
 ```
 
+This will edit your `~/.gdbinit` file to load pwndbg alongside GDB.
+
+To view supported GDB versions and compiling GDB from source, see [these instructions](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source).
+
+
 ### `pwndbg`/`pwndbg-lldb` commands from source
-To install the `pwndbg` or `pwndbg-lldb` commands while still running from source, you can do the following:
+To install the `pwndbg` or `pwndbg-lldb` commands while still running from source, you can do the following. Note that a c++ compiler is required as some dependencies need to be compiled
 ```{.bash .copy}
 git clone https://github.com/pwndbg/pwndbg
 cd pwndbg
+
+# Install with uv
 uv tool install --editable .[lldb,gdb] --force
-# Note that a c++ compiler is required as some dependencies need to be compiled
+
+# Or, install with pipx
+pipx install --editable .[lldb,gdb] --force
 ```
 
 Note that these version of commands use a [fork of GDB/LLDB that we maintain](https://github.com/pwndbg/pypi-for-pwndbg) that fixes some bugs and provide a predictable experience.
