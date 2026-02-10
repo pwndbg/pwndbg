@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pwndbg.aglib.memory
 import pwndbg.dbg_mod
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.cache
 from pwndbg.dbg_mod import SymbolLookupType
 
@@ -114,4 +114,4 @@ def resolve_addr(addr: int) -> str | None:
     if symbol_name:
         return symbol_name
 
-    return pwndbg.integration.manager.symbol_at_address(addr)
+    return pwndbg.dintegration.manager.symbol_at_address(addr)

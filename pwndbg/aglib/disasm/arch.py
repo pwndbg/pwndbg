@@ -16,7 +16,7 @@ import pwndbg.color.context as ctx_color
 import pwndbg.color.memory as mem_color
 import pwndbg.color.message as message
 import pwndbg.color.syntax_highlight as H
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.config
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
@@ -336,7 +336,7 @@ class DisassemblyAssistant:
         if pwndbg.config.syntax_highlight:
             instruction.asm_string = syntax_highlight(instruction.asm_string)
 
-        stack_vars = pwndbg.integration.manager.get_stack_var_dict_all()
+        stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
 
         # Populate the "operands" list of the instruction
         # Set before_value, symbol, and str
@@ -731,7 +731,7 @@ class DisassemblyAssistant:
         if instruction.has_jump_target and instruction.target >= 0:
             # Only bother doing the symbol lookup if this is a jump
             instruction.target_string = mem_color.get_address_or_symbol(
-                instruction.target, pwndbg.integration.manager.get_stack_var_dict_all()
+                instruction.target, pwndbg.dintegration.manager.get_stack_var_dict_all()
             )
 
         # Now that we have determined the target, if it was a conditional branch,
@@ -841,7 +841,7 @@ class DisassemblyAssistant:
         Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
         """
         if operand.before_value is not None:
-            return f"[{mem_color.get_address_or_symbol(operand.before_value, pwndbg.integration.manager.get_stack_var_dict_all())}]"
+            return f"[{mem_color.get_address_or_symbol(operand.before_value, pwndbg.dintegration.manager.get_stack_var_dict_all())}]"
         return None
 
     def _common_generic_register_destination(
@@ -1093,7 +1093,7 @@ class DisassemblyAssistant:
                 target_operand.str,
                 mem_color.get_address_and_symbol(
                     target_operand.after_value_resolved,
-                    pwndbg.integration.manager.get_stack_var_dict_all(),
+                    pwndbg.dintegration.manager.get_stack_var_dict_all(),
                 ),
                 memory_assignment,
             )
@@ -1113,7 +1113,7 @@ def basic_enhance(ins: PwndbgInstruction) -> None:
         ins.asm_string = syntax_highlight(ins.asm_string)
 
     if pwndbg.config.disasm_inline_symbols:
-        stack_vars = pwndbg.integration.manager.get_stack_var_dict_all()
+        stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
         # Make inline replacements, so `jmp 0x400122` becomes `jmp function_name`
         for op in ins.operands:
             if op.type is CS_OP_IMM:

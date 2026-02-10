@@ -4,6 +4,7 @@ import functools
 import random
 import re
 from collections.abc import Callable
+from typing import Any
 from typing import TypeVar
 
 import gdb
@@ -33,21 +34,21 @@ def KernelTest(func: Callable[P, T]) -> Callable[P, T | None]:
 
 
 @KernelTest
-def test_command_kchecksec():
+def test_command_kchecksec() -> None:
     res = gdb.execute("kchecksec", to_string=True)
     assert res != ""  # for F841 warning
     # TODO: do something with res
 
 
 @KernelTest
-def test_command_kcmdline():
+def test_command_kcmdline() -> None:
     res = gdb.execute("kcmdline", to_string=True)
     assert res != ""  # for F841 warning
     # TODO: do something with res
 
 
 @KernelTest
-def test_command_kconfig():
+def test_command_kconfig() -> None:
     res = gdb.execute("kconfig", to_string=True)
     assert "CONFIG_IKCONFIG = y" in res
 
@@ -56,7 +57,7 @@ def test_command_kconfig():
 
 
 @KernelTest
-def test_command_kdmesg():
+def test_command_kdmesg() -> None:
     if not pwndbg.aglib.kernel.has_debug_info():
         res = gdb.execute("kdmesg", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
@@ -74,7 +75,7 @@ def test_command_kdmesg():
 
 
 @KernelTest
-def test_command_kmod():
+def test_command_kmod() -> None:
     if not pwndbg.aglib.kernel.has_debug_symbols("find_module_all"):
         res = gdb.execute("kmod", to_string=True)
         return
@@ -84,7 +85,7 @@ def test_command_kmod():
 
 
 @KernelTest
-def test_command_ksyscalls():
+def test_command_ksyscalls() -> None:
     if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("ksyscalls", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
@@ -95,7 +96,7 @@ def test_command_ksyscalls():
 
 
 @KernelTest
-def test_command_ktask():
+def test_command_ktask() -> None:
     if not pwndbg.aglib.kernel.has_debug_info():
         res = gdb.execute("ktask", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
@@ -110,13 +111,13 @@ def test_command_ktask():
 
 
 @KernelTest
-def test_command_kversion():
+def test_command_kversion() -> None:
     res = gdb.execute("kversion", to_string=True)
     assert "Linux version" in res
 
 
 @KernelTest
-def test_command_slab_list():
+def test_command_slab_list() -> None:
     if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab list", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
@@ -127,7 +128,7 @@ def test_command_slab_list():
 
 
 @KernelTest
-def test_command_slab_info():
+def test_command_slab_info() -> None:
     if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab info kmalloc-512", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
@@ -145,7 +146,7 @@ def test_command_slab_info():
 
 
 @KernelTest
-def test_command_slab_contains():
+def test_command_slab_contains() -> None:
     if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab contains 0x123", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
@@ -159,6 +160,8 @@ def test_command_slab_contains():
     res = gdb.execute(f"slab contains {addr}", to_string=True)
     assert f"{addr} @ {slab_cache}" in res
     assert "cpu" in res or "node" in res
+    res2 = gdb.execute(f"slab contains {int(addr, 16) + 1}", to_string=True)
+    assert res == res2, "unaligned object address test failed"
 
 
 @KernelTest
@@ -166,7 +169,7 @@ def test_command_slab_contains():
     pwndbg.aglib.arch.name not in ["i386", "x86-64"],
     reason="function page_offset is only implemented for x86",
 )
-def test_x64_extra_registers_under_kernel_mode():
+def test_x64_extra_registers_under_kernel_mode() -> None:
     res = gdb.execute("context", to_string=True)
     for reg in ["cr0", "cr3", "cr4", "fs_base", "gs_base", "efer", "ss", "cs"]:
         assert reg.upper() in res
@@ -175,7 +178,7 @@ def test_x64_extra_registers_under_kernel_mode():
         assert flag in res or flag.upper() in res
 
 
-def get_slab_object_address():
+def get_slab_object_address() -> tuple[list[Any], str]:
     """helper function to get the address of some kmalloc slab object
     and the associated slab cache name"""
     caches = pwndbg.aglib.kernel.slab.caches()
@@ -215,7 +218,7 @@ def get_slab_object_address():
 
 
 @KernelTest
-def test_command_kernel_vmmap():
+def test_command_kernel_vmmap() -> None:
     res = gdb.execute("vmmap", to_string=True)
     assert all(
         key in res
@@ -230,7 +233,7 @@ def test_command_kernel_vmmap():
     )
 
 
-def get_buddy_freelist_elements(out):
+def get_buddy_freelist_elements(out) -> list[tuple[int, int]]:
     out = pwndbg.color.strip(out)
     result = []
     for e in re.findall(r"\[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]{16} \[0x[0-9a-fA-F]{16}\])", out):
@@ -244,7 +247,7 @@ def get_buddy_freelist_elements(out):
 @pytest.mark.skipif(
     not pwndbg.aglib.kernel.has_debug_symbols(), reason="test requires debug symbols"
 )
-def test_command_buddydump():
+def test_command_buddydump() -> None:
     res = gdb.execute("buddydump", to_string=True)
     NOFREEPAGE = "No free pages with specified filters found.\n"
     if res == "WARNING: Symbol 'node_data' not found\n" or NOFREEPAGE == res:
@@ -298,7 +301,7 @@ def check_0x100_bytes(address, physmap_addr):
 
 
 @KernelTest
-def test_command_pagewalk():
+def test_command_pagewalk() -> None:
     address = pwndbg.aglib.kernel.kbase()
     if address is None:
         pages = pwndbg.aglib.vmmap.get()
@@ -334,7 +337,7 @@ def test_command_pagewalk():
 @pytest.mark.skipif(
     not pwndbg.aglib.kernel.has_debug_symbols(), reason="test requires debug symbols"
 )
-def test_command_paging():
+def test_command_paging() -> None:
     def test_command_paging_helper(pagetype, addr):
         out = gdb.execute(f"v2p {addr}", to_string=True)
         out = pwndbg.color.strip(out)
@@ -367,8 +370,7 @@ def test_command_paging():
     res = gdb.execute("buddydump", to_string=True)
     matches = get_buddy_freelist_elements(res)
     if len(matches) > 0 and "free_area" in res:  # only pages in free_area is marked "buddy"
-        buddy = int(matches[-1], 16)
-        test_command_paging_helper("buddy", buddy)
+        test_command_paging_helper("buddy", matches[-1][0])
 
     krelease = pwndbg.aglib.kernel.krelease()
     assert krelease is not None
@@ -377,6 +379,5 @@ def test_command_paging():
         res = gdb.execute("slab info -v -p kmalloc-32", to_string=True)
         matches = get_buddy_freelist_elements(res)
         if len(matches) > 0:
-            slab = int(matches[-1].split()[-1], 16)
-            test_command_paging_helper("slab", slab)
+            test_command_paging_helper("slab", matches[-1][0])
         res = gdb.execute(f"pagewalk {kbase}")

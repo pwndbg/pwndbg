@@ -32,7 +32,7 @@ dependencies = [
     # It is only used for the 'cymbol' command and some `asm` functionality.
     "ziglang==0.14.1 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
     # For installing the decompiler plugins (we don't actually use it as a python library).
-    # If you bump this, also bump the pwndbg/commands/integration.py:d2d_required* variables.
+    # If you bump this, also bump the pwndbg/commands/decompiler_integration.py:d2d_required* variables.
     "decomp2dbg==3.14.1",
     # Used for symbol syncing (e.g. klookup --apply and decompiler integration)
     "niche-elf==0.3.6",

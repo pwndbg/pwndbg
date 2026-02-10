@@ -16,8 +16,11 @@ from pt.pt_x86_64_parse import PT_x86_64_Backend
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.paging
+import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
 import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.memory import Page
@@ -394,7 +397,7 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_pages() -> tuple[Page, ...]:
-    mode = kernel_vmmap_mode
+    mode = str(kernel_vmmap_mode)
     arch_name = pwndbg.aglib.arch.name
     if mode == "page-tables" and arch_name not in ("x86-64", "aarch64"):
         # TODO: remove this by implementing `RiscvPagingInfo`, `RiscvOps`, etc
@@ -409,8 +412,8 @@ def kernel_vmmap_pages() -> tuple[Page, ...]:
             # has the user set the pgd with kcurrent?
             # None if not which gets properly handled
             entry = pwndbg.commands.kcurrent.KCURRENT_PGD
-            if entry and pwndbg.aglib.memory.is_kernel(entry):
-                entry = pwndbg.aglib.kernel.virt_to_phys(entry)
+            if pwndbg.aglib.memory.is_kernel(entry):
+                entry = pwndbg.aglib.kernel.pagewalk(entry, virt=False).phys
             return pwndbg.aglib.kernel.pagescan(entry)
         case "pt-dump":
             return kernel_vmmap_via_page_tables()

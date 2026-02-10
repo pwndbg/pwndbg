@@ -8,6 +8,7 @@ from __future__ import annotations
 import collections
 import re
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from capstone6pwndbg import *  # noqa: F403
 
@@ -77,6 +78,7 @@ def enhance_cache_listener() -> None:
     if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
         computed_instruction_cache.clear()
+        instruction_sequence_linked_list_map.clear()
 
 
 @pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED)
@@ -85,24 +87,62 @@ def clear_on_reg_mem_change() -> None:
     # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
     # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
     computed_instruction_cache.pop(pwndbg.aglib.regs.pc, None)
+    instruction_sequence_linked_list_map.pop(pwndbg.aglib.regs.pc, None)
 
     for addr in next_addresses_cache:
         computed_instruction_cache.pop(addr, None)
+        instruction_sequence_linked_list_map.pop(addr, None)
 
     next_addresses_cache.clear()
 
-
-# Dict of Address -> previous Address executed
-# Used to display instructions that led to current instruction
-backward_cache: collections.defaultdict[int, int] = collections.defaultdict(lambda: None)
 
 # Dict of Address -> previous instruction sequentially in memory
 # Some architectures don't have fixed-sized instructions, so this is used
 # to disassemble backwards linearly in memory for those cases
 linear_backward_cache: collections.defaultdict[int, int] = collections.defaultdict(lambda: None)
 
+
+# In order to track the sequence of instructions at runtime, we maintain a linked list, where each
+# entry points to the previous instruction that was executed.
+# This is populated speculatively using emulation.
+@dataclass
+class InstructionSequenceNode:
+    """This is used to form a linked list that tracks the order of instructions execution at runtime"""
+
+    previous: InstructionSequenceNode | None
+    instruction: PwndbgInstruction
+
+
+@dataclass
+class InstructionSequenceSavePointer:
+    """
+    This allows preserving context across calls when disassembling backwards.
+    It stores the node that we just processed internally.
+
+    This is like the saveptr parameter of strtok_r.
+    """
+
+    node: InstructionSequenceNode | None
+
+
+# Map addresses to their entry in the linked list.
+# While the emulation may encounter this address multiple times, this map only contains a mapping for the first
+# time the instruction is executed.
+instruction_sequence_linked_list_map: collections.defaultdict[
+    int, InstructionSequenceNode | None
+] = collections.defaultdict(lambda: None)
+
+
+# In case the linked list method fails (we cannot be 100% certain of instruction order),
+# it is still nice to be able to display instructions behind the instruction pointer.
+# This tracks the order of instructions based on the last time we disassembled them.
+# Map of address to previous address
+fallback_backward_cache: collections.defaultdict[int, int | None] = collections.defaultdict(
+    lambda: None
+)
+
 # This allows use to retain the annotation strings from previous instructions
-computed_instruction_cache: collections.defaultdict[int, PwndbgInstruction] = (
+computed_instruction_cache: collections.defaultdict[int, PwndbgInstruction | None] = (
     collections.defaultdict(lambda: None)
 )
 
@@ -113,13 +153,29 @@ emulated_arm_mode_cache: collections.defaultdict[int, int | None] = collections.
 )
 
 
+def get_instruction_sequence_node(
+    address: int, saveptr: InstructionSequenceSavePointer
+) -> InstructionSequenceNode | None:
+    """Return the node of the linked list at the given address, if it exists"""
+    if saveptr.node is not None:
+        return saveptr.node
+
+    if (val := instruction_sequence_linked_list_map.get(address)) is not None:
+        return val
+
+    return None
+
+
 def get_previous_instruction(
-    address: int, use_cache: bool, linear: bool
+    address: int, use_cache: bool, linear: bool, saveptr: InstructionSequenceSavePointer
 ) -> PwndbgInstruction | None:
+    """
+    Retrieve the instruction prior to the instruction at `address`.
+    """
     if linear:
         prev_address = linear_backward_cache[address]
         result = (
-            one(prev_address, from_cache=use_cache, put_backward_cache=False)
+            one(prev_address, from_cache=use_cache, put_backward_cache=False, linear=linear)
             if prev_address
             else None
         )
@@ -131,14 +187,23 @@ def get_previous_instruction(
                 linear=linear,
             )
         return result
-    prev_address = backward_cache[address]
+
+    sequence_node = get_instruction_sequence_node(address, saveptr)
+
+    if sequence_node is not None:
+        prev_node = sequence_node.previous
+        saveptr.node = prev_node
+        if prev_node is not None:
+            return prev_node.instruction
+
+    prev_address = fallback_backward_cache[address]
     return (
         one(prev_address, from_cache=use_cache, put_backward_cache=False) if prev_address else None
     )
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_disassembler(cs_info: tuple[int, int]):
+def get_disassembler(cs_info: tuple[int, int]) -> Cs:
     arch, mode = cs_info
 
     mode |= pwndbg.aglib.arch.get_capstone_endianness()
@@ -156,83 +221,42 @@ def get_disassembler(cs_info: tuple[int, int]):
     return cs
 
 
-def get_one_instruction(
-    address: int,
-    emu: pwndbg.emu.emulator.Emulator | None = None,
+def one(
+    address: int | None = None,
+    emu: pwndbg.emu.emulator.Emulator = None,
     enhance: bool = True,
+    assistant: DisassemblyAssistant | None = None,
     from_cache: bool = False,
     put_cache: bool = False,
-    assistant: DisassemblyAssistant | None = None,
-    padding: int = 6,
-) -> PwndbgInstruction:
-    """
-    If passed an emulator, this will pass it to the DisassemblyAssistant which will
-    single_step the emulator to determine the operand values before and after the instruction executes.
-    """
-    if from_cache:
-        cached = computed_instruction_cache[address]
-        if cached is not None:
-            return cached
-
-    cs_info = pwndbg.aglib.arch.get_capstone_constants(address)
-    if cs_info is None:
-        instr = ManualPwndbgInstruction(address, padding)
-        if enhance:
-            pwndbg.aglib.disasm.arch.basic_enhance(instr)
-        return instr
-
-    md = get_disassembler(cs_info)
-    data = pwndbg.aglib.memory.read(address, pwndbg.aglib.arch.max_instruction_size, partial=True)
-    for ins in md.disasm(bytes(data), address, 1):
-        pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins, padding)
-
-        if enhance:
-            if assistant is None:
-                assistant = (
-                    pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
-                )
-            assistant.enhance(pwn_ins, emu)
-
-        if put_cache:
-            computed_instruction_cache[address] = pwn_ins
-
-        return pwn_ins
-
-    # Make linter happy. This shouldn't occur as md.disasm would crash first.
-    return None
-
-
-# Return None on failure to fetch an instruction
-def one(
-    address=None,
-    emu: pwndbg.emu.emulator.Emulator = None,
-    enhance=True,
-    from_cache=False,
-    put_cache=False,
-    put_backward_cache=True,
-    linear=False,
-    assistant: DisassemblyAssistant = None,
+    put_backward_cache: bool = True,
+    linear: bool = False,
 ) -> PwndbgInstruction | None:
+    """
+    Return None on failure to fetch an instruction
+    """
+
     if address is None:
         address = pwndbg.aglib.regs.pc
 
     if not pwndbg.aglib.memory.peek(address):
         return None
 
-    # A for loop in case this returns an empty list
-    for insn in get(
-        address,
-        1,
-        emu,
-        enhance=enhance,
-        from_cache=from_cache,
-        put_cache=put_cache,
-        assistant=assistant,
-    ):
+    if from_cache:
+        cached = computed_instruction_cache[address]
+        if cached is not None:
+            return cached
+
+    if (
+        insn := get_one_instruction(address, emu, enhance=enhance, assistant=assistant)
+    ) is not None:
+        if put_cache:
+            computed_instruction_cache[address] = insn
+
         if put_backward_cache:
             linear_backward_cache[insn.address + insn.size] = insn.address
+
             if not linear:
-                backward_cache[insn.next] = insn.address
+                fallback_backward_cache[insn.next] = insn.address
         return insn
 
     return None
@@ -254,8 +278,6 @@ def get(
     instructions: int = 1,
     emu: pwndbg.emu.emulator.Emulator | None = None,
     enhance: bool = True,
-    from_cache: bool = False,
-    put_cache: bool = False,
     assistant: DisassemblyAssistant | None = None,
     padding: int = 6,
 ) -> list[PwndbgInstruction]:
@@ -271,8 +293,6 @@ def get(
             address,
             emu,
             enhance=enhance,
-            from_cache=from_cache,
-            put_cache=put_cache,
             assistant=assistant,
             padding=padding,
         )
@@ -282,6 +302,42 @@ def get(
         retval.append(i)
 
     return retval
+
+
+def get_one_instruction(
+    address: int,
+    emu: pwndbg.emu.emulator.Emulator | None = None,
+    enhance: bool = True,
+    assistant: DisassemblyAssistant | None = None,
+    padding: int = 6,
+) -> PwndbgInstruction | None:
+    """
+    If passed an emulator, this will pass it to the DisassemblyAssistant which will
+    single_step the emulator to determine the operand values before and after the instruction executes.
+    """
+    cs_info = pwndbg.aglib.arch.get_capstone_constants(address)
+    if cs_info is None:
+        instr = ManualPwndbgInstruction(address, padding)
+        if enhance:
+            pwndbg.aglib.disasm.arch.basic_enhance(instr)
+        return instr
+
+    md = get_disassembler(cs_info)
+    data = pwndbg.aglib.memory.read(address, pwndbg.aglib.arch.max_instruction_size, partial=True)
+    for ins in md.disasm(bytes(data), address, 1):
+        pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins, padding)
+
+        if enhance:
+            if assistant is None:
+                assistant = (
+                    pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
+                )
+            assistant.enhance(pwn_ins, emu)
+
+        return pwn_ins
+
+    # This is reached if disassembly fails (unknown sequence of bytes)
+    return None
 
 
 def can_run_first_emulate() -> bool:
@@ -349,7 +405,9 @@ def one_with_config():
     return None
 
 
-def set_visual_split(set_ins: PwndbgInstruction, check_ins: PwndbgInstruction, linear: bool):
+def set_visual_split(
+    set_ins: PwndbgInstruction, check_ins: PwndbgInstruction, linear: bool
+) -> None:
     """
     Internal helper function to set the .split property for display purposes.
 
@@ -371,7 +429,7 @@ def set_visual_split(set_ins: PwndbgInstruction, check_ins: PwndbgInstruction, l
 
 # Return (list of PwndbgInstructions, index in list where instruction.address = passed in address)
 def near(
-    address,
+    address: int,
     forward_count: int = 1,
     backward_count: int = 0,
     total_count: int = None,
@@ -435,6 +493,17 @@ def near(
     if current is None:
         return ([], -1)
 
+    # A linked list that contains the order of instructions that emulation
+    # determines will run upon uses of the "nexti" command.
+    instruction_sequence_head = instruction_sequence_linked_list_map.get(address)
+
+    if instruction_sequence_head is None:
+        instruction_sequence_head = InstructionSequenceNode(None, current)
+        instruction_sequence_linked_list_map[address] = instruction_sequence_head
+    else:
+        # We re-disassembled the instruction and enhanced it, so save the new value
+        instruction_sequence_head.instruction = current
+
     insns: list[PwndbgInstruction] = []
 
     # Get previously executed instructions from the cache.
@@ -442,7 +511,11 @@ def near(
         print(f"CACHE START -------------------, {current.address}")
 
     if show_prev_insns:
-        insn = get_previous_instruction(current.address, use_cache=use_cache, linear=linear)
+        saveptr = InstructionSequenceSavePointer(None)
+
+        insn = get_previous_instruction(
+            current.address, use_cache=use_cache, linear=linear, saveptr=saveptr
+        )
         while insn is not None and len(insns) < backward_count:
             if DEBUG_ENHANCEMENT:
                 print(f"Got instruction from cache, addr={insn.address:#x}")
@@ -450,7 +523,9 @@ def near(
                 insn.split = SplitType.BRANCH_NOT_TAKEN
             insns.append(insn)
 
-            insn = get_previous_instruction(insn.address, use_cache=use_cache, linear=linear)
+            insn = get_previous_instruction(
+                insn.address, use_cache=use_cache, linear=linear, saveptr=saveptr
+            )
         insns.reverse()
 
     if total_count is not None:
@@ -467,6 +542,9 @@ def near(
     # At this point, we've already added everything *BEFORE* the requested address,
     # and the instruction at 'address'.
     # Now, continue forwards.
+
+    # A set of all the addresses after the PC that we have disassembled in this pass
+    new_addresses_seen: set[int] = set()
 
     next_addresses_cache.clear()
     next_addresses_cache.add(current.target)
@@ -507,27 +585,39 @@ def near(
             # automatically step over it.
             if insn.causes_branch_delay:
                 # Delay slots are instructions after branches that always execute.
-                # Unicorn cannot be paused in a delay slot instruction.
-                # Single stepping on a branch will cause Unicorn to execute the delay slot instruction and take the branch action.
+                # They offer a couple challenges because debuggers the Unicorn often cannot be paused in a delay slot instruction.
+                # Single stepping on a branch will cause the debugger to execute the delay slot instruction and take the branch action.
                 # This means the emulator's program counter will take on the value that the branch action dictates, and we would normally continue disassembling there.
-                # We disassemble the delay slot instructions here as the normal codeflow will not reach them.
+                # Therefore, we must disassemble the delay slot instructions here as the normal codeflow will not reach them.
 
-                split_insn = one(insn.address + insn.size, None, put_cache=True, linear=linear)
+                delay_slot_address = insn.address + insn.size
+                split_insn = one(delay_slot_address, None, put_cache=True, linear=linear)
 
                 # There might not be a valid instruction at the branch delay slot
                 if split_insn is None:
                     break
 
+                insns.append(split_insn)
+
+                ### Start manually handling caching related to delay slots
                 next_addresses_cache.add(split_insn.address)
 
                 delay_slot_cache[split_insn.address] = insn
 
-                insns.append(split_insn)
+                fallback_backward_cache[insn.next] = split_insn.address
+                fallback_backward_cache[split_insn.address + split_insn.size] = split_insn.address
+                fallback_backward_cache[split_insn.address] = insn.address
 
-                # Manually make the backtracing cache correct
-                backward_cache[insn.next] = split_insn.address
-                backward_cache[split_insn.address + split_insn.size] = split_insn.address
-                backward_cache[split_insn.address] = insn.address
+                instruction_sequence_head = InstructionSequenceNode(
+                    instruction_sequence_head, split_insn
+                )
+
+                if delay_slot_address not in new_addresses_seen:
+                    new_addresses_seen.add(delay_slot_address)
+                    instruction_sequence_linked_list_map[delay_slot_address] = (
+                        instruction_sequence_head
+                    )
+                ### Done handling caching stuff
 
                 # Because the emulator failed, we manually set the address of the next instruction.
                 # This is the address that typing "nexti" in GDB will take us to
@@ -556,6 +646,15 @@ def near(
         insn = one(target, emu, put_cache=True, assistant=assistant, linear=linear)
 
         if insn:
+            # Add the instruction to the front of the linked list tracking the dynamic instruction sequence.
+            instruction_sequence_head = InstructionSequenceNode(instruction_sequence_head, insn)
+
+            # We want to add for the first time an instruction is encountered
+            # in the current disassembly flow.
+            if target not in new_addresses_seen:
+                new_addresses_seen.add(target)
+                instruction_sequence_linked_list_map[target] = instruction_sequence_head
+
             insns.append(insn)
 
     # Remove repeated instructions at the end of disassembly.

@@ -23,6 +23,7 @@ concurrency:
 permissions:
   contents: read
   packages: write
+  actions: write
 
 jobs:
   base-image:
@@ -89,6 +90,39 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Restore Docker cache mounts
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            uv-${{ matrix.platform_base.tag_name }}
+            cargo-${{ matrix.platform_base.tag_name }}
+          key: buildkit-${{ matrix.platform_base.tag_name }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            buildkit-${{ matrix.platform_base.tag_name }}-
+
+      - name: Delete stale cache
+        if: steps.cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        run: |
+          gh cache list \
+            --key "buildkit-${{ matrix.platform_base.tag_name }}-" \
+            --json key -q '.[].key' | while read -r key; do
+            echo "Deleting stale cache: $key"
+            gh cache delete "$key"
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Inject/extract cache mounts
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: reproducible-containers/buildkit-cache-dance@v3.3.1
+        with:
+          cache-map: |
+            {
+              "uv-${{ matrix.platform_base.tag_name }}": "/root/.cache/uv",
+              "cargo-${{ matrix.platform_base.tag_name }}": "/root/.cargo/registry"
+            }
+
       - name: Build Docker image
         run: |
           docker buildx build \
@@ -99,6 +133,7 @@ jobs:
             -f ./Dockerfile.base-apt \
             -t ghcr.io/pwndbg/base-apt:latest-${{ matrix.platform_base.tag_name }} \
             .
+
       - name: Push Docker image
         if: github.ref == 'refs/heads/dev'
         run: |

@@ -5,6 +5,7 @@ import re
 from abc import ABC
 from abc import abstractmethod
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 from typing import TypeVar
 
 from elftools.elf.elffile import ELFFile
@@ -12,9 +13,6 @@ from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.kernel.kconfig_mod
-import pwndbg.aglib.kernel.paging
-import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.structures
@@ -25,12 +23,17 @@ import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
-from pwndbg.aglib.kernel.paging import ArchPagingInfo
-from pwndbg.aglib.kernel.paging import PagewalkResult
 from pwndbg.lib import Status
 from pwndbg.lib import TypeNotFound
 from pwndbg.lib import TypeNotRecovered
 from pwndbg.lib.regs import BitFlags
+
+if TYPE_CHECKING:
+    import pwndbg.aglib.kernel.kconfig_mod
+    import pwndbg.aglib.kernel.paging
+    import pwndbg.aglib.kernel.slab
+    import pwndbg.aglib.kernel.symbol
+    import pwndbg.aglib.kernel.vmmap
 
 _kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 
@@ -233,6 +236,8 @@ def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig:
 @pwndbg.lib.cache.cache_until("start")
 def kcmdline() -> str:
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("saved_command_line")
+    if not addr:
+        return ""
     cmdline_addr = pwndbg.aglib.memory.read_pointer_width(addr)
     return pwndbg.aglib.memory.string(cmdline_addr).decode("ascii")
 
@@ -319,7 +324,7 @@ def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -
 
 def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
     # name is a substr of any of the target caches' names
-    cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
+    _, cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
     if not cache:
         return False
     if strict:
@@ -358,46 +363,56 @@ class ArchOps(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def pfn_to_page(self, phys: int) -> int:
+    def pfn_to_page(self, pfn: int) -> int:
         raise NotImplementedError()
 
     @abstractmethod
     def page_to_pfn(self, page: int) -> int:
         raise NotImplementedError()
 
+    def _paginginfo(self) -> pwndbg.aglib.kernel.paging.ArchPagingInfo:
+        result = arch_paginginfo()
+        if not result:
+            raise NotImplementedError()
+        return result
+
     @property
     @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SIZE(self):
-        return arch_paginginfo().STRUCT_PAGE_SIZE
+        return self._paginginfo().STRUCT_PAGE_SIZE
 
     @property
     @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SHIFT(self):
-        return arch_paginginfo().STRUCT_PAGE_SHIFT
+        return self._paginginfo().STRUCT_PAGE_SHIFT
 
     @property
     def page_offset(self) -> int:
-        return arch_paginginfo().physmap
+        return self._paginginfo().physmap
 
     @property
     def phys_offset(self) -> int:
-        return arch_paginginfo().phys_offset
+        return self._paginginfo().phys_offset
 
     @property
     def page_shift(self) -> int:
-        return arch_paginginfo().page_shift
+        return self._paginginfo().page_shift
 
     @property
     def vmemmap(self) -> int:
-        return arch_paginginfo().vmemmap
+        return self._paginginfo().vmemmap
 
     @property
     def kbase(self) -> int | None:
-        return arch_paginginfo().kbase
+        return self._paginginfo().kbase
+
+    @property
+    def vmalloc(self) -> int:
+        return self._paginginfo().vmalloc
 
     @property
     def page_size(self) -> int:
-        return 1 << self.page_shift
+        return self._paginginfo().page_size
 
     def virt_to_pfn(self, virt: int) -> int:
         return phys_to_pfn(virt_to_phys(virt))
@@ -420,7 +435,7 @@ class ArchOps(ABC):
 
 class x86Ops(ArchOps):
     def phys_to_virt(self, phys: int) -> int:
-        return (phys + self.page_offset) % (1 << pwndbg.aglib.arch.ptrbits)
+        return pwndbg.aglib.arch.unsigned(phys + self.page_offset)
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.page_shift
@@ -469,12 +484,13 @@ class x86_64Ops(x86Ops):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
-        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc):
+        _virt: int | None = virt
+        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < self.vmalloc):
             # if not within physmap range, first find the physmap address
-            virt = pagewalk(virt).virt
-        if virt is None:
-            return None
-        return virt - self.page_offset
+            _virt = pagewalk(virt).virt
+        if _virt is None:
+            _virt = virt
+        return _virt - self.page_offset
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
@@ -504,12 +520,13 @@ class Aarch64Ops(ArchOps):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
-        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc):
+        _virt: int | None = virt
+        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < self.vmalloc):
             # if not within physmap range, first find the physmap address
-            virt = pagewalk(virt).virt
-        if virt is None:
-            return None
-        return virt - self.page_offset + self.phys_offset
+            _virt = pagewalk(virt).virt
+        if _virt is None:
+            _virt = virt
+        return _virt - self.page_offset + self.phys_offset
 
     def phys_to_virt(self, phys: int) -> int:
         # https://elixir.bootlin.com/linux/v6.16.4/source/arch/arm64/include/asm/memory.h#L356
@@ -537,7 +554,7 @@ class Aarch64Ops(ArchOps):
 
 
 @pwndbg.lib.cache.cache_until("start")
-def arch_paginginfo() -> ArchPagingInfo | None:
+def arch_paginginfo() -> pwndbg.aglib.kernel.paging.ArchPagingInfo | None:
     if pwndbg.aglib.arch.name == "aarch64":
         return pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
     if pwndbg.aglib.arch.name == "x86-64":
@@ -680,7 +697,9 @@ def page_shift() -> int:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagewalk(addr, entry: int | None = None, virt: bool = True) -> PagewalkResult:
+def pagewalk(
+    addr, entry: int | None = None, virt: bool = True
+) -> pwndbg.aglib.kernel.paging.PagewalkResult:
     """
     assumes entry is a valid physaddr (+ flags)
     the strategy is to walk any virtual pgd first
@@ -703,6 +722,27 @@ def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
     pi = arch_paginginfo()
     if pi:
         return pi.bitflags(level)
+    raise NotImplementedError()
+
+
+def slab_to_virt(slab: int) -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.slab_to_virt(slab)
+    raise NotImplementedError()
+
+
+def virt_to_slab(slab: int) -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.virt_to_slab(slab)
+    raise NotImplementedError()
+
+
+def slab_virtual() -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.slab_virtual
     raise NotImplementedError()
 
 

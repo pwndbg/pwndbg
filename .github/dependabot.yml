@@ -5,10 +5,10 @@ updates:
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "tuesday"
       time: "03:00"
-      timezone: "UTC"
+      timezone: Europe/London
 
     cooldown:
       default-days: 3
@@ -23,17 +23,17 @@ updates:
         patterns: ["*"]
         dependency-type: "production"
         update-types: ["patch"]
-    
+
       prod-minor:
         patterns: ["*"]
         dependency-type: "production"
         update-types: ["minor"]
-    
+
       prod-major:
         patterns: ["*"]
         dependency-type: "production"
         update-types: ["major"]
-    
+
       dev-updates:
         patterns: ["*"]
         dependency-type: "development"
@@ -62,10 +62,10 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "wednesday"
       time: "03:00"
-      timezone: "UTC"
+      timezone: "Europe/London"
 
     groups:
       actions:
