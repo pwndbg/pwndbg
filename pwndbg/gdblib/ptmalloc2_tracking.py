@@ -76,7 +76,6 @@ last_issue: str | None = None
 
 # Useful to track possbile collision errors.
 PRINT_DEBUG = False
-HEAP_OFFSET_MODE = False
 
 PTRS_COLORS = (
     pwndbg.color.red,
@@ -212,13 +211,14 @@ def _delete_defered():
 
 
 class Tracker:
-    def __init__(self) -> None:
+    def __init__(self, rel_addr: bool = False) -> None:
         self.free_chunks: SortedDict[int, Chunk] = SortedDict()
         self.alloc_chunks: SortedDict[int, Chunk] = SortedDict()
         self.free_watchpoints: dict[int, FreeChunkWatchpoint] = {}
         self.memory_management_calls: dict[int, bool] = {}
         self.colorized_heap_ptrs: dict[int, str] = {}
         self.heap_base: int | None = None
+        self.rel_addr = rel_addr
 
     def is_performing_memory_management(self):
         thread = gdb.selected_thread().global_num
@@ -268,22 +268,17 @@ class Tracker:
 
         idx = len(self.colorized_heap_ptrs) % len(PTRS_COLORS)
 
-        if HEAP_OFFSET_MODE:
-            if self.heap_base is None:
-                heap_region = self.get_heap_region()
-                if heap_region is None:
-                    # We couldn't find the heap region, fallback to non-offset mode.
-                    print(
-                        "Could not find heap region, falling back to non-offset mode for pointer colorization"
-                    )
-                    colored = PTRS_COLORS[idx](f"{ptr:#x}")
-                else:
-                    self.heap_base = heap_region[0]
-                    offset = ptr - self.heap_base
-                    colored = PTRS_COLORS[idx](f"heap+{offset:#x}")
-            else:
-                offset = ptr - self.heap_base
-                colored = PTRS_COLORS[idx](f"heap+{offset:#x}")
+        if self.rel_addr and self.heap_base is None:
+            heap_region = self.get_heap_region()
+            if heap_region is None:
+                print(
+                    "Could not find heap region, falling back to non-offset mode for pointer colorization"
+                )
+                self.rel_addr = False
+
+        if self.rel_addr:
+            offset = ptr - self.heap_base
+            colored = PTRS_COLORS[idx](f"heap+{offset:#x}")
         else:
             colored = PTRS_COLORS[idx](f"{ptr:#x}")
 
@@ -683,7 +678,7 @@ free_enter = None
 stop_on_error = True
 
 
-def install(disable_hardware_watchpoints=True) -> None:
+def install(disable_hardware_watchpoints=True, rel_addr=False) -> None:
     global malloc_enter
     global calloc_enter
     global realloc_enter
@@ -743,7 +738,7 @@ def install(disable_hardware_watchpoints=True) -> None:
         print()
 
     # Install the heap tracker.
-    tracker = Tracker()
+    tracker = Tracker(rel_addr=rel_addr)
 
     malloc_enter = MallocEnterBreakpoint(available[0], tracker)
     free_enter = FreeEnterBreakpoint(available[1], tracker)
@@ -757,6 +752,8 @@ def install(disable_hardware_watchpoints=True) -> None:
         realloc_enter = ReallocEnterBreakpoint(realloc_address, tracker)
 
     print("Heap tracker installed.")
+    if rel_addr:
+        print("The heap tracker will use offsets instead of absolute addresses in the report.")
 
 
 def uninstall() -> None:
