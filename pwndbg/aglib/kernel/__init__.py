@@ -280,7 +280,7 @@ def get_idt_entries() -> list[pwndbg.lib.kernel.structs.IDTEntry]:
     limit = pwndbg.aglib.regs.idt_limit
 
     size = pwndbg.aglib.arch.ptrsize * 2
-    num_entries = (limit + 1) // size
+    num_entries = min((limit + 1) // size, 256)
 
     entries = []
 
