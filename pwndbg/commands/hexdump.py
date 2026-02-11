@@ -103,7 +103,7 @@ def hexdump(
     address: str | int, count: int = int(pwndbg.config.hexdump_bytes), code: str | None = None
 ) -> None:
     if count <= 0:
-        print(f"`count` must be larger than 0 (is {count}).")
+        print(f"count must be larger than 0 (is {count}).")
         return
 
     if hexdump.repeat:
