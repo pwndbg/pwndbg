@@ -39,6 +39,16 @@ def get_venv_path(src_root: Path):
     venv_path_env = os.environ.get("PWNDBG_VENV_PATH")
     if venv_path_env:
         return Path(venv_path_env).expanduser().resolve()
+
+    # Handle case when `gdbinit.py` is running from inside venv, eg: `venv/share/pwndbg/gdbinit.py`
+    # See, example usage: https://github.com/pwndbg/pwndbg/pull/3737
+    if (
+        src_root.parent.name == "share"
+        and src_root.name == "pwndbg"
+        and (src_root / "../../pyvenv.cfg").exists()
+    ):
+        return src_root.parent.parent
+
     return src_root / ".venv"
 
 
