@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import argparse
 
-from gdb import lookup_symbol
-
 import pwndbg.aglib.nearpc
-from pwndbg.aglib.symbol import lookup_symbol_addr
 import pwndbg.commands
+from pwndbg.aglib.symbol import lookup_symbol_addr
 from pwndbg.commands import CommandCategory
 
 nearpc_lines = pwndbg.config.add_param(
@@ -66,6 +64,7 @@ parser.add_argument(
     help="The name of the function to disassemble",
 )
 
+
 @pwndbg.commands.Command(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
 def nearpc(
@@ -77,7 +76,7 @@ def nearpc(
     use_cache=False,
     linear=True,
     no_branch=False,
-    function=None
+    function=None,
 ) -> None:
     """
     Disassemble near a specified address.
@@ -89,7 +88,7 @@ def nearpc(
         lines = pc
         pc = None
 
-    # The explicitly requested number of lines to disassemble. None if not provided 
+    # The explicitly requested number of lines to disassemble. None if not provided
     input_lines = lines
 
     if pc is None:
@@ -110,20 +109,23 @@ def nearpc(
 
     end_address = None
     if function is not None:
-        address = lookup_symbol_addr(function)
-        if address is not None:
-            import gdb
-            pc = address
-            end_address = gdb.block_for_pc(address).superblock.superblock.end
+        pc = lookup_symbol_addr(function)
+        if pc is None:
+            print(f"Error: function {function} could not be found")
+            return
+
+        boundaries = pwndbg.dbg.selected_inferior().get_function_boundaries(pc)
+
+        if boundaries is not None:
+            _, end_address = boundaries
 
             if input_lines is None:
                 # If user didn't provide a minimum bound on number of instructions, make
                 # sure we choose a number large enough to disassemble the entire function
                 lines = end_address - pc
         else:
-            print("Error: function {function} could not be found")
+            print(f"Error: function boundaries {function} could not be found")
             return
-
 
     print(
         "\n".join(
@@ -137,7 +139,7 @@ def nearpc(
                 use_cache=use_cache,
                 linear=linear,
                 branch_visualization=not no_branch,
-                end_address=end_address
+                end_address=end_address,
             )
         )
     )

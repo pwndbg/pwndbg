@@ -955,6 +955,18 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         return None
 
     @override
+    def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
+        block = gdb.block_for_pc(address)
+
+        if block is not None:
+            while block.function is not None:
+                block = block.superblock
+
+            return block.start, block.end
+
+        return None
+
+    @override
     def types_with_name(self, name: str) -> Sequence[pwndbg.dbg_mod.Type]:
         # In GDB, process-level lookups for types are always global.
         #

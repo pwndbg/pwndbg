@@ -1636,6 +1636,19 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         sym, cast_type, resolved_addr = symbol_for_preference
         return self.create_value(resolved_addr, cast_type)
 
+    @override
+    def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
+        addr = self.target.ResolveLoadAddress(address)
+
+        func = addr.GetFunction()
+        if func.IsValid():
+            start = func.GetStartAddress().GetLoadAddress(self.target)
+            end = func.GetEndAddress().GetLoadAddress(self.target)
+
+            return start, end
+
+        return None
+
     def _iter_symbols(
         self, name: str, type: pwndbg.dbg_mod.SymbolLookupType, objfile: lldb.SBModule | None = None
     ) -> Iterator[tuple[lldb.SBSymbol, pwndbg.dbg_mod.Type, int]]:

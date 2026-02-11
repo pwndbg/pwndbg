@@ -115,3 +115,14 @@ def resolve_addr(addr: int) -> str | None:
         return symbol_name
 
     return pwndbg.dintegration.manager.symbol_at_address(addr)
+
+
+@pwndbg.lib.cache.cache_until("objfile")
+def resolve_function_boundaries(addr: int) -> tuple[int, int] | None:
+    """
+    Return the function start and end address for a function that
+    contains address `addr`.
+    """
+    assert addr >= 0, "address must be positive"
+
+    return pwndbg.dbg.selected_inferior().get_function_boundaries(addr)
