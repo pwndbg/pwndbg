@@ -86,7 +86,12 @@ def main():
     have = get_gdb_version(gdb_path)
     if have != expected:
         print(
-            f"ERROR: GDB is compiled for Python {have}, but your Python interpreter is {expected}"
+            f"ERROR: GDB is compiled for Python {have}, but your Python interpreter is {expected} .\n\n"
+            "If you installed Pwndbg with `uv tool install` and want to use system GDB you may try:\n"
+            """  PY_VER=$(gdb -nx --batch -iex 'py import sysconfig; print(sysconfig.get_config_var("VERSION"))')\n"""
+            "  uv tool install --python=$PY_VER .\n\n"
+            "(add --editable if you are doing development)\n"
+            "(the python version may be wrong because our development scripts switch between them)"
         )
         sys.exit(1)
 
