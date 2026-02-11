@@ -35,6 +35,14 @@ enable.add_argument(
     default=False,
     help="Force the tracker to use hardware breakpoints.",
 )
+enable.add_argument(
+    "-o",
+    "--offset-mode",
+    dest="offset_mode",
+    action="store_true",
+    default=False,
+    help="Use offsets instead of absolute addresses in the report. This is useful when PIE is enabled.",
+)
 enable.set_defaults(mode="enable")
 
 # Subcommand that disables the tracker.
@@ -54,10 +62,13 @@ toggle_break.set_defaults(mode="toggle-break")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.LINUX, command_name="track-heap")
 @pwndbg.commands.OnlyWhenRunning
-def track_heap(mode=None, use_hardware_breakpoints=False):
+def track_heap(mode=None, use_hardware_breakpoints=False, offset_mode=False):
     if mode == "enable":
         # Enable the tracker.
         pwndbg.gdblib.ptmalloc2_tracking.install()
+        if offset_mode:
+            pwndbg.gdblib.ptmalloc2_tracking.HEAP_OFFSET_MODE = True
+            print("The heap tracker will use offsets instead of absolute addresses in the report")
     elif mode == "disable":
         # Disable the tracker.
         pwndbg.gdblib.ptmalloc2_tracking.uninstall()

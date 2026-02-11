@@ -23,7 +23,7 @@ Currently, the following errors can be detected:
 ### **track-heap enable**
 
 ```text
-usage: track-heap enable [-h] [-b USE_HARDWARE_BREAKPOINTS]
+usage: track-heap enable [-h] [-b USE_HARDWARE_BREAKPOINTS] [-o]
 
 ```
 
@@ -34,6 +34,7 @@ Enable heap tracking.
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 |-b|--hardware-breakpoints|Force the tracker to use hardware breakpoints.|
+|-o|--offset-mode|Use offsets instead of absolute addresses in the report. This is useful when PIE is enabled.|
 
 ### **track-heap disable**
 

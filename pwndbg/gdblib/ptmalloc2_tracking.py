@@ -76,6 +76,7 @@ last_issue: str | None = None
 
 # Useful to track possbile collision errors.
 PRINT_DEBUG = False
+HEAP_OFFSET_MODE = False
 
 PTRS_COLORS = (
     pwndbg.color.red,
@@ -217,12 +218,24 @@ class Tracker:
         self.free_watchpoints: dict[int, FreeChunkWatchpoint] = {}
         self.memory_management_calls: dict[int, bool] = {}
         self.colorized_heap_ptrs: dict[int, str] = {}
+        self.heap_base: int | None = None
 
     def is_performing_memory_management(self):
         thread = gdb.selected_thread().global_num
         if thread not in self.memory_management_calls:
             return False
         return self.memory_management_calls[thread]
+
+    def get_heap_region(self) -> tuple[int,int] | None:
+        """
+        Returns the base and end address of the heap region, if it can be determined.
+        """
+        for page in pwndbg.aglib.vmmap.get():
+            if page.objfile == "[heap]":
+                # We cache the heap base here, as it's used in a lot of places and we don't want to have to query for it every time.
+                self.heap_base = page.start
+                return (page.start, page.end)
+        return None
 
     def enter_memory_management(self, name: str) -> None:
         thread = gdb.selected_thread().global_num
@@ -254,7 +267,23 @@ class Tracker:
             return colored_ptr
 
         idx = len(self.colorized_heap_ptrs) % len(PTRS_COLORS)
-        colored = PTRS_COLORS[idx](f"{ptr:#x}")
+
+        if HEAP_OFFSET_MODE:
+            if self.heap_base is None:
+                heap_region = self.get_heap_region()
+                if heap_region is None:
+                    # We couldn't find the heap region, fallback to non-offset mode.
+                    print("Could not find heap region, falling back to non-offset mode for pointer colorization")
+                    colored = PTRS_COLORS[idx](f"{ptr:#x}")
+                else:
+                    self.heap_base = heap_region[0]
+                    offset = ptr - self.heap_base
+                    colored = PTRS_COLORS[idx](f"heap+{offset:#x}")
+            else:
+                offset = ptr - self.heap_base
+                colored = PTRS_COLORS[idx](f"heap+{offset:#x}")
+        else:
+            colored = PTRS_COLORS[idx](f"{ptr:#x}")
 
         self.colorized_heap_ptrs[ptr] = colored
 
