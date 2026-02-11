@@ -25,6 +25,7 @@ import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
+import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.path
 from pwndbg.dbg_mod import EventHandlerPriority
@@ -116,16 +117,6 @@ def _get_frame_stack_variables(frame: gdb.Frame) -> tuple[tuple[int, int, str], 
 
     variables = []
     while block:
-        # Workaround for GDB bug:
-        # https://sourceware.org/bugzilla/show_bug.cgi?id=33861
-        # https://github.com/pwndbg/pwndbg/issues/3693
-        # This constant is the size of .text on a lightweight kernel build
-        # with debug info. It is okay if we accidentally break here even though we
-        # shouldn't. The borked block has `block.end - block.start == 0x224f58a`
-        # on my repro.
-        if block.end - block.start > 0x127E000:
-            break
-
         for sym in block:
             if not (sym.is_variable or sym.is_argument):
                 continue
@@ -290,7 +281,19 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         return sal.symtab.fullname(), sal.line
 
     @override
+    @pwndbg.lib.cache.cache_until("forever")
     def stack_variables(self) -> tuple[tuple[int, int, str], ...]:
+        import pwndbg.aglib.qemu
+
+        if pwndbg.aglib.qemu.is_qemu_kernel():
+            # Workaround for GDB bug:
+            # https://sourceware.org/bugzilla/show_bug.cgi?id=33861
+            # https://github.com/pwndbg/pwndbg/issues/3693
+            # Unfortunately there is no consistent way to detect this, I've had it
+            # happen even on block0 with hex(block.end - block.start) == 0x14a,
+            # so we simply don't support getting stack variables on GDB when kernel
+            # debugging.
+            return ()
         return _get_frame_stack_variables(self.inner)
 
     @override

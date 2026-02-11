@@ -19,9 +19,10 @@ jobs:
       code: ${{ steps.filter.outputs.code }}
     steps:
       - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@668c092af3649c4b664c54e4b704aa46782f6f7c # master (unreleased, for predicate-quantifier)
         id: filter
         with:
+          predicate-quantifier: 'every'
           filters: |
             code:
               - '**'
