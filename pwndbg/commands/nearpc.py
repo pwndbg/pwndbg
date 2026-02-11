@@ -153,4 +153,5 @@ def emulate(pc=None, lines=None, reverse=None, total=None, emulate_=True) -> Non
         emulate=emulate_,
         use_cache=True,
         linear=False,
+        no_branch=True,
     )
