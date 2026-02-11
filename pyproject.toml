@@ -168,10 +168,13 @@ required-imports = ["from __future__ import annotations"]
 allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
-include = ["/pwndbg", "/pwndbginit"]
+include = ["/pwndbg", "/pwndbginit", "gdbinit.py"]
 
 [tool.hatch.build.targets.wheel]
 include = ["/pwndbg", "/pwndbginit"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"gdbinit.py" = "share/pwndbg/gdbinit.py"
 
 [project.scripts]
 pwndbg = "pwndbginit.pwndbg_gdb:main"
