@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import argparse
 
+from gdb import lookup_symbol
+
 import pwndbg.aglib.nearpc
+from pwndbg.aglib.symbol import lookup_symbol_addr
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
@@ -55,6 +58,13 @@ parser.add_argument(
     help="Disable showing branch visualizations.",
 )
 
+parser.add_argument(
+    "-f",
+    "--function",
+    type=str,
+    default=None,
+    help="The name of the function to disassemble",
+)
 
 @pwndbg.commands.Command(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
@@ -67,6 +77,7 @@ def nearpc(
     use_cache=False,
     linear=True,
     no_branch=False,
+    function=None
 ) -> None:
     """
     Disassemble near a specified address.
@@ -77,6 +88,9 @@ def nearpc(
     if lines is None and (pc is not None and int(pc) < 0x100):
         lines = pc
         pc = None
+
+    # The explicitly requested number of lines to disassemble. None if not provided 
+    input_lines = lines
 
     if pc is None:
         pc = pwndbg.aglib.regs.pc
@@ -94,6 +108,23 @@ def nearpc(
         # -t was specified
         back_lines = min(int(nearpc_backwards_lines), total - 1)
 
+    end_address = None
+    if function is not None:
+        address = lookup_symbol_addr(function)
+        if address is not None:
+            import gdb
+            pc = address
+            end_address = gdb.block_for_pc(address).superblock.superblock.end
+
+            if input_lines is None:
+                # If user didn't provide a minimum bound on number of instructions, make
+                # sure we choose a number large enough to disassemble the entire function
+                lines = end_address - pc
+        else:
+            print("Error: function {function} could not be found")
+            return
+
+
     print(
         "\n".join(
             pwndbg.aglib.nearpc.nearpc(
@@ -106,6 +137,7 @@ def nearpc(
                 use_cache=use_cache,
                 linear=linear,
                 branch_visualization=not no_branch,
+                end_address=end_address
             )
         )
     )

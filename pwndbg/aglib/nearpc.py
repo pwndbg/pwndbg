@@ -417,6 +417,7 @@ def nearpc(
     use_cache=False,
     linear=False,
     branch_visualization=False,
+    end_address: int | None = None
 ) -> list[str]:
     """
     Disassemble near a specified address.
@@ -473,6 +474,7 @@ def nearpc(
         show_prev_insns=not repeat,
         use_cache=use_cache,
         linear=linear,
+        end_address=end_address
     )
 
     # If doing branch visualization, preprocess some datastructures
