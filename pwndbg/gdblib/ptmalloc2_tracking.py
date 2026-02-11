@@ -226,7 +226,7 @@ class Tracker:
             return False
         return self.memory_management_calls[thread]
 
-    def get_heap_region(self) -> tuple[int,int] | None:
+    def get_heap_region(self) -> tuple[int, int] | None:
         """
         Returns the base and end address of the heap region, if it can be determined.
         """
@@ -273,7 +273,9 @@ class Tracker:
                 heap_region = self.get_heap_region()
                 if heap_region is None:
                     # We couldn't find the heap region, fallback to non-offset mode.
-                    print("Could not find heap region, falling back to non-offset mode for pointer colorization")
+                    print(
+                        "Could not find heap region, falling back to non-offset mode for pointer colorization"
+                    )
                     colored = PTRS_COLORS[idx](f"{ptr:#x}")
                 else:
                     self.heap_base = heap_region[0]
