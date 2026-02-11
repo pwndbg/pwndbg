@@ -33,6 +33,7 @@ def fixup_paths(src_root: Path, venv_path: Path):
     # sys.prefix must be changed to point to the virtual environment.
     # This is what python expect: https://docs.python.org/3/library/sys.html#sys.prefix
     sys.prefix = str(venv_path)
+    sys.exec_prefix = str(venv_path)
 
 
 def get_venv_path(src_root: Path):
