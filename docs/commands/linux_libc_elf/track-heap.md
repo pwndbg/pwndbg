@@ -34,7 +34,7 @@ Enable heap tracking.
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 |-b|--hardware-breakpoints|Force the tracker to use hardware breakpoints.|
-|-r|--relative-addresses|Use offsets instead of absolute addresses in the report. This is useful when PIE is enabled.|
+|-r|--relative-addresses|Use offsets instead of absolute addresses in the report.|
 
 ### **track-heap disable**
 

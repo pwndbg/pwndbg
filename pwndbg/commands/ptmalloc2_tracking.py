@@ -41,7 +41,7 @@ enable.add_argument(
     dest="rel_addr",
     action="store_true",
     default=False,
-    help="Use offsets instead of absolute addresses in the report. This is useful when PIE is enabled.",
+    help="Use offsets instead of absolute addresses in the report.",
 )
 enable.set_defaults(mode="enable")
 
