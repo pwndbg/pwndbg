@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import site
 import subprocess
 import sys
 import sysconfig
@@ -71,8 +72,15 @@ def main():
 
     envs = os.environ.copy()
     envs["PYTHONNOUSERSITE"] = "1"
-    envs["PYTHONPATH"] = ":".join(sys.path)
-    envs["PYTHONHOME"] = f"{sys.prefix}:{sys.exec_prefix}"
+    envs["PYTHONPATH"] = ":".join(site.getsitepackages())
+
+    # sys.prefix/sys.exec_prefix must point to the virtual environment,
+    # otherwise our auto-upgrade mechanism won't work when the package is installed in editable mode
+    prefix_cmd = (
+        f"py import sys; sys.prefix = {sys.prefix!r}; sys.exec_prefix = {sys.exec_prefix!r}"
+    )
+    sys.argv.insert(1, prefix_cmd)
+    sys.argv.insert(1, "-iex")
 
     expected = (sysconfig.get_config_var("INSTSONAME"), sysconfig.get_config_var("VERSION"))
     have = get_gdb_version(gdb_path)
