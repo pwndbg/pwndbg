@@ -2,10 +2,6 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.aglib
-import pwndbg.aglib.memory
-import pwndbg.aglib.vmmap
-
 from . import get_binary
 
 MEMORY_BINARY = get_binary("memory.native.out")
@@ -17,6 +13,8 @@ def test_windbg_dX_commands(start_binary):
     Tests windbg compatibility commands that dump memory
     like dq, dw, db, ds etc.
     """
+    import pwndbg
+    
     start_binary(MEMORY_BINARY)
 
     data_addr = hex(int(gdb.parse_and_eval("&data")))
@@ -69,7 +67,6 @@ def test_windbg_dX_commands(start_binary):
     # also note that we use `data2` here
     data2_addr_int = int(gdb.parse_and_eval("&data2"))
     # Use architecture-appropriate register (eax for x86, w0 for aarch64)
-    import pwndbg.aglib.arch
     test_reg_32 = "w0" if pwndbg.aglib.arch.name == "aarch64" else "eax"
     assert gdb.execute(f"set ${test_reg_32}=4", to_string=True) == ""  # assert as a sanity check
     assert gdb.execute(f"dq data2 ${test_reg_32}", to_string=True) == (
@@ -198,6 +195,8 @@ def test_windbg_eX_commands(start_binary):
     Tests windbg compatibility commands that write to memory
     like eq, ed, ew, eb etc.
     """
+    import pwndbg
+    
     start_binary(MEMORY_BINARY)
 
     # Try to fail commands in different way
@@ -275,6 +274,8 @@ def test_windbg_commands_x86(start_binary):
     Tests windbg compatibility commands that dump memory
     like dq, dw, db, ds etc.
     """
+    import pwndbg
+    
     start_binary(X86_BINARY)
 
     esp = pwndbg.aglib.regs.read_reg("esp")
