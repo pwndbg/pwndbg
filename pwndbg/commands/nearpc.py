@@ -84,14 +84,16 @@ def nearpc(
     Disassemble near a specified address.
     """
 
+    # nearpc is flexible in the first argument (it can be an address or the number of lines to disassemble).
+    # Save the first argument, which depending on the context might be the explicitly requested number of lines to disassemble.
+    # None if not provided
+    first_input_argument = pc
+
     # Fix the case where we only have one argument, and
     # it's a small value.
     if lines is None and (pc is not None and int(pc) < 0x100):
         lines = pc
         pc = None
-
-    # The explicitly requested number of lines to disassemble. None if not provided
-    input_lines = lines
 
     if pc is None:
         pc = pwndbg.aglib.regs.pc
@@ -146,7 +148,7 @@ def nearpc(
                 f"Warning: detected very long function of length {hex(end_address - pc)} bytes. This may block for a while."
             )
 
-        if input_lines is None:
+        if first_input_argument is None:
             # If user didn't provide a minimum bound on number of instructions, make
             # sure we choose a number large enough to disassemble the entire function
             lines = end_address - pc
