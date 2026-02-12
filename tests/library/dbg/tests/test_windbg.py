@@ -49,7 +49,7 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     dq2 = await ctrl.execute_and_capture("dq &data")
     dq3 = await ctrl.execute_and_capture(f"dq {data_addr}")
     dq4 = await ctrl.execute_and_capture(f"dq {data_addr.replace('0x', '')}")
-    
+
     data_addr_int = int(data_addr, 16)
     expected_dq = (
         f"{data_addr_int:016x}     0000000000000000 0000000000000001\n"
@@ -63,9 +63,17 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     dq_count1 = await ctrl.execute_and_capture("dq data 2")
     dq_count2 = await ctrl.execute_and_capture("dq &data 2")
     dq_count3 = await ctrl.execute_and_capture(f"dq {data_addr} 2")
-    assert dq_count1 == dq_count2 == dq_count3 == f"{data_addr_int:016x}     0000000000000000 0000000000000001\n"
+    assert (
+        dq_count1
+        == dq_count2
+        == dq_count3
+        == f"{data_addr_int:016x}     0000000000000000 0000000000000001\n"
+    )
 
-    assert await ctrl.execute_and_capture("dq data 1") == f"{data_addr_int:016x}     0000000000000000\n"
+    assert (
+        await ctrl.execute_and_capture("dq data 1")
+        == f"{data_addr_int:016x}     0000000000000000\n"
+    )
     assert (await ctrl.execute_and_capture("dq data 3")) == (
         f"{data_addr_int:016x}     0000000000000000 0000000000000001\n"
         f"{data_addr_int + 0x10:016x}     0000000100000002\n"
@@ -83,7 +91,9 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     )
 
     # See if we can repeat dq command (use count for shorter data)
-    assert (await ctrl.execute_and_capture("dq data2 2")) == f"{data2_addr_int:016x}     1122334455667788 0123456789abcdef\n"
+    assert (
+        await ctrl.execute_and_capture("dq data2 2")
+    ) == f"{data2_addr_int:016x}     1122334455667788 0123456789abcdef\n"
 
     # TODO/FIXME: Can we test command repeating here? Neither passing `from_tty=True`
     # or setting `pwndbg.commands.windbg.dq.repeat = True` works here
@@ -107,8 +117,12 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     assert dd1 == dd2 == dd3 == dd4 == expected_dd
 
     # count tests
-    assert (await ctrl.execute_and_capture("dd data 4")) == f"{data_addr_int:016x}     00000000 00000000 00000001 00000000\n"
-    assert (await ctrl.execute_and_capture("dd data 3")) == f"{data_addr_int:016x}     00000000 00000000 00000001\n"
+    assert (
+        await ctrl.execute_and_capture("dd data 4")
+    ) == f"{data_addr_int:016x}     00000000 00000000 00000001 00000000\n"
+    assert (
+        await ctrl.execute_and_capture("dd data 3")
+    ) == f"{data_addr_int:016x}     00000000 00000000 00000001\n"
 
     #################################################
     #### dw command tests
@@ -126,11 +140,17 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     assert dw1 == dw2 == dw3 == dw4 == expected_dw
 
     # count tests
-    assert (await ctrl.execute_and_capture("dw data 8")) == f"{data_addr_int:016x}     0000 0000 0000 0000 0001 0000 0000 0000\n"
+    assert (
+        await ctrl.execute_and_capture("dw data 8")
+    ) == f"{data_addr_int:016x}     0000 0000 0000 0000 0001 0000 0000 0000\n"
 
-    assert (await ctrl.execute_and_capture("dw data 8/2")) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
+    assert (
+        await ctrl.execute_and_capture("dw data 8/2")
+    ) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
 
-    assert (await ctrl.execute_and_capture(f"dw data ${test_reg_32}")) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
+    assert (
+        await ctrl.execute_and_capture(f"dw data ${test_reg_32}")
+    ) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
 
     #################################################
     #### db command tests
@@ -154,7 +174,9 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     )
     # Use 16-bit register (ax for x86, w0 for aarch64 as it doesn't have 16-bit regs)
     test_reg_16 = "w0" if pwndbg.aglib.arch.name == "aarch64" else "ax"
-    assert (await ctrl.execute_and_capture(f"db data ${test_reg_16}")) == f"{data_addr_int:016x}     00 00 00 00\n"
+    assert (
+        await ctrl.execute_and_capture(f"db data ${test_reg_16}")
+    ) == f"{data_addr_int:016x}     00 00 00 00\n"
 
     #################################################
     #### dc command tests
@@ -166,7 +188,10 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     expected_dc = f"+0000 {data_addr}  00 00 00 00 00 00 00 00                           │........│        │\n"
     assert dc1 == dc2 == dc3 == dc4 == expected_dc
 
-    assert (await ctrl.execute_and_capture("dc data 3")) == f"+0000 {data_addr}  00 00 00                                          │...     │        │\n"
+    assert (
+        (await ctrl.execute_and_capture("dc data 3"))
+        == f"+0000 {data_addr}  00 00 00                                          │...     │        │\n"
+    )
 
     #################################################
     #### ds command tests
