@@ -74,8 +74,10 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     # Try 'dq' with count equal to a register, but lets set it before ;)
     # also note that we use `data2` here
     data2_addr_int = int(inf.lookup_symbol("data2"))
-    pwndbg.aglib.regs.write_reg("eax", 4)
-    assert (await ctrl.execute_and_capture("dq data2 $eax")) == (
+    # Use architecture-appropriate register (eax for x86, w0 for aarch64)
+    test_reg_32 = "w0" if pwndbg.aglib.arch.name == "aarch64" else "eax"
+    pwndbg.aglib.regs.write_reg(test_reg_32, 4)
+    assert (await ctrl.execute_and_capture(f"dq data2 ${test_reg_32}")) == (
         f"{data2_addr_int:016x}     1122334455667788 0123456789abcdef\n"
         f"{data2_addr_int + 0x10:016x}     0000000000000000 ffffffffffffffff\n"
     )
@@ -128,7 +130,7 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
 
     assert (await ctrl.execute_and_capture("dw data 8/2")) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
 
-    assert (await ctrl.execute_and_capture("dw data $eax")) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
+    assert (await ctrl.execute_and_capture(f"dw data ${test_reg_32}")) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
 
     #################################################
     #### db command tests
@@ -150,7 +152,9 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
         f"{data_addr_int:016x}     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
         f"{data_addr_int + 0x10:016x}     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01\n"
     )
-    assert (await ctrl.execute_and_capture("db data $ax")) == f"{data_addr_int:016x}     00 00 00 00\n"
+    # Use 16-bit register (ax for x86, w0 for aarch64 as it doesn't have 16-bit regs)
+    test_reg_16 = "w0" if pwndbg.aglib.arch.name == "aarch64" else "ax"
+    assert (await ctrl.execute_and_capture(f"db data ${test_reg_16}")) == f"{data_addr_int:016x}     00 00 00 00\n"
 
     #################################################
     #### dc command tests

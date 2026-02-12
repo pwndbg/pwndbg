@@ -68,8 +68,11 @@ def test_windbg_dX_commands(start_binary):
     # Try 'dq' with count equal to a register, but lets set it before ;)
     # also note that we use `data2` here
     data2_addr_int = int(gdb.parse_and_eval("&data2"))
-    assert gdb.execute("set $eax=4", to_string=True) == ""  # assert as a sanity check
-    assert gdb.execute("dq data2 $eax", to_string=True) == (
+    # Use architecture-appropriate register (eax for x86, w0 for aarch64)
+    import pwndbg.aglib.arch
+    test_reg_32 = "w0" if pwndbg.aglib.arch.name == "aarch64" else "eax"
+    assert gdb.execute(f"set ${test_reg_32}=4", to_string=True) == ""  # assert as a sanity check
+    assert gdb.execute(f"dq data2 ${test_reg_32}", to_string=True) == (
         f"{data2_addr_int:016x}     1122334455667788 0123456789abcdef\n"
         f"{data2_addr_int + 0x10:016x}     0000000000000000 ffffffffffffffff\n"
     )
@@ -122,7 +125,7 @@ def test_windbg_dX_commands(start_binary):
 
     assert gdb.execute("dw data 8/2", to_string=True) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
 
-    assert gdb.execute("dw data $eax", to_string=True) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
+    assert gdb.execute(f"dw data ${test_reg_32}", to_string=True) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
 
     #################################################
     #### db command tests
@@ -144,7 +147,9 @@ def test_windbg_dX_commands(start_binary):
         f"{data_addr_int:016x}     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
         f"{data_addr_int + 0x10:016x}     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01\n"
     )
-    assert gdb.execute("db data $ax", to_string=True) == f"{data_addr_int:016x}     00 00 00 00\n"
+    # Use 16-bit register (ax for x86, w0 for aarch64 as it doesn't have 16-bit regs)
+    test_reg_16 = "w0" if pwndbg.aglib.arch.name == "aarch64" else "ax"
+    assert gdb.execute(f"db data ${test_reg_16}", to_string=True) == f"{data_addr_int:016x}     00 00 00 00\n"
 
     #################################################
     #### dc command tests
