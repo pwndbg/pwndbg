@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg.aglib
+import pwndbg.aglib.memory
+
 from . import get_binary
 
 MEMORY_BINARY = get_binary("memory.native.out")
@@ -13,8 +16,6 @@ def test_windbg_dX_commands(start_binary):
     Tests windbg compatibility commands that dump memory
     like dq, dw, db, ds etc.
     """
-    import pwndbg
-
     start_binary(MEMORY_BINARY)
 
     data_addr = hex(int(gdb.parse_and_eval("&data")))
@@ -226,8 +227,6 @@ def test_windbg_eX_commands(start_binary):
     Tests windbg compatibility commands that write to memory
     like eq, ed, ew, eb etc.
     """
-    import pwndbg
-
     start_binary(MEMORY_BINARY)
 
     # Try to fail commands in different way
@@ -305,8 +304,6 @@ def test_windbg_commands_x86(start_binary):
     Tests windbg compatibility commands that dump memory
     like dq, dw, db, ds etc.
     """
-    import pwndbg
-
     start_binary(X86_BINARY)
 
     esp = pwndbg.aglib.regs.read_reg("esp")
