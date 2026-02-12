@@ -3,11 +3,10 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.nearpc
+import pwndbg.aglib.symbol
 import pwndbg.commands
 import pwndbg.dbg_mod
-from pwndbg.aglib.symbol import lookup_symbol_addr
 from pwndbg.commands import CommandCategory
-from pwndbg.dbg_mod import SymbolLookupType
 
 nearpc_lines = pwndbg.config.add_param(
     "nearpc-lines", 10, "number of lines to print for the nearpc command"
@@ -61,7 +60,7 @@ parser.add_argument(
 parser.add_argument(
     "-f",
     "--function",
-    type=str,
+    type=int,
     default=None,
     help="Disassemble an entire function. Takes an expression (such as a function name or address) and disassembles the function surrounding the evaluated address.",
 )
@@ -83,6 +82,7 @@ def nearpc(
     """
     Disassemble near a specified address.
     """
+    print(function)
 
     # nearpc is flexible in the first argument (it can be an address or the number of lines to disassemble).
     # Save the first argument, which depending on the context might be the explicitly requested number of lines to disassemble.
@@ -115,25 +115,7 @@ def nearpc(
     if function is not None:
         # Emulate GDB behavior of "disass" - it disassembles the entire function in which
         # the input address resides. User can input integer or string name of function, or an expression
-        requested_address = None
-
-        value_lookup = pwndbg.commands.fix(function)
-
-        if value_lookup is not None:
-            try:
-                requested_address = int(value_lookup)
-            except pwndbg.dbg_mod.Error:
-                pass
-
-        if requested_address is None:
-            # Allow passing in pure function name ("clone" vs "&clone")
-            requested_address = lookup_symbol_addr(function, type=SymbolLookupType.FUNCTION)
-
-        if requested_address is None:
-            print(f"Error: function {function} could not be found")
-            return
-
-        boundaries = pwndbg.dbg.selected_inferior().get_function_boundaries(requested_address)
+        boundaries = pwndbg.aglib.symbol.resolve_function_boundaries(function)
         if boundaries is None:
             print(f"Error: function boundaries of '{function}' could not be found")
             return

@@ -122,6 +122,9 @@ def resolve_function_boundaries(addr: int) -> tuple[int, int] | None:
     """
     Return the function start and end address for a function that
     contains address `addr`.
+
+    Returns:
+    - tuple[int, int] | None: [start, end) of function block if found (end address is exclusive)
     """
     assert addr >= 0, "address must be positive"
 

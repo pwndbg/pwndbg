@@ -1640,11 +1640,13 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
         addr = self.target.ResolveLoadAddress(address)
 
+        if not addr.IsValid():
+            return None
+
         func = addr.GetFunction()
         if func.IsValid():
-            start = func.GetStartAddress().GetLoadAddress(self.target)
-            end = func.GetEndAddress().GetLoadAddress(self.target)
-
+            start: int = func.GetStartAddress().GetLoadAddress(self.target)
+            end: int = func.GetEndAddress().GetLoadAddress(self.target)
             return start, end
 
         return None
