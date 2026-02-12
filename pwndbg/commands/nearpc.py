@@ -4,8 +4,10 @@ import argparse
 
 import pwndbg.aglib.nearpc
 import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.aglib.symbol import lookup_symbol_addr
 from pwndbg.commands import CommandCategory
+from pwndbg.dbg_mod import SymbolLookupType
 
 nearpc_lines = pwndbg.config.add_param(
     "nearpc-lines", 10, "number of lines to print for the nearpc command"
@@ -109,23 +111,45 @@ def nearpc(
 
     end_address = None
     if function is not None:
-        pc = lookup_symbol_addr(function)
-        if pc is None:
+        # Emulate GDB behavior of "disass" - it disassembles the entire function in which
+        # the input address resides. User can input integer or string name of function, or an expression
+        requested_address = None
+
+        value_lookup = pwndbg.commands.fix(function)
+
+        if value_lookup is not None:
+            try:
+                requested_address = int(value_lookup)
+            except pwndbg.dbg_mod.Error:
+                pass
+
+        if requested_address is None:
+            # Allow passing in pure function name ("clone" vs "&clone")
+            requested_address = lookup_symbol_addr(function, type=SymbolLookupType.FUNCTION)
+
+        if requested_address is None:
             print(f"Error: function {function} could not be found")
             return
 
-        boundaries = pwndbg.dbg.selected_inferior().get_function_boundaries(pc)
-
-        if boundaries is not None:
-            _, end_address = boundaries
-
-            if input_lines is None:
-                # If user didn't provide a minimum bound on number of instructions, make
-                # sure we choose a number large enough to disassemble the entire function
-                lines = end_address - pc
-        else:
-            print(f"Error: function boundaries {function} could not be found")
+        boundaries = pwndbg.dbg.selected_inferior().get_function_boundaries(requested_address)
+        if boundaries is None:
+            print(f"Error: function boundaries of '{function}' could not be found")
             return
+        pc, end_address = boundaries
+
+        if end_address < pc:
+            print(f"Error: function boundaries  of '{function}' could not be found")
+            return
+
+        if end_address - pc > 0x1000:
+            print(
+                f"Warning: detected very long function of length {hex(end_address - pc)} bytes. This may block for a while."
+            )
+
+        if input_lines is None:
+            # If user didn't provide a minimum bound on number of instructions, make
+            # sure we choose a number large enough to disassemble the entire function
+            lines = end_address - pc
 
     print(
         "\n".join(

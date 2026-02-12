@@ -959,7 +959,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         block = gdb.block_for_pc(address)
 
         if block is not None:
-            while block.function is not None:
+            while block.superblock.function is not None:
                 block = block.superblock
 
             return block.start, block.end
