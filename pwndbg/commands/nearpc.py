@@ -63,7 +63,7 @@ parser.add_argument(
     "--function",
     type=str,
     default=None,
-    help="The name of the function to disassemble",
+    help="Disassemble an entire function. Takes an expression (such as a function name or address) and disassembles the function surrounding the evaluated address.",
 )
 
 
