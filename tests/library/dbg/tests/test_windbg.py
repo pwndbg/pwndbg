@@ -8,7 +8,7 @@ from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-MEMORY_BINARY = get_binary("memory.x86-64.out")
+MEMORY_BINARY = get_binary("memory.native.out")
 X86_BINARY = get_binary("gosample.i386.out")
 
 data_addr = "0x401000"
