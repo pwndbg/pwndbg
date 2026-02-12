@@ -150,6 +150,7 @@ def nearpc(
             # If user didn't provide a minimum bound on number of instructions, make
             # sure we choose a number large enough to disassemble the entire function
             lines = end_address - pc
+        back_lines = 0
 
     print(
         "\n".join(
