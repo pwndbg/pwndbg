@@ -82,8 +82,6 @@ def nearpc(
     """
     Disassemble near a specified address.
     """
-    print(function)
-
     # nearpc is flexible in the first argument (it can be an address or the number of lines to disassemble).
     # Save the first argument, which depending on the context might be the explicitly requested number of lines to disassemble.
     # None if not provided
