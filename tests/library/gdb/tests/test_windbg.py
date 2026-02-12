@@ -11,8 +11,6 @@ from . import get_binary
 MEMORY_BINARY = get_binary("memory.native.out")
 X86_BINARY = get_binary("gosample.i386.out")
 
-data_addr = "0x401000"
-
 
 def test_windbg_dX_commands(start_binary):
     """
@@ -20,6 +18,11 @@ def test_windbg_dX_commands(start_binary):
     like dq, dw, db, ds etc.
     """
     start_binary(MEMORY_BINARY)
+
+    data_addr = hex(int(gdb.parse_and_eval("&data")))
+    short_str_addr = hex(int(gdb.parse_and_eval("&short_str")))
+    long_str_addr = hex(int(gdb.parse_and_eval("&long_str")))
+    data_addr_int = int(data_addr, 16)
 
     # Try to fail commands in different way
     for cmd_prefix in ("dq", "dd", "dw", "db"):
@@ -42,48 +45,37 @@ def test_windbg_dX_commands(start_binary):
     dq2 = gdb.execute("dq &data", to_string=True)
     dq3 = gdb.execute(f"dq {data_addr}", to_string=True)
     dq4 = gdb.execute(f"dq {data_addr.replace('0x', '')}", to_string=True)
-    assert (
-        dq1
-        == dq2
-        == dq3
-        == dq4
-        == (
-            "0000000000401000     0000000000000000 0000000000000001\n"
-            "0000000000401010     0000000100000002 0001000200030004\n"
-            "0000000000401020     0102030405060708 1122334455667788\n"
-            "0000000000401030     0123456789abcdef 0000000000000000\n"
-        )
+    expected_dq = (
+        f"{data_addr_int:016x}     0000000000000000 0000000000000001\n"
+        f"{data_addr_int + 0x10:016x}     0000000100000002 0001000200030004\n"
+        f"{data_addr_int + 0x20:016x}     0102030405060708 1122334455667788\n"
+        f"{data_addr_int + 0x30:016x}     0123456789abcdef 0000000000000000\n"
     )
+    assert dq1 == dq2 == dq3 == dq4 == expected_dq
 
     # Try `dq` with different counts
     dq_count1 = gdb.execute("dq data 2", to_string=True)
     dq_count2 = gdb.execute("dq &data 2", to_string=True)
     dq_count3 = gdb.execute(f"dq {data_addr} 2", to_string=True)
-    assert (
-        dq_count1
-        == dq_count2
-        == dq_count3
-        == "0000000000401000     0000000000000000 0000000000000001\n"
-    )
+    assert dq_count1 == dq_count2 == dq_count3 == f"{data_addr_int:016x}     0000000000000000 0000000000000001\n"
 
-    assert gdb.execute("dq data 1", to_string=True) == "0000000000401000     0000000000000000\n"
+    assert gdb.execute("dq data 1", to_string=True) == f"{data_addr_int:016x}     0000000000000000\n"
     assert gdb.execute("dq data 3", to_string=True) == (
-        "0000000000401000     0000000000000000 0000000000000001\n"
-        "0000000000401010     0000000100000002\n"
+        f"{data_addr_int:016x}     0000000000000000 0000000000000001\n"
+        f"{data_addr_int + 0x10:016x}     0000000100000002\n"
     )
 
     # Try 'dq' with count equal to a register, but lets set it before ;)
     # also note that we use `data2` here
+    data2_addr_int = int(gdb.parse_and_eval("&data2"))
     assert gdb.execute("set $eax=4", to_string=True) == ""  # assert as a sanity check
     assert gdb.execute("dq data2 $eax", to_string=True) == (
-        "0000000000401028     1122334455667788 0123456789abcdef\n"
-        "0000000000401038     0000000000000000 ffffffffffffffff\n"
+        f"{data2_addr_int:016x}     1122334455667788 0123456789abcdef\n"
+        f"{data2_addr_int + 0x10:016x}     0000000000000000 ffffffffffffffff\n"
     )
 
     # See if we can repeat dq command (use count for shorter data)
-    assert gdb.execute("dq data2 2", to_string=True) == (
-        "0000000000401028     1122334455667788 0123456789abcdef\n"
-    )
+    assert gdb.execute("dq data2 2", to_string=True) == f"{data2_addr_int:016x}     1122334455667788 0123456789abcdef\n"
 
     # TODO/FIXME: Can we test command repeating here? Neither passing `from_tty=True`
     # or setting `pwndbg.commands.windbg.dq.repeat = True` works here
@@ -98,26 +90,17 @@ def test_windbg_dX_commands(start_binary):
     dd2 = gdb.execute("dd &data", to_string=True)
     dd3 = gdb.execute(f"dd {data_addr}", to_string=True)
     dd4 = gdb.execute(f"dd {data_addr.replace('0x', '')}", to_string=True)
-    assert (
-        dd1
-        == dd2
-        == dd3
-        == dd4
-        == (
-            "0000000000401000     00000000 00000000 00000001 00000000\n"
-            "0000000000401010     00000002 00000001 00030004 00010002\n"
-            "0000000000401020     05060708 01020304 55667788 11223344\n"
-            "0000000000401030     89abcdef 01234567 00000000 00000000\n"
-        )
+    expected_dd = (
+        f"{data_addr_int:016x}     00000000 00000000 00000001 00000000\n"
+        f"{data_addr_int + 0x10:016x}     00000002 00000001 00030004 00010002\n"
+        f"{data_addr_int + 0x20:016x}     05060708 01020304 55667788 11223344\n"
+        f"{data_addr_int + 0x30:016x}     89abcdef 01234567 00000000 00000000\n"
     )
+    assert dd1 == dd2 == dd3 == dd4 == expected_dd
 
     # count tests
-    assert gdb.execute("dd data 4", to_string=True) == (
-        "0000000000401000     00000000 00000000 00000001 00000000\n"
-    )
-    assert gdb.execute("dd data 3", to_string=True) == (
-        "0000000000401000     00000000 00000000 00000001\n"
-    )
+    assert gdb.execute("dd data 4", to_string=True) == f"{data_addr_int:016x}     00000000 00000000 00000001 00000000\n"
+    assert gdb.execute("dd data 3", to_string=True) == f"{data_addr_int:016x}     00000000 00000000 00000001\n"
 
     #################################################
     #### dw command tests
@@ -126,31 +109,20 @@ def test_windbg_dX_commands(start_binary):
     dw2 = gdb.execute("dw &data", to_string=True)
     dw3 = gdb.execute(f"dw {data_addr}", to_string=True)
     dw4 = gdb.execute(f"dw {data_addr.replace('0x', '')}", to_string=True)
-    assert (
-        dw1
-        == dw2
-        == dw3
-        == dw4
-        == (
-            "0000000000401000     0000 0000 0000 0000 0001 0000 0000 0000\n"
-            "0000000000401010     0002 0000 0001 0000 0004 0003 0002 0001\n"
-            "0000000000401020     0708 0506 0304 0102 7788 5566 3344 1122\n"
-            "0000000000401030     cdef 89ab 4567 0123 0000 0000 0000 0000\n"
-        )
+    expected_dw = (
+        f"{data_addr_int:016x}     0000 0000 0000 0000 0001 0000 0000 0000\n"
+        f"{data_addr_int + 0x10:016x}     0002 0000 0001 0000 0004 0003 0002 0001\n"
+        f"{data_addr_int + 0x20:016x}     0708 0506 0304 0102 7788 5566 3344 1122\n"
+        f"{data_addr_int + 0x30:016x}     cdef 89ab 4567 0123 0000 0000 0000 0000\n"
     )
+    assert dw1 == dw2 == dw3 == dw4 == expected_dw
 
     # count tests
-    assert gdb.execute("dw data 8", to_string=True) == (
-        "0000000000401000     0000 0000 0000 0000 0001 0000 0000 0000\n"
-    )
+    assert gdb.execute("dw data 8", to_string=True) == f"{data_addr_int:016x}     0000 0000 0000 0000 0001 0000 0000 0000\n"
 
-    assert gdb.execute("dw data 8/2", to_string=True) == (
-        "0000000000401000     0000 0000 0000 0000\n"
-    )
+    assert gdb.execute("dw data 8/2", to_string=True) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
 
-    assert gdb.execute("dw data $eax", to_string=True) == (
-        "0000000000401000     0000 0000 0000 0000\n"
-    )
+    assert gdb.execute("dw data $eax", to_string=True) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
 
     #################################################
     #### db command tests
@@ -159,25 +131,20 @@ def test_windbg_dX_commands(start_binary):
     db2 = gdb.execute("db &data", to_string=True)
     db3 = gdb.execute(f"db {data_addr}", to_string=True)
     db4 = gdb.execute(f"db {data_addr.replace('0x', '')}", to_string=True)
-    assert (
-        db1
-        == db2
-        == db3
-        == db4
-        == (
-            "0000000000401000     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
-            "0000000000401010     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01 00\n"
-            "0000000000401020     08 07 06 05 04 03 02 01 88 77 66 55 44 33 22 11\n"
-            "0000000000401030     ef cd ab 89 67 45 23 01 00 00 00 00 00 00 00 00\n"
-        )
+    expected_db = (
+        f"{data_addr_int:016x}     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
+        f"{data_addr_int + 0x10:016x}     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01 00\n"
+        f"{data_addr_int + 0x20:016x}     08 07 06 05 04 03 02 01 88 77 66 55 44 33 22 11\n"
+        f"{data_addr_int + 0x30:016x}     ef cd ab 89 67 45 23 01 00 00 00 00 00 00 00 00\n"
     )
+    assert db1 == db2 == db3 == db4 == expected_db
 
     # count tests
     assert gdb.execute("db data 31", to_string=True) == (
-        "0000000000401000     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
-        "0000000000401010     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01\n"
+        f"{data_addr_int:016x}     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
+        f"{data_addr_int + 0x10:016x}     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01\n"
     )
-    assert gdb.execute("db data $ax", to_string=True) == ("0000000000401000     00 00 00 00\n")
+    assert gdb.execute("db data $ax", to_string=True) == f"{data_addr_int:016x}     00 00 00 00\n"
 
     #################################################
     #### dc command tests
@@ -186,38 +153,30 @@ def test_windbg_dX_commands(start_binary):
     dc2 = gdb.execute("dc &data", to_string=True)
     dc3 = gdb.execute(f"dc {data_addr}", to_string=True)
     dc4 = gdb.execute(f"dc {data_addr.replace('0x', '')}", to_string=True)
-    assert (
-        dc1
-        == dc2
-        == dc3
-        == dc4
-        == (
-            "+0000 0x401000  00 00 00 00 00 00 00 00                           "
-            "│........│        │\n"
-        )
-    )
+    expected_dc = f"+0000 {data_addr}  00 00 00 00 00 00 00 00                           │........│        │\n"
+    assert dc1 == dc2 == dc3 == dc4 == expected_dc
 
-    assert gdb.execute("dc data 3", to_string=True) == (
-        "+0000 0x401000  00 00 00                                          │...     │        │\n"
-    )
+    assert gdb.execute("dc data 3", to_string=True) == f"+0000 {data_addr}  00 00 00                                          │...     │        │\n"
 
     #################################################
     #### ds command tests
     #################################################
     ds1 = gdb.execute("ds short_str", to_string=True)
     ds2 = gdb.execute("ds &short_str", to_string=True)
-    ds3 = gdb.execute("ds 0x401058", to_string=True)
-    ds4 = gdb.execute("ds 401058", to_string=True)
-    assert ds1 == ds2 == ds3 == ds4 == "401058 'some cstring here'\n"
+    ds3 = gdb.execute(f"ds {short_str_addr}", to_string=True)
+    ds4 = gdb.execute(f"ds {short_str_addr.replace('0x', '')}", to_string=True)
+    short_str_addr_int = int(short_str_addr, 16)
+    assert ds1 == ds2 == ds3 == ds4 == f"{short_str_addr_int:x} 'some cstring here'\n"
 
     # Check too low maxlen
     assert gdb.execute("ds short_str 5", to_string=True) == (
-        "Max str len of 5 too low, changing to 256\n401058 'some cstring here'\n"
+        f"Max str len of 5 too low, changing to 256\n{short_str_addr_int:x} 'some cstring here'\n"
     )
 
     # Check output for a string longer than (the default) maxlen of 256
+    long_str_addr_int = int(long_str_addr, 16)
     assert gdb.execute("ds long_str", to_string=True) == (
-        "40106a 'long string: "
+        f"{long_str_addr_int:x} 'long string: "
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...'\n"
     )
 
