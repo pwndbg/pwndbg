@@ -88,6 +88,24 @@
             (final: prev: {
               libffi_portable = null;
             })
+            (
+              final: prev:
+              nixpkgs.lib.optionalAttrs prev.stdenv.targetPlatform.isLoongArch64 {
+                # fix broken brotli: https://www.mail-archive.com/debian-bugs-dist@lists.debian.org/msg2082619.html
+                brotli = prev.brotli.overrideAttrs (
+                  old:
+                  nixpkgs.lib.optionalAttrs prev.stdenv.isDarwin {
+                    patches = (old.patches or [ ]) ++ [
+                      (prev.fetchpatch {
+                        name = "fix-loongarch64.patch";
+                        url = "https://github.com/google/brotli/commit/e230f474b87134e8c6c85b630084c612057f253e.patch";
+                        hash = "";
+                      })
+                    ];
+                  }
+                );
+              }
+            )
             overlayDarwin
           ];
         }
