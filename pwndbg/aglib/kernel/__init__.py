@@ -729,6 +729,7 @@ def PAGE_ENTRY_MASK() -> int:
     pi = arch_paginginfo()
     if pi:
         return pi.PAGE_ENTRY_MASK
+    raise NotImplementedError()
 
 
 def slab_to_virt(slab: int) -> int:
