@@ -88,3 +88,14 @@ class TypeNotFound(Exception):
     """
     The type is not in the debugger.
     """
+
+
+class SymbolNotRecovered(Exception):
+    """
+    We tried to recover (i.e. look up in the debugger and find through heuristics) the
+    symbol `name` but failed because of `msg`.
+    """
+
+    def __init__(self, name: str, msg: str) -> None:
+        self.name = name
+        super().__init__(msg)

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from pwndbg.lib.err import ErrorCode
 from pwndbg.lib.err import Status
+from pwndbg.lib.err import SymbolNotRecovered
 from pwndbg.lib.err import TypeNotFound
 from pwndbg.lib.err import TypeNotRecovered
 
@@ -14,4 +15,5 @@ __all__ = [
     "Status",
     "TypeNotRecovered",
     "TypeNotFound",
+    "SymbolNotRecovered",
 ]
