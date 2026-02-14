@@ -35,7 +35,7 @@ class NextVmaFinder:
             cur = next
 
     def maple_tree_parse(self) -> Generator[int, None, None]:
-        # taken from bata24
+        # taken from bata24/gef
         ptrsize = pwndbg.aglib.arch.ptrsize
 
         MT_FLAGS_HEIGHT_MASK = 0x7C
@@ -64,11 +64,11 @@ class NextVmaFinder:
             if pwndbg.aglib.memory.is_kernel(val) and val & 0xFF in (0x1E, 0x0E):
                 ma_root = pwndbg.aglib.memory.read_pointer_width(mm + off)
                 if kversion and kversion < (6, 6):
-                    ma_flags = pwndbg.aglib.memory.u32(mm + off + ptrsize)
+                    ma_flags = pwndbg.aglib.memory.uint(mm + off + ptrsize)
                 else:
-                    ma_flags = pwndbg.aglib.memory.u32(mm + off - 4)
+                    ma_flags = pwndbg.aglib.memory.uint(mm + off - 4)
                     if ma_flags == 0:
-                        ma_flags = pwndbg.aglib.memory.u32(mm + off - 12)
+                        ma_flags = pwndbg.aglib.memory.uint(mm + off - 12)
                 break
         else:
             return
@@ -327,8 +327,8 @@ def get_pid_offset(tasks: list[int], mm_offset: int, comm_offset: int) -> int:
                     continue
             except Exception:
                 continue
-            pid = pwndbg.aglib.memory.u32(task + off)
-            tgid = pwndbg.aglib.memory.u32(task + off + 4)
+            pid = pwndbg.aglib.memory.uint(task + off)
+            tgid = pwndbg.aglib.memory.uint(task + off + pwndbg.aglib.typeinfo.uint.sizeof)
             if not (0 < pid < maxpid and 0 < tgid < maxpid) or pid in seen:
                 break
             seen.add(pid)
@@ -448,11 +448,13 @@ def get_cred_struct_and_offset(tasks: list[int], comm_offset: int) -> tuple[str,
     cred = pwndbg.aglib.memory.read_pointer_width(INIT_TASK + cred_offset)
     off = None
     A = 0x30
+    intsize = pwndbg.aglib.typeinfo.uint.sizeof
     # find cap_permitted from INIT_TASK, the distance between uid and cap_permitted is 0x30
-    for i in range(A // 4, A // 4 + 0x20):
-        val = pwndbg.aglib.memory.u64(cred + i * 4)  # sizeof(kernel_cap_t) == 8 even for 32 bits
+    for i in range(A // intsize, A // intsize + 0x20):
+        # sizeof(kernel_cap_t) == 8 even for 32 bits
+        val = pwndbg.aglib.memory.u64(cred + i * intsize)
         if val == 0x000001FFFFFFFFFF:  # is this true for all 5.x and 6.x?
-            off = i * 4 - A
+            off = i * intsize - A
     struct = f"""
     struct cred{{
         char _pad1[{off}];
@@ -585,6 +587,7 @@ def get_file_struct(file: int | None) -> str:
     dentry = inode = None
     off: int
     _result = ""
+    intsize = pwndbg.aglib.typeinfo.uint.sizeof
     if not file or krelease >= (6, 12):
         # find f_op
         off = 0
@@ -592,9 +595,9 @@ def get_file_struct(file: int | None) -> str:
             for i in range(1, 0x20):
                 val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
                 if kbase and val > kbase:
-                    off = i * ptrsize - 4
-                    if not pwndbg.aglib.memory.u32(file + off):
-                        off -= 4
+                    off = i * ptrsize - pwndbg.aglib.typeinfo.uint.sizeof
+                    if not pwndbg.aglib.memory.uint(file + off):
+                        off -= pwndbg.aglib.typeinfo.uint.sizeof
                     break
         # this should work for the most recent versions
         _result = f"""
@@ -617,10 +620,10 @@ def get_file_struct(file: int | None) -> str:
         }};
         """
         if off > 0 and file is not None:
-            off += 4
+            off += intsize
             off = (off // ptrsize) * ptrsize + (ptrsize if off % ptrsize else 0)
             dentry = pwndbg.aglib.memory.read_pointer_width(
-                file + off + 4 * 2 + ptrsize * (6 if krelease < (6, 15) else 7)
+                file + off + intsize * 2 + ptrsize * (6 if krelease < (6, 15) else 7)
             )
             inode = pwndbg.aglib.memory.read_pointer_width(file + off + ptrsize * 3)
     elif krelease >= (6, 5):
@@ -632,8 +635,9 @@ def get_file_struct(file: int | None) -> str:
             if pwndbg.aglib.kernel.in_kmem_cache(val, "inode", strict=False):
                 inode_offset = (i - 2) * ptrsize
                 break
-        for i in range(2 * ptrsize, inode_offset, 4):
-            if pwndbg.aglib.memory.u32(file + i) == 0xE0003:  # usually the fmode of stdin/out/err
+        for i in range(2 * ptrsize, inode_offset, intsize):
+            # usually the fmode of stdin/out/err, uint or u32?
+            if pwndbg.aglib.memory.uint(file + i) == 0xE0003:
                 fmode_offset = i
                 break
             # but if we didn't find it, that's fine as well
@@ -748,7 +752,7 @@ def get_files_struct_and_offset(
         if pwndbg.aglib.memory.is_kernel(mm):
             files = pwndbg.aglib.memory.read_pointer_width(task + files_offset)
             fdt = pwndbg.aglib.memory.read_pointer_width(files + fdt_offset)
-            max_fds = pwndbg.aglib.memory.u32(fdt)
+            max_fds = pwndbg.aglib.memory.uint(fdt)
             fd = pwndbg.aglib.memory.read_pointer_width(fdt + ptrsize)
             for i in range(max_fds):
                 val = pwndbg.aglib.memory.read_pointer_width(fd + i * ptrsize)

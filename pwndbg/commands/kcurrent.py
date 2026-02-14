@@ -234,7 +234,7 @@ parser.add_argument(
     "--set",
     dest="set_pid",
     action="store_true",
-    help="sets the kernel task used for supported pwndbg commands (kfile, kstack, knamespace, pagewalk, vmmap), this option does not change internal mem (purely effects how certain commands behaves)",
+    help="sets the kernel task used for supported pwndbg commands (kfile, kstack, knamespace, ksighand, kseccomp, pagewalk, vmmap), this option does not change internal mem (purely effects how certain commands behaves)",
 )
 
 
