@@ -37,6 +37,7 @@ import pwndbg.lib.memory
 import pwndbg.libc
 import pwndbg.libc.glibc
 from pwndbg.color import message
+from pwndbg.lib import SymbolNotRecoveredError
 
 PREV_INUSE = 1
 IS_MMAPPED = 2
@@ -1731,12 +1732,6 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         return pwndbg.aglib.memory.s32(addr) > 0
 
 
-class SymbolUnresolvableError(Exception):
-    def __init__(self, symbol: str) -> None:
-        super().__init__(f"`{symbol}` can not be resolved via heuristic")
-        self.symbol = symbol
-
-
 class HeuristicHeap(
     GlibcMemoryAllocator[
         type["pwndbg.aglib.heap.structs.CStruct2GDB"],
@@ -1872,7 +1867,7 @@ class HeuristicHeap(
             self._main_arena = Arena(self._main_arena_addr)
             return self._main_arena
 
-        raise SymbolUnresolvableError("main_arena")
+        raise SymbolNotRecoveredError("main_arena", "Heuristic failed.")
 
     def has_tcache(self) -> bool:
         # TODO/FIXME: Can we determine the tcache_bins existence more reliable?
@@ -2002,11 +1997,13 @@ class HeuristicHeap(
         ):
             if pwndbg.aglib.arch.name not in ("i386", "x86-64", "arm", "aarch64"):
                 # TODO: Support other architectures
-                raise SymbolUnresolvableError("thread_arena")
+                raise SymbolNotRecoveredError(
+                    "thread_arena", "Unsupported architecture for thread arena bruteforce."
+                )
             if self.prompt_for_brute_force_thread_arena_permission():
                 tls_address = self.prompt_for_tls_address()
                 if not tls_address:
-                    raise SymbolUnresolvableError("thread_arena")
+                    raise SymbolNotRecoveredError("thread_arena", "TLS not found.")
                 print(message.notice("Fetching all the arena addresses..."))
                 candidates = [a.address for a in self.arenas]
 
@@ -2033,7 +2030,7 @@ class HeuristicHeap(
                     )
                 )
                 return None
-            raise SymbolUnresolvableError("thread_arena")
+            raise SymbolNotRecoveredError("thread_arena", "Thread arena bruteforce failed.")
         else:  # noqa: RET506
             self._thread_arena_values[pwndbg.dbg.selected_thread().index()] = (
                 self.main_arena.address
@@ -2151,7 +2148,7 @@ class HeuristicHeap(
             self._mp = mps(self._mp_addr)
             return self._mp
 
-        raise SymbolUnresolvableError("mp_")
+        raise SymbolNotRecoveredError("mp_", "Could not find mp_ in the .data section.")
 
     @property
     def global_max_fast(self) -> int:
@@ -2249,7 +2246,7 @@ class HeuristicHeap(
         """Return a Page object representing the sbrk heap region.
         Ensure the region's start address is aligned to SIZE_SZ * 2,
         which compensates for the presence of GLIBC_TUNABLES.
-        This heuristic version requires some sanity checks and may raise SymbolUnresolvableError
+        This heuristic version requires some sanity checks and may raise SymbolNotRecoveredError
         if malloc's `mp_` struct can't be resolved.
         """
         # Initialize malloc's mp_ struct if necessary.
@@ -2257,7 +2254,7 @@ class HeuristicHeap(
             try:
                 self.mp
             except Exception:
-                # Should only raise SymbolUnresolvableError, but the heuristic heap implementation is still buggy so catch all exceptions for now.
+                # Should only raise SymbolNotRecoveredError, but the heuristic heap implementation is still buggy so catch all exceptions for now.
                 pass
 
         if self._mp_addr:
@@ -2277,7 +2274,7 @@ class HeuristicHeap(
 
                 return sbrk_region
             raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
-        raise SymbolUnresolvableError("mp_")
+        raise SymbolNotRecoveredError("mp_", "Heuristic failed.")
 
     def is_initialized(self) -> bool:
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
