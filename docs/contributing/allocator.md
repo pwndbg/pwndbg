@@ -91,7 +91,7 @@ The previous three things are truly the most important, but they are also the mo
 
 ![](../assets/caps/mallocng-slotu-good.png)
 
-These comments on the right might seem redundant, but they can be really useful for people to refresh their knowledge on the allocator. Don't be afraid to introduce new terminology, as long as it is explained properly in the "explain" command.
+These comments on the right might seem redundant, but they can be really useful for people to refresh their knowledge on the allocator. Don't be afraid to introduce new terminology, as long as it is explained properly in the "explain" command. The mallocng printing code leverages `pwndbg/lib/pretty_print.py:from_properties()` for object visualization which you are encouraged to use (but if you want to do something else, don't be afraid to).
 
 An important thing to keep in mind here is that the "local view" of the metadata around the given address may not be the same as what the allocator actually sees. But, both can be valuable. You should thus make sure to print both if they differ, and make it clear to the user what is what. Carefully study `pwndbg/commands/mallocng.py:smart_dump_slot()` to understand what I mean. Here are two important examples:
 
@@ -105,7 +105,7 @@ An annoyance with the glibc `hi` and `vis` commands is that it is not obvious wh
 
 ### Use subcommands
 
-Pwndbg supports a bunch of commands. The most straight-forward way for users to discover commands is by browsing the output of the `pwndbg` command. If this output is too cluttered, it will be hard for the user to pick out the commands that are interesting to them. Thus, you shouldn't make the same mistake that `jemalloc` and `mallocng` do and name your commands `ng-slots`, `ns-slotu`, `ng-find`, etc. but rather you should have one base command called `mallocng` and have subcommands: `slots`, `slotu`, `find`. The `slab` command does this properly.
+Pwndbg supports a bunch of commands. The most straight-forward way for users to discover commands is by browsing the output of the `pwndbg` command. If this output is too cluttered, it will be hard for the user to pick out the commands that are interesting to them. Thus, you shouldn't make the same mistake that `jemalloc` and `mallocng` do and name your commands `ng-slots`, `ns-slotu`, `ng-find`, etc. but rather you should have one base command called `mallocng` and have subcommands: `slots`, `slotu`, `find`, etc. The `slab` command does this properly.
 
 However, you must keep in mind one important thing (that you should be keeping in mind when adding any command really). If you determine that e.g. `jemalloc extent-info` is long to type out, and decide to add a `jemalloc -> je` alias, make sure that you are not overriding a shortened usage of any other important command. Test this by just running `pwndbg> je<enter>` and see if GDB runs some command, or complains about some ambiguity. Two to three letter aliases should be used sparingly.
 
@@ -141,13 +141,13 @@ See [Implementing Libc support#Debug Info](./libc-provider.md#debug-info) for ra
 
 The mallocng implementation unfortunately does not do this, the jemalloc implementation unfortunately only does this (i.e. does not support jemalloc without debug info), the glibc implementation handles this pretty cleanly by having one class which uses debug info and one class which uses heuristics.
 
-The SLUB implementation handles this the best, see `pwndbg/aglib/kernel/__init__.py:typeinfo_recovery()`. If debug info is present, we do nothing, otherwise we add the debug info ourselves using the `cymbol` API. From then on we can simply save assume that we "have" debug info.
+The kernel code handles this the best, see `pwndbg/aglib/kernel/__init__.py:typeinfo_recovery()`. If debug info is present, we do nothing, otherwise we add the debug info ourselves using the `cymbol` API. From then on we can simply safely assume that we "have" debug info. This also allows the user to use the types that we infer (e.g. it allows them to do `print *(struct kmem_cache_node*) <some_addr>` even if they don't have debug info).
 
 ### Fail gracefully
 
 Similarly to what the glibc and SLUB code do, if you fail to recover a symbol or type, you will want to raise a `SymbolNotRecoveredError` / `TypeNotRecoveredError` exception and catch it somewhere. Currently, `TypeNotRecoveredError` is caught in the top-level try-except in `pwndbg/commands/__init__.py:CommandObj:__call__()`, and `SymbolNotRecoveredError` is expected to be caught by the heap command (see `pwndbg/commands/__init__.py:_try2run_heap_command()`). We should likely decide on one approach or the other.
 
-The SLUB code currently has very aggressive assert's that are caught in bare `except:`s. Don't do this. Don't assert for stuff that is not strictly the programmer's fault. Don't use bare `except:`s.
+The kernel code currently has very aggressive assert's that are caught in bare `except:`s. Don't do this. Only assert for stuff that is strictly the programmer's fault. Don't use bare `except:`s.
 
 ### Handling statically compiled binaries
 
