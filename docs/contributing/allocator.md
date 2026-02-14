@@ -4,6 +4,8 @@ Implementing support for an allocator is one of the most complex and most useful
 
 Naturally, contributions that refactor the existing allocators to follow these guidelines are also very welcome. Some of the comparisons to the current implementations may became dated with time, but they should stay for educational purposes (you should add a comment to the relevant section if the comparison is dated).
 
+We sometimes refer to a Pwndbg allocator subsystem as an "allocator inspector" for the given upstream allocator.
+
 ## Important considerations
 
 Here are some things you need to keep in mind while designing support for a new allocator, that may not be so obvious initially:
