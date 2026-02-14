@@ -179,7 +179,7 @@ Tested for [???, 6.18\].
 
 + 6.18: start of changelog (#3689)
 
-CONFIG_SLAB_VIRTUAL support: mitigation-v4-6.12 with debug info > older versions with debug info > mitigation-v4-6.12 without debug info > older versions without debug info.
+`CONFIG_SLAB_VIRTUAL` support: until the mitigation feature gets accepted into mainline, only the latest patch (currently `mitigation-v4-6.12`) is fully supported. The `slab` commands are not guaranteed to work on older patches because the feature is experimental and may undergo significant changes.
 
 ### musl mallocng
 
