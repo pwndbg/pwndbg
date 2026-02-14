@@ -372,7 +372,7 @@ class Chunk:
         return self._prev_inuse
 
     @property
-    def fd(self):
+    def fd(self) -> int | None:
         if self._fd is None:
             try:
                 self._fd = int(self._gdbValue["fd"])
@@ -382,7 +382,7 @@ class Chunk:
         return self._fd
 
     @property
-    def bk(self):
+    def bk(self) -> int | None:
         if self._bk is None:
             try:
                 self._bk = int(self._gdbValue["bk"])
@@ -1959,11 +1959,15 @@ class HeuristicHeap(
         if thread_arena_via_config:
             return Arena(thread_arena_via_config)
 
-        if cached := self._thread_arena_values.get(pwndbg.dbg.selected_thread().index()):
+        thread = pwndbg.dbg.selected_thread()
+        assert thread
+        tidx = thread.index()
+
+        if cached := self._thread_arena_values.get(tidx):
             return Arena(cached)
 
         # main_arena is fine
-        if pwndbg.libc.version() >= (2, 43) and pwndbg.dbg.selected_thread().index() != 1:
+        if pwndbg.libc.version() >= (2, 43) and tidx != 1:
             print(
                 message.warn(
                     "`thread_arena` heuristics for GLIBC >= 2.43 are broken, and will be wrong in most cases."
@@ -1973,7 +1977,7 @@ class HeuristicHeap(
         found = self._search_tls(self._is_valid_arena)
         if found:
             value, _ = found
-            self._thread_arena_values[pwndbg.dbg.selected_thread().index()] = value
+            self._thread_arena_values[tidx] = value
             return Arena(value)
 
         return None
