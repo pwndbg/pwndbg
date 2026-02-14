@@ -421,7 +421,7 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_pages() -> tuple[Page, ...]:
-    mode = kernel_vmmap_mode
+    mode = str(kernel_vmmap_mode)
     arch_name = pwndbg.aglib.arch.name
     if mode == "page-tables" and arch_name not in ("x86-64", "aarch64"):
         # TODO: remove this by implementing `RiscvPagingInfo`, `RiscvOps`, etc

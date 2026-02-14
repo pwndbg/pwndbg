@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from capstone import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
 
 import pwndbg
 import pwndbg.aglib

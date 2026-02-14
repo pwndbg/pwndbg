@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import os
 import re
 from abc import ABC
 from abc import abstractmethod
@@ -16,6 +15,7 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
+import pwndbg.aglib.structures
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
@@ -23,6 +23,9 @@ import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
+from pwndbg.lib import Status
+from pwndbg.lib import TypeNotFound
+from pwndbg.lib import TypeNotRecovered
 from pwndbg.lib.regs import BitFlags
 
 if TYPE_CHECKING:
@@ -37,12 +40,6 @@ _kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 P = ParamSpec("P")
 D = TypeVar("D")
 T = TypeVar("T")
-
-
-class TypeNotRecovered(Exception):
-    def __init__(self, name: str, msg: str) -> None:
-        self.name = name
-        super().__init__(msg)
 
 
 def BIT(shift: int):
@@ -109,6 +106,11 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
     return decorator
 
 
+# Set by pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux() when page typeinfo
+# recovery fails.
+page_typeinfo_recovery_failure: None | TypeNotRecovered = None
+
+
 def typeinfo_recovery(
     name: str, requires_kversion: bool = False, requires_kbase: bool = False
 ) -> Callable[[Callable[P, str]], Callable[P, None]]:
@@ -127,15 +129,27 @@ def typeinfo_recovery(
                 raise TypeNotRecovered(name, "kernel version is unavailable")
             if requires_kbase and kbase() is None:
                 raise TypeNotRecovered(name, "kernel base not found")
-            # f(*args, **kwargs)
+
             try:
                 result = f(*args, **kwargs)
-                header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-                fname = name.split()[-1] + "_structs"
-                pwndbg.commands.cymbol.add_structure_from_header(header_file_path, fname, True)
-                os.unlink(header_file_path)
-            except Exception as e:
+            except TypeNotFound as e:
+                # typeinfo_recovery functions depend on
+                # pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux()
+                # succeeding and will try to directly read those types from the debbuger
+                # like e.g. `pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)`
+                # This will raise a TypeNotFound exception.
+                if page_typeinfo_recovery_failure is not None:
+                    raise page_typeinfo_recovery_failure
                 raise TypeNotRecovered(name, str(e))
+            except AssertionError as e:
+                # FIXME: Some type recovery functions `assert` under the assumption that the assert
+                # will be caught here.
+                raise TypeNotRecovered(name, str(e))
+
+            fname = name.split()[-1] + "_structs"
+            err: Status = pwndbg.aglib.structures.add(fname, result)
+            if err.is_failure():
+                raise TypeNotRecovered(name, err.message)
             return
 
         return func
@@ -310,7 +324,7 @@ def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -
 
 def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
     # name is a substr of any of the target caches' names
-    cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
+    _, cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
     if not cache:
         return False
     if strict:
@@ -398,7 +412,7 @@ class ArchOps(ABC):
 
     @property
     def page_size(self) -> int:
-        return 1 << self.page_shift
+        return self._paginginfo().page_size
 
     def virt_to_pfn(self, virt: int) -> int:
         return phys_to_pfn(virt_to_phys(virt))
@@ -421,7 +435,7 @@ class ArchOps(ABC):
 
 class x86Ops(ArchOps):
     def phys_to_virt(self, phys: int) -> int:
-        return (phys + self.page_offset) % (1 << pwndbg.aglib.arch.ptrbits)
+        return pwndbg.aglib.arch.unsigned(phys + self.page_offset)
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.page_shift
@@ -715,6 +729,26 @@ def PAGE_ENTRY_MASK() -> int:
     pi = arch_paginginfo()
     if pi:
         return pi.PAGE_ENTRY_MASK
+
+
+def slab_to_virt(slab: int) -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.slab_to_virt(slab)
+    raise NotImplementedError()
+
+
+def virt_to_slab(slab: int) -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.virt_to_slab(slab)
+    raise NotImplementedError()
+
+
+def slab_virtual() -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.slab_virtual
     raise NotImplementedError()
 
 

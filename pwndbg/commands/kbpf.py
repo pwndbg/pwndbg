@@ -4,7 +4,10 @@ import argparse
 import math
 import re
 
-import capstone
+from capstone6pwndbg import CS_ARCH_BPF
+from capstone6pwndbg import CS_MODE_BPF_EXTENDED
+from capstone6pwndbg import CS_MODE_LITTLE_ENDIAN
+from capstone6pwndbg import Cs
 
 import pwndbg
 import pwndbg.aglib.kernel
@@ -102,7 +105,7 @@ def bpf_map_array_offset(bpf_array, t, max_entries, value_size):
 
 def parse_xa_node(xa_node):
     xa_node = int(xa_node) & ~3
-    if xa_node == 0 or not pwndbg.aglib.memory.is_kernel(xa_node):
+    if not pwndbg.aglib.memory.is_kernel(xa_node):
         return []
     xa_node = pwndbg.aglib.memory.get_typed_pointer("struct xa_node", xa_node)
     result = []
@@ -156,9 +159,9 @@ def print_bpf_progs(verbose: int) -> None:
             print_bpf_prog_metadata(idx, slot, bpf_prog, indent)
             with indent:
                 if verbose > 0:
-                    cs = capstone.Cs(
-                        capstone.CS_ARCH_BPF,
-                        capstone.CS_MODE_LITTLE_ENDIAN | capstone.CS_MODE_BPF_EXTENDED,
+                    cs = Cs(
+                        CS_ARCH_BPF,
+                        CS_MODE_LITTLE_ENDIAN | CS_MODE_BPF_EXTENDED,
                     )
                     num_insns = int(bpf_prog["len"])
                     insns = int(bpf_prog["insns"].address)

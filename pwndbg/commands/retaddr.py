@@ -6,6 +6,7 @@ import pwndbg.aglib.stack
 import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.commands
+import pwndbg.lib.cache
 from pwndbg.commands import CommandCategory
 from pwndbg.commands.vmmap import print_vmmap_table_header
 
@@ -18,7 +19,16 @@ def retaddr() -> None:
     addresses = pwndbg.aglib.stack.callstack()
 
     sp = pwndbg.aglib.regs.sp
+
+    if sp is None:
+        print("Stack pointer not found.")
+        return
+
     stack = pwndbg.aglib.vmmap.find(sp)
+
+    if stack is None:
+        print(f"No mapping found at sp = {hex(sp)}.")
+        return
 
     # Find all return addresses on the stack
     start = stack.vaddr
@@ -40,7 +50,7 @@ def stack_explore() -> None:
     old_value = pwndbg.config.auto_explore_stack.value
     pwndbg.config.auto_explore_stack.value = "yes"
     try:
-        pwndbg.aglib.stack.get.cache.clear()
+        pwndbg.lib.cache.clear_function_cache(pwndbg.aglib.stack.get)
         pages = pwndbg.aglib.stack.get()
     finally:
         pwndbg.config.auto_explore_stack.value = old_value

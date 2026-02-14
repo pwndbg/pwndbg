@@ -12,6 +12,7 @@ import pygments.util
 from pwnlib.lexer import PwntoolsLexer
 
 import pwndbg
+import pwndbg.lib.cache
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.color import theme
@@ -37,7 +38,7 @@ def check_style() -> None:
         # Reset the highlighted source cache
         from pwndbg.commands.context import get_highlight_source
 
-        get_highlight_source.cache.clear()
+        pwndbg.lib.cache.clear_function_cache(get_highlight_source)
     except pygments.util.ClassNotFound:
         print(
             message.warn(f"The pygment formatter style '{style}' is not found, restore to default")
