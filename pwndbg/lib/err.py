@@ -73,7 +73,7 @@ class Status:
         return Status(code, message)
 
 
-class TypeNotRecovered(Exception):
+class TypeNotRecoveredError(Exception):
     """
     We tried to recover (i.e. look up in the debugger and craft ourselves) the
     type `name` but failed because of `msg`.
@@ -84,7 +84,18 @@ class TypeNotRecovered(Exception):
         super().__init__(msg)
 
 
-class TypeNotFound(Exception):
+class TypeNotFoundError(Exception):
     """
     The type is not in the debugger.
     """
+
+
+class SymbolNotRecoveredError(Exception):
+    """
+    We tried to recover (i.e. look up in the debugger and find through heuristics) the
+    symbol `name` but failed because of `msg`.
+    """
+
+    def __init__(self, name: str, msg: str) -> None:
+        self.name = name
+        super().__init__(msg)

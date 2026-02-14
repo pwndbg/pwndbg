@@ -16,18 +16,30 @@ BINARY_ISSUE_1565 = get_binary("issue_1565.native.out")
 
 def get_proc_maps():
     """
-        Example info proc mappings:
+    Example info proc mappings:
 
     pwndbg> info proc mappings
     process 26781
     Mapped address spaces:
 
-              Start Addr           End Addr       Size     Offset objfile
-                0x400000           0x401000     0x1000        0x0 /opt/pwndbg/tests/binaries/host/crash_simple.out
-          0x7ffff7ffa000     0x7ffff7ffd000     0x3000        0x0 [vvar]
-          0x7ffff7ffd000     0x7ffff7fff000     0x2000        0x0 [vdso]
-          0x7ffffffde000     0x7ffffffff000    0x21000        0x0 [stack]
-      0xffffffffff600000 0xffffffffff601000     0x1000        0x0 [vsyscall]
+    Start Addr         End Addr           Size      Offset Perms  File
+    0x0000000001000000 0x0000000001001000 0x1000    0x0    r--p   /pwndbg/tests/binaries/host/crash_simple.native.out
+    0x0000000001001000 0x0000000001002000 0x1000    0x0    r-xp   /pwndbg/tests/binaries/host/crash_simple.native.out
+    0x00007ffff7ff7000 0x00007ffff7ffb000 0x4000    0x0    r--p   [vvar]
+    0x00007ffff7ffb000 0x00007ffff7ffd000 0x2000    0x0    r--p   [vvar_vclock]
+    0x00007ffff7ffd000 0x00007ffff7fff000 0x2000    0x0    r-xp   [vdso]
+    0x00007ffffffde000 0x00007ffffffff000 0x21000   0x0    rw-p   [stack]
+    0xffffffffff600000 0xffffffffff601000 0x1000    0x0    --xp   [vsyscall]
+
+    Example `cat /proc/<pid>/maps`:
+
+    01000000-01001000 r--p 00000000 103:05 61869998          /pwndbg/tests/binaries/host/crash_simple.native.out
+    01001000-01002000 r-xp 00000000 103:05 61869998          /pwndbg/tests/binaries/host/crash_simple.native.out
+    7ffff7ff7000-7ffff7ffb000 r--p 00000000 00:00 0          [vvar]
+    7ffff7ffb000-7ffff7ffd000 r--p 00000000 00:00 0          [vvar_vclock]
+    7ffff7ffd000-7ffff7fff000 r-xp 00000000 00:00 0          [vdso]
+    7ffffffde000-7ffffffff000 rw-p 00000000 00:00 0          [stack]
+    ffffffffff600000-ffffffffff601000 --xp 00000000 00:00 0  [vsyscall]
     """
     maps = []
 
@@ -52,7 +64,8 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     Example vmmap when debugging binary:
         LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA
                   0x400000           0x401000 r-xp     1000 0      /opt/pwndbg/tests/binaries/host/crash_simple.out
-            0x7ffff7ffa000     0x7ffff7ffd000 r--p     3000 0      [vvar]
+            0x7ffff7ff7000     0x7ffff7ffb000 r--p     4000 0      [vvar]
+            0x7ffff7ffb000     0x7ffff7ffd000 r--p     2000 0      [vvar_vclock]
             0x7ffff7ffd000     0x7ffff7fff000 r-xp     2000 0      [vdso]
             0x7ffffffde000     0x7ffffffff000 rwxp    21000 0      [stack]
         0xffffffffff600000 0xffffffffff601000 r-xp     1000 0      [vsyscall]
@@ -60,11 +73,14 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     The same vmmap when debugging coredump:
         LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA
                   0x400000           0x401000 r-xp     1000 0      /opt/pwndbg/tests/binaries/host/crash_simple.out
-            0x7ffff7ffd000     0x7ffff7fff000 r-xp     2000 1158   load2
+            0x7ffff7ffd000     0x7ffff7fff000 r-xp     2000 0      [vdso]
             0x7ffffffde000     0x7ffffffff000 rwxp    21000 3158   [stack]
         0xffffffffff600000 0xffffffffff601000 r-xp     1000 24158  [vsyscall]
 
-    Note that for a core-file, we display the [vdso] page as load2 and we are missing the [vvar] page.
+    Note that for a core-file we are missing the [vvar] and [vvar_vclock] page ([vvar_vclock] was introduced in a
+    recent kernel version that distributions have picked up, funnily enough searching it online returns no results
+    at the moment). "[vdso]" used to show up as "load2" for coredumps on older versions of GDB.
+
     This is... how it is. It just seems that core files (at least those I met) have no info about
     the vvar page and also GDB can't access the [vvar] memory with its x/ command during core debugging.
     """
@@ -112,17 +128,21 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     )
 
     if has_proc_maps:
-        assert len(vmmaps) == old_len_vmmaps - 1
+        # This was `len(vmmaps) == old_len_vmmaps - 1` before, but all distributions updated to a
+        # kernel version which now shows [vvar_vclock] as well, and this does not show up in the
+        # corefile.
+        assert len(vmmaps) == old_len_vmmaps - 2
     else:
         # E.g. on Debian 10 with GDB 8.2.1 the core dump does not contain mappings info
         # (note: we don't support Debian 10 anymore, so this code may be removed in the future)
-        assert len(vmmaps) == old_len_vmmaps - 2
+        assert len(vmmaps) == old_len_vmmaps - 3
         binary_map = next(i for i in expected_maps if CRASH_SIMPLE_BINARY in i[-1])
         expected_maps.remove(binary_map)
 
-    # Fix up expected maps
-    vdso_map = next(i for i in expected_maps if i[-1] == "[vvar]")
-    expected_maps.remove(vdso_map)
+    # Remove [vvar]
+    expected_maps.remove(next(i for i in expected_maps if i[-1] == "[vvar]"))
+    # Remove [vvar_vclock]
+    expected_maps.remove(next(i for i in expected_maps if i[-1] == "[vvar_vclock]"))
 
     def assert_maps():
         for vmmap, expected_map in zip(vmmaps, expected_maps):
