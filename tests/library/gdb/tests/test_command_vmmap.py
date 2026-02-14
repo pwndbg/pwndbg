@@ -77,7 +77,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
             0x7ffffffde000     0x7ffffffff000 rwxp    21000 3158   [stack]
         0xffffffffff600000 0xffffffffff601000 r-xp     1000 24158  [vsyscall]
 
-    Note that for a core-file we are missing the [vvar] and [vvar_clock] page ([vvar_clock] was introduced in a
+    Note that for a core-file we are missing the [vvar] and [vvar_vclock] page ([vvar_vclock] was introduced in a
     recent kernel version that distributions have picked up, funnily enough searching it online returns no results
     at the moment). "[vdso]" used to show up as "load2" for coredumps on older versions of GDB.
 
@@ -135,13 +135,14 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     else:
         # E.g. on Debian 10 with GDB 8.2.1 the core dump does not contain mappings info
         # (note: we don't support Debian 10 anymore, so this code may be removed in the future)
-        assert len(vmmaps) == old_len_vmmaps - 2
+        assert len(vmmaps) == old_len_vmmaps - 3
         binary_map = next(i for i in expected_maps if CRASH_SIMPLE_BINARY in i[-1])
         expected_maps.remove(binary_map)
 
-    # Fix up expected maps
-    vdso_map = next(i for i in expected_maps if i[-1] == "[vvar]")
-    expected_maps.remove(vdso_map)
+    # Remove [vvar]
+    expected_maps.remove(next(i for i in expected_maps if i[-1] == "[vvar]"))
+    # Remove [vvar_vclock]
+    expected_maps.remove(next(i for i in expected_maps if i[-1] == "[vvar_vclock]"))
 
     def assert_maps():
         for vmmap, expected_map in zip(vmmaps, expected_maps):
