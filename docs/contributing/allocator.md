@@ -129,7 +129,7 @@ so you should embrace it. The upstream allocator will update, maybe the structur
 
 It is thus absolutely necessary to have a function which robustly retrieves the version of the allocator. For the kernel SLUB allocator, this is `pwndbg.aglib.kernel.kversion()` and `.krelease()`, for the other ones this is `pwndbg.libc.version()`.
 
-Then, you can handle changing structs using C macros and `#if`s. See `pwndbg.aglib.kernel.slab.py:kmem_cache_structs()` for an example. You will likely also have some if-statements in the code controlling the logic. If some part of the code is highly dependant on the allocator's version, you may use an abstract class / protocol to handle the dispatch in a cleaner way (unfortunately no allocactor does this currently).
+Then, you can handle changing structs using C macros and `#if`s. See `pwndbg.aglib.kernel.slab.py:kmem_cache_structs()` for an example. You will likely also have some if-statements in the code controlling the logic. If some part of the code is highly dependant on the allocator's version, you may use an abstract class / protocol to handle the dispatch in a cleaner way (unfortunately no allocator does this currently).
 
 Make it clear what versions are supported. Sometimes you get support for newer versions for free, sometimes you don't. The users (and contributors) should be informed on what the oldest and latest version you tested is. We will do two things to facilitate this.
 
