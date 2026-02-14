@@ -608,6 +608,9 @@ def get_file_struct(file: int | None) -> str:
             unsigned int f_flags;
             unsigned int f_iocb_flags;
             const struct cred *f_cred;
+#if KVERSION >= KERNEL_VERSION(6, 15, 0)
+            void *f_owner;
+#endif
             /* --- cacheline 1 boundary (64 bytes) --- */
             struct path f_path;
             /* don't care about the rest */
@@ -616,7 +619,9 @@ def get_file_struct(file: int | None) -> str:
         if off > 0 and file is not None:
             off += 4
             off = (off // ptrsize) * ptrsize + (ptrsize if off % ptrsize else 0)
-            dentry = pwndbg.aglib.memory.read_pointer_width(file + off + 4 * 2 + ptrsize * 6)
+            dentry = pwndbg.aglib.memory.read_pointer_width(
+                file + off + 4 * 2 + ptrsize * (6 if krelease < (6, 15) else 7)
+            )
             inode = pwndbg.aglib.memory.read_pointer_width(file + off + ptrsize * 3)
     elif krelease >= (6, 5):
         # find the cache that contains the inode
@@ -1001,6 +1006,8 @@ def get_filepath(file: int | pwndbg.dbg_mod.Value) -> str:
             dentry = nxt
         except Exception:
             break
+    if not path:
+        return ""
     path = os.path.join(*path[::-1])
     ino = int(file["f_inode"]["i_ino"])
     if path in ["UNIX", "NETLINK", "TCP", "TCPv6", "UDP", "UDPv6", "PACKET"]:

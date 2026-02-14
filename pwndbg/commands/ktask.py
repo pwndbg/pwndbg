@@ -178,7 +178,7 @@ class Kthread:
 
     @property
     def sighand(self) -> Generator[tuple[int, int], None, None]:
-        if not self.thread["sighand"].type.has_field("action"):
+        if not self.thread["sighand"].dereference().type.has_field("action"):
             return
         sighand = self.thread["sighand"]["action"]
         for i in range(sighand.type.array_len):

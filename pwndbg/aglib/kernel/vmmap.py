@@ -71,32 +71,38 @@ def handle_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
             page.offset = 0
 
 
-def handle_stacks_and_user_files(pages: pwndbg.dbg_mod.MemoryMap) -> list[tuple[int, int, str]]:
+def get_kernel_stacks() -> list[tuple[int, int, str]]:
     stacks = []
     for task in pwndbg.commands.ktask.get_ktasks():
         for thread in task.threads:
             if thread.stack:
                 stacks.append((thread.stack, thread.pid, thread.name))
+    return stacks
+
+
+def handle_user_stack_and_filepaths(pages: pwndbg.dbg_mod.MemoryMap) -> None:
     task = pwndbg.aglib.kernel.current_task()
     task = pwndbg.commands.ktask.Kthread(task)
     user_stack = task.user_stack
     for page in pages.ranges():
         if pwndbg.aglib.memory.is_kernel(page.start):
             break
-        page.objfile = pwndbg.aglib.kernel.ktask.resolve_addr_if_file(task.mm, page.start)
+        file = pwndbg.aglib.kernel.ktask.resolve_addr_if_file(task.mm, page.start)
+        if file:
+            page.objfile = file
         if user_stack and user_stack in page:
             page.objfile = "userland [stack]"
-    return stacks
 
 
 @pwndbg.lib.cache.cache_until("stop")
 def annotate(pages: pwndbg.dbg_mod.MemoryMap) -> None:
-    stacks = None
     try:
-        stacks = handle_stacks_and_user_files(pages)
-    except Exception:
-        pass
+        pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo()
+    except pwndbg.aglib.kernel.TypeNotRecovered:
+        return
+    handle_user_stack_and_filepaths(pages)
     handle_offsets(pages)
+    stacks = get_kernel_stacks()
     if not stacks:
         return
     for page in pages.ranges():
