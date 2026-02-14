@@ -145,7 +145,7 @@ The SLUB implementation handles this the best, see `pwndbg/aglib/kernel/__init__
 
 ### Fail gracefully
 
-Similarly to what the glibc and SLUB code do, if you fail to recover a symbol or type, you will want to raise a `SymbolNotRecovered` / `TypeNotRecovered` exception and catch it somewhere. Currently, `TypeNotRecovered` is caught in the top-level try-except in `pwndbg/commands/__init__.py:CommandObj:__call__()`, and `SymbolNotRecovered` is expected to be caught by the heap command (see `pwndbg/commands/__init__.py:_try2run_heap_command()`). We should likely decide on one approach or the other.
+Similarly to what the glibc and SLUB code do, if you fail to recover a symbol or type, you will want to raise a `SymbolNotRecoveredError` / `TypeNotRecoveredError` exception and catch it somewhere. Currently, `TypeNotRecoveredError` is caught in the top-level try-except in `pwndbg/commands/__init__.py:CommandObj:__call__()`, and `SymbolNotRecoveredError` is expected to be caught by the heap command (see `pwndbg/commands/__init__.py:_try2run_heap_command()`). We should likely decide on one approach or the other.
 
 The SLUB code currently has very aggressive assert's that are caught in bare `except:`s. Don't do this. Don't assert for stuff that is not strictly the programmer's fault. Don't use bare `except:`s.
 

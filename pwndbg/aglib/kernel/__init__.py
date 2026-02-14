@@ -24,8 +24,8 @@ import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.lib import Status
-from pwndbg.lib import TypeNotFound
-from pwndbg.lib import TypeNotRecovered
+from pwndbg.lib import TypeNotFoundError
+from pwndbg.lib import TypeNotRecoveredError
 from pwndbg.lib.regs import BitFlags
 
 if TYPE_CHECKING:
@@ -108,7 +108,7 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
 
 # Set by pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux() when page typeinfo
 # recovery fails.
-page_typeinfo_recovery_failure: None | TypeNotRecovered = None
+page_typeinfo_recovery_failure: None | TypeNotRecoveredError = None
 
 
 def typeinfo_recovery(
@@ -120,36 +120,36 @@ def typeinfo_recovery(
         def func(*args: P.args, **kwargs: P.kwargs) -> None:
             if not pwndbg.dbg.selected_inferior().is_linux():
                 # make sure the target is linux, should we specify symbols instead?
-                raise TypeNotRecovered(name, "target is not linux")
+                raise TypeNotRecoveredError(name, "target is not linux")
             if has_debug_info():
                 return
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
                 return
             if requires_kversion and kversion() is None:
-                raise TypeNotRecovered(name, "kernel version is unavailable")
+                raise TypeNotRecoveredError(name, "kernel version is unavailable")
             if requires_kbase and kbase() is None:
-                raise TypeNotRecovered(name, "kernel base not found")
+                raise TypeNotRecoveredError(name, "kernel base not found")
 
             try:
                 result = f(*args, **kwargs)
-            except TypeNotFound as e:
+            except TypeNotFoundError as e:
                 # typeinfo_recovery functions depend on
                 # pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux()
                 # succeeding and will try to directly read those types from the debbuger
                 # like e.g. `pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)`
-                # This will raise a TypeNotFound exception.
+                # This will raise a TypeNotFoundError exception.
                 if page_typeinfo_recovery_failure is not None:
                     raise page_typeinfo_recovery_failure
-                raise TypeNotRecovered(name, str(e))
+                raise TypeNotRecoveredError(name, str(e))
             except AssertionError as e:
                 # FIXME: Some type recovery functions `assert` under the assumption that the assert
                 # will be caught here.
-                raise TypeNotRecovered(name, str(e))
+                raise TypeNotRecoveredError(name, str(e))
 
             fname = name.split()[-1] + "_structs"
             err: Status = pwndbg.aglib.structures.add(fname, result)
             if err.is_failure():
-                raise TypeNotRecovered(name, err.message)
+                raise TypeNotRecoveredError(name, err.message)
             return
 
         return func

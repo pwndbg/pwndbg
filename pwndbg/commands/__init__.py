@@ -31,8 +31,8 @@ import pwndbg.libc
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
-from pwndbg.lib import SymbolNotRecovered
-from pwndbg.lib import TypeNotRecovered
+from pwndbg.lib import SymbolNotRecoveredError
+from pwndbg.lib import TypeNotRecoveredError
 
 log = logging.getLogger(__name__)
 
@@ -521,7 +521,7 @@ class CommandObj:
                 print("Feel free to re-enable manually.")
             else:
                 print()
-        except TypeNotRecovered as e:
+        except TypeNotRecoveredError as e:
             print(message.error(f"recovering {e.name} failed with error:"))
             print(e)
             if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
@@ -891,7 +891,7 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
     # Note: We will still raise the error for developers when exception-* is set to "on"
     try:
         return function(*a, **kw)
-    except SymbolNotRecovered as err:
+    except SymbolNotRecoveredError as err:
         e(f"{func_name(function)}: Fail to resolve the symbol: `{err.name}`")
         if "thread_arena" == err.name:
             w(

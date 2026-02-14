@@ -12,7 +12,7 @@ import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.dbg_mod import EventType
-from pwndbg.lib import TypeNotRecovered
+from pwndbg.lib import TypeNotRecoveredError
 
 #########################################
 # helpers
@@ -278,7 +278,7 @@ def load_common_structs_on_load_linux() -> None:
     if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.dbg.selected_inferior().is_linux():
         try:
             recover_page_typeinfo()
-        except TypeNotRecovered as e:
+        except TypeNotRecoveredError as e:
             # We are not going to print anything here, because the user may not
             # even end up using the type-dependant commands.
             # Other commands and typeinfo recoveries depend on this succeeding,
