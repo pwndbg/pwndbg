@@ -4,11 +4,11 @@ from typing import Any
 
 import pytest
 
-from .....host import Controller
-from .. import break_at_sym
-from .. import get_binary
-from .. import launch_to
-from .. import pwndbg_test
+from ....host import Controller
+from . import break_at_sym
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
 HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.native.out")
