@@ -188,13 +188,6 @@ outputs: dict[str, OutputType] = {}
 output_settings: defaultdict[str, dict[str, Any]] = defaultdict(dict)
 
 
-@pwndbg.config.trigger(config_backtrace_format)
-def validate_backtrace_format() -> None:
-    if config_backtrace_format.value not in ["hex", "dec"]:
-        print(message.warn("bt-format must be either 'hex' or 'dec'"))
-        config_backtrace_format.revert_default()
-
-
 @pwndbg.config.trigger(config_context_sections)
 def validate_context_sections() -> None:
     valid_values = [
