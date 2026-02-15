@@ -1329,7 +1329,7 @@ class GDBCommand(gdb.Command):
         # word=None. Why?
         # Since we only support one level of subcommand completion (i.e. we dont support subsubcommand completion),
         # we don't really care about the text and word distinction.
-        # Correction (#3751) we have to handle the `text != word` case to properly autocomplete stuff like
+        # Correction (#3751): We have to handle the `text != word` case to properly autocomplete stuff like
         # `knft list-<tab>` (text="list-", word="").
 
         if word is None:
