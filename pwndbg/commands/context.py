@@ -176,11 +176,23 @@ config_max_threads_display = pwndbg.config.add_param(
     4,
     "maximum number of threads displayed by the context command",
 )
+config_backtrace_format = pwndbg.config.add_param(
+    "bt-format",
+    "dec",
+    "which formating to use for backtrace offset (hex/dec)",
+)
 
 # Storing output configuration per section
 OutputType = str | Callable[[str], None]
 outputs: dict[str, OutputType] = {}
 output_settings: defaultdict[str, dict[str, Any]] = defaultdict(dict)
+
+
+@pwndbg.config.trigger(config_backtrace_format)
+def validate_backtrace_format() -> None:
+    if config_backtrace_format.value not in ["hex", "dec"]:
+        print(message.warn("bt-format must be either 'hex' or 'dec'"))
+        config_backtrace_format.revert_default()
 
 
 @pwndbg.config.trigger(config_context_sections)
@@ -1560,6 +1572,9 @@ def context_backtrace(
         addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
         symbol = c.symbol(pwndbg.aglib.symbol.resolve_addr(int(frame.pc())))
         if symbol:
+            if config_backtrace_format == "hex" and "+" in symbol:
+                parts = symbol.split("+")
+                symbol = f"{parts[0]}+{hex(int(parts[1]))}"
             addrsz = f"{addrsz} {symbol}"
         result.append(f"{prefix} {c.frame_label(f'{backtrace_frame_label}{i}')} {addrsz}")
 
