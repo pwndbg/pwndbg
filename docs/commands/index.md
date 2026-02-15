@@ -36,6 +36,10 @@
 
 -  [dev-dump-instruction](developer/dev-dump-instruction.md) - Dump internal PwndbgInstruction attributes.
 -  [log-level](developer/log-level.md) - Set the log level.
+-  [memoize](developer/memoize.md) - Toggles memoization (caching).
+-  [profiler](developer/profiler.md) - Utilities for profiling Pwndbg.
+-  [reinit-pwndbg](developer/reinit-pwndbg.md) - Makes Pwndbg reinitialize all state.
+-  [reload](developer/reload.md) - Reload Pwndbg.
 
 ## Disassemble
 
@@ -185,11 +189,7 @@
 -  [config](pwndbg/config.md) - Shows Pwndbg-specific configuration.
 -  [configfile](pwndbg/configfile.md) - Generates a configuration file for the current Pwndbg options.
 -  [heap-config](pwndbg/heap-config.md) - Shows heap related configuration.
--  [memoize](pwndbg/memoize.md) - Toggles memoization (caching).
--  [profiler](pwndbg/profiler.md) - Utilities for profiling Pwndbg.
 -  [pwndbg](pwndbg/pwndbg.md) - Prints out a list of all Pwndbg commands.
--  [reinit-pwndbg](pwndbg/reinit-pwndbg.md) - Makes Pwndbg reinitialize all state.
--  [reload](pwndbg/reload.md) - Reload Pwndbg.
 -  [theme](pwndbg/theme.md) - Shows Pwndbg-specific theme configuration.
 -  [themefile](pwndbg/themefile.md) - Generates a configuration file for the current Pwndbg theme options.
 -  [version](pwndbg/version.md) - Displays Pwndbg and its important deps versions.
