@@ -5,6 +5,7 @@ import ast
 import functools
 import logging
 import math
+import re
 import sys
 from collections import defaultdict
 from collections.abc import Callable
@@ -1565,9 +1566,11 @@ def context_backtrace(
         addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
         symbol = c.symbol(pwndbg.aglib.symbol.resolve_addr(int(frame.pc())))
         if symbol:
-            if bool(config_backtrace_format) and "+" in symbol:
-                parts = symbol.split("+")
-                symbol = f"{parts[0]}+{int(parts[1]):#x}"
+            if bool(config_backtrace_format):
+                offset_regex = re.compile(r"^(.+)\+(\d+)$")
+                parts = offset_regex.match(symbol)
+                if parts:
+                    symbol = f"{parts[1]}+{int(parts[2]):#x}"
             addrsz = f"{addrsz} {symbol}"
         result.append(f"{prefix} {c.frame_label(f'{backtrace_frame_label}{i}')} {addrsz}")
 

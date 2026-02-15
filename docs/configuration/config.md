@@ -173,14 +173,14 @@ Automatically pass --save to "search" command.
 
 ----------
 
-## **bt-format**
+## **context-backtrace-hex**
 
 
-Which formating to use for backtrace offset (hex/dec).
+Whether to use hex for offsets in the backtrace.
 
 
 
-**Default:** 'dec'  
+**Default:** off  
 
 ----------
 
