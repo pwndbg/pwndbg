@@ -178,8 +178,8 @@ config_max_threads_display = pwndbg.config.add_param(
 )
 config_backtrace_format = pwndbg.config.add_param(
     "bt-format",
-    "dec",
-    "which formating to use for backtrace offset (hex/dec)",
+    False,
+    "whether to use hex for offsets in the backtrace",
 )
 
 # Storing output configuration per section
