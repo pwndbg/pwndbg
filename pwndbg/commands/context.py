@@ -1565,7 +1565,7 @@ def context_backtrace(
         addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
         symbol = c.symbol(pwndbg.aglib.symbol.resolve_addr(int(frame.pc())))
         if symbol:
-            if config_backtrace_format == "hex" and "+" in symbol:
+            if bool(config_backtrace_format) and "+" in symbol:
                 parts = symbol.split("+")
                 symbol = f"{parts[0]}+{int(parts[1]):#x}"
             addrsz = f"{addrsz} {symbol}"
