@@ -646,5 +646,3 @@ async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bo
         _test_heuristic_fail_gracefully("global_max_fast")
         _test_heuristic_fail_gracefully("thread_cache")
         _test_heuristic_fail_gracefully("thread_arena")
-
-
