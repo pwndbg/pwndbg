@@ -1567,7 +1567,7 @@ def context_backtrace(
         if symbol:
             if config_backtrace_format == "hex" and "+" in symbol:
                 parts = symbol.split("+")
-                symbol = f"{parts[0]}+{hex(int(parts[1]))}"
+                symbol = f"{parts[0]}+{int(parts[1]):#x}"
             addrsz = f"{addrsz} {symbol}"
         result.append(f"{prefix} {c.frame_label(f'{backtrace_frame_label}{i}')} {addrsz}")
 
