@@ -1227,7 +1227,7 @@ metadata contents.
     print(txt)
 
 
-parser = argparse.ArgumentParser(description="Utility for inspecting the mallocng allocator.")
+parser = argparse.ArgumentParser(description="Utility for inspecting the mallocng (musl) allocator.")
 subparsers = parser.add_subparsers(dest="command")
 subparsers.required = True
 
