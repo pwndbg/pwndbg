@@ -177,7 +177,7 @@ config_max_threads_display = pwndbg.config.add_param(
     "maximum number of threads displayed by the context command",
 )
 config_backtrace_format = pwndbg.config.add_param(
-    "bt-format",
+    "context-backtrace-hex",
     False,
     "whether to use hex for offsets in the backtrace",
 )
