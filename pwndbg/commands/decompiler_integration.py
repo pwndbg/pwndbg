@@ -880,7 +880,7 @@ def decompiler_integration(
     list_all: bool = False,
     binary_addr: int = -1,
     binary_path: str = "",
-):
+) -> None:
     match command:
         case "connect" | "c":
             connect(also_sync=True)
