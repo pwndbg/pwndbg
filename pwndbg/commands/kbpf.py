@@ -18,6 +18,7 @@ import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
+from pwndbg.dbg_mod import BreakpointLocation
 from pwndbg.lib.exception import IndentContextManager
 
 parser = argparse.ArgumentParser(
@@ -209,9 +210,7 @@ def print_bpf_progs(verbose: int, nth: int | None) -> None:
                             indent.print(f"{indent.addr_hex(address)}\t{mnemonic}\t{opstr}")
                 if nth is not None:
                     if pwndbg.aglib.memory.is_kernel(func):
-                        indent.print(
-                            message.info(pwndbg.dbg.selected_inferior().runcmd(f"break *{func}"))
-                        )
+                        pwndbg.dbg.selected_inferior().break_at(BreakpointLocation(func))
                     else:
                         indent.print(
                             message.warn("Breaking at JITed function failed, is JIT enabled?")
@@ -236,9 +235,9 @@ def print_bpf_maps(verbose: int) -> None:
                 key_size = int(bpf_array["map"]["key_size"])
                 value_size = int(bpf_array["map"]["value_size"])
                 max_entries = int(bpf_array["map"]["max_entries"])
-                _bpf_array = int(bpf_array)
-                off = bpf_map_array_offset(_bpf_array, t, max_entries, value_size)
-                content = indent.aux_hex(_bpf_array + off) if off else "unknown"
+                bpf_array = int(bpf_array)
+                off = bpf_map_array_offset(bpf_array, t, max_entries, value_size)
+                content = indent.aux_hex(bpf_array + off) if off else "unknown"
                 desc = f"array @ {content} (key_size: {indent.aux_hex(key_size)}, value_size: {indent.aux_hex(value_size)}, max_entries: {indent.aux_hex(max_entries)})"
                 indent.print(desc)
                 # TODO: what about types other than array
@@ -255,7 +254,7 @@ def print_bpf_maps(verbose: int) -> None:
                             idxfmt = f"[0x{i:02x}]"
                             sz = min(value_size, MAX_PRINTED_VALUE_SIZE)
                             value = ""
-                            for b in pwndbg.aglib.memory.read(_bpf_array + off + i * entrysz, sz):
+                            for b in pwndbg.aglib.memory.read(bpf_array + off + i * entrysz, sz):
                                 value += f"{b:02x} "
                             if sz < value_size:
                                 value += "... (" + message.warn("truncated") + ")"
