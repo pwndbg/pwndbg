@@ -15,8 +15,6 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.radare2
-import pwndbg.rizin
 
 parser = argparse.ArgumentParser(description="Displays the loaded Linux kernel modules.")
 parser.add_argument(
@@ -88,10 +86,11 @@ def kmod(module_name=None, path=None) -> None:
         if len(table) == 1:
             addr = table[0][0]
             pwndbg.dbg.selected_inferior().add_symbol_file(path, addr)
-            if pwndbg.config.decompiler == "radare2":
-                pwndbg.radare2.r2cmd(["o", path, addr])
-            elif pwndbg.config.decompiler == "rizin":
-                pwndbg.rizin.rzcmd(["o", path, addr])
+            # FIXME: Reintroduce rizin/radare2 support here.
+            # if pwndbg.config.decompiler == "radare2":
+            #     pwndbg.radare2.r2cmd(["o", path, addr])
+            # elif pwndbg.config.decompiler == "rizin":
+            #     pwndbg.rizin.rzcmd(["o", path, addr])
         elif len(table) > 1:
             print(message.warn("Multiple modules detected with the given filter"))
         else:

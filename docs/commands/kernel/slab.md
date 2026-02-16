@@ -61,8 +61,8 @@ Dump information about a cache.
 |-v|--verbose||
 |-c|--cpu|CPU to display|
 |-n|--node||
-|-p|--partial-only|only displays partial lists|
-|-a|--active-only|only displays the active list|
+|-p|--partial|displays partial lists|
+|-a|--active|displays the active list|
 
 ### **slab contains**
 

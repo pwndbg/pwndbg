@@ -2,12 +2,8 @@
 
 ## Installing Pwndbg from source
 
-Run the following:
-```{.bash .copy}
-git clone https://github.com/pwndbg/pwndbg
-cd pwndbg
-./setup.sh
-```
+To run pwndbg from source, please see [these instructions](../setup.md#installation-from-source)
+
 Officially supported is Ubuntu 22.04 and later, but the setup script also supports the following distributions:
 
 * Debian-based OSes (via apt-get)

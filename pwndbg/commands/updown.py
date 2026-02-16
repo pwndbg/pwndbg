@@ -12,7 +12,7 @@ import gdb
 import pwndbg
 import pwndbg.commands
 import pwndbg.commands.context
-import pwndbg.commands.integration
+import pwndbg.commands.decompiler_integration
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Select and print stack frame that called this one.")
@@ -40,8 +40,8 @@ def up(n=1) -> None:
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
     print("\n".join(bt))
 
-    if pwndbg.commands.integration.should_autojump:
-        pwndbg.commands.integration.auto_jump()
+    if pwndbg.commands.decompiler_integration.should_autojump:
+        pwndbg.commands.decompiler_integration.auto_jump()
 
 
 parser = argparse.ArgumentParser(description="Select and print stack frame called by this one.")
@@ -73,5 +73,5 @@ def down(n=1) -> None:
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
     print("\n".join(bt))
 
-    if pwndbg.commands.integration.should_autojump:
-        pwndbg.commands.integration.auto_jump()
+    if pwndbg.commands.decompiler_integration.should_autojump:
+        pwndbg.commands.decompiler_integration.auto_jump()

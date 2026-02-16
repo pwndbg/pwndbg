@@ -30,20 +30,18 @@ class _GDBController(host.Controller):
         """
         self._gdb_execute("context")
 
-    async def launch(
-        self, binary_path: Path, args: list[str] = [], env: dict[str, str] = {}
-    ) -> None:
+    async def launch(self, binary: Path, args: list[str] = [], env: dict[str, str] = {}) -> None:
         """
         Launch the given binary.
 
         GDB hides the asynchronous heavy lifting from us, so this call is
         synchronous.
         """
-        if not os.path.exists(binary_path):
-            pytest.skip(f"{os.path.basename(binary_path)} does not exist. Platform not supported.")
+        if not os.path.exists(binary):
+            pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
 
         os.environ["PWNDBG_IN_TEST"] = "1"
-        self._gdb_execute(f"file {binary_path}")
+        self._gdb_execute(f"file {binary}")
         self._gdb_execute("set exception-verbose on")
         self._gdb_execute("set width 80")
         self._gdb_execute("set context-reserve-lines never")

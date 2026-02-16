@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Awaitable
 from collections.abc import Callable
 from collections.abc import Coroutine
 from enum import Enum
@@ -153,16 +152,14 @@ class TestHost:
 
 
 class Controller:
-    def launch(
-        self, binary: Path, args: list[str] = [], env: dict[str, str] = {}
-    ) -> Awaitable[None]:
+    async def launch(self, binary: Path, args: list[str] = [], env: dict[str, str] = {}) -> None:
         """
         Launch the binary with the given path, relative to the binaries folder
         for the calling test.
         """
         raise NotImplementedError()
 
-    def execute_and_capture(self, command: str) -> Awaitable[str]:
+    async def execute_and_capture(self, command: str) -> str:
         """
         Execute the given command and capture its output.
 
@@ -172,7 +169,7 @@ class Controller:
         """
         raise NotImplementedError()
 
-    def execute(self, command: str) -> Awaitable[None]:
+    async def execute(self, command: str) -> None:
         """
         Execute the given command.
 
@@ -182,31 +179,31 @@ class Controller:
         """
         raise NotImplementedError()
 
-    def cont(self) -> Awaitable[None]:
+    async def cont(self) -> None:
         """
         Resume execution until the next stop event.
         """
         raise NotImplementedError()
 
-    def step_instruction(self) -> Awaitable[None]:
+    async def step_instruction(self) -> None:
         """
         Perform a step in the scope of a single instruction.
         """
         raise NotImplementedError()
 
-    def finish(self) -> Awaitable[None]:
+    async def finish(self) -> None:
         """
         Resume execution; stop after the current function returns.
         """
         raise NotImplementedError()
 
-    def select_thread(self, tid: int) -> Awaitable[None]:
+    async def select_thread(self, tid: int) -> None:
         """
         Select the thread with the given ID.
         """
         raise NotImplementedError()
 
-    def disable_debuginfod(self) -> Awaitable[None]:
+    async def disable_debuginfod(self) -> None:
         """
         Tells the debugger not to use debuginfod (for retrieving
         debugging information / symbols).
