@@ -207,8 +207,6 @@ def get_struct_bpf_map() -> str:
 
 def get_bpf_struct_offsets(prog_idr: int, map_idr: int) -> int | None:
     xarray_pad_sz = None
-    map_idr = int(map_idr)
-    prog_idr = int(prog_idr)
     ptrsize = pwndbg.aglib.arch.ptrsize
     max_idr_sz = abs(map_idr - prog_idr)
     xa_node = None
