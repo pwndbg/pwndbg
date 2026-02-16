@@ -5,7 +5,7 @@ hide:
 
 # Setup
 
-There are multiple ways to install Pwndbg, depending on whether you want to use it [with GDB](#installing-pwndbg-gdb), [with LLDB](#installing-pwndbg-lldb), use a [portable release](#download-the-portable-version), or install it [from source](#installing-from-source).
+There are multiple ways to install Pwndbg, depending on whether you want to use it [with GDB](#installing-pwndbg-gdb), [with LLDB](#installing-pwndbg-lldb), or install it [from source](#installing-from-source).
 
 ## Installing pwndbg-gdb
 
@@ -160,9 +160,40 @@ xattr -rd com.apple.quarantine pwndbg
 Assuming that the files were extracted to a folder called `pwndbg`.
 
 ## Installing from source
-See [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section. The TLDR is to run the following (but see the aforementioned link for more details):
+
+### GDB plugin
+To install `pwndbg` as a GDB plugin, so that pwndbg is loaded whenever `gdb` is invoked, you can run the following setup script. This allows you to use pwndbg with the version of GDB provided by your distribution:
+
 ```{.bash .copy}
 git clone https://github.com/pwndbg/pwndbg
 cd pwndbg
 ./setup.sh
 ```
+
+This will edit your `~/.gdbinit` file to load pwndbg alongside GDB.
+
+To view supported GDB versions and compiling GDB from source, see [these instructions](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source).
+
+
+### `pwndbg`/`pwndbg-lldb` commands from source
+To install the `pwndbg` or `pwndbg-lldb` commands while still running from source, you can do the following. Note that a c++ compiler is required as some dependencies need to be compiled
+```{.bash .copy}
+git clone https://github.com/pwndbg/pwndbg
+cd pwndbg
+
+# Install with uv
+uv tool install --editable .[lldb,gdb] --force
+
+# Or, install with pipx
+pipx install --editable .[lldb,gdb] --force
+```
+
+Note that these version of commands use a [fork of GDB/LLDB that we maintain](https://github.com/pwndbg/pypi-for-pwndbg) that fixes some bugs and provide a predictable experience.
+
+### Updating while installed from source
+To upgrade, run `git pull` in the cloned repository to get the latest changes.
+
+## Setup for development
+
+For getting setup for development, see [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source).
+

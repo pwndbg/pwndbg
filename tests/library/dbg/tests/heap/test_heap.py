@@ -616,7 +616,7 @@ async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
 async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bool) -> None:
     import pwndbg.aglib.heap
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
-    from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
+    from pwndbg.lib import SymbolNotRecoveredError
 
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
@@ -633,9 +633,9 @@ async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bo
     def _test_heuristic_fail_gracefully(name):
         try:
             getattr(pwndbg.aglib.heap.current, name)
-        except SymbolUnresolvableError as e:
+        except SymbolNotRecoveredError as e:
             # That's the only exception we expect
-            assert e.symbol  # we should show what symbol we failed to resolve
+            assert e.name  # we should show what symbol we failed to resolve
 
     # Mock all address and mess up the memory
     with mock_for_heuristic(mock_all=True):

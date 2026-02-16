@@ -4,6 +4,7 @@ import bisect
 
 import pwndbg
 import pwndbg.aglib.memory
+import pwndbg.aglib.qemu
 import pwndbg.aglib.stack
 import pwndbg.color.message as message
 import pwndbg.lib.cache
@@ -96,6 +97,9 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
                         f"You can explicitly explore it with `vmmap-explore {page_start:#x}` or disable automatic exploration with `set auto-explore-pages no`."
                     )
                 )
+                if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.memory.is_kernel(page_start):
+                    print(message.error("Likely a pagescan bug, please report."))
+
         return None
     if auto_explore.value == "no":
         return None

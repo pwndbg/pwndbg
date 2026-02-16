@@ -29,11 +29,12 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
+import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.path
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import selection
-from pwndbg.lib import TypeNotFound
+from pwndbg.lib import TypeNotFoundError
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.regs import reg_sets
@@ -317,6 +318,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         return None
 
     @override
+    @pwndbg.lib.cache.cache_until("forever")
     def stack_variables(self) -> tuple[tuple[int, int, str], ...]:
         return _get_frame_stack_variables(self.inner)
 
@@ -1582,8 +1584,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         try:
             tls_base_typed = pwndbg.aglib.memory.get_typed_pointer("typedef tcbhead_t", tls_base)
-        except TypeNotFound:
-            # We get a TypeNotFound here if glibc does not have debug info.
+        except TypeNotFoundError:
+            # We get a TypeNotFoundError here if glibc does not have debug info.
             return None
 
         for module_id in range(self.target.GetNumModules() + 1):
@@ -1633,6 +1635,21 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         sym, cast_type, resolved_addr = symbol_for_preference
         return self.create_value(resolved_addr, cast_type)
+
+    @override
+    def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
+        addr = self.target.ResolveLoadAddress(address)
+
+        if not addr.IsValid():
+            return None
+
+        func = addr.GetFunction()
+        if func.IsValid():
+            start: int = func.GetStartAddress().GetLoadAddress(self.target)
+            end: int = func.GetEndAddress().GetLoadAddress(self.target)
+            return start, end
+
+        return None
 
     def _iter_symbols(
         self, name: str, type: pwndbg.dbg_mod.SymbolLookupType, objfile: lldb.SBModule | None = None
