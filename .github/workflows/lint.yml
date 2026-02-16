@@ -1,14 +1,34 @@
 name: Lint
 on:
   pull_request:
-    paths:
-      - "**"
-      - "!mkdocs.yml"
-      - "!docs/**"
-      - "!*.md"
+
+concurrency:
+  # PRs: cancel in-progress runs (only test latest)
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Use dorny/paths-filter instead of on.paths so that skipped jobs report
+  # as passed to branch protection, allowing docs-only PRs to merge.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: dorny/paths-filter@668c092af3649c4b664c54e4b704aa46782f6f7c # master (unreleased, for predicate-quantifier)
+        id: filter
+        with:
+          predicate-quantifier: 'every'
+          filters: |
+            code:
+              - '**'
+              - '!mkdocs.yml'
+              - '!docs/**'
+              - '!*.md'
+
   lint:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -53,9 +73,9 @@ jobs:
           level: error
           # Change the current directory to run mypy command.
           # mypy command reads setup.cfg or other settings file in this path.
-          execute_command: uv run --group dev --group lint --group tests --all-extras mypy
+          execute_command: uv run --all-groups --all-extras mypy
           install_types: false
-          target: pwndbg pwndbginit tests/host
+          target: pwndbg pwndbginit tests *.py scripts
           filter_mode: nofilter
           fail_on_error: true
 

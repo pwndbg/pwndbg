@@ -6,8 +6,6 @@ import string
 import subprocess
 import sys
 import tempfile
-from typing import List
-from typing import Tuple
 
 from pt.machine import Machine
 from pt.pt import PageTableDump
@@ -18,17 +16,20 @@ from pt.pt_x86_64_parse import PT_x86_64_Backend
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.paging
+import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
 import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.memory import Page
 
 
 class KernelVmmap:
-    def __init__(self, pages: Tuple[Page, ...]):
+    def __init__(self, pages: tuple[Page, ...]):
         self.pages = pages
-        self.sections: Tuple[Tuple[str, int], ...] = None
+        self.sections: tuple[tuple[str, int], ...] = None
         self.pi = pwndbg.aglib.kernel.arch_paginginfo()
         if self.pi:
             self.sections = self.pi.markers()
@@ -103,7 +104,7 @@ class QemuMachine(Machine):
             os.close(self.file)
 
     @staticmethod
-    def search_pids_for_file(pids: List[str], filename: str) -> str | None:
+    def search_pids_for_file(pids: list[str], filename: str) -> str | None:
         for pid in pids:
             fd_dir = f"/proc/{pid}/fd"
             try:
@@ -174,7 +175,7 @@ class QemuMachine(Machine):
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
+def kernel_vmmap_via_page_tables() -> tuple[Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -230,7 +231,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
     p = PageTableDump(machine_backend, arch_backend)
     pages = p.arch_backend.parse_tables(p.cache, p.parser.parse_args(""))
 
-    retpages: List[Page] = []
+    retpages: list[Page] = []
     for page in pages:
         start = page.va
         size = page.page_size
@@ -279,13 +280,10 @@ def _parser_mem_info_line_x86(line: str) -> Page | None:
     if end - start != size and monitor_info_mem_not_warned:
         print(
             message.warn(
-                (
-                    "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
-                    "that end-start==size failed. The values are:\n"
-                    "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
-                    "Note that this warning will not show up again in this Pwndbg/GDB session."
-                )
-                % (end, start, size, end - start)
+                "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
+                "that end-start==size failed. The values are:\n"
+                f"end={end:#x}; start={start:#x}; size={size:#x}; end-start={end - start:#x}\n"
+                "Note that this warning will not show up again in this Pwndbg/GDB session."
             )
         )
         monitor_info_mem_not_warned = False
@@ -326,7 +324,7 @@ def _parser_mem_info_line_riscv64(line: str) -> Page | None:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_monitor_info_mem() -> Tuple[Page, ...]:
+def kernel_vmmap_via_monitor_info_mem() -> tuple[Page, ...]:
     """
     Returns Linux memory maps information by parsing `monitor info mem` output
     from QEMU kernel GDB stub.
@@ -366,7 +364,7 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[Page, ...]:
         )
         return ()
 
-    pages: List[Page] = []
+    pages: list[Page] = []
     for line in monitor_info_mem.splitlines():
         try:
             page = parser_func(line)
@@ -398,8 +396,8 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_pages() -> Tuple[Page, ...]:
-    mode = kernel_vmmap_mode
+def kernel_vmmap_pages() -> tuple[Page, ...]:
+    mode = str(kernel_vmmap_mode)
     arch_name = pwndbg.aglib.arch.name
     if mode == "page-tables" and arch_name not in ("x86-64", "aarch64"):
         # TODO: remove this by implementing `RiscvPagingInfo`, `RiscvOps`, etc
@@ -414,9 +412,9 @@ def kernel_vmmap_pages() -> Tuple[Page, ...]:
             # has the user set the pgd with kcurrent?
             # None if not which gets properly handled
             entry = pwndbg.commands.kcurrent.KCURRENT_PGD
-            if entry and pwndbg.aglib.memory.is_kernel(entry):
-                entry = pwndbg.aglib.kernel.virt_to_phys(entry)
-            return pwndbg.aglib.kernel.pagetable_scan(entry)
+            if pwndbg.aglib.memory.is_kernel(entry):
+                entry = pwndbg.aglib.kernel.pagewalk(entry, virt=False).phys
+            return pwndbg.aglib.kernel.pagescan(entry)
         case "pt-dump":
             return kernel_vmmap_via_page_tables()
         case "monitor":
@@ -424,7 +422,7 @@ def kernel_vmmap_pages() -> Tuple[Page, ...]:
     return ()
 
 
-def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap() -> tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -445,7 +443,7 @@ def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
         for page in pages:
             if page.objfile == kv.pi.ESPSTACK:
                 continue
-            entry = pwndbg.aglib.kernel.pagewalk(page.start)[0].entry
+            entry = pwndbg.aglib.kernel.pagewalk(page.start).entry
             if entry and entry >> 63 == 0:
                 page.flags |= 1
 

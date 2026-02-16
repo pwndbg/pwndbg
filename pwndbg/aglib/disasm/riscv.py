@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from capstone import *  # noqa: F403
-from capstone.riscv import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.riscv import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
 import pwndbg.color.memory as mem_color
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -180,7 +180,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             instruction.annotation = register_assign(
                 result_operand.str,
                 mem_color.get_address_and_symbol(
-                    address, pwndbg.integration.manager.get_stack_var_dict_all()
+                    address, pwndbg.dintegration.manager.get_stack_var_dict_all()
                 ),
             )
 
@@ -194,7 +194,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             instruction.annotation = register_assign(
                 result_operand.str,
                 mem_color.get_address_and_symbol(
-                    address, pwndbg.integration.manager.get_stack_var_dict_all()
+                    address, pwndbg.dintegration.manager.get_stack_var_dict_all()
                 ),
             )
 
@@ -212,8 +212,8 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if src1_unsigned is None or src2_unsigned is None:
             return InstructionCondition.UNDETERMINED
 
-        src1_signed = bit_math.to_signed(src1_unsigned, pwndbg.aglib.arch.ptrsize * 8)
-        src2_signed = bit_math.to_signed(src2_unsigned, pwndbg.aglib.arch.ptrsize * 8)
+        src1_signed = bit_math.to_signed(src1_unsigned, pwndbg.aglib.arch.ptrbits)
+        src2_signed = bit_math.to_signed(src2_unsigned, pwndbg.aglib.arch.ptrbits)
 
         condition = {
             RISCV_INS_BEQ: src1_signed == src2_signed,

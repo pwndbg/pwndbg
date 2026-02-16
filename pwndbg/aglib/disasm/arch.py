@@ -1,12 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Tuple
 
-from capstone import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
 from pwnlib.constants import linux
 
 import pwndbg.aglib
@@ -19,7 +16,7 @@ import pwndbg.color.context as ctx_color
 import pwndbg.color.memory as mem_color
 import pwndbg.color.message as message
 import pwndbg.color.syntax_highlight as H
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.config
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
@@ -155,7 +152,7 @@ class DisassemblyAssistant:
             pwndbg.aglib.regs.current, pwndbg.aglib.arch.ptrsize
         )
 
-        self.op_handlers: Dict[
+        self.op_handlers: dict[
             int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator], int | None]
         ] = {
             CS_OP_IMM: self._parse_immediate,  # Return immediate value
@@ -166,7 +163,7 @@ class DisassemblyAssistant:
 
         # Return a string corresponding to operand. Used to reduce code duplication while printing
         # REG type wil return register name, "RAX"
-        self.op_names: Dict[int, Callable[[PwndbgInstruction, EnhancedOperand], str | None]] = {
+        self.op_names: dict[int, Callable[[PwndbgInstruction, EnhancedOperand], str | None]] = {
             CS_OP_IMM: self._immediate_string,
             CS_OP_REG: self._register_string,
             CS_OP_MEM: self._memory_string,
@@ -339,7 +336,7 @@ class DisassemblyAssistant:
         if pwndbg.config.syntax_highlight:
             instruction.asm_string = syntax_highlight(instruction.asm_string)
 
-        stack_vars = pwndbg.integration.manager.get_stack_var_dict_all()
+        stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
 
         # Populate the "operands" list of the instruction
         # Set before_value, symbol, and str
@@ -448,7 +445,7 @@ class DisassemblyAssistant:
             if DEBUG_ENHANCEMENT:
                 print(f"Register in emulation returned {regname}={hex(value)}")
             return value
-        elif self.can_reason_about_process_state(instruction):
+        if self.can_reason_about_process_state(instruction):
             # When instruction address == pc, we can reason about all registers.
             # The values will just reflect values prior to executing the instruction, instead of after,
             # which is relevent if we are writing to this register.
@@ -456,11 +453,10 @@ class DisassemblyAssistant:
             if DEBUG_ENHANCEMENT:
                 print(f"Read value from process register: {pwndbg.aglib.regs.read_reg(regname)}")
             return pwndbg.aglib.regs.read_reg(regname)
-        elif (reg_value := self.manual_register_values.read_register(regname)) is not None:
+        if (reg_value := self.manual_register_values.read_register(regname)) is not None:
             # If we manually tracked the value of this register while disassembling, we can read from it.
             return reg_value
-        else:
-            return None
+        return None
 
     # Read memory of given size, taking into account emulation and being able to reason about the memory location
     def _read_memory(
@@ -496,7 +492,7 @@ class DisassemblyAssistant:
 
         if operand.type == CS_OP_REG or operand.type == CS_OP_IMM:
             return value
-        elif operand.type == CS_OP_MEM:
+        if operand.type == CS_OP_MEM:
             # Assume that we are reading ptrsize - subclasses should override this function
             # to provide a more specific value if needed
             self._read_memory(value, pwndbg.aglib.arch.ptrsize, instruction, emu)
@@ -510,7 +506,7 @@ class DisassemblyAssistant:
         instruction: PwndbgInstruction,
         emu: Emulator,
         read_size: int = None,
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Dereference an address recursively - takes into account emulation.
 
@@ -523,7 +519,7 @@ class DisassemblyAssistant:
 
         if emu:
             return emu.telescope(address, limit, read_size=read_size)
-        elif can_read_process_state:
+        if can_read_process_state:
             # Can reason about memory in this case.
 
             if read_size is not None and read_size < pwndbg.aglib.arch.ptrsize:
@@ -540,44 +536,40 @@ class DisassemblyAssistant:
 
                 return result
 
-            else:
-                return pwndbg.chain.get(address, limit=limit)
+            return pwndbg.chain.get(address, limit=limit)
+        # If the target address is in a non-writeable map, we can pretty safely telescope
+        # This is best-effort to give a better experience
+
+        address_list = [address]
+
+        if read_size is not None and read_size < pwndbg.aglib.arch.ptrsize:
+            size_type = pwndbg.aglib.typeinfo.get_type(read_size)
         else:
-            # If the target address is in a non-writeable map, we can pretty safely telescope
-            # This is best-effort to give a better experience
+            size_type = pwndbg.aglib.typeinfo.ppvoid
 
-            address_list = [address]
+        for _ in range(limit):
+            if address_list.count(address) >= 2:
+                break
 
-            if read_size is not None and read_size < pwndbg.aglib.arch.ptrsize:
-                size_type = pwndbg.aglib.typeinfo.get_type(read_size)
+            page = pwndbg.aglib.vmmap.find(address)
+            if page and not page.write:
+                try:
+                    address = int(pwndbg.aglib.memory.get_typed_pointer_value(size_type, address))
+                    address &= pwndbg.aglib.arch.ptrmask
+                    address_list.append(address)
+                except pwndbg.dbg_mod.Error:
+                    break
             else:
-                size_type = pwndbg.aglib.typeinfo.ppvoid
+                break
 
-            for _ in range(limit):
-                if address_list.count(address) >= 2:
-                    break
-
-                page = pwndbg.aglib.vmmap.find(address)
-                if page and not page.write:
-                    try:
-                        address = int(
-                            pwndbg.aglib.memory.get_typed_pointer_value(size_type, address)
-                        )
-                        address &= pwndbg.aglib.arch.ptrmask
-                        address_list.append(address)
-                    except pwndbg.dbg_mod.Error:
-                        break
-                else:
-                    break
-
-            return address_list
+        return address_list
 
         # We cannot telescope, but we can still return the address.
         # Just without any further information
         return [address]
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
-    def _telescope_format_list(self, addresses: List[int], limit: int, emu: Emulator) -> str:
+    def _telescope_format_list(self, addresses: list[int], limit: int, emu: Emulator) -> str:
         # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
         #  will return values accurate to the program state at the time of instruction executing.
 
@@ -587,14 +579,13 @@ class DisassemblyAssistant:
             return emu.format_telescope_list(
                 addresses, limit, enhance_string_len=enhance_string_len
             )
-        else:
-            # We can format, but in some cases we may not be able to reason about memory, so don't allow
-            # it to dereference to last value in memory (we can't determine what value it is)
-            return pwndbg.chain.format(
-                addresses,
-                limit=limit,
-                enhance_string_len=enhance_string_len,
-            )
+        # We can format, but in some cases we may not be able to reason about memory, so don't allow
+        # it to dereference to last value in memory (we can't determine what value it is)
+        return pwndbg.chain.format(
+            addresses,
+            limit=limit,
+            enhance_string_len=enhance_string_len,
+        )
 
     @staticmethod
     def _syscall_name(number: int, arch: str) -> str | None:
@@ -642,10 +633,10 @@ class DisassemblyAssistant:
         if instruction.syscall is not None:
             instruction.syscall_name = (
                 DisassemblyAssistant._syscall_name(instruction.syscall, syscall_arch)
-                or "<unk_%d>" % instruction.syscall
+                or f"<unk_{instruction.syscall}>"
             )
 
-    def _get_syscall_arch_info(self, instruction) -> Tuple[str, str]:
+    def _get_syscall_arch_info(self, instruction) -> tuple[str, str]:
         """
         Return tuple of (name of syscall architecture, syscall register name)
 
@@ -740,7 +731,7 @@ class DisassemblyAssistant:
         if instruction.has_jump_target and instruction.target >= 0:
             # Only bother doing the symbol lookup if this is a jump
             instruction.target_string = mem_color.get_address_or_symbol(
-                instruction.target, pwndbg.integration.manager.get_stack_var_dict_all()
+                instruction.target, pwndbg.dintegration.manager.get_stack_var_dict_all()
             )
 
         # Now that we have determined the target, if it was a conditional branch,
@@ -843,17 +834,15 @@ class DisassemblyAssistant:
             and operand.before_value == operand.after_value
         ):
             return name
-        else:
-            return ctx_color.register_changed(name)
+        return ctx_color.register_changed(name)
 
     def _memory_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
         """
         Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
         """
         if operand.before_value is not None:
-            return f"[{mem_color.get_address_or_symbol(operand.before_value, pwndbg.integration.manager.get_stack_var_dict_all())}]"
-        else:
-            return None
+            return f"[{mem_color.get_address_or_symbol(operand.before_value, pwndbg.dintegration.manager.get_stack_var_dict_all())}]"
+        return None
 
     def _common_generic_register_destination(
         self, instruction: PwndbgInstruction, emu: Emulator
@@ -1104,7 +1093,7 @@ class DisassemblyAssistant:
                 target_operand.str,
                 mem_color.get_address_and_symbol(
                     target_operand.after_value_resolved,
-                    pwndbg.integration.manager.get_stack_var_dict_all(),
+                    pwndbg.dintegration.manager.get_stack_var_dict_all(),
                 ),
                 memory_assignment,
             )
@@ -1124,7 +1113,7 @@ def basic_enhance(ins: PwndbgInstruction) -> None:
         ins.asm_string = syntax_highlight(ins.asm_string)
 
     if pwndbg.config.disasm_inline_symbols:
-        stack_vars = pwndbg.integration.manager.get_stack_var_dict_all()
+        stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
         # Make inline replacements, so `jmp 0x400122` becomes `jmp function_name`
         for op in ins.operands:
             if op.type is CS_OP_IMM:

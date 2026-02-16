@@ -115,7 +115,7 @@
 -  [errno](linux_libc_elf/errno.md) - Converts errno (or argument) to its string representation.
 -  [got](linux_libc_elf/got.md) - Show the state of the Global Offset Table.
 -  [gotplt](linux_libc_elf/gotplt.md) - Prints any symbols found in the .got.plt section if it exists.
--  [libcinfo](linux_libc_elf/libcinfo.md) - Show libc version and link to its sources
+-  [libcinfo](linux_libc_elf/libcinfo.md) - Show various information about the currently used libc
 -  [linkmap](linux_libc_elf/linkmap.md) - Show the state of the Link Map
 -  [onegadget](linux_libc_elf/onegadget.md) - Find gadgets which single-handedly give code execution.
 -  [parse-seccomp](linux_libc_elf/parse-seccomp.md) - Parse a struct sock_fprog from memory and dump its filter
@@ -156,7 +156,7 @@
 -  [checksec](misc/checksec.md) - Prints out the binary security settings using `checksec`.
 -  [comm](misc/comm.md) - Put comments in assembly code.
 -  [cyclic](misc/cyclic.md) - Cyclic pattern creator/finder.
--  [cymbol](misc/cymbol.md) - Manage custom C structures in pwndbg. Supports project-specific auto-loading from .gdbinit.
+-  [cymbol](misc/cymbol.md) - Add custom C structures to the debugger.
 -  [down](misc/down.md) - Select and print stack frame called by this one.
 -  [dp](misc/dp.md) - Debugger-evaluated dprintf-style breakpoint: dp <location> <fmt> [args ...].
 -  [dt](misc/dt.md) - Dump out information on a type (e.g. ucontext_t).

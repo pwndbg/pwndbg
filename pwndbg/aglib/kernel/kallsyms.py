@@ -3,8 +3,6 @@ from __future__ import annotations
 from re import match
 from re import search
 from struct import unpack_from
-from typing import List
-from typing import Tuple
 
 from pwnlib.util.packing import p16
 from pwnlib.util.packing import u32
@@ -19,7 +17,7 @@ import pwndbg.lib.cache
 
 
 @pwndbg.lib.cache.cache_until("start")
-def get() -> Tuple[Tuple[str, str, int], ...]:
+def get() -> tuple[tuple[str, str, int], ...]:
     ks = Kallsyms()
     return tuple(ks.kallsyms)
 
@@ -40,7 +38,7 @@ class Kallsyms:
     """
 
     def __init__(self):
-        self.kallsyms: List[Tuple[str, str, int]] = []
+        self.kallsyms: list[tuple[str, str, int]] = []
         self.kbase = pwndbg.aglib.kernel.kbase()
         if self.kbase is None:
             print(message.warn("could not find kbase, kernel has not finished initialization?"))

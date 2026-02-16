@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import os
 import tempfile
-from typing import Dict
-from typing import Tuple
+from pathlib import Path
 
 import pytest
 
@@ -16,14 +15,14 @@ HEAP_CODE = get_binary("heap_bugs.x86-64.c")
 _, OUTPUT_FILE = tempfile.mkstemp()
 
 
-def binary_parse_breakpoints(binary_code: str) -> Dict[str, Tuple[int, int]]:
+def binary_parse_breakpoints(binary_code: Path) -> dict[int, tuple[int, int]]:
     """
     Find comments with breakpoints in binary code
     and map them to function's cmd line ids
     """
     # map bug id to function name (f.e: 2 -> invalid_pointer_misaligned())
     with open(binary_code) as f:
-        func_names = {}
+        func_names: dict[int, str] = {}
         for line in f:
             if "case " in line:
                 bug_id = int(line.split(":")[0].split()[-1])
@@ -32,7 +31,7 @@ def binary_parse_breakpoints(binary_code: str) -> Dict[str, Tuple[int, int]]:
 
     # map bug id to breakpoint line numbers
     with open(binary_code) as f:
-        breakpoints = {}
+        breakpoints: dict[int, tuple[int, int]] = {}
         lines = f.readlines()
         line_no = 0
 
@@ -53,6 +52,7 @@ def binary_parse_breakpoints(binary_code: str) -> Dict[str, Tuple[int, int]]:
                         if "break2" in line:
                             b2 = line_no
 
+                    assert b1 is not None and b2 is not None
                     breakpoints[bug_id] = (b1, b2)
 
     return breakpoints
@@ -62,7 +62,7 @@ def binary_parse_breakpoints(binary_code: str) -> Dict[str, Tuple[int, int]]:
 breakpoints = binary_parse_breakpoints(HEAP_CODE)
 
 
-async def setup_heap(ctrl: Controller, bug_no: int) -> Dict[str, int]:
+async def setup_heap(ctrl: Controller, bug_no: int) -> dict[str, int]:
     """
     Start binary
     Pause after (valid) heap is set-up
@@ -170,13 +170,18 @@ async def test_try_free_invalid_fastbin_entry(ctrl: Controller) -> None:
 async def test_try_free_double_free_or_corruption_top(ctrl: Controller) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.heap
+    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     await setup_heap(ctrl, 9)
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
     allocator = pwndbg.aglib.heap.current
 
     ptr_size = pwndbg.aglib.arch.ptrsize
     arena = allocator.thread_arena or allocator.main_arena
-    top_chunk = arena.top + (2 * ptr_size)
+    assert arena is not None
+    top = arena.top
+    assert top is not None
+    top_chunk = top + (2 * ptr_size)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(top_chunk)}")
     assert "double free or corruption (top)" in result

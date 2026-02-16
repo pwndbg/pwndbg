@@ -1,12 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
-from typing import Tuple
 
-from capstone import *  # noqa: F403
-from capstone.x86 import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.x86 import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib
@@ -15,7 +13,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.memory as mem_color
 import pwndbg.color.message as message
-import pwndbg.integration
+import pwndbg.dintegration
 from pwndbg.aglib.disasm.arch import memory_or_register_assign
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
@@ -53,7 +51,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
             X86_INS_MOV: self.handle_mov,
             X86_INS_MOVABS: self.handle_mov,
@@ -177,7 +175,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     left.str,
                     mem_color.get_address_or_symbol(
                         right.before_value_resolved,
-                        pwndbg.integration.manager.get_stack_var_dict_all(),
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
                     ),
                     left.type == CS_OP_MEM,
                 )
@@ -186,7 +184,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     right.str,
                     mem_color.get_address_or_symbol(
                         left.before_value_resolved,
-                        pwndbg.integration.manager.get_stack_var_dict_all(),
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
                     ),
                     right.type == CS_OP_MEM,
                 )
@@ -208,7 +206,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     reg_operand.str,
                     mem_color.get_address_and_symbol(
                         reg_operand.after_value,
-                        pwndbg.integration.manager.get_stack_var_dict_all(),
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
                     ),
                 )
             elif pc_is_at_instruction:
@@ -218,7 +216,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     instruction.annotation = register_assign(
                         reg_operand.str,
                         mem_color.get_address_and_symbol(
-                            value, pwndbg.integration.manager.get_stack_var_dict_all()
+                            value, pwndbg.dintegration.manager.get_stack_var_dict_all()
                         ),
                     )
                 except Exception:
@@ -251,7 +249,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 operand.str,
                 mem_color.get_address_and_symbol(
                     operand.after_value_resolved,
-                    pwndbg.integration.manager.get_stack_var_dict_all(),
+                    pwndbg.dintegration.manager.get_stack_var_dict_all(),
                 ),
                 operand.type == CS_OP_MEM,
             )
@@ -272,8 +270,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         if operand.type == CS_OP_MEM:
             return self._read_memory(value, operand.cs_op.size, instruction, emu)
-        else:
-            return super()._resolve_used_value(value, instruction, operand, emu)
+        return super()._resolve_used_value(value, instruction, operand, emu)
 
     @override
     def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
@@ -283,8 +280,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             # Ex: lea    rax, [rip + 0xd55]
             # We can reason RIP no matter the current pc
             return instruction.address + instruction.size
-        else:
-            return super()._read_register(instruction, operand_id, emu)
+        return super()._read_register(instruction, operand_id, emu)
 
     @override
     def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
@@ -398,7 +394,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         return InstructionCondition.TRUE if bool(conditional) else InstructionCondition.FALSE
 
     @override
-    def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> Tuple[str, str]:
+    def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> tuple[str, str]:
         # Since this class handles both x86 and x86_64, we need to choose the correct
         # syscall arch depending on the instruction being executed.
 

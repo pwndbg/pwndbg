@@ -21,7 +21,8 @@ from .mocks import gdblib  # noqa: F401
 
 
 def test_basic():
-    assert which("ls").endswith("/ls")
+    ls = which("ls")
+    assert isinstance(ls, str) and ls.endswith("/ls")
 
 
 def test_nonexistent():

@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import re
 from typing import Any
-from typing import Dict
 
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
@@ -148,7 +147,7 @@ def got_report(soname=".*", writable=False, fnname=".*") -> None:
     )
     print()
 
-    per_object: Dict[Any, Any] = {}
+    per_object: dict[Any, Any] = {}
     for _, (tracker, patcher) in pwndbg.gdblib.got.all_tracked_entries():
         objname = tracker.link_map_entry.name()
         if objname == b"":

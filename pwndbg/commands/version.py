@@ -12,13 +12,12 @@ import sys
 from subprocess import check_call
 from subprocess import check_output
 from tempfile import NamedTemporaryFile
-from typing import Optional
 from urllib.parse import quote
 
 import pwndbg
 import pwndbg.aglib
 import pwndbg.commands
-import pwndbg.integration
+import pwndbg.dintegration
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import DebuggerType
@@ -49,8 +48,7 @@ def debugger_version():
         import gdb
 
         return f"GDB:      {gdb.VERSION}"
-    else:
-        return f"LLDB:     {'.'.join(map(str, pwndbg.dbg_mod.lldb.LLDB_VERSION))}"
+    return f"LLDB:     {'.'.join(map(str, pwndbg.dbg_mod.lldb.LLDB_VERSION))}"
 
 
 def all_versions():
@@ -64,11 +62,10 @@ def all_versions():
         f"Pwnlib:   {module_version('pwnlib')}",
     )
 
-    integration_ver_text: Optional[str] = pwndbg.integration.manager.version_string()
+    integration_ver_text: str | None = pwndbg.dintegration.manager.version_string()
     if integration_ver_text is not None:
         return most + (integration_ver_text,)
-    else:
-        return most
+    return most
 
 
 def get_target_arch():
@@ -216,8 +213,7 @@ def get_debugger_configuration():
         return "\n" + "\n".join(gdb_config)
 
     # LLDB: TODO/FIXME: Do we need this?
-    else:
-        return ""
+    return ""
 
 
 def get_debugger_session_history():
@@ -269,5 +265,4 @@ def get_debugger_session_history():
         return "\n".join(gdb_current_session_history)
 
     # LLDB: TODO/FIXME: Not yet supported
-    else:
-        return "<session history not supported on lldb yet>"
+    return "<session history not supported on lldb yet>"

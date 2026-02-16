@@ -173,6 +173,17 @@ Automatically pass --save to "search" command.
 
 ----------
 
+## **context-backtrace-hex**
+
+
+Whether to use hex for offsets in the backtrace.
+
+
+
+**Default:** off  
+
+----------
+
 ## **context-backtrace-lines**
 
 
@@ -292,7 +303,7 @@ Which context sections are displayed (controls order).
 
 
 
-**Default:** 'regs disasm code stack backtrace expressions threads heap_tracker'  
+**Default:** 'last_signal regs disasm code ghidra stack backtrace expressions threads heap_tracker'  
 
 ----------
 
@@ -1011,7 +1022,7 @@ Whether to skip repeating lines in vis command output.
 
 
 
-**Default:** on  
+**Default:** off  
 
 ----------
 

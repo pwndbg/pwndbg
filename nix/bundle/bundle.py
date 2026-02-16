@@ -1,10 +1,12 @@
-import stat
-import subprocess
-import shutil
+from __future__ import annotations
+
 import os
 import os.path
-import typing
+import shutil
+import stat
+import subprocess
 import sys
+import typing
 from pathlib import Path
 
 
@@ -34,16 +36,16 @@ def eprint(msg: str):
     print(msg, file=sys.stderr)
 
 
-def run(args: typing.List[str], no_error=False) -> str:
+def run(args: list[str], no_error=False) -> str:
     result = subprocess.run(args, capture_output=True)
     if result.returncode != 0:
         if no_error:
             eprint(result.stderr)
-            eprint("WARNING: Command failed with return code {}: {}".format(result.returncode, args))
+            eprint(f"WARNING: Command failed with return code {result.returncode}: {args}")
             return ''
 
         eprint(result.stderr)
-        eprint("Command failed with return code {}: {}".format(result.returncode, args))
+        eprint(f"Command failed with return code {result.returncode}: {args}")
         sys.exit(result.returncode)
     return result.stdout.decode("utf-8")
 
@@ -79,7 +81,7 @@ def iter_elf_deps(binary_path: Path) -> typing.Iterator[Path]:
     def get_needed(exe: str) -> typing.Iterable[str]:
         return stripped_strs(run(["patchelf", "--print-needed", exe]).splitlines())
 
-    def resolve_paths(needed: typing.Iterable[str], rpaths: typing.List[str]) -> typing.Iterable[str]:
+    def resolve_paths(needed: typing.Iterable[str], rpaths: list[str]) -> typing.Iterable[str]:
         existing_paths = lambda lib, paths: (
             abs_path for path in paths for abs_path in [os.path.join(path, lib)]
             if os.path.exists(abs_path)
@@ -108,7 +110,7 @@ else:
     iter_deps = iter_elf_deps
 
 
-def iter_deps_recursive(binary_path: Path, depth: int=None, visited: typing.Set[Path]=None)  -> typing.Iterator[Path]:
+def iter_deps_recursive(binary_path: Path, depth: int=None, visited: set[Path]=None)  -> typing.Iterator[Path]:
     is_first = depth is None
     if depth is None:
         depth = 0
@@ -130,8 +132,8 @@ def iter_deps_recursive(binary_path: Path, depth: int=None, visited: typing.Set[
         yield from iter_deps_recursive(dep, depth=depth + 1, visited=visited)
 
 
-def iter_dir_recursive(dir_path: Path, depth: int = None, visited: typing.Set[Path] = None) -> typing.Iterator[
-    typing.Tuple[Path, typing.List[Path]]]:
+def iter_dir_recursive(dir_path: Path, depth: int = None, visited: set[Path] = None) -> typing.Iterator[
+    tuple[Path, list[Path]]]:
     if depth is None:
         depth = 0
     if visited is None:

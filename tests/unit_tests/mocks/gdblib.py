@@ -45,4 +45,4 @@ sys.modules[module_name] = module
 
 import pwndbg
 
-pwndbg.gdblib = sys.modules["pwndbg.gdblib"]
+pwndbg.gdblib = sys.modules["pwndbg.gdblib"]  # type: ignore[attr-defined]

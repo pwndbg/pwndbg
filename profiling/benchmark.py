@@ -1,17 +1,20 @@
+from __future__ import annotations
 
-from typing import Callable
-import gdb
 import argparse
+import cProfile
 import pstats
 import time
-import cProfile
+from collections.abc import Callable
+
+import gdb
+
 import pwndbg
-import pwndbg.commands
-import pwndbg.commands.context
-import pwndbg.lib.cache
 import pwndbg.aglib
 import pwndbg.aglib.vmmap
+import pwndbg.commands
+import pwndbg.commands.context
 import pwndbg.commands.telescope
+import pwndbg.lib.cache
 
 COUNT = 100
 
@@ -23,7 +26,7 @@ def run_benchmark(name: str, prefix: str, callback: Callable, count=COUNT) -> fl
     profiler = cProfile.Profile()
 
     profiler.enable()
-    
+
     for _ in range(count):
         callback()
 
@@ -148,7 +151,7 @@ def benchmark_large_telescope(name: str):
     stack_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack))
     start = stack_page.start
     len = stack_page.memsz
-    
+
     def print_all_stack():
         pwndbg.commands.telescope.telescope(start, len // pwndbg.aglib.arch.ptrsize)
 

@@ -6,7 +6,6 @@ and prints details about each task, including its address, PID, user space statu
 from __future__ import annotations
 
 import argparse
-from typing import Tuple
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.symbol
@@ -88,7 +87,7 @@ class Ktask:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def get_ktasks() -> Tuple[Ktask, ...]:
+def get_ktasks() -> tuple[Ktask, ...]:
     tasks = []
     # Look up the init_task symbol, which is the first task in the kernel's task list.
     init_task = pwndbg.aglib.symbol.lookup_symbol("init_task")

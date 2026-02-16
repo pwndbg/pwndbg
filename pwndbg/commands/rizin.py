@@ -7,8 +7,8 @@ import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
+import pwndbg.aglib.rizin
 import pwndbg.commands
-import pwndbg.rizin
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Launches rizin.")
@@ -36,19 +36,20 @@ pwndbg> rz -- -AA
     """,
 )
 @pwndbg.commands.OnlyWithFile
-def rz(arguments, no_seek=False, no_rebase=False) -> None:
+def rz(arguments: list[str], no_seek: bool = False, no_rebase: bool = False) -> None:
     filename = pwndbg.aglib.file.get_proc_exe_file()
 
     # Build up the command line to run
     cmd = ["rizin"]
     flags = ["-e", "io.cache=true"]
-    if pwndbg.aglib.proc.alive():
+    exe = pwndbg.aglib.elf.exe()
+    if pwndbg.aglib.proc.alive() and exe is not None:
         addr = pwndbg.aglib.regs.pc
         if pwndbg.aglib.elf.get_elf_info(filename).is_pie:
             if no_rebase:
-                addr -= pwndbg.aglib.elf.exe().address
+                addr -= exe.address
             else:
-                flags.extend(["-B", hex(pwndbg.aglib.elf.exe().address)])
+                flags.extend(["-B", hex(exe.address)])
         if not no_seek:
             cmd.extend(["-s", hex(addr)])
     cmd.extend(flags)
@@ -100,5 +101,5 @@ pwndbg> rzpipe pdf @ sym.main
     """,
 )
 @pwndbg.commands.OnlyWithFile
-def rzpipe(arguments) -> None:
-    print(pwndbg.rizin.rzcmd(arguments))
+def rzpipe(arguments: list[str]) -> None:
+    print(pwndbg.aglib.rizin.rzcmd(arguments))

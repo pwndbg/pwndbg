@@ -91,7 +91,6 @@ install_apt() {
         curl \
         wget \
         build-essential \
-        gdb \
         gdb-multiarch \
         parallel \
         qemu-system-x86 \
@@ -140,13 +139,10 @@ EOF
     sudo pacman -Syu --noconfirm || true
     sudo pacman -S --needed --noconfirm \
         nasm \
-        gcc \
         glibc-debug \
         lib32-glibc \
-        curl \
-        wget \
         base-devel \
-        gdb \
+        wget \
         parallel \
         musl
 
@@ -158,13 +154,10 @@ EOF
 install_dnf() {
     sudo dnf upgrade || true
     sudo dnf install -y \
-        make \
         nasm \
-        gcc \
         curl \
         wget \
         musl-gcc \
-        g++ \
         parallel \
         qemu-system-x86 \
         qemu-system-arm \

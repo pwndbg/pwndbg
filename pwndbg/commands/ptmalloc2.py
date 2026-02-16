@@ -3,9 +3,6 @@ from __future__ import annotations
 import argparse
 import ctypes
 from string import printable
-from typing import Dict
-from typing import List
-from typing import Set
 
 from tabulate import tabulate
 
@@ -21,7 +18,9 @@ import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.dbg_mod
-import pwndbg.glibc
+import pwndbg.lib.memory
+import pwndbg.libc
+import pwndbg.libc.glibc
 from pwndbg.aglib.heap import heap_chain_limit
 from pwndbg.aglib.heap.ptmalloc import Arena
 from pwndbg.aglib.heap.ptmalloc import Bins
@@ -35,7 +34,7 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
-def read_chunk(addr: int) -> Dict[str, int]:
+def read_chunk(addr: int) -> dict[str, int]:
     """Read a chunk's metadata."""
     # In GLIBC versions <= 2.24 the `mchunk_[prev_]size` field was named `[prev_]size`.
     # To support both versions, change the new names to the old ones here so that
@@ -52,36 +51,39 @@ def read_chunk(addr: int) -> Dict[str, int]:
         )
     else:
         val = pwndbg.aglib.heap.current.malloc_chunk(addr)
-    value_keys: List[str] = val.type.keys()
+    value_keys: list[str] = val.type.keys()
     return {renames.get(key, key): int(val[key]) for key in value_keys}
 
 
-def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> List[str]:
+def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> list[str]:
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+    assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
     allocator = pwndbg.aglib.heap.current
     if offset is None:
         offset = allocator.chunk_key_offset("fd")
 
-    result: List[str] = []
+    result: list[str] = []
     bins_type = bins.bin_type
+
+    version = pwndbg.libc.version()
 
     for size in bins.bins:
         b = bins.bins[size]
         count: int | None = None
-        chain_fd: List[int] = []
-        chain_bk: List[int] | None = []
+        chain_fd: list[int] = []
+        chain_bk: list[int] | None = []
         is_chain_corrupted = False
         safe_lnk = False
 
         # fastbins consists of only single linked list
         if bins_type == BinType.FAST:
             chain_fd = b.fd_chain
-            safe_lnk = pwndbg.glibc.check_safe_linking()
+            safe_lnk = pwndbg.libc.glibc.check_safe_linking(version)
         # tcachebins consists of single linked list and entries count
         elif bins_type == BinType.TCACHE:
             chain_fd = b.fd_chain
             count = b.count
-            safe_lnk = pwndbg.glibc.check_safe_linking()
+            safe_lnk = pwndbg.libc.glibc.check_safe_linking(version)
         # normal bins consists of double linked list and may be corrupted (we can detect corruption)
         else:  # normal bin
             chain_fd = b.fd_chain
@@ -122,7 +124,7 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
             )
         else:
             if count is not None:
-                line = (message.hint(size) + message.hint(" [%3d]" % count) + ": ").ljust(13)
+                line = (message.hint(size) + message.hint(f" [{count:3d}]") + ": ").ljust(13)
             else:
                 line = (message.hint(size) + ": ").ljust(13)
             line += formatted_chain
@@ -470,8 +472,8 @@ def malloc_chunk(
 
     chunk = Chunk(addr)
 
-    headers_to_print: List[str] = []  # both state (free/allocated) and flags
-    fields_to_print: Set[str] = set()  # in addition to addr and size
+    headers_to_print: list[str] = []  # both state (free/allocated) and flags
+    fields_to_print: set[str] = set()  # in addition to addr and size
     out_fields = f"Addr: {mem_color.get(chunk.address)}\n"
 
     if fake:
@@ -943,7 +945,7 @@ pwndbg.config.add_param(
 
 pwndbg.config.add_param(
     "vis-skip-repeating-val",
-    True,
+    False,
     "whether to skip repeating lines in vis command output",
 )
 
@@ -1127,14 +1129,14 @@ def vis_heap_chunks(
         pwndbg.lib.memory.round_up(int(pwndbg.config.max_visualize_chunk_size), ptr_size << 2) >> 1
     )
 
-    bin_labels_map: Dict[int, List[str]] = bin_labels_mapping(bin_collections)
+    bin_labels_map: dict[int, list[str]] = bin_labels_mapping(bin_collections)
 
     # For collapsing repeated lines
-    skip_repeating = False if no_skip else pwndbg.config.vis_skip_repeating_val
-    prev_line_content = None
-    repeat_count = 0
-    line_buffer = ""  # Temporary buffer for building current line (holds first cell)
-    saved_line_addr = ""  # Saved address for the current line
+    skip_repeating: bool = False if no_skip else bool(pwndbg.config.vis_skip_repeating_val)
+    prev_line_content: str | None = None
+    repeat_count: int = 0
+    line_buffer: str = ""  # Temporary buffer for building current line (holds first cell)
+    saved_line_addr: str = ""  # Saved address for the current line
 
     def flush_repeats() -> None:
         """Add collapse message for accumulated repeated lines."""
@@ -1172,7 +1174,7 @@ def vis_heap_chunks(
                 continue
 
             if printed % 2 == 0:
-                saved_line_addr = "0x%x" % cursor
+                saved_line_addr = f"0x{cursor:x}"
 
             data = pwndbg.aglib.memory.read(cursor, ptr_size)
             cell = pwndbg.aglib.arch.unpack(data)
@@ -1277,17 +1279,17 @@ def vis_heap_chunks(
 VALID_CHARS = list(map(ord, set(printable) - set("\t\r\n\x0c\x0b")))
 
 
-def bin_ascii(bs: bytes | bytearray) -> str:
+def bin_ascii(bs: bytes | bytearray | list[int]) -> str:
     return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 
-def bin_labels_mapping(collections: List[Bins | None]) -> Dict[int, List[str]]:
+def bin_labels_mapping(collections: list[Bins | None]) -> dict[int, list[str]]:
     """
     Returns all potential bin labels for all potential addresses
     We precompute all of them because doing this on demand was too slow and inefficient
     See #1675 for more details
     """
-    labels_mapping: Dict[int, List[str]] = {}
+    labels_mapping: dict[int, list[str]] = {}
 
     for bins in collections:
         if not bins:
@@ -1316,6 +1318,7 @@ try_free_parser.add_argument("addr", type=int, help="Address passed to free")
 
 @pwndbg.commands.Command(try_free_parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenHeapIsInitialized
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenUserspace
 def try_free(addr: str | int) -> None:
     addr = int(addr)

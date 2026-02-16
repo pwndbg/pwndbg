@@ -5,25 +5,53 @@ hide:
 
 # Setup
 
-There are multiple ways to install Pwndbg, depending on whether you want to use it [with GDB](#installing-pwndbg-gdb), [with LLDB](#installing-pwndbg-lldb), use a [portable release](#download-the-portable-version), or install it [from source](#installing-from-source).
+There are multiple ways to install Pwndbg, depending on whether you want to use it [with GDB](#installing-pwndbg-gdb), [with LLDB](#installing-pwndbg-lldb), or install it [from source](#installing-from-source).
 
 ## Installing pwndbg-gdb
-Install via curl/sh (Linux/macOS)
-```{.bash .copy}
-curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
-```
-Install via GNU wget/sh (Linux/macOS)
-```{.bash .copy}
-wget --https-only --secure-protocol=TLSv1_2 -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
-```
-Install via BusyBox wget/sh (Linux/macOS)
-```{.bash .copy}
-wget -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
-```
+
+This will provide the `pwndbg` program. You can use it the same way you use `gdb`.
+
+### Portable release
+The install script will automatically fetch and install the portable release from [GitHub releases](https://github.com/pwndbg/pwndbg/releases).
+
+=== "System install"
+    Install the binary for all users of the system. This requires root permissions, and will invoke sudo.
+
+    Install via curl/sh (Linux/macOS). 
+    ```{.bash .copy}
+    curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
+    ```
+    Install via GNU wget/sh (Linux/macOS)
+    ```{.bash .copy}
+    wget --https-only --secure-protocol=TLSv1_2 -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
+    ```
+    Install via BusyBox wget/sh (Linux/macOS)
+    ```{.bash .copy}
+    wget -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
+    ```
+=== "User install"
+    Install the binary for the current user. Root access not required.
+
+    Install via curl/sh (Linux/macOS). 
+    ```{.bash .copy}
+    curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb -u
+    ```
+    Install via GNU wget/sh (Linux/macOS)
+    ```{.bash .copy}
+    wget --https-only --secure-protocol=TLSv1_2 -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb -u
+    ```
+    Install via BusyBox wget/sh (Linux/macOS)
+    ```{.bash .copy}
+    wget -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb -u
+    ```
+
+### Homebrew
 Install via Homebrew (macOS)
 ```{.bash .copy}
 brew install pwndbg/tap/pwndbg-gdb
 ```
+
+### Nix
 Install via the Nix package manager (Linux/macOS)
 ```{.bash .copy}
 nix shell github:pwndbg/pwndbg
@@ -76,21 +104,31 @@ These installation methods provide the
 pwndbg-lldb ./your-binary
 ```
 command.
-
+### Portable release
 Install via curl/sh (Linux/macOS)
-```{.bash .copy}
-curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-lldb
-```
+=== "System install"
+    ```{.bash .copy}
+    curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-lldb
+    ```
+
+=== "User install"
+    ```{.bash .copy}
+    curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-lldb -u
+    ```
+
+### Homebrew
 Install via Homebrew (macOS)
 ```{.bash .copy}
 brew install pwndbg/tap/pwndbg-lldb
 ```
+
+### Nix
 Install via the Nix package manager (Linux/macOS):
 ```{.bash .copy}
 nix shell github:pwndbg/pwndbg#pwndbg-lldb
 ```
 
-## Download the Portable Version
+## Manually install the Portable Version
 You can download a portable release on the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases). There are seperate releases for GDB and LLDB. Use the first table to pick the appropriate download for your system architecture. You can then unpack the archive with:
 ```{.bash .copy}
 tar -v -xf <archive-name>
@@ -122,9 +160,40 @@ xattr -rd com.apple.quarantine pwndbg
 Assuming that the files were extracted to a folder called `pwndbg`.
 
 ## Installing from source
-See [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section. The TLDR is to run the following (but see the aforementioned link for more details):
+
+### GDB plugin
+To install `pwndbg` as a GDB plugin, so that pwndbg is loaded whenever `gdb` is invoked, you can run the following setup script. This allows you to use pwndbg with the version of GDB provided by your distribution:
+
 ```{.bash .copy}
 git clone https://github.com/pwndbg/pwndbg
 cd pwndbg
 ./setup.sh
 ```
+
+This will edit your `~/.gdbinit` file to load pwndbg alongside GDB.
+
+To view supported GDB versions and compiling GDB from source, see [these instructions](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source).
+
+
+### `pwndbg`/`pwndbg-lldb` commands from source
+To install the `pwndbg` or `pwndbg-lldb` commands while still running from source, you can do the following. Note that a c++ compiler is required as some dependencies need to be compiled
+```{.bash .copy}
+git clone https://github.com/pwndbg/pwndbg
+cd pwndbg
+
+# Install with uv
+uv tool install --editable .[lldb,gdb] --force
+
+# Or, install with pipx
+pipx install --editable .[lldb,gdb] --force
+```
+
+Note that these version of commands use a [fork of GDB/LLDB that we maintain](https://github.com/pwndbg/pypi-for-pwndbg) that fixes some bugs and provide a predictable experience.
+
+### Updating while installed from source
+To upgrade, run `git pull` in the cloned repository to get the latest changes.
+
+## Setup for development
+
+For getting setup for development, see [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source).
+

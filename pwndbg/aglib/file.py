@@ -10,8 +10,7 @@ import errno
 import os
 import shutil
 import tempfile
-from typing import Iterator
-from typing import Tuple
+from collections.abc import Iterator
 
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
@@ -50,7 +49,7 @@ def get_proc_exe_file() -> str:
 def can_download_remote_file() -> bool:
     if not pwndbg.aglib.remote.is_remote():
         return False
-    elif pwndbg.aglib.qemu.is_qemu_kernel():
+    if pwndbg.aglib.qemu.is_qemu_kernel():
         return False
 
     # Some[1] gdb servers don't implement vFile packets.
@@ -272,7 +271,7 @@ def gdb_memtox_inverse(data: bytes) -> bytes:
     return buffer
 
 
-def vfile_pread(fd: int, size: int, offset: int) -> Tuple[int, bytes]:
+def vfile_pread(fd: int, size: int, offset: int) -> tuple[int, bytes]:
     """
     Reads data from a file descriptor.
 

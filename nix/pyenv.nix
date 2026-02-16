@@ -22,6 +22,7 @@ let
 
   pkgsNeedSetuptools = [
     "capstone"
+    "capstone6pwndbg"
     "unicorn"
     "parso"
     "paramiko"
@@ -77,7 +78,6 @@ let
     "coverage"
     "mypy-extensions"
     "pytest"
-    "pytest-cov"
     "mypy"
     "vermin"
     # decomp2dbg deps
@@ -186,6 +186,21 @@ let
         stdenv,
       }:
       prev.capstone.overrideAttrs (
+        old:
+        lib.optionalAttrs (isBuildSource old) {
+          nativeBuildInputs = old.nativeBuildInputs ++ [
+            cmake
+          ];
+        }
+      )
+    ) { };
+
+    capstone6pwndbg = pkgs.callPackage (
+      {
+        cmake,
+        stdenv,
+      }:
+      prev.capstone6pwndbg.overrideAttrs (
         old:
         lib.optionalAttrs (isBuildSource old) {
           nativeBuildInputs = old.nativeBuildInputs ++ [

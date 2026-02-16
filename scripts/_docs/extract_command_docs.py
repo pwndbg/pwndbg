@@ -17,6 +17,7 @@ import os
 # I tried every other solution, it doesn't work :).
 import shutil
 from dataclasses import asdict
+from pathlib import Path
 
 shutil.get_terminal_size = lambda fallback=(80, 24): os.terminal_size((80, 24))
 
@@ -24,7 +25,6 @@ import argparse
 import json
 import sys
 from dataclasses import dataclass
-from typing import Tuple
 
 import pwndbg.commands
 from pwndbg.commands import CommandObj
@@ -67,8 +67,8 @@ def extract_commands() -> list[CommandObj]:
 @dataclass
 class ExtractedParserData:
     usage: str
-    positionals: list[Tuple[str, str]]
-    optionals: list[Tuple[str, str, str]]
+    positionals: list[tuple[str, str]]
+    optionals: list[tuple[str, str, str]]
 
 
 def distill_parser(parser: argparse.ArgumentParser) -> ExtractedParserData:
@@ -78,7 +78,7 @@ def distill_parser(parser: argparse.ArgumentParser) -> ExtractedParserData:
 
     # positional arguments
     # [(argument name, argument help)]
-    positionals: list[Tuple[str, str]] = []
+    positionals: list[tuple[str, str]] = []
 
     if parser._positionals._group_actions:
         for action in parser._positionals._group_actions:
@@ -89,12 +89,15 @@ def distill_parser(parser: argparse.ArgumentParser) -> ExtractedParserData:
             # The formatter decides if the default should be shown.
             param_help = formatter._expand_help(action)
 
+            # Sanitize username from home path out.
+            param_help = param_help.replace(str(Path.home()), "/home/user")
+
             positionals.append((action.dest, param_help))
             used_actions[this_id] = True
 
     # option arguments
     # [(short name, long name, argument help)]
-    optionals: list[Tuple[str, str, str]] = []
+    optionals: list[tuple[str, str, str]] = []
 
     if parser._option_string_actions:
         for k in parser._option_string_actions:
@@ -116,6 +119,9 @@ def distill_parser(parser: argparse.ArgumentParser) -> ExtractedParserData:
             # The formatter decides if the default should be shown.
             param_help = formatter._expand_help(action)
 
+            # Sanitize username from home path out.
+            param_help = param_help.replace(str(Path.home()), "/home/user")
+
             optionals.append((short_name, long_name, param_help))
             used_actions[this_id] = True
 
@@ -130,8 +136,10 @@ def distill_one_subcommand(cmdname, parser: argparse.ArgumentParser) -> Extracte
     filename = "<is subcommand>"
     description = parser.description
     assert description
+    # Sanitize username from home path out.
+    description = description.replace(str(Path.home()), "/home/user")
     # We will fix the aliases up later.
-    aliases = []
+    aliases: list[str] = []
     examples = ""
     notes = ""
     pure_epilog = ""
@@ -218,6 +226,12 @@ def distill_sources(commandobjs: list[CommandObj]) -> list[ExtractedCommand]:
         # Extract data from the parser
         parser_data: ExtractedParserData = distill_parser(cmdobj.parser)
         subcommands: list[ExtractedCommand] = distill_subcommands(cmdobj.parser)
+
+        # Sanitize username from home path out.
+        description = description.replace(str(Path.home()), "/home/user")
+        examples = examples.replace(str(Path.home()), "/home/user")
+        notes = notes.replace(str(Path.home()), "/home/user")
+        pure_epilog = pure_epilog.replace(str(Path.home()), "/home/user")
 
         # Construct and append the final result
         extracted.append(

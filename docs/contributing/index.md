@@ -22,6 +22,7 @@ The `lint.sh` script runs ruff, shfmt, and vermin. ruff is (mostly) able to auto
 ```
 !!! note
     You can find the configuration files for these tools in `pyproject.toml` or by checking the arguments passed inside `lint.sh`.
+    You can also run `./lint.sh -fo` to skip vermin and mypy, allowing for a quicker lint.
 
 When submitting a PR, the continuous integration (CI) job defined in `.github/workflows/lint.yml` will verify that running `./lint.sh` succeeds. Furthermore, you must not increase the number of `mypy --strict` errors as compared to the `dev` branch (see `.github/workflows/lint.sh`). Otherwise the job will fail and we won't be able to merge your PR. Make sure to have a type checker (mypy --strict, pyright, ty, pyrefly, ...) running in your python editor / IDE.
 
@@ -32,13 +33,13 @@ Your PR will not be merged without passing the testing CI. Moreover, it is highl
 To run the tests in the same environment as the testing CI, you can use the following docker commands.
 ```{.bash .copy}
 # General (x86_64) test suite
-docker compose run --rm --build ubuntu24.04-mount ./tests.sh -d gdb -g gdb
+docker compose run --rm ubuntu24.04-mount ./tests.sh -d gdb -g gdb
 # Cross-architecture tests
-docker compose run --rm --build ubuntu24.04-mount ./tests.sh -d gdb -g cross-arch-user
+docker compose run --rm ubuntu24.04-mount ./tests.sh -d gdb -g cross-arch-user
 # Kernel tests (x86_64 and aarch64)
-docker compose run --rm --build ubuntu24.04-mount ./kernel-tests.sh
+docker compose run --rm ubuntu24.04-mount ./kernel-tests.sh
 # Unit tests
-docker compose run --rm --build ubuntu24.04-mount ./unit-tests.sh
+docker compose run --rm ubuntu24.04-mount ./unit-tests.sh
 ```
 This comes in handy particularly for cross-architecture tests because the docker environment has all the cross-compilers installed. The active `pwndbg` directory is mounted, preventing the need for a full rebuild whenever you update the codebase.
 

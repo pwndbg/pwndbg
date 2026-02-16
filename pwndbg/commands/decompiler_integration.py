@@ -6,9 +6,6 @@ import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib
@@ -18,7 +15,7 @@ import pwndbg.color.memory as color_mem
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.config
 import pwndbg.lib.tempfile
 from pwndbg.commands import CommandCategory
@@ -150,7 +147,7 @@ angr_plugin_path = pwndbg.config.add_param(
 
 
 def install_generic_plugin(
-    paths: List[Tuple[Path, Path]],
+    paths: list[tuple[Path, Path]],
     decomp_name: str,
     packaged_plugin_path: Path,
     config_var: pwndbg.lib.config.Parameter,
@@ -362,12 +359,12 @@ decompiler_port = pwndbg.config.add_param(
 
 
 def disconnect() -> None:
-    if not pwndbg.integration.manager.is_connected():
+    if not pwndbg.dintegration.manager.is_connected():
         print(message.error("Am not connected in the first place."))
         return
 
-    decomp_name = pwndbg.integration.manager.decompiler_name()
-    pwndbg.integration.manager.disconnect()
+    decomp_name = pwndbg.dintegration.manager.decompiler_name()
+    pwndbg.dintegration.manager.disconnect()
     print(message.success("Disconnected") + f" from {decomp_name}.")
 
 
@@ -376,12 +373,12 @@ def connect(also_sync: bool) -> None:
     if decompiler_host == "localhost" and not check_decomp2dbg_version():
         return
 
-    if pwndbg.integration.manager.is_connected():
+    if pwndbg.dintegration.manager.is_connected():
         print("Reconnecting: ", end="")
 
     print(f"Connecting to {decompiler_host}:{decompiler_port}.")
 
-    ok = pwndbg.integration.manager.connect(str(decompiler_host), int(decompiler_port))
+    ok = pwndbg.dintegration.manager.connect(str(decompiler_host), int(decompiler_port))
     if ok:
         if decompiler_host != "localhost":
             print(
@@ -395,14 +392,15 @@ def connect(also_sync: bool) -> None:
         else:
             # If we are connected to localhost Ghidra, we need to check that the plugin version is fine.
             if (
-                pwndbg.integration.manager.decompiler_id() == pwndbg.integration.DecompilerID.GHIDRA
+                pwndbg.dintegration.manager.decompiler_id()
+                == pwndbg.dintegration.DecompilerID.GHIDRA
                 and not check_outdated_ghidra_plugin()
             ):
                 print(message.error("Disconnecting.."))
-                pwndbg.integration.manager.disconnect()
+                pwndbg.dintegration.manager.disconnect()
                 return
 
-        decomp_name = pwndbg.integration.manager.decompiler_name()
+        decomp_name = pwndbg.dintegration.manager.decompiler_name()
         print(message.success("Connected") + f" to {decomp_name}.")
 
         if also_sync:
@@ -427,15 +425,17 @@ def soft_connection_check(also_sync: bool) -> bool:
     If we were connected, or succeed in connecting, return True,
     otherwise False.
     """
-    if not pwndbg.integration.manager.is_connected():
-        print(message.error("Not connected to a decompiler."))
+    if not pwndbg.dintegration.manager.is_connected():
         print("Trying to connect.. ", end="")
 
         connect(also_sync=also_sync)
 
         # Make sure we were successful.
-        if not pwndbg.integration.manager.is_connected():
+        if not pwndbg.dintegration.manager.is_connected():
             return False
+
+        # Give space to the actual command output.
+        print()
 
     return True
 
@@ -454,8 +454,8 @@ def check_alive(error_msg: str) -> bool:
         return False
 
 
-def jump(addr: Optional[int]) -> None:
-    if not pwndbg.integration.manager.is_connected():
+def jump(addr: int | None) -> None:
+    if not pwndbg.dintegration.manager.is_connected():
         print(message.error("Not connected to a decompiler."))
         print(message.hint("Try `di connect`."))
         return
@@ -469,7 +469,7 @@ def jump(addr: Optional[int]) -> None:
             return
         addr = pwndbg.aglib.regs.pc
 
-    ok = pwndbg.integration.manager.focus_address(addr)
+    ok = pwndbg.dintegration.manager.focus_address(addr)
     if not ok:
         print(message.error("Decompiler failed to jump."))
 
@@ -481,8 +481,11 @@ def sync(fail_quietly: bool) -> None:
     """
     if fail_quietly:
         # Direct check, no retries.
-        if not pwndbg.integration.manager.is_connected():
+        if not pwndbg.dintegration.manager.is_connected():
             return
+
+        # Something else is calling us, lets give the output some space.
+        print()
     else:
         # Noisy check with a connection attempt.
         # Don't try to sync because that sync would be quiet, and we want
@@ -498,28 +501,50 @@ def sync(fail_quietly: bool) -> None:
     print("Syncing symbols...")
 
     # Functions and globals
-    nsyms = pwndbg.integration.manager.update_symbols()
-    print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end="")
+    nsyms, sym_err = pwndbg.dintegration.manager.update_symbols()
+    match sym_err:
+        case pwndbg.dintegration.Error.OK:
+            if nsyms == 0:
+                print("No symbols synced? Something is off. ")
+            else:
+                print(
+                    message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end=""
+                )
+        case pwndbg.dintegration.Error.DEBUGGER_NOT_SUPPORTED:
+            print("LLDB does not support syncing symbols. ", end="")
+        case _:
+            print(message.error(f"Failed: {sym_err.value}."))
+            if sym_err == pwndbg.dintegration.Error.BINARY_NOT_LOADED:
+                print(message.hint("Try `di setpath --help` or `di setbase --help`?"))
+            # The error is fundamental to the setup, don't even try to sync function variables.
+            return
 
     # Function-local variables
-    nvars = pwndbg.integration.manager.update_function_variables()
-    if nvars > 0:
-        print(message.success(f"Synced {nvars} variables") + " for the current function.")
-    else:
-        # It's fine to print this even if fail_quietly=True.
-        print("No variables synced for the current function.")
+    nvars, var_err = pwndbg.dintegration.manager.update_function_variables()
+    match var_err:
+        case pwndbg.dintegration.Error.OK:
+            if nvars > 0:
+                print(message.success(f"Synced {nvars} variables") + " for the current function.")
+            else:
+                # It's fine to print this even if fail_quietly=True.
+                print("No variables synced for the current function.")
+        case pwndbg.dintegration.Error.NO_FRAME:
+            # It's fine to print this even if fail_quietly=True.
+            print("No variables synced for the current function (no stack frame found).")
+        case pwndbg.dintegration.Error.NO_CONNECTION:
+            print(message.error(f"Failed: {sym_err.value}."))
 
 
-def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> None:
-    func_vars: Optional[pwndbg.integration.RebasedFuncVariables] = (
-        pwndbg.integration.manager.get_function_vars_rebased_from_frame(frame)
+def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: int | None = None) -> None:
+    func_vars: pwndbg.dintegration.RebasedFuncVariables | None = (
+        pwndbg.dintegration.manager.get_function_vars_rebased_from_frame(frame)
     )
 
     pc: int = frame.pc()
     sp: int = frame.sp()
-    start: Optional[int] = frame.start()
+    start: int | None = frame.start()
 
-    symbol: Optional[str] = pwndbg.aglib.symbol.resolve_addr(pc)
+    symbol: str | None = pwndbg.aglib.symbol.resolve_addr(pc)
     if symbol:
         symbol_text = color.blue(symbol)
     else:
@@ -555,7 +580,7 @@ def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> No
             reg_text = reg_var.reg_name.ljust(4, " ")
             # FIXME: Should probably refactor this to use pwndbg.commands.context.get_regs (but then also
             # refactor that, to pull it out of pwndbg/commands, maybe separate out register name and value etc.)
-            reg_value_raw: Optional[pwndbg.dbg_mod.Value] = frame.regs().by_name(reg_var.reg_name)
+            reg_value_raw: pwndbg.dbg_mod.Value | None = frame.regs().by_name(reg_var.reg_name)
             try:
                 reg_value = (
                     color_mem.get(int(reg_value_raw))
@@ -617,11 +642,31 @@ def list_(list_all: bool) -> None:
     if list_all:
         list_all_frames()
     else:
-        frame: Optional[pwndbg.dbg_mod.Frame] = pwndbg.dbg.selected_frame()
+        frame: pwndbg.dbg_mod.Frame | None = pwndbg.dbg.selected_frame()
         if frame is None:
             print(message.error("Could not find current stack frame."))
             return
         list_one_frame(frame)
+
+
+def setpath(path: str) -> None:
+    # I make this a command instead of a config for consistency with setbase.
+
+    # Unset manual base first
+    if pwndbg.dintegration.manual_binary_address != -1:
+        print(
+            f"Unset the previously set `di setbase` value of {pwndbg.dintegration.manual_binary_address}."
+        )
+        pwndbg.dintegration.manual_binary_address = -1
+
+    pwndbg.dintegration.manual_binary_path = path
+    print(f'Path of the decompiled binary in the address space set to "{path}".')
+    if path == "":
+        print("(back to automatic detection)")
+
+    if pwndbg.dintegration.manager.is_connected():
+        print("Reconnecting to apply changes..\n")
+        connect(also_sync=True)
 
 
 def setbase(base_addr: int) -> None:
@@ -631,12 +676,19 @@ def setbase(base_addr: int) -> None:
         print(message.error("Valid values are in [-1, 2^64)."))
         return
 
-    pwndbg.integration.manual_binary_address = base_addr
+    # Unset manual path first
+    if pwndbg.dintegration.manual_binary_path != "":
+        print(
+            f"Unset the previously set `di setpath` value of {pwndbg.dintegration.manual_binary_path}."
+        )
+        pwndbg.dintegration.manual_binary_path = ""
+
+    pwndbg.dintegration.manual_binary_address = base_addr
     print(f"Base address of the decompiled binary set to {base_addr:#x}.")
     if base_addr == -1:
         print("(back to automatic detection)")
 
-    if pwndbg.integration.manager.is_connected():
+    if pwndbg.dintegration.manager.is_connected():
         print("Reconnecting to apply changes..\n")
         connect(also_sync=True)
 
@@ -780,6 +832,8 @@ needed when debugging a kernel module.
 
 If you wish to re-enable automatic base address detection, set this value to -1 (or
 restart Pwndbg).
+
+Setting this automatically unsets the `di setpath` value.
 """,
 )
 parser_set_base.add_argument(
@@ -789,16 +843,43 @@ parser_set_base.add_argument(
     help="Memory address of the decompiled binary in the address space",
 )
 
+parser_set_path = subparsers.add_parser(
+    "setpath",
+    help="Manually set the path of the binary as loaded in memory",
+    description="""
+Manually set the path of the binary as loaded in memory.
+
+Normally, Pwndbg will use the file path that the decompiler reports for the binary and
+check it against all files mapped into memory to find the correct base address.
+
+If for some reason the file names differ or your binary does not show up in the memory
+mappings, you can manually specify the actual path of the binary as loaded in memory (
+the one reported by /proc/<pid>/maps i.e. vmmap).
+
+If you wish to re-enable automatic base address detection, set this value to "" (or
+restart Pwndbg).
+
+Setting this automatically unsets the `di setbase` value.
+""",
+)
+parser_set_path.add_argument(
+    "binary_path",
+    metavar="path",
+    type=str,
+    help="File path of the decompiled binary as loaded in memory",
+)
+
 
 @pwndbg.commands.Command(
     parser, aliases=["di"], category=pwndbg.commands.CommandCategory.INTEGRATIONS
 )
 def decompiler_integration(
     command: str,
-    jump_addr: Optional[int] = None,
+    jump_addr: int | None = None,
     install_sub: str = "",
     list_all: bool = False,
     binary_addr: int = -1,
+    binary_path: str = "",
 ):
     match command:
         case "connect" | "c":
@@ -817,6 +898,8 @@ def decompiler_integration(
             list_(list_all)
         case "setbase":
             setbase(binary_addr)
+        case "setpath":
+            setpath(binary_path)
 
 
 # ========= End of decompiler-integration command handling =========
@@ -868,7 +951,7 @@ def auto_jump():
         return
     addr: int = pwndbg.aglib.regs.pc
 
-    pwndbg.integration.manager.focus_address(addr)
+    pwndbg.dintegration.manager.focus_address(addr)
 
 
 @pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.STOP)
@@ -879,10 +962,10 @@ def automatic_operations() -> None:
     # We succeed quietly to not mess up the `context-reserve-lines` logic.
 
     if should_autosync_syms:
-        pwndbg.integration.manager.update_symbols()
+        pwndbg.dintegration.manager.update_symbols()
 
     if should_autosync_vars:
-        pwndbg.integration.manager.update_function_variables()
+        pwndbg.dintegration.manager.update_function_variables()
 
     if should_autojump:
         auto_jump()
@@ -914,7 +997,7 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.INTEGRATIONS)
 @pwndbg.commands.OnlyWhenRunning
-def decomp(addr: Optional[int], lines: int) -> None:
+def decomp(addr: int | None, lines: int) -> None:
     if addr is None:
         if pwndbg.aglib.regs.pc is None:
             print("Address not specified, and could not find PC.")
@@ -924,7 +1007,7 @@ def decomp(addr: Optional[int], lines: int) -> None:
     if not soft_connection_check(also_sync=True):
         return
 
-    decomp = pwndbg.integration.manager.decompile_pretty(addr, lines)
+    decomp = pwndbg.dintegration.manager.decompile_pretty(addr, lines)
 
     if decomp is None:
         print("Could not retrieve decompilation.")
