@@ -175,6 +175,9 @@ class PwndbgArchitecture(ArchDefinition):
         """
         return None
 
+    def unsigned(self, val: int, shift: int = 0) -> int:
+        return (val << shift) & ((1 << self.ptrbits) - 1)
+
 
 class AMD64Arch(PwndbgArchitecture):
     max_instruction_size = 16

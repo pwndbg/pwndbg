@@ -13,7 +13,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.memory as mem_color
 import pwndbg.color.message as message
-import pwndbg.integration
+import pwndbg.dintegration
 from pwndbg.aglib.disasm.arch import memory_or_register_assign
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
@@ -175,7 +175,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     left.str,
                     mem_color.get_address_or_symbol(
                         right.before_value_resolved,
-                        pwndbg.integration.manager.get_stack_var_dict_all(),
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
                     ),
                     left.type == CS_OP_MEM,
                 )
@@ -184,7 +184,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     right.str,
                     mem_color.get_address_or_symbol(
                         left.before_value_resolved,
-                        pwndbg.integration.manager.get_stack_var_dict_all(),
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
                     ),
                     right.type == CS_OP_MEM,
                 )
@@ -206,7 +206,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     reg_operand.str,
                     mem_color.get_address_and_symbol(
                         reg_operand.after_value,
-                        pwndbg.integration.manager.get_stack_var_dict_all(),
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
                     ),
                 )
             elif pc_is_at_instruction:
@@ -216,7 +216,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     instruction.annotation = register_assign(
                         reg_operand.str,
                         mem_color.get_address_and_symbol(
-                            value, pwndbg.integration.manager.get_stack_var_dict_all()
+                            value, pwndbg.dintegration.manager.get_stack_var_dict_all()
                         ),
                     )
                 except Exception:
@@ -249,7 +249,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 operand.str,
                 mem_color.get_address_and_symbol(
                     operand.after_value_resolved,
-                    pwndbg.integration.manager.get_stack_var_dict_all(),
+                    pwndbg.dintegration.manager.get_stack_var_dict_all(),
                 ),
                 operand.type == CS_OP_MEM,
             )

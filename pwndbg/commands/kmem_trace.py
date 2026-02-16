@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import threading
+from typing import Any
 
 import pwndbg.aglib
 import pwndbg.aglib.kernel
@@ -49,9 +50,9 @@ parser.add_argument(
 
 
 class KmemTracepointsData:
-    def __init__(self, verbose, trace_all):
-        self.results = []
-        self.order = None
+    def __init__(self, verbose: bool, trace_all: bool) -> None:
+        self.results: list[str] = []
+        self.order = 0
         self.mutex = threading.RLock()
         self.verbose = verbose
         self.curr = None  # None means tracing all
@@ -66,7 +67,7 @@ class KmemTracepointsData:
             if self.curr is None:
                 print(message.warn("Couldn't locate frame properly. Tracing --all."))
 
-    def add_result(self, result: str):
+    def add_result(self, result: str) -> None:
         if not result:
             return
         with self.mutex:
@@ -76,7 +77,9 @@ class KmemTracepointsData:
                 if self.verbose:
                     self.results += bt
 
-    def _format_kmem_tracepoint_output(self, prefix, name, type, addr):
+    def _format_kmem_tracepoint_output(
+        self, prefix: str, name: str, type: str, addr: int | None
+    ) -> str:
         prefix = prefix.ljust(12, " ")
         if "FREE" in prefix:
             prefix = color.red(prefix)
@@ -84,42 +87,51 @@ class KmemTracepointsData:
             prefix = color.green(prefix)
         name = color.blue(name.ljust(20, " "))
         type = type.ljust(4, " ")
-        return f"{prefix} {name} {type} @ {color.blue(hex(addr))}"
+        return f"{prefix} {name} {type} @ {color.blue(hex(addr) if addr else str(addr))}"
 
-    def format_slab_kmem_tracepoint_output(self, is_free: bool, objaddr: int):
-        if objaddr == 0:
-            return
+    def format_slab_kmem_tracepoint_output(self, is_free: bool, objaddr: int | None) -> None:
         if is_free:
             prefix = "[SLAB FREE]"
         else:
             prefix = "[SLAB ALLOC]"
-        try:
-            cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
-            name = cache.name
-        except Exception:
-            self.add_result(message.warn(f"{prefix} invalid SLUB object @ {objaddr:#x}"))
-            return
-        result = self._format_kmem_tracepoint_output(prefix, name, "obj", objaddr)
+        cache = None
+        if objaddr:
+            _, cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
+        result = message.warn(
+            f"{prefix} invalid SLUB object @ {hex(objaddr) if objaddr else objaddr}"
+        )
+
+        if cache is not None:
+            result = self._format_kmem_tracepoint_output(prefix, cache.name, "obj", objaddr)
         self.add_result(result)
 
-    def format_page_kmem_tracepoint_output(self, is_free: bool, page: int, order: int):
+    def format_page_kmem_tracepoint_output(
+        self, is_free: bool, page: int | None, order: int
+    ) -> None:
         if is_free:
             prefix = "[PAGE FREE]"
         else:
             prefix = "[PAGE ALLOC]"
         name = f"order-{order}"
-        physmap = pwndbg.aglib.kernel.page_to_virt(page)
         result = self._format_kmem_tracepoint_output(prefix, name, "page", page)
-        result += f" (physmap: {color.red(hex(physmap))})"
+        if page is not None:
+            physmap = pwndbg.aglib.kernel.page_to_virt(page)
+            result += f" (physmap: {color.red(hex(physmap))})"
         self.add_result(result)
 
 
 class KmemTracepoints:
-    def __init__(self):
+    # exceptions to the default processing of (de)alloc funcs
+    # the tuple is interpreted on a handler basis
+    # e.g. `"kmem_cache_free": (1,)` means the second argument of kmem_cache_free is the address of freed object
+    EXCEPTIONS: dict[str, tuple[Any, ...]] = {"kmem_cache_free": (1,)}
+
+    def __init__(self) -> None:
         # try to capture the lowest possible level of exported functions in the (de)alloc chain
         # for example __alloc_pages_bulk calls __alloc_pages and only __alloc_pages is included
         # lists might not be complete
         # try to resolve all names, if does not exist, means it is not exported for that version
+        # for the alloc functions, only the return value matters
         kmalloc_names = (  # (trys to) include all slab alloc functions for all v5.x and v6.x
             "__kmalloc",
             "__kmalloc_node",
@@ -150,7 +162,11 @@ class KmemTracepoints:
             "__kmalloc_cache_noprof",
         )
         self.kallocs = self.resolve_names(kmalloc_names)
-        kfree_names = ("kfree",)
+        kfree_names = (
+            "kfree",
+            "kfree_nolock",
+            "kmem_cache_free",
+        )
         self.kfrees = self.resolve_names(kfree_names)
         palloc_names = (  # all of those functions have the 2nd arg == order
             "__alloc_frozen_pages_noprof",
@@ -163,8 +179,7 @@ class KmemTracepoints:
             "__free_pages",
         )
         self.pfrees = self.resolve_names(pfree_names)
-        self.sps = []
-        self.data = None
+        self.sps: list[pwndbg.dbg_mod.StopPoint] = []
         self.slab_tracepoints_enabled = True
         self.buddy_tracepoints_enabled = True
 
@@ -194,7 +209,12 @@ class KmemTracepoints:
     @staticmethod
     def kfree_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
         self = get_kmem_tracepoints()
-        objaddr = pwndbg.arguments.argument(0)
+        arg: int = 0
+        if symbol_name := pwndbg.aglib.symbol.resolve_addr(pwndbg.aglib.regs.pc):
+            symbol_name = symbol_name.split("+")[0]
+            if symbol_name in KmemTracepoints.EXCEPTIONS:
+                arg = KmemTracepoints.EXCEPTIONS[symbol_name][0]
+        objaddr = pwndbg.arguments.argument(arg)
         self.data.format_slab_kmem_tracepoint_output(True, objaddr)
         return False
 
@@ -221,13 +241,13 @@ class KmemTracepoints:
         self = get_kmem_tracepoints()
         page = pwndbg.arguments.argument(0)
         order = pwndbg.arguments.argument(1)
-        self.data.format_page_kmem_tracepoint_output(self.results, True, page, order)
+        self.data.format_page_kmem_tracepoint_output(True, page, order)
         return False
 
-    def register_breakpoints(self, verbose, trace_all):
+    def register_breakpoints(self, verbose: bool, trace_all: bool) -> None:
         inf = pwndbg.dbg.selected_inferior()
-        self.results = []
         self.data = KmemTracepointsData(verbose, trace_all)
+        self.data.results = []
         if self.slab_tracepoints_enabled:
             for kalloc in self.kallocs:
                 bp = BreakpointLocation(kalloc)
@@ -247,7 +267,7 @@ class KmemTracepoints:
                 sp = inf.break_at(bp, KmemTracepoints.pfree_handler, internal=True)
                 self.sps.append(sp)
 
-    def remove_breakpoints(self):
+    def remove_breakpoints(self) -> None:
         for sp in self.sps:
             sp.remove()
         self.sps = []
@@ -256,7 +276,7 @@ class KmemTracepoints:
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_kmem_tracepoints():
+def get_kmem_tracepoints() -> KmemTracepoints:
     return KmemTracepoints()
 
 
@@ -299,7 +319,12 @@ def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str,
     old_val = pwndbg.config.context_backtrace_lines.value
     pwndbg.config.context_backtrace_lines.value = 1000  # enable full backtrace
 
-    pwndbg.dbg.selected_inferior().runcmd(command)
+    try:
+        pwndbg.dbg.selected_inferior().runcmd(command)
+    except Exception as e:
+        tps.data.results.append(
+            message.warn(f"running command `{command}` with kmem-trace failed with error: {str(e)}")
+        )
 
     pwndbg.config.context_backtrace_lines.value = old_val  # restore
     pwndbg.commands.context.context()

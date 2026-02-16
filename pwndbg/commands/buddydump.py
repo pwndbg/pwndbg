@@ -41,19 +41,19 @@ class ParsedBuddyArgs:
 class CurrentBuddyParams:
     # stores the current properties of the freelist being/to be traversed
     # this is so that values can be cleanly passed around
-    sections: list[tuple[str, str]]
+    sections: list[tuple[str | None, str | None]]
     indent: IndentContextManager
     node: int | None
     zone: pwndbg.dbg_mod.Value | None
     order: int
-    mtype: str | None
+    mtype: str
     freelists: pwndbg.dbg_mod.Value | None
     freelist: pwndbg.dbg_mod.Value | None
     nr_types: int | None
     found: bool
 
 
-def cpu_limitcheck(cpu: str):
+def cpu_limitcheck(cpu: str | None):
     if cpu is None:
         return None
     nr_cpus = pwndbg.aglib.kernel.nproc()
@@ -113,7 +113,10 @@ parser.add_argument(
 
 
 def static_str_arr(name: str) -> list[str]:
-    arr = pwndbg.aglib.symbol.lookup_symbol(name).dereference()
+    _arr = pwndbg.aglib.symbol.lookup_symbol(name)
+    if not _arr:
+        return []
+    arr = _arr.dereference()
     return [arr[i].string() for i in range(arr.type.array_len)]
 
 
@@ -123,13 +126,13 @@ def check_find(counter: int, physmap_addr: int, pba: ParsedBuddyArgs, cbp: Curre
     if pba.find is None:
         return False
     start = physmap_addr
-    end = physmap_addr + 0x1000 * (1 << cbp.order)
+    end = physmap_addr + pwndbg.aglib.kernel.page_size() * (1 << cbp.order)
     return pba.find >= start and pba.find < end
 
 
 def traverse_pglist(
     pba: ParsedBuddyArgs, cbp: CurrentBuddyParams
-) -> tuple[list[tuple[int, str]], int, list[str]]:
+) -> tuple[list[tuple[int, str]] | None, int, list[str] | None]:
     freelist = cbp.freelist
     if freelist is None or int(freelist["next"]) == 0:
         return None, 0, None
@@ -168,7 +171,7 @@ def traverse_pglist(
     return results, counter, msgs
 
 
-def print_section(section: tuple[str, str], indent: IndentContextManager):
+def print_section(section: tuple[str | None, str | None], indent: IndentContextManager):
     prefix, desc = section
     if prefix is not None:
         title = indent.prefix(prefix)
@@ -215,11 +218,13 @@ def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
         cbp.mtype = mtypes[i].lower()
         if pba.mtype is not None and cbp.mtype != pba.mtype:
             continue
-        cbp.freelist = freelists[i]
-        print_pglist(pba, cbp)
+        if freelists:
+            cbp.freelist = freelists[i]
+            print_pglist(pba, cbp)
 
 
 def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
+    assert cbp.zone
     pcp = None
     pcp_lists = None
     if cbp.zone.type.has_field("per_cpu_pageset"):
@@ -246,13 +251,14 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
             cbp.nr_types = nr_pcp_lists % MIGRATE_PCPTYPES
         cbp.sections[2] = (
             f"order {order}",
-            f"size: {cbp.indent.aux_hex(0x1000 * (1 << order))}",
+            f"size: {cbp.indent.aux_hex(pwndbg.aglib.kernel.page_size() * (1 << order))}",
         )
         cbp.order = order
         print_mtypes(pba, cbp)
 
 
 def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
+    assert cbp.zone
     free_area = cbp.zone["free_area"]
     cbp.sections[1] = ("free_area", None)
     for order in range(free_area.type.array_len):
@@ -260,9 +266,10 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
             continue
         cbp.freelists = free_area[order]["free_list"]
         nr_free = int(free_area[order]["nr_free"])
+        size = pwndbg.aglib.kernel.page_size() * (1 << order)
         cbp.sections[2] = (
             f"order {order}",
-            f"nr_free: {cbp.indent.aux_hex(nr_free)}, size: {cbp.indent.aux_hex(0x1000 * (1 << order))}",
+            f"nr_free: {cbp.indent.aux_hex(nr_free)}, size: {cbp.indent.aux_hex(size)}",
         )
         cbp.order = order
         print_mtypes(pba, cbp)
@@ -345,7 +352,7 @@ def buddydump(
         node_data = pwndbg.aglib.memory.get_typed_pointer("node_data_t", node_data)
     pba = ParsedBuddyArgs(zone, order, mtype.lower() if mtype is not None else None, cpu, find)
     cbp = CurrentBuddyParams(
-        [NONE_TUPLE] * 3, IndentContextManager(), None, None, None, None, None, None, None, False
+        [NONE_TUPLE] * 3, IndentContextManager(), None, None, 0, "", None, None, None, False
     )
     for node_idx in range(kernel.num_numa_nodes()):
         if node is not None and node_idx != node:

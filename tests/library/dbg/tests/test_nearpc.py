@@ -7,6 +7,7 @@ from . import get_binary
 from . import pwndbg_test
 
 SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
+BRANCH_VISUALIZATION_BINARY = get_binary("branch_visualization.x86-64.out")
 
 OPCODE_BYTES_TESTS_EXPECTED_OUTPUT = {
     1: [
@@ -304,4 +305,33 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
         "   0x4000a1                add    byte ptr [rax], al\n"
         "   0x4000a3                add    byte ptr [rax], al\n"
     )
+    assert dis == expected
+
+
+@pwndbg_test
+async def test_nearpc_branch_visualization(ctrl: Controller) -> None:
+    import pwndbg.color
+
+    await ctrl.launch(BRANCH_VISUALIZATION_BINARY)
+
+    dis = await ctrl.execute_and_capture("nearpc 11")
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        " ► 0x400080 <_start>                            mov    eax, 0     EAX => 0\n"
+        "   0x400085 <_start+5>                          cmp    eax, 1     0 - 1\n"
+        "   0x400088 <_start+8>                     ┌<   je     B                           <B>\n"
+        "                                           │ \n"
+        "   0x40008a <_start+10>                    │    add    eax, 2\n"
+        "   0x40008d <_start+13>                   ┌─<   jmp    C                           <C>\n"
+        "                                          ││ \n"
+        "   0x40008f <B>                           │└>   sub    eax, 1\n"
+        "   0x400092 <B+3>                         │     cmp    eax, 0\n"
+        "   0x400095 <B+6>                        ┌──<   jne    C                           <C>\n"
+        "                                         ││  \n"
+        "   0x400097 <B+8>                        ││     nop   \n"
+        "   0x400098 <B+9>                        ││     nop   \n"
+        "   0x400099 <C>                          └└─>   ret   \n"
+    )
+
     assert dis == expected

@@ -37,7 +37,7 @@ See [installation instructions](https://pwndbg.re/stable/setup).
 Many past ([gdbinit][gdbinit], [PEDA][PEDA]) and present projects ([GEF][GEF],
 [bata24/GEF][bata24/GEF]) offer great features, but are hard to extend and are packaged
 as large single files ([103KB][gdbinit2], [195KB][peda.py], [423KB][gef.py],
-[4.12MB][bata24/gef.py]). Pwndbg aims to replace them with a faster, cleaner, and
+[5.24MB][bata24/gef.py]). Pwndbg aims to replace them with a faster, cleaner, and
 more robust implementation.
 
 [gdbinit]: https://github.com/gdbinit/Gdbinit
