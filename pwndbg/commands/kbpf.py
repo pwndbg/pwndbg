@@ -235,9 +235,9 @@ def print_bpf_maps(verbose: int) -> None:
                 key_size = int(bpf_array["map"]["key_size"])
                 value_size = int(bpf_array["map"]["value_size"])
                 max_entries = int(bpf_array["map"]["max_entries"])
-                bpf_array = int(bpf_array)
-                off = bpf_map_array_offset(bpf_array, t, max_entries, value_size)
-                content = indent.aux_hex(bpf_array + off) if off else "unknown"
+                _bpf_array = int(bpf_array)
+                off = bpf_map_array_offset(_bpf_array, t, max_entries, value_size)
+                content = indent.aux_hex(_bpf_array + off) if off else "unknown"
                 desc = f"array @ {content} (key_size: {indent.aux_hex(key_size)}, value_size: {indent.aux_hex(value_size)}, max_entries: {indent.aux_hex(max_entries)})"
                 indent.print(desc)
                 # TODO: what about types other than array
@@ -254,7 +254,7 @@ def print_bpf_maps(verbose: int) -> None:
                             idxfmt = f"[0x{i:02x}]"
                             sz = min(value_size, MAX_PRINTED_VALUE_SIZE)
                             value = ""
-                            for b in pwndbg.aglib.memory.read(bpf_array + off + i * entrysz, sz):
+                            for b in pwndbg.aglib.memory.read(_bpf_array + off + i * entrysz, sz):
                                 value += f"{b:02x} "
                             if sz < value_size:
                                 value += "... (" + message.warn("truncated") + ")"
