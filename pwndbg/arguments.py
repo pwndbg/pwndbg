@@ -97,7 +97,7 @@ def get(instruction: PwndbgInstruction) -> list[tuple[pwndbg.lib.functions.Argum
     # FIXME(provider, integration): Add this feature back at some point
     # Try to grab the data out of IDA
     # if not func and target:
-    #    func = pwndbg.integration.provider.get_func_type(target)
+    #    func = pwndbg.dintegration.provider.get_func_type(target)
 
     if func:
         args = func.args

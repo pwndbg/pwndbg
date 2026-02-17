@@ -5,6 +5,7 @@ import ast
 import functools
 import logging
 import math
+import re
 import sys
 from collections import defaultdict
 from collections.abc import Callable
@@ -34,7 +35,7 @@ import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.dbg_mod
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.pretty_print as pretty_print
@@ -175,6 +176,11 @@ config_max_threads_display = pwndbg.config.add_param(
     "context-max-threads",
     4,
     "maximum number of threads displayed by the context command",
+)
+config_backtrace_format = pwndbg.config.add_param(
+    "context-backtrace-hex",
+    False,
+    "whether to use hex for offsets in the backtrace",
 )
 
 # Storing output configuration per section
@@ -1476,7 +1482,7 @@ def context_code(
     if should_decompile and pwndbg.aglib.regs.pc is not None:
         nlines = max(int(source_disasm_lines), height or 0)
         # Will be None if we aren't connected or decompilation fails.
-        code: list[str] | None = pwndbg.integration.manager.decompile_pretty(
+        code: list[str] | None = pwndbg.dintegration.manager.decompile_pretty(
             pwndbg.aglib.regs.pc, nlines
         )
         if code is None:
@@ -1560,6 +1566,11 @@ def context_backtrace(
         addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
         symbol = c.symbol(pwndbg.aglib.symbol.resolve_addr(int(frame.pc())))
         if symbol:
+            if bool(config_backtrace_format):
+                offset_regex = re.compile(r"^(.+)\+(\d+)$")
+                parts = offset_regex.match(symbol)
+                if parts:
+                    symbol = f"{parts[1]}+{int(parts[2]):#x}"
             addrsz = f"{addrsz} {symbol}"
         result.append(f"{prefix} {c.frame_label(f'{backtrace_frame_label}{i}')} {addrsz}")
 

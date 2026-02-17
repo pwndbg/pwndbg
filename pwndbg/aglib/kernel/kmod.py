@@ -8,6 +8,8 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
+import pwndbg.lib
+import pwndbg.lib.cache
 from pwndbg.aglib.kernel.macros import for_each_entry
 
 
@@ -26,7 +28,7 @@ class mod_mem_type(Enum):
 
 # TODO: handle potential negative offsets when CONFIG_RANDSTRUCT=y
 @pwndbg.lib.cache.cache_until("stop")
-def module_name_offset():
+def module_name_offset() -> int | None:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
         print(message.warn("Could not find modules"))
@@ -52,16 +54,18 @@ def module_mem_offset() -> tuple[int | None, int | None, int | None]:
         print(message.warn("Could not find modules"))
         return None, None, None
     module = pwndbg.aglib.memory.read_pointer_width(int(modules))
+    krelease = pwndbg.aglib.kernel.krelease()
     for i in range(0x100):
         offset = i * pwndbg.aglib.arch.ptrsize
         min_size = 0x10
-        if (6, 13) <= pwndbg.aglib.kernel.krelease() < (6, 15):
+        if krelease and (6, 13) <= krelease < (6, 15):
             min_size += 0x8
         for module_memory_size in (
             min_size,
             min_size + 0x38,
         ):
             found = True
+            size_offset = None
             for mem_type in range(mod_mem_type.MOD_RO_AFTER_INIT.value):
                 mem_ptr = module + offset + mem_type * module_memory_size
                 if pwndbg.aglib.memory.peek(mem_ptr) is None:
@@ -72,12 +76,12 @@ def module_mem_offset() -> tuple[int | None, int | None, int | None]:
                     found = False
                     break
                 size_offset = pwndbg.aglib.arch.ptrsize
-                if (6, 13) <= pwndbg.aglib.kernel.krelease() < (6, 15):
+                if not krelease or (6, 15) <= krelease:
+                    size_offset += 4
+                elif (6, 13) <= krelease < (6, 15):
                     # https://elixir.bootlin.com/linux/v6.13/source/include/linux/module.h#L368
                     # additional fields were added
                     size_offset += pwndbg.aglib.arch.ptrsize + 4
-                elif (6, 15) <= pwndbg.aglib.kernel.krelease():
-                    size_offset += 4
                 size = pwndbg.aglib.memory.u32(mem_ptr + size_offset)
                 if not 0 < size < 0x100000:
                     found = False
@@ -116,12 +120,13 @@ def module_layout_offset() -> tuple[int | None, int | None]:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def module_kallsyms_offset():
+def module_kallsyms_offset() -> int | None:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
         print(message.warn("Could not find modules"))
-        return None, None
+        return None
     module = pwndbg.aglib.memory.read_pointer_width(int(modules))
+    krelease = pwndbg.aglib.kernel.krelease()
     for i in range(0x100):
         offset = i * pwndbg.aglib.arch.ptrsize
         ptr = module + offset
@@ -139,7 +144,7 @@ def module_kallsyms_offset():
         strtab = pwndbg.aglib.memory.read_pointer_width(kallsyms + pwndbg.aglib.arch.ptrsize * 2)
         if pwndbg.aglib.memory.peek(strtab) is None:
             continue
-        if pwndbg.aglib.kernel.krelease() >= (5, 2):
+        if not krelease or krelease >= (5, 2):
             typetab = pwndbg.aglib.memory.read_pointer_width(
                 kallsyms + pwndbg.aglib.arch.ptrsize * 3
             )
@@ -187,8 +192,9 @@ def parse_module_kallsyms(kallsyms: int) -> list[tuple[str, int, str]]:
     symtab = pwndbg.aglib.memory.read_pointer_width(kallsyms)
     num_symtab = pwndbg.aglib.memory.read_pointer_width(kallsyms + pwndbg.aglib.arch.ptrsize)
     strtab = pwndbg.aglib.memory.read_pointer_width(kallsyms + pwndbg.aglib.arch.ptrsize * 2)
-    typetab = None
-    if pwndbg.aglib.kernel.krelease() >= (5, 2):
+    typetab = 0
+    krelease = pwndbg.aglib.kernel.krelease()
+    if not krelease or krelease >= (5, 2):
         typetab = pwndbg.aglib.memory.read_pointer_width(kallsyms + pwndbg.aglib.arch.ptrsize * 3)
     strtab_offset = 0
     for i in range(num_symtab):
@@ -200,7 +206,7 @@ def parse_module_kallsyms(kallsyms: int) -> list[tuple[str, int, str]]:
             int(symtab) + sizeof_symtab_entry * i + pwndbg.aglib.arch.ptrsize
         )
         sym_type = None
-        if pwndbg.aglib.kernel.krelease() >= (5, 2):
+        if not krelease or krelease >= (5, 2):
             sym_type = chr(pwndbg.aglib.memory.u8(typetab + i))
         else:
             sym_type = chr(
@@ -217,8 +223,10 @@ def all_modules_kallsyms() -> list[tuple[str, int, str]]:
             if module.type.has_field("kallsyms"):
                 kallsyms = int(module["kallsyms"])
                 result += parse_module_kallsyms(kallsyms)
-    elif module_kallsyms_offset() is not None:
+        return result
+    offset = module_kallsyms_offset()
+    if offset is not None:
         for module in module_list():
-            kallsyms = pwndbg.aglib.memory.read_pointer_width(module + module_kallsyms_offset())
+            kallsyms = pwndbg.aglib.memory.read_pointer_width(int(module) + offset)
             result += parse_module_kallsyms(kallsyms)
     return result

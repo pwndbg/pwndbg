@@ -9,7 +9,7 @@ import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import TypeCode
-from pwndbg.lib import TypeNotFound
+from pwndbg.lib import TypeNotFoundError
 from pwndbg.lib.memory import PAGE_SIZE
 
 GdbDict = dict[str, Union["GdbDict", int]]
@@ -46,7 +46,7 @@ def readtype(type: pwndbg.dbg_mod.Type, addr: int) -> int:
         addr: Address at which the value to be read resides
 
     Raises:
-        TypeNotFound: If the type does not exist in the debugger.
+        TypeNotFoundError: If the type does not exist in the debugger.
 
     Returns:
         `int`
@@ -296,14 +296,14 @@ def get_typed_pointer(
     Look up a type by name if necessary and return a Value of addr cast to that type.
 
     Raises:
-        TypeNotFound: If the type does not exist in the debugger.
+        TypeNotFoundError: If the type does not exist in the debugger.
     """
     if addr is None:
         return None
     if isinstance(type, str):
         real_type = pwndbg.aglib.typeinfo.load(type)
         if real_type is None:
-            raise TypeNotFound(f"Type '{type}' not found")
+            raise TypeNotFoundError(f"Type '{type}' not found")
     elif isinstance(type, pwndbg.dbg_mod.Type):
         real_type = type
     else:
@@ -318,7 +318,7 @@ def get_typed_pointer_value(
     Read the pointer value of addr cast to type specified by type_name.
 
     Raises:
-        TypeNotFound: If the type does not exist in the debugger.
+        TypeNotFoundError: If the type does not exist in the debugger.
     """
     return get_typed_pointer(type_name, addr).dereference()
 
@@ -385,7 +385,7 @@ def fetch_struct_as_dictionary(
 ) -> GdbDict:
     """
     Raises:
-        TypeNotFound: If the type does not exist in the debugger.
+        TypeNotFoundError: If the type does not exist in the debugger.
     """
     fetched_struct = get_typed_pointer_value("struct " + struct_name, struct_address)
     return pack_struct_into_dictionary(fetched_struct, include_only_fields, exclude_fields)

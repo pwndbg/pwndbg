@@ -12,7 +12,7 @@ import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.dbg_mod import EventType
-from pwndbg.lib import TypeNotRecovered
+from pwndbg.lib import TypeNotRecoveredError
 
 #########################################
 # helpers
@@ -278,7 +278,7 @@ def load_common_structs_on_load_linux() -> None:
     if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.dbg.selected_inferior().is_linux():
         try:
             recover_page_typeinfo()
-        except TypeNotRecovered as e:
+        except TypeNotRecoveredError as e:
             # We are not going to print anything here, because the user may not
             # even end up using the type-dependant commands.
             # Other commands and typeinfo recoveries depend on this succeeding,
@@ -302,7 +302,7 @@ class ArchSymbols:
         self.bpf_map_heuristic_func = "bpf_map_free_id"
         self.current_task_heuristic_func = "common_cpu_up"
 
-    def disass(self, name: str, lines=10) -> str | None:
+    def disass(self, name: str, lines: int = 10) -> str | None:
         sym = pwndbg.aglib.symbol.lookup_symbol(name)
         if sym is None:
             return None
@@ -312,7 +312,7 @@ class ArchSymbols:
             instr: PwndbgInstruction = pwndbg.aglib.disasm.disassembly.get_one_instruction(
                 addr, enhance=False
             )
-            disass.append(instr.asm_string)
+            disass.append(hex(addr) + " " + instr.asm_string)
             addr = instr.next
         return "\n".join(disass)
 
@@ -483,12 +483,12 @@ class x86_64Symbols(ArchSymbols):
 
     def qword_mov_reg_ripoff(self, disass: str, nth: int = 0) -> int | None:
         result = self.regex(
-            "".join(disass.splitlines()),
-            r".*?\bmov.*\[rip\s\+\s(0x[0-9a-f]+)\].*?(0x[0-9a-f]{16})\s\<",
+            " ".join(disass.splitlines()),
+            r"mov.*\[rip\s([\+\-]\s0x[0-9a-f]+)\]\s(0x[0-9a-f]{16})",
             nth,
         )
         if result is not None:
-            return int(result.group(1), 16) + int(result.group(2), 16)
+            return int(result.group(1).replace(" ", ""), 16) + int(result.group(2), 16)
         return None
 
     def _node_data(self) -> int | None:
