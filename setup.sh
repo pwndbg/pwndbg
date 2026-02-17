@@ -83,16 +83,11 @@ install_freebsd() {
 }
 
 usage() {
-    echo "Usage: $0 [--update]"
-    echo "  --update: Install/update dependencies without checking ~/.gdbinit"
+    echo "Usage: $0"
 }
 
-UPDATE_MODE=
 for arg in "$@"; do
     case $arg in
-        --update)
-            UPDATE_MODE=1
-            ;;
         -h | --help)
             set +x
             usage

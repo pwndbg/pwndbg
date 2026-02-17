@@ -161,6 +161,12 @@ Assuming that the files were extracted to a folder called `pwndbg`.
 
 ## Installing from source
 
+First things first, you need to have [uv installed](https://docs.astral.sh/uv/getting-started/installation/#standalone-installer) (and git and curl):
+```{.bash .copy}
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env
+```
+
 If you just want the most up-to-date Pwndbg, the simplest thing to do is just:
 ```{.bash .copy}
 uv tool install git+https://github.com/pwndbg/pwndbg[gdb,lldb]
