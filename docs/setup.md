@@ -200,9 +200,9 @@ git clone https://github.com/pwndbg/pwndbg
 cd pwndbg
 ./setup.sh
 ```
-will get you the same setup as in [I want to use my system GDB / LLDB](#i-want-to-use-my-system-gdb-lldb). You can update with `git pull`.
+will get you the same setup as in [System GDB, but not like that](#system-gdb-but-not-like-that). You can update with `git pull`.
 
-And in general, if you have the repository cloned you can run the same commands as in the above sections, but replacing `git+https://github.com/pwndbg/pwndbg` with `.` (the current folder) and adding `--editable` so changes in the source are reflected in the installation.
+In general, if you have the repository cloned you can run the same commands as in the above sections, but replacing `git+https://github.com/pwndbg/pwndbg` with `.` (the current folder) and adding `--editable` so changes in the source are reflected in the installation.
 
 ## Setup for development
 
