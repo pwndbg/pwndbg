@@ -23,6 +23,7 @@ import pwndbg.aglib.qemu
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
+import pwndbg.lib.err
 import pwndbg.lib.memory
 from pwndbg.lib.memory import Page
 
@@ -98,7 +99,7 @@ def handle_user_stack_and_filepaths(pages: pwndbg.dbg_mod.MemoryMap) -> None:
 def annotate(pages: pwndbg.dbg_mod.MemoryMap) -> None:
     try:
         pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo()
-    except pwndbg.aglib.kernel.TypeNotRecovered:
+    except (pwndbg.lib.err.TypeNotRecoveredError, AttributeError):
         return
     handle_user_stack_and_filepaths(pages)
     handle_offsets(pages)

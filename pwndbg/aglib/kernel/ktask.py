@@ -635,6 +635,12 @@ def get_file_struct(file: int | None) -> str:
             if pwndbg.aglib.kernel.in_kmem_cache(val, "inode", strict=False):
                 inode_offset = (i - 2) * ptrsize
                 break
+        if inode_offset == 0:  # fallback by finding f_op
+            for i in range(2, 0x20):
+                val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
+                if kbase and val > kbase and pwndbg.aglib.memory.is_kernel(val):
+                    inode_offset = (i - 3) * ptrsize
+                    break
         for i in range(2 * ptrsize, inode_offset, intsize):
             # usually the fmode of stdin/out/err, uint or u32?
             if pwndbg.aglib.memory.uint(file + i) == 0xE0003:
@@ -1025,6 +1031,8 @@ def get_filepath(file: int | pwndbg.dbg_mod.Value) -> str:
 
 def resolve_addr_if_file(mm: int | pwndbg.dbg_mod.Value, addr: int) -> str:
     # TODO: optimize this
+    if pwndbg.aglib.typeinfo.lookup_types("struct vm_area_struct") is None:
+        return ""
     vmafinder = NextVmaFinder(mm)
     for _vma in vmafinder:
         vma = pwndbg.aglib.memory.get_typed_pointer("struct vm_area_struct", _vma)

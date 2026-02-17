@@ -10,7 +10,6 @@ import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
-from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.dbg_mod import EventType
 from pwndbg.lib import TypeNotRecoveredError
 
@@ -309,9 +308,9 @@ class ArchSymbols:
         addr = int(sym)
         disass = []
         for _ in range(lines):
-            instr: PwndbgInstruction = pwndbg.aglib.disasm.disassembly.get_one_instruction(
-                addr, enhance=False
-            )
+            instr = pwndbg.aglib.disasm.disassembly.get_one_instruction(addr, enhance=False)
+            if instr is None:
+                break
             disass.append(hex(addr) + " " + instr.asm_string)
             addr = instr.next
         return "\n".join(disass)
