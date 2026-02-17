@@ -25,6 +25,25 @@ echoerr() {
     echo "${RED}$@${NC}"
 }
 
+get_distro_name() {
+    if [ "$OS" = "Darwin" ]; then
+        if command -v sw_vers > /dev/null 2>&1; then
+            version=$(sw_vers -productVersion)
+            echo "macos@$version"
+        else
+            echo "macos@unknown"
+        fi
+    elif [ -f /etc/os-release ]; then
+        distro=$(
+            . /etc/os-release
+            echo "${ID}@${VERSION_ID}"
+        )
+        echo "$distro"
+    else
+        echo "Unknown"
+    fi
+}
+
 download() {
     url=$1
     outfile=$2
@@ -34,8 +53,9 @@ download() {
         exit 1
     }
 
+    user_agent="pwndbg-installer ($DISTRO_NAME; $ARCH; $OS)"
     if command -v curl > /dev/null 2>&1; then
-        curl --proto '=https' --tlsv1.2 --progress-bar -LSf "$url" -o "$outfile" || fail_download
+        curl --proto '=https' --tlsv1.2 --progress-bar -LSf -A "$user_agent" "$url" -o "$outfile" || fail_download
         return 0
     fi
 
@@ -47,7 +67,7 @@ download() {
             WGET_CMD="wget --https-only --secure-protocol=TLSv1_2 -q --show-progress"
         fi
 
-        $WGET_CMD "$url" -O "$outfile" || fail_download
+        $WGET_CMD -U "$user_agent" "$url" -O "$outfile" || fail_download
         return 0
     fi
 
@@ -79,6 +99,11 @@ if [ -n "$missing" ]; then
     echoerr "Please install the missing commands and try again."
     exit 1
 fi
+
+# Detect OS and architecture
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+DISTRO_NAME=$(get_distro_name)
 
 VERSION="2025.10.20"
 TYPE=""
@@ -150,10 +175,6 @@ case "$TYPE" in
         show_usage
         ;;
 esac
-
-# Detect OS and architecture
-OS="$(uname -s)"
-ARCH="$(uname -m)"
 
 if [ "$ROOTLESS" = "true" ]; then
     echoinfo "Installing rootless..."
@@ -235,7 +256,7 @@ fi
 
 # Create a temporary directory for downloading the file
 TEMP_DIR=$(mktemp -d)
-URL="https://github.com/pwndbg/pwndbg/releases/download/${VERSION}/${FILE}"
+URL="https://releases.pwndbg.re/releases/${VERSION}/${FILE}"
 
 # Ensure the temporary directory is cleaned up on script exit (even in case of an error)
 trap "rm -rf $TEMP_DIR" EXIT
