@@ -31,6 +31,20 @@ d2d_required_version_str: str = f"{d2d_required_major}.{d2d_required_minor}.{d2d
 d2d_cache_dir: Path = Path(pwndbg.lib.tempfile.cachedir("d2d"))
 
 
+def decomp2dbg_not_installed_message() -> None:
+    print(message.error("decomp2dbg is not installed.\n"))
+    print(f"The supported decomp2dbg version is {d2d_required_major}.{d2d_required_minor}.* .")
+    print(
+        "If you installed Pwndbg with your distribution's package manager, use the same to install decomp2dbg."
+    )
+    print(
+        "(If the version of decomp2dbg in your distro is outdated, complain to them. If our version is outdated, complain to us.)"
+    )
+    print(
+        "If you're using Pwndbg installed from source, run `uv sync --extra decomp2dbg --inexact`."
+    )
+
+
 def decomp2dbg_path() -> Path:
     """
     Returns the absolute path to the directory where decomp2dbg is installed.
@@ -881,25 +895,31 @@ def decompiler_integration(
     binary_addr: int = -1,
     binary_path: str = "",
 ):
-    match command:
-        case "connect" | "c":
-            connect(also_sync=True)
-        case "disconnect" | "d":
-            disconnect()
-        case "sync" | "s":
-            sync(fail_quietly=False)
-        case "jump" | "j":
-            jump(jump_addr)
-        case "install":
-            install(install_sub)
-        case "decomp":
-            print(message.notice("Just use the `decomp` command."))
-        case "list" | "l":
-            list_(list_all)
-        case "setbase":
-            setbase(binary_addr)
-        case "setpath":
-            setpath(binary_path)
+    # decomp2dbg is an optional dependancy for now, so we check for it.
+    try:
+        match command:
+            case "connect" | "c":
+                connect(also_sync=True)
+            case "disconnect" | "d":
+                disconnect()
+            case "sync" | "s":
+                sync(fail_quietly=False)
+            case "jump" | "j":
+                jump(jump_addr)
+            case "install":
+                install(install_sub)
+            case "decomp":
+                print(message.notice("Just use the `decomp` command."))
+            case "list" | "l":
+                list_(list_all)
+            case "setbase":
+                setbase(binary_addr)
+            case "setpath":
+                setpath(binary_path)
+    except ModuleNotFoundError as e:
+        if e.name != "decomp2dbg":
+            raise e
+        decomp2dbg_not_installed_message()
 
 
 # ========= End of decompiler-integration command handling =========

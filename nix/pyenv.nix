@@ -396,7 +396,7 @@ let
 
   pyenv = pythonSet.mkVirtualEnv "pwndbg-env" {
     pwndbg =
-      [ ]
+      [ "decomp2dbg" ]
       ++ lib.optionals isDev [
         "dev"
         "tests"
@@ -408,7 +408,7 @@ let
 
   pyenvEditable = editablePythonSet.mkVirtualEnv "pwndbg-editable-env" {
     pwndbg =
-      [ ]
+      [ "decomp2dbg" ]
       ++ lib.optionals isDev [
         "dev"
         "tests"

@@ -54,6 +54,14 @@ def get_venv_path(src_root: Path):
 
 
 def main() -> None:
+    # Check if pwndbg was already loaded from `pwndbg` binary
+    if "pwndbg" in sys.modules and hasattr(sys.modules["pwndbg"], "_is_loaded_from_pwndbg"):
+        print(
+            "\033[90m~/.gdbinit: Skipped loading Pwndbg from `source path/gdbinit.py` - already loaded.\033[0m",
+            flush=True,
+        )
+        return
+
     src_root = Path(__file__).parent.resolve()
 
     skip_venv = False
