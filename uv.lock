@@ -1768,6 +1768,7 @@ version = "2025.10.20"
 source = { editable = "." }
 dependencies = [
     { name = "capstone6pwndbg" },
+    { name = "decomp2dbg" },
     { name = "ipython" },
     { name = "niche-elf" },
     { name = "psutil" },
@@ -1789,9 +1790,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-decomp2dbg = [
-    { name = "decomp2dbg" },
-]
 gdb = [
     { name = "gdb-for-pwndbg", version = "17.1.0.post2", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
     { name = "gdb-for-pwndbg", version = "17.1.0.post2", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
@@ -1843,7 +1841,7 @@ tests = [
 [package.metadata]
 requires-dist = [
     { name = "capstone6pwndbg", specifier = "==6.0.0a6" },
-    { name = "decomp2dbg", marker = "extra == 'decomp2dbg'", specifier = "==3.14.1" },
+    { name = "decomp2dbg", specifier = "==3.14.1" },
     { name = "gdb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", specifier = "==17.1.0.post2", index = "https://mirrors.loong64.com/pypi/simple" },
     { name = "gdb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'gdb') or (sys_platform != 'linux' and extra == 'gdb')", specifier = "==17.1.0.post2" },
     { name = "gnureadline", marker = "sys_platform != 'win32' and extra == 'lldb'", specifier = ">=8.2.13,<9" },
@@ -1869,7 +1867,7 @@ requires-dist = [
     { name = "uv", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'", specifier = ">=0.8.14", index = "https://mirrors.loong64.com/pypi/simple" },
     { name = "ziglang", marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'", specifier = "==0.14.1" },
 ]
-provides-extras = ["lldb", "gdb", "decomp2dbg"]
+provides-extras = ["lldb", "gdb"]
 
 [package.metadata.requires-dev]
 dev = [
