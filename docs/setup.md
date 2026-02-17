@@ -61,19 +61,19 @@ When installing with GDB, you may also download a package to install through you
 
 RPM-based Systems (CentOS/Alma/Rocky/RHEL):
 ```{.bash .copy}
-dnf install ./pwndbg-2025.10.20.x86_64.rpm
+dnf install ./pwndbg-2026.02.17.x86_64.rpm
 ```
 DEB-based Systems (Debian/Ubuntu/Kali):
 ```{.bash .copy}
-apt install ./pwndbg_2025.10.20_amd64.deb
+apt install ./pwndbg_2026.02.17_amd64.deb
 ```
 Alpine:
 ```{.bash .copy}
-apk add --allow-untrusted ./pwndbg_2025.10.20_x86_64.apk
+apk add --allow-untrusted ./pwndbg_2026.02.17_x86_64.apk
 ```
 Arch Linux:
 ```{.bash .copy}
-pacman -U ./pwndbg-2025.10.20-1-x86_64.pkg.tar.zst
+pacman -U ./pwndbg-2026.02.17-1-x86_64.pkg.tar.zst
 ```
 ### Distro packages
 You may want to install Pwndbg through your distribution's package manager. This installation method is **not officially supported** because we cannot control the versions of the python dependencies Pwndbg uses in this case. Please use any other installation method when reproducing bug reports (portable package is probably simplest in this case). If a bug reproduces with a distro package but not with any of the supported installation methods, please report it to the package maintainer; if the problem cannot be fixed, let us know and we will add it to a list of known issues below.
