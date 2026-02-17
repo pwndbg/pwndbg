@@ -87,6 +87,7 @@ usage() {
     echo "  --update: Install/update dependencies without checking ~/.gdbinit"
 }
 
+UPDATE_MODE=
 for arg in "$@"; do
     case $arg in
         --update)
