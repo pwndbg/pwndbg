@@ -217,7 +217,6 @@ class Tracker:
         self.free_watchpoints: dict[int, FreeChunkWatchpoint] = {}
         self.memory_management_calls: dict[int, bool] = {}
         self.colorized_heap_ptrs: dict[int, str] = {}
-        self.heap_base: int | None = None
         self.rel_addr = rel_addr
 
     def is_performing_memory_management(self):
@@ -225,17 +224,6 @@ class Tracker:
         if thread not in self.memory_management_calls:
             return False
         return self.memory_management_calls[thread]
-
-    def get_heap_region(self) -> tuple[int, int] | None:
-        """
-        Returns the base and end address of the heap region, if it can be determined.
-        """
-        for page in pwndbg.aglib.vmmap.get():
-            if page.objfile == "[heap]":
-                # We cache the heap base here, as it's used in a lot of places and we don't want to have to query for it every time.
-                self.heap_base = page.start
-                return (page.start, page.end)
-        return None
 
     def enter_memory_management(self, name: str) -> None:
         thread = gdb.selected_thread().global_num
@@ -268,22 +256,20 @@ class Tracker:
 
         idx = len(self.colorized_heap_ptrs) % len(PTRS_COLORS)
 
-        if self.rel_addr and self.heap_base is None:
-            heap_region = self.get_heap_region()
-            if heap_region is None:
-                print(
-                    "Could not find heap region, falling back to non-offset mode for pointer colorization"
-                )
-                self.rel_addr = False
-
         if self.rel_addr:
-            offset = ptr - self.heap_base
-            colored = PTRS_COLORS[idx](f"heap+{offset:#x}")
+            page = pwndbg.aglib.vmmap.find(ptr)
+            region_start = pwndbg.aglib.vmmap.addr_region_start(ptr) if page else None
+
+            if page and region_start is not None:
+                label = page.objfile or "anon"
+                offset = ptr - region_start
+                colored = PTRS_COLORS[idx](f"{label}+{offset:#x}")
+            else:
+                colored = PTRS_COLORS[idx](f"{ptr:#x}")
         else:
             colored = PTRS_COLORS[idx](f"{ptr:#x}")
 
         self.colorized_heap_ptrs[ptr] = colored
-
         return colored
 
     def malloc(self, chunk: Chunk) -> None:
