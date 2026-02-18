@@ -1,5 +1,5 @@
 """
-ommands for dealing with Linux kernel slab allocator. Currently, only SLUB is supported.
+Commands for dealing with Linux kernel slab allocator. Currently, only SLUB is supported.
 
 Some of the code here was inspired from https://github.com/NeatMonster/slabdbg
 Some of the code here was inspired from https://github.com/osandov/drgn
