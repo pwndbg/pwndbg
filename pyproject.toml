@@ -1,6 +1,6 @@
 [project]
 name = "pwndbg"
-version = "2026.02.17"
+version = "2026.02.18"
 description = "Exploit Development and Reverse Engineering with GDB Made Easy"
 authors = [{ name = "Dominik 'disconnect3d' Czarnota", email = "dominik.b.czarnota+dc@gmail.com" }]
 requires-python = ">=3.10, <4"
