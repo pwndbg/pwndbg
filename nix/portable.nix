@@ -26,11 +26,11 @@ let
     case " $* " in
       *" --quiet "*|*" -q "*) quiet=1 ;;
     esac
-  
+
     if [ "$quiet" -eq 0 ]; then
       detected=0
       platform=$(uname -s)
-  
+
       if [ "$platform" = "Darwin" ]; then
         if [ -n "$DYLD_LIBRARY_PATH" ] || \
            [ -n "$DYLD_INSERT_LIBRARIES" ] || \
@@ -43,13 +43,13 @@ let
           detected=1
         fi
       fi
-  
+
       if [ "$detected" -eq 1 ]; then
         echo
         echo "WARNING: Potentially problematic environment variables detected!"
         echo "These may cause library loading issues with debugging tools like pwndbg."
         echo
-  
+
         if [ "$platform" = "Darwin" ]; then
           [ -n "$DYLD_LIBRARY_PATH" ] && echo "DYLD_LIBRARY_PATH is set to: $DYLD_LIBRARY_PATH"
           [ -n "$DYLD_INSERT_LIBRARIES" ] && echo "DYLD_INSERT_LIBRARIES is set to: $DYLD_INSERT_LIBRARIES"
@@ -57,7 +57,7 @@ let
           [ -n "$LD_LIBRARY_PATH" ] && echo "LD_LIBRARY_PATH is set to: $LD_LIBRARY_PATH"
           [ -n "$LD_PRELOAD" ] && echo "LD_PRELOAD is set to: $LD_PRELOAD"
         fi
-  
+
         echo
       fi
     fi
