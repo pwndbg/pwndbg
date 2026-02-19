@@ -4,7 +4,6 @@ import functools
 import re
 from collections.abc import Callable
 from typing import Any
-from typing import override
 
 from typing_extensions import ParamSpec
 
@@ -340,8 +339,8 @@ class ArchSymbols:
         self.db_list_heuristic_func = (
             "dma_buf_file_release" if not krelease or krelease >= (5, 10) else "dma_buf_release"
         )
-        self.bpf_prog_heuristic_func = "bpf_prog_free_id"
-        self.bpf_map_heuristic_func = "bpf_map_free_id"
+        self.prog_idr_heuristic_func = "bpf_prog_free_id"
+        self.map_idr_heuristic_func = "bpf_map_free_id"
         self.current_task_heuristic_func = "common_cpu_up"
 
     def disass(self, name: str) -> str | None:
@@ -402,7 +401,7 @@ class ArchSymbols:
         return False
 
     # using symbols usually yield incorrect results
-    @kernel_symbol_func(use_symbol=False)
+    @kernel_symbol_func()
     def current_task(self) -> bool:
         return False
 
@@ -525,7 +524,7 @@ class x86_64Symbols(ArchSymbols):
         return None
 
     def _map_idr(self) -> int | None:
-        disass = self.disass(self.bpf_map_heuristic_func)
+        disass = self.disass(self.map_idr_heuristic_func)
         if not disass:
             return None
         result = self.qword_mov_reg_const(disass, nth=1)
@@ -534,7 +533,7 @@ class x86_64Symbols(ArchSymbols):
         return self.qword_mov_reg_const(disass)
 
     def _prog_idr(self) -> int | None:
-        disass = self.disass(self.bpf_prog_heuristic_func)
+        disass = self.disass(self.prog_idr_heuristic_func)
         if not disass:
             return None
         result = self.qword_mov_reg_const(disass, nth=1)
@@ -641,7 +640,7 @@ class Aarch64Symbols(ArchSymbols):
         return None
 
     def _map_idr(self) -> int | None:
-        disass = self.disass(self.bpf_map_heuristic_func)
+        disass = self.disass(self.map_idr_heuristic_func)
         if not disass:
             return None
         result = self.qword_adrp_add_const(disass, nth=1)
@@ -650,7 +649,7 @@ class Aarch64Symbols(ArchSymbols):
         return self.qword_adrp_add_const(disass)
 
     def _prog_idr(self) -> int | None:
-        disass = self.disass(self.bpf_prog_heuristic_func)
+        disass = self.disass(self.prog_idr_heuristic_func)
         if not disass:
             return None
         result = self.qword_adrp_add_const(disass, nth=1)
@@ -658,6 +657,5 @@ class Aarch64Symbols(ArchSymbols):
             return result
         return self.qword_adrp_add_const(disass)
 
-    @override
     def current_task(self) -> int | None:
         return pwndbg.aglib.regs.read_reg("sp_el0")
