@@ -151,6 +151,8 @@ def get_tasks_offset(mm_offset: int) -> tuple[list[int], int]:
     tasks = None
     for i in range(pwndbg.aglib.kernel.nproc()):
         task = pwndbg.aglib.kernel.current_task(i)
+        if not pwndbg.aglib.memory.is_kernel(task):
+            continue
         tasks = pwndbg.aglib.kernel.get_double_linked_list(task + tasks_offset, minlen=5)
         if tasks is not None:
             break
@@ -242,9 +244,11 @@ def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
     mask = pwndbg.aglib.kernel.PAGE_ENTRY_MASK()
     pgd = regval & mask
     current_tasks = [
-        int(pwndbg.aglib.kernel.current_task(i)) for i in range(pwndbg.aglib.kernel.nproc())
+        pwndbg.aglib.kernel.current_task(i) for i in range(pwndbg.aglib.kernel.nproc())
     ]
     for task in tasks + current_tasks:
+        if not pwndbg.aglib.memory.is_kernel(task):
+            continue
         pgd_offset = helper(task, mm_offset, pgd) or helper(task, mm_offset + ptrsize, pgd)
         if pgd_offset:
             break
@@ -446,7 +450,7 @@ def get_cred_struct_and_offset(tasks: list[int], comm_offset: int) -> tuple[str,
     assert cred_offset, "cannot find the offset of task_struct->cred"
     assert INIT_TASK, "init task not found by get_comm_offset"
     cred = pwndbg.aglib.memory.read_pointer_width(INIT_TASK + cred_offset)
-    off = None
+    off = 0x20
     A = 0x30
     intsize = pwndbg.aglib.typeinfo.uint.sizeof
     # find cap_permitted from INIT_TASK, the distance between uid and cap_permitted is 0x30
@@ -538,11 +542,7 @@ def get_inode_struct(inode: int | None) -> str:
     if inode:
         for i in range(5, 0x10):
             val = pwndbg.aglib.memory.u(inode + i * ptrsize)
-            if (
-                val == 0
-                or val == (-1 % (1 << pwndbg.aglib.arch.ptrbits))
-                or pwndbg.aglib.memory.is_kernel(val)
-            ):
+            if val == pwndbg.aglib.arch.unsigned(-1) or pwndbg.aglib.memory.is_kernel(val):
                 continue
             off = i * ptrsize
             break
@@ -914,6 +914,7 @@ def get_sp_offset(tasks: list[int], stack_offset: int, comm_offset: int) -> int:
 )
 def recover_ktask_typeinfo() -> str:
     task = pwndbg.aglib.kernel.current_task()
+    assert task, "current task not found"
     mm_offset = get_mm_offset(task)
     tasks, tasks_offset = get_tasks_offset(mm_offset)
     mm_struct = get_mm_struct(tasks, mm_offset)
@@ -964,7 +965,7 @@ def recover_ktask_typeinfo() -> str:
         struct list_head thread_node;
         char _pad3[{cred_offset - (thread_list_offset + ptrsize * 2)}];
         struct cred *cred;
-        char _pad4[{comm_offset - (cred_offset + ptrsize)}];
+        char _pad4[{comm_offset - cred_offset - ptrsize}];
         char comm[{TASK_COMM_LEN}];
         char _pad5[{files_offset - (comm_offset + TASK_COMM_LEN)}];
         struct files_struct *files;

@@ -291,15 +291,16 @@ def get_ktasks() -> tuple[Ktask, ...]:
             seen.add(task)
             tasks.append(Ktask(task))
         init_task = pwndbg.aglib.kernel.init_task()
-        task = int(init_task)
-        if task not in seen or not pwndbg.aglib.memory.is_kernel(task):
+        task = init_task
+        if task not in seen and pwndbg.aglib.memory.is_kernel(task):
             tasks.append(Ktask(task))
             seen.add(task)
-        init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task)
-        for task in for_each_entry(init_task["tasks"], "struct task_struct", "tasks"):
-            if (task := int(task)) and task not in seen and pwndbg.aglib.memory.is_kernel(task):
-                seen.add(task)
-                tasks.append(Ktask(task))
+        if init_task is not None:
+            _init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task)
+            for task in for_each_entry(_init_task["tasks"], "struct task_struct", "tasks"):
+                if (task := int(task)) and task not in seen and pwndbg.aglib.memory.is_kernel(task):
+                    seen.add(task)
+                    tasks.append(Ktask(task))
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"ERROR (get_ktasks): {e}"))
         return ()
