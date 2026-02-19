@@ -343,13 +343,11 @@ v
 def buddydump(
     zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, node: int, find: int
 ) -> None:
-    node_data = pwndbg.aglib.kernel.node_data()
+    pwndbg.aglib.kernel.buddydump.recover_buddydump_typeinfo()
+    node_data = pwndbg.aglib.kernel.symbol.node_data_pointer()
     if not node_data:
         log.warning("WARNING: Symbol 'node_data' not found")
         return
-    pwndbg.aglib.kernel.buddydump.recover_buddydump_typeinfo()
-    if not pwndbg.aglib.kernel.has_debug_info():
-        node_data = pwndbg.aglib.memory.get_typed_pointer("node_data_t", node_data)
     pba = ParsedBuddyArgs(zone, order, mtype.lower() if mtype is not None else None, cpu, find)
     cbp = CurrentBuddyParams(
         [NONE_TUPLE] * 3, IndentContextManager(), None, None, 0, "", None, None, None, False
