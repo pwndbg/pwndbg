@@ -3,7 +3,6 @@ from __future__ import annotations
 import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
-import pwndbg.aglib.typeinfo
 
 #########################################
 # structurs relevant to buddydump
@@ -15,9 +14,9 @@ MAX_ORDER = 11
 def find_zone_offsets() -> tuple[int, int, int, int, int]:
     pcp_off, name_off, freelist_off, pcp_pad, zone_sz = None, None, None, None, None
     node_data0 = pwndbg.aglib.kernel.node_data()
+    assert node_data0, "cannot find node_data"
     if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
-        node_data0 = node_data0.dereference()
-    node_data0 = int(node_data0)
+        node_data0 = pwndbg.aglib.memory.read_pointer_width(node_data0)
     ptr = node_data0
     for i in range(20):  # the pcp offset should exist in those range
         val = pwndbg.aglib.memory.u64(ptr)

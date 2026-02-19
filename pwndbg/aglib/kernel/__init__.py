@@ -810,58 +810,52 @@ def num_numa_nodes() -> int:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def node_data() -> pwndbg.dbg_mod.Value | None:
+def node_data() -> int | None:
     if (syms := arch_symbols()) is not None:
-        if (result := syms.node_data()) and isinstance(result, pwndbg.dbg_mod.Value):
-            return result
+        return syms.node_data()
     return None
 
 
 @pwndbg.lib.cache.cache_until("stop")
 def slab_caches() -> pwndbg.dbg_mod.Value | None:
     if (syms := arch_symbols()) is not None:
-        if (result := syms.slab_caches()) and isinstance(result, pwndbg.dbg_mod.Value):
-            return result
+        if addr := syms.slab_caches():
+            return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", addr)
     return None
 
 
 @pwndbg.lib.cache.cache_until("stop")
 def per_cpu_offset() -> int | None:
     if (syms := arch_symbols()) is not None:
-        if (result := syms.per_cpu_offset()) and isinstance(result, int):
-            return result
+        return syms.per_cpu_offset()
     return None
 
 
 @pwndbg.lib.cache.cache_until("stop")
 def modules() -> int | None:
     if (syms := arch_symbols()) is not None:
-        if (result := syms.modules()) and isinstance(result, int):
-            return result
+        return syms.modules()
     return None
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def db_list() -> pwndbg.dbg_mod.Value | None:
+def db_list() -> int | None:
     if (syms := arch_symbols()) is not None:
-        if (result := syms.db_list()) and isinstance(result, pwndbg.dbg_mod.Value):
-            return result
+        return syms.db_list()
     return None
 
 
 @pwndbg.lib.cache.cache_until("stop")
 def prog_idr() -> int | None:
     if (syms := arch_symbols()) is not None:
-        if (result := syms.prog_idr()) and isinstance(result, int):
-            return result
+        return syms.prog_idr()
     return None
 
 
 @pwndbg.lib.cache.cache_until("stop")
 def map_idr() -> int | None:
     if (syms := arch_symbols()) is not None:
-        if (result := syms.map_idr()) and isinstance(result, int):
-            return result
+        return syms.map_idr()
     return None
 
 

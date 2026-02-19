@@ -13,6 +13,7 @@ import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.dbg_mod import EventType
@@ -90,18 +91,30 @@ def nmtypes() -> int:
     return len(migratetype_names())
 
 
+def node_data_pointer() -> pwndbg.dbg_mod.Value | None:
+    addr = pwndbg.aglib.kernel.node_data()
+    if addr is None:
+        return None
+    node_data = pwndbg.aglib.memory.get_typed_pointer("struct pglist_data", addr)
+    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
+        return node_data.cast(node_data.type.pointer())
+    return node_data
+
+
+def get_one_node_data() -> pwndbg.dbg_mod.Value | None:
+    node_data = node_data_pointer()
+    if not node_data or "CONFIG_NUMA" not in pwndbg.aglib.kernel.kconfig():
+        return node_data
+    return node_data.dereference()
+
+
 def npcplist() -> int:
     """returns NR_PCP_LISTS (https://elixir.bootlin.com/linux/v6.13/source/include/linux/mmzone.h#L671)"""
-    if (
-        not pwndbg.aglib.kernel.has_debug_symbols("node_zones")
-        or not pwndbg.aglib.kernel.has_debug_info()
-    ):
+    if not pwndbg.aglib.kernel.has_debug_info():
         if pwndbg.aglib.kernel.krelease() < (5, 14):
             return 3
         return 12
-    node_data0 = pwndbg.aglib.kernel.node_data()
-    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
-        node_data0 = node_data0.dereference()
+    node_data0 = get_one_node_data()
     zone = node_data0[0]["node_zones"][0]
     # index 0 should always exist
     if zone.type.has_field("per_cpu_pageset"):
@@ -299,57 +312,50 @@ class NeedLookup:
 
 
 def kernel_symbol_func(
-    t: str | None = None, prefer_symbol: bool = True, symbol_name: str | None = None
-) -> Callable[[Callable[P, Any]], Callable[P, int | pwndbg.dbg_mod.Value | None]]:
+    prefer_symbol: bool = True, symbol_name: str | None = None
+) -> Callable[[Callable[P, int | None | type[NeedLookup]]], Callable[P, int | None]]:
     """
     Marks a kernel symbol lookup function.
-    @t: the type string. If the last character is `*`, a Value with a pointer type is returned.
-        The format follows the C syntax.
-    @prefer_symbol: if true, this decorator will try to resolve the actual symbol address with lookup_symbol first.
-    @symbol_name: the actual name of the symbol, if different from the function name.
+    This decorator should be used exclusively for ArchSymbols (and its subclasses).
 
-    The return value of the wrapped function will be returned if the value is of type `int | pwndbg.dbg_mod.Value | None`.
-    A return value of another type indicates furthur lookup is needed.
+    Arguments:
+        prefer_symbol: if true, this decorator will try to resolve the actual symbol address with lookup_symbol first.
+        symbol_name: the actual name of the symbol, if different from the function name.
+
+    The return value of the wrapped function will be returnedif the value is of type `int | None`.
+    If NeedLookup is returned, further lookup is needed.
 
     Returns:
-        If the symbol could not be resolved, None is returned.
-        Otherwise, if the symbol can be resolved:
-            If a type string is specified. A pwndbg.dbg_mod.Value with the given type is returned.
-            Otherwise, an int is returned.
+        The address of the symbol if the symbol was resolved, else None is returned.
     """
 
-    def decorator(f: Callable[P, Any]) -> Callable[P, int | pwndbg.dbg_mod.Value | None]:
+    def decorator(f: Callable[P, int | None | type[NeedLookup]]) -> Callable[P, int | None]:
         @functools.wraps(f)
-        def func(*args: P.args, **kwargs: P.kwargs) -> int | pwndbg.dbg_mod.Value | None:
+        def func(*args: P.args, **kwargs: P.kwargs) -> int | None:
             self = args[0]
             result = f(*args, **kwargs)
-            if isinstance(result, int | pwndbg.dbg_mod.Value | None):
+            if isinstance(result, int | None):
                 return result
+            result = None
             if prefer_symbol:
-                result = pwndbg.aglib.symbol.lookup_symbol(
-                    f.__name__ if symbol_name is None else symbol_name
+                result = pwndbg.aglib.symbol.lookup_symbol_addr(
+                    symbol_name if symbol_name else f.__name__
                 )
-            if not isinstance(result, pwndbg.dbg_mod.Value):
+            if result is None:
                 # we use heuristics if the symbol could not be resolved by lookup_symbol
-                heuristic_func = f"{f.__name__}_heuristic_func"
-                if hasattr(self, heuristic_func):
-                    func_name = getattr(self, heuristic_func)
-                    if not pwndbg.aglib.symbol.lookup_symbol(func_name):
-                        return None
-                    _func: Callable[[], int | None] = getattr(self, f"_{f.__name__}")
-                    result = _func()
-            if not isinstance(result, pwndbg.dbg_mod.Value | int) and not prefer_symbol:
-                result = pwndbg.aglib.symbol.lookup_symbol(
-                    f.__name__ if symbol_name is None else symbol_name
+                if (field_name := f"{f.__name__}_heuristic_func") and hasattr(self, field_name):
+                    heuristic_func_name: str = getattr(self, field_name)
+                    if pwndbg.aglib.symbol.lookup_symbol(heuristic_func_name):
+                        arch_heuristic_handle: Callable[[], int | None] = getattr(
+                            self, f"_{f.__name__}"
+                        )
+                        result = arch_heuristic_handle()
+            if result is None and not prefer_symbol:
+                result = pwndbg.aglib.symbol.lookup_symbol_addr(
+                    symbol_name if symbol_name else f.__name__
                 )
-            if t and isinstance(result, pwndbg.dbg_mod.Value | int):
-                if t[-1] == "*":
-                    if not pwndbg.aglib.kernel.has_debug_info():
-                        result = pwndbg.aglib.memory.get_typed_pointer(t[:-1], result)
-                else:
-                    result = pwndbg.aglib.memory.get_typed_pointer_value(t, result)
-            if t is None:
-                result = int(result) if result else result
+            if result is None:
+                return None
             return result
 
         return func
@@ -394,11 +400,11 @@ class ArchSymbols:
             return matches[nth]
         return None
 
-    @kernel_symbol_func("unsigned long*")
+    @kernel_symbol_func()
     def node_data(self) -> type[NeedLookup]:
         return NeedLookup
 
-    @kernel_symbol_func("struct list_head")
+    @kernel_symbol_func()
     def slab_caches(self) -> type[NeedLookup]:
         return NeedLookup
 
@@ -410,11 +416,11 @@ class ArchSymbols:
     def modules(self) -> type[NeedLookup]:
         return NeedLookup
 
-    @kernel_symbol_func("struct list_head*")
-    def db_list(self) -> pwndbg.dbg_mod.Value | None | type[NeedLookup]:
+    @kernel_symbol_func()
+    def db_list(self) -> int | None | type[NeedLookup]:
         krelease = pwndbg.aglib.kernel.krelease()
         if not krelease or krelease >= (6, 10):
-            debugfs_list = pwndbg.aglib.symbol.lookup_symbol("debugfs_list")
+            debugfs_list = pwndbg.aglib.symbol.lookup_symbol_addr("debugfs_list")
             # TODO: fallback not supported for >= v6.10, should look at dma_buf_debug_show later if needed
             # though the symbol should exist if the function symbol exist
             return debugfs_list
