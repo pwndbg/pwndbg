@@ -216,9 +216,7 @@ def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig:
             config_start = result + len("IKCFG_ST")
             config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
     if (
-        not config_start
-        or not config_end
-        or not pwndbg.aglib.memory.is_kernel(config_start)
+        not pwndbg.aglib.memory.is_kernel(config_start)
         or not pwndbg.aglib.memory.is_kernel(config_end)
         or config_start >= config_end
     ):
@@ -471,11 +469,13 @@ class x86_64Ops(x86Ops):
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value:
+    ) -> pwndbg.dbg_mod.Value | None:
         if cpu is None:
             cpu = current_cpu()
 
-        per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
+        per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
+        if per_cpu_offset is None:
+            return None
 
         offset = pwndbg.aglib.memory.read_pointer_width(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
@@ -507,11 +507,13 @@ class Aarch64Ops(ArchOps):
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value:
+    ) -> pwndbg.dbg_mod.Value | None:
         if cpu is None:
             cpu = current_cpu()
 
-        per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
+        per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
+        if per_cpu_offset is None:
+            return None
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
@@ -725,6 +727,20 @@ def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
     raise NotImplementedError()
 
 
+def PAGE_ENTRY_MASK() -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.PAGE_ENTRY_MASK
+    raise NotImplementedError()
+
+
+def STRUCT_PAGE_SIZE() -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.STRUCT_PAGE_SIZE
+    raise NotImplementedError()
+
+
 def slab_to_virt(slab: int) -> int:
     pi = arch_paginginfo()
     if pi:
@@ -793,49 +809,71 @@ def num_numa_nodes() -> int:
     return val
 
 
-def node_data() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def node_data() -> pwndbg.dbg_mod.Value | None:
     if (syms := arch_symbols()) is not None:
-        return syms.node_data()
+        if (result := syms.node_data()) and isinstance(result, pwndbg.dbg_mod.Value):
+            return result
     return None
 
 
-def slab_caches() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def slab_caches() -> pwndbg.dbg_mod.Value | None:
     if (syms := arch_symbols()) is not None:
-        return syms.slab_caches()
+        if (result := syms.slab_caches()) and isinstance(result, pwndbg.dbg_mod.Value):
+            return result
     return None
 
 
-def per_cpu_offset() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def per_cpu_offset() -> int | None:
     if (syms := arch_symbols()) is not None:
-        return syms.per_cpu_offset()
+        if (result := syms.per_cpu_offset()) and isinstance(result, int):
+            return result
     return None
 
 
-def modules() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def modules() -> int | None:
     if (syms := arch_symbols()) is not None:
-        return syms.modules()
+        if (result := syms.modules()) and isinstance(result, int):
+            return result
     return None
 
 
-def db_list() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def db_list() -> pwndbg.dbg_mod.Value | None:
     if (syms := arch_symbols()) is not None:
-        return syms.db_list()
+        if (result := syms.db_list()) and isinstance(result, pwndbg.dbg_mod.Value):
+            return result
     return None
 
 
-def prog_idr() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def prog_idr() -> int | None:
     if (syms := arch_symbols()) is not None:
-        return syms.prog_idr()
+        if (result := syms.prog_idr()) and isinstance(result, int):
+            return result
     return None
 
 
-def map_idr() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def map_idr() -> int | None:
     if (syms := arch_symbols()) is not None:
-        return syms.map_idr()
+        if (result := syms.map_idr()) and isinstance(result, int):
+            return result
     return None
 
 
-def current_task(cpu: int | None = None) -> int:
+@pwndbg.lib.cache.cache_until("stop")
+def current_task(cpu: int | None = None) -> int | None:
     if (syms := arch_symbols()) is not None:
-        return syms.current_task(cpu)
+        result = syms.current_task()
+        if not isinstance(result, int):
+            return None
+        if pwndbg.aglib.arch.name == "aarch64":
+            # TODO: how to get the kcurrent for different cpus
+            return result
+        ptr = int(per_cpu(result, cpu=cpu))
+        return pwndbg.aglib.memory.read_pointer_width(ptr)
     return None

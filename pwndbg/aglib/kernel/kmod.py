@@ -33,7 +33,7 @@ def module_name_offset() -> int | None:
     if modules is None:
         print(message.warn("Could not find modules"))
         return None
-    module = pwndbg.aglib.memory.read_pointer_width(int(modules))
+    module = pwndbg.aglib.memory.read_pointer_width(modules)
     for i in range(0x100):
         offset = i * pwndbg.aglib.arch.ptrsize
         try:
@@ -53,7 +53,7 @@ def module_mem_offset() -> tuple[int | None, int | None, int | None]:
     if modules is None:
         print(message.warn("Could not find modules"))
         return None, None, None
-    module = pwndbg.aglib.memory.read_pointer_width(int(modules))
+    module = pwndbg.aglib.memory.read_pointer_width(modules)
     krelease = pwndbg.aglib.kernel.krelease()
     for i in range(0x100):
         offset = i * pwndbg.aglib.arch.ptrsize
@@ -98,7 +98,7 @@ def module_layout_offset() -> tuple[int | None, int | None]:
     if modules is None:
         print(message.warn("Could not find modules"))
         return None, None
-    module = pwndbg.aglib.memory.read_pointer_width(int(modules))
+    module = pwndbg.aglib.memory.read_pointer_width(modules)
     for i in range(0x100):  # enough to search through the struct
         offset = i * pwndbg.aglib.arch.ptrsize
         ptr = module + offset + pwndbg.aglib.arch.ptrsize
@@ -125,7 +125,7 @@ def module_kallsyms_offset() -> int | None:
     if modules is None:
         print(message.warn("Could not find modules"))
         return None
-    module = pwndbg.aglib.memory.read_pointer_width(int(modules))
+    module = pwndbg.aglib.memory.read_pointer_width(modules)
     krelease = pwndbg.aglib.kernel.krelease()
     for i in range(0x100):
         offset = i * pwndbg.aglib.arch.ptrsize
@@ -175,7 +175,6 @@ def module_list() -> tuple[int, ...]:
     if modules is None:
         print(message.warn("Could not find modules"))
         return ()
-    modules = int(modules)
     result = []
     cur = pwndbg.aglib.memory.read_pointer_width(modules)
     while cur != modules:
