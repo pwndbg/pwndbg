@@ -293,27 +293,51 @@ def load_common_structs_on_load_linux() -> None:
 P = ParamSpec("P")
 
 
+class NeedLookup:
+    pass
+
+
 def kernel_symbol_func(
-    t: str | None = None, use_symbol: bool = True, prefix: str = ""
+    t: str | None = None, use_symbol: bool = True, symbol_name: str | None = None
 ) -> Callable[[Callable[P, Any]], Callable[P, int | pwndbg.dbg_mod.Value | None]]:
+    """
+    Marks a kernel symbol lookup function.
+    @t: the type string. If the last character is `*`, a Value with a pointer type is returned.
+        The format follows the C syntax.
+    @use_symbol: if true, this decorator will try to resolve the actual symbol address with lookup_symbol.
+    @symbol_name: the actual name of the symbol, if different from the function name.
+
+    The return value of the wrapped function will be returned if the value is of type `int | pwndbg.dbg_mod.Value | None`.
+    A return value of another type indicates furthur lookup is needed.
+
+    Returns:
+        If the symbol could not be resolved, None is returned.
+        Otherwise, if the symbol can be resolved:
+            If a type string is specified. A pwndbg.dbg_mod.Value with the given type is returned.
+            Otherwise, an int is returned.
+    """
+
     def decorator(f: Callable[P, Any]) -> Callable[P, int | pwndbg.dbg_mod.Value | None]:
         @functools.wraps(f)
         def func(*args: P.args, **kwargs: P.kwargs) -> int | pwndbg.dbg_mod.Value | None:
             self = args[0]
-            symbol_name = f.__name__
             result = f(*args, **kwargs)
-            if result is not False:
+            if isinstance(result, int | pwndbg.dbg_mod.Value | None):
                 return result
             if use_symbol:
-                result = pwndbg.aglib.symbol.lookup_symbol(prefix + symbol_name)
+                result = pwndbg.aglib.symbol.lookup_symbol(
+                    f.__name__ if symbol_name is None else symbol_name
+                )
             if not result:
-                heuristic_func = f"{symbol_name}_heuristic_func"
+                heuristic_func = f"{f.__name__}_heuristic_func"
                 if hasattr(self, heuristic_func):
                     func_name = getattr(self, heuristic_func)
                     if not pwndbg.aglib.symbol.lookup_symbol(func_name):
                         return None
-                    _func: Callable[[], int | None] = getattr(self, f"_{symbol_name}")
+                    _func: Callable[[], int | None] = getattr(self, f"_{f.__name__}")
                     result = _func()
+            if not isinstance(result, int | pwndbg.dbg_mod.Value | None):
+                return None
             if t and result is not None:
                 if t[-1] == "*":
                     if not pwndbg.aglib.kernel.has_debug_info():
@@ -367,43 +391,43 @@ class ArchSymbols:
         return None
 
     @kernel_symbol_func("unsigned long*")
-    def node_data(self) -> bool:
-        return False
+    def node_data(self) -> type[NeedLookup]:
+        return NeedLookup
 
     @kernel_symbol_func("struct list_head")
-    def slab_caches(self) -> bool:
-        return False
+    def slab_caches(self) -> type[NeedLookup]:
+        return NeedLookup
 
-    @kernel_symbol_func(prefix="__")
-    def per_cpu_offset(self) -> bool:
-        return False
+    @kernel_symbol_func(symbol_name="__per_cpu_offset")
+    def per_cpu_offset(self) -> type[NeedLookup]:
+        return NeedLookup
 
     @kernel_symbol_func()
-    def modules(self) -> bool:
-        return False
+    def modules(self) -> type[NeedLookup]:
+        return NeedLookup
 
     @kernel_symbol_func("struct list_head*")
-    def db_list(self) -> pwndbg.dbg_mod.Value | None | bool:
+    def db_list(self) -> pwndbg.dbg_mod.Value | None | type[NeedLookup]:
         krelease = pwndbg.aglib.kernel.krelease()
         if not krelease or krelease >= (6, 10):
             debugfs_list = pwndbg.aglib.symbol.lookup_symbol("debugfs_list")
             # TODO: fallback not supported for >= v6.10, should look at dma_buf_debug_show later if needed
             # though the symbol should exist if the function symbol exist
             return debugfs_list
-        return False
+        return NeedLookup
 
     @kernel_symbol_func()
-    def map_idr(self) -> bool:
-        return False
+    def map_idr(self) -> type[NeedLookup]:
+        return NeedLookup
 
     @kernel_symbol_func()
-    def prog_idr(self) -> bool:
-        return False
+    def prog_idr(self) -> type[NeedLookup]:
+        return NeedLookup
 
     # using symbols usually yield incorrect results
     @kernel_symbol_func()
-    def current_task(self) -> bool:
-        return False
+    def current_task(self) -> type[NeedLookup]:
+        return NeedLookup
 
     def _node_data(self) -> int | None:
         raise NotImplementedError()
