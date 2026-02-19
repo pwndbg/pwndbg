@@ -83,6 +83,8 @@ def get_kernel_stacks() -> list[tuple[int, int, str]]:
 
 def handle_user_stack_and_filepaths(pages: pwndbg.dbg_mod.MemoryMap) -> None:
     task = pwndbg.aglib.kernel.current_task()
+    if task is None:
+        return
     task = pwndbg.commands.ktask.Kthread(task)
     user_stack = task.user_stack
     for page in pages.ranges():
@@ -439,7 +441,7 @@ def kernel_vmmap_pages() -> tuple[Page, ...]:
             entry = None
             if (kcurrent := pwndbg.commands.kcurrent.get_kcurrent()) is not None:
                 entry = kcurrent.pgd
-            if entry and pwndbg.aglib.memory.is_kernel(entry):
+            if pwndbg.aglib.memory.is_kernel(entry):
                 entry = pwndbg.aglib.kernel.pagewalk(entry, virt=False).phys
             return pwndbg.aglib.kernel.pagescan(entry)
         case "pt-dump":

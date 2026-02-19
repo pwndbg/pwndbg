@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TypeGuard
 from typing import Union
 
 import pwndbg.aglib
@@ -462,5 +463,5 @@ def is_pagefault_supported() -> bool:
     return pwndbg.dbg.selected_inferior().is_linux()
 
 
-def is_kernel(addr: int | None):
+def is_kernel(addr: int | None) -> TypeGuard[int]:
     return addr is not None and (addr >> 63 == 1) and peek(addr) is not None

@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import functools
 import re
+from collections.abc import Callable
 from typing import Any
+from typing import override
+
+from typing_extensions import ParamSpec
 
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
@@ -286,28 +292,66 @@ def load_common_structs_on_load_linux() -> None:
             pwndbg.aglib.kernel.page_typeinfo_recovery_failure = e
 
 
+P = ParamSpec("P")
+
+
+def kernel_symbol_func(
+    t: str | None = None, use_symbol: bool = True, prefix: str = ""
+) -> Callable[[Callable[P, Any]], Callable[P, int | pwndbg.dbg_mod.Value | None]]:
+    def decorator(f: Callable[P, Any]) -> Callable[P, int | pwndbg.dbg_mod.Value | None]:
+        @functools.wraps(f)
+        def func(*args: P.args, **kwargs: P.kwargs) -> int | pwndbg.dbg_mod.Value | None:
+            self = args[0]
+            symbol_name = f.__name__
+            result = f(*args, **kwargs)
+            if result is not False:
+                return result
+            if use_symbol:
+                result = pwndbg.aglib.symbol.lookup_symbol(prefix + symbol_name)
+            if not result:
+                heuristic_func = f"{symbol_name}_heuristic_func"
+                if hasattr(self, heuristic_func):
+                    func_name = getattr(self, heuristic_func)
+                    if not pwndbg.aglib.symbol.lookup_symbol(func_name):
+                        return None
+                    _func: Callable[[], int | None] = getattr(self, f"_{symbol_name}")
+                    result = _func()
+            if t and result is not None:
+                if t[-1] == "*":
+                    if not pwndbg.aglib.kernel.has_debug_info():
+                        result = pwndbg.aglib.memory.get_typed_pointer(t[:-1], result)
+                else:
+                    result = pwndbg.aglib.memory.get_typed_pointer_value(t, result)
+            if t is None:
+                result = int(result) if result else result
+            return result
+
+        return func
+
+    return decorator
+
+
 class ArchSymbols:
     def __init__(self) -> None:
+        krelease = pwndbg.aglib.kernel.krelease()
         self.node_data_heuristic_func = "first_online_pgdat"
         self.slab_caches_heuristic_func = "slab_next"
         self.per_cpu_offset_heuristic_func = "nr_iowait_cpu"
         self.modules_heuristic_func = "find_module_all"
         self.db_list_heuristic_func = (
-            "dma_buf_file_release"
-            if pwndbg.aglib.kernel.krelease() >= (5, 10)
-            else "dma_buf_release"
+            "dma_buf_file_release" if not krelease or krelease >= (5, 10) else "dma_buf_release"
         )
         self.bpf_prog_heuristic_func = "bpf_prog_free_id"
         self.bpf_map_heuristic_func = "bpf_map_free_id"
         self.current_task_heuristic_func = "common_cpu_up"
 
-    def disass(self, name: str, lines: int = 10) -> str | None:
+    def disass(self, name: str) -> str | None:
         sym = pwndbg.aglib.symbol.lookup_symbol(name)
         if sym is None:
             return None
         addr = int(sym)
         disass = []
-        for _ in range(lines):
+        while (symname := pwndbg.aglib.symbol.resolve_addr(addr)) and symname.split("+")[0] == name:
             instr = pwndbg.aglib.disasm.disassembly.get_one_instruction(addr, enhance=False)
             if instr is None:
                 break
@@ -324,96 +368,48 @@ class ArchSymbols:
             return matches[nth]
         return None
 
-    @pwndbg.lib.cache.cache_until("stop")
-    def node_data(self) -> pwndbg.dbg_mod.Value:
-        node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
-        if pwndbg.aglib.kernel.has_debug_info():
-            return node_data
-        if node_data is None and pwndbg.aglib.kernel.has_debug_symbols(
-            self.node_data_heuristic_func
-        ):
-            node_data = self._node_data()
-        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", node_data)
+    @kernel_symbol_func("unsigned long*")
+    def node_data(self) -> bool:
+        return False
 
-    @pwndbg.lib.cache.cache_until("stop")
-    def slab_caches(self) -> pwndbg.dbg_mod.Value:
-        slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
-        if slab_caches is None and pwndbg.aglib.kernel.has_debug_symbols(
-            self.slab_caches_heuristic_func
-        ):
-            slab_caches = self._slab_caches()
-        return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", slab_caches)
+    @kernel_symbol_func("struct list_head")
+    def slab_caches(self) -> bool:
+        return False
 
-    @pwndbg.lib.cache.cache_until("stop")
-    def per_cpu_offset(self) -> pwndbg.dbg_mod.Value:
-        per_cpu_offset = pwndbg.aglib.symbol.lookup_symbol("__per_cpu_offset")
-        if per_cpu_offset is not None:
-            return per_cpu_offset
-        if pwndbg.aglib.kernel.has_debug_symbols(self.per_cpu_offset_heuristic_func):
-            per_cpu_offset = self._per_cpu_offset()
-        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", per_cpu_offset)
+    @kernel_symbol_func(prefix="__")
+    def per_cpu_offset(self) -> bool:
+        return False
 
-    @pwndbg.lib.cache.cache_until("stop")
-    def modules(self) -> pwndbg.dbg_mod.Value:
-        modules = pwndbg.aglib.symbol.lookup_symbol("modules")
-        if modules:
-            return modules
-        if pwndbg.aglib.kernel.has_debug_symbols(self.modules_heuristic_func):
-            modules = self._modules()
-        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", modules)
+    @kernel_symbol_func()
+    def modules(self) -> bool:
+        return False
 
-    @pwndbg.lib.cache.cache_until("stop")
-    def db_list(self) -> pwndbg.dbg_mod.Value:
-        if pwndbg.aglib.kernel.krelease() >= (6, 10):
+    @kernel_symbol_func("struct list_head*")
+    def db_list(self) -> pwndbg.dbg_mod.Value | None | bool:
+        krelease = pwndbg.aglib.kernel.krelease()
+        if not krelease or krelease >= (6, 10):
             debugfs_list = pwndbg.aglib.symbol.lookup_symbol("debugfs_list")
             # TODO: fallback not supported for >= v6.10, should look at dma_buf_debug_show later if needed
             # though the symbol should exist if the function symbol exist
             return debugfs_list
-        db_list = pwndbg.aglib.symbol.lookup_symbol("db_list")
-        if db_list:
-            return db_list
-        if pwndbg.aglib.kernel.has_debug_symbols(self.db_list_heuristic_func):
-            db_list = self._db_list()
-        return pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)
+        return False
 
-    @pwndbg.lib.cache.cache_until("stop")
-    def map_idr(self) -> pwndbg.dbg_mod.Value:
-        map_idr = pwndbg.aglib.symbol.lookup_symbol("map_idr")
-        if map_idr:
-            return map_idr
-        if pwndbg.aglib.kernel.has_debug_symbols(self.bpf_map_heuristic_func):
-            map_idr = self._map_idr()
-        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", map_idr)
+    @kernel_symbol_func()
+    def map_idr(self) -> bool:
+        return False
 
-    @pwndbg.lib.cache.cache_until("stop")
-    def prog_idr(self) -> pwndbg.dbg_mod.Value:
-        prog_idr = pwndbg.aglib.symbol.lookup_symbol("prog_idr")
-        if prog_idr:
-            return prog_idr
-        if pwndbg.aglib.kernel.has_debug_symbols(self.bpf_prog_heuristic_func):
-            prog_idr = self._prog_idr()
-        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
+    @kernel_symbol_func()
+    def prog_idr(self) -> bool:
+        return False
 
-    @pwndbg.lib.cache.cache_until("stop")
-    def current_task(self, cpu: int | None) -> int | None:
-        # using symbols usually yield incorrect results
-        current_task = None
-        if pwndbg.aglib.arch.name == "aarch64":
-            current_task = self._current_task()
-        elif pwndbg.aglib.kernel.has_debug_symbols(self.current_task_heuristic_func):
-            current_task = self._current_task()
-            if current_task is not None:
-                current_task = pwndbg.aglib.kernel.per_cpu(current_task, cpu=cpu)
-                # current_task is int but needed here to make the linter happy
-                current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
-        return current_task
+    # using symbols usually yield incorrect results
+    @kernel_symbol_func(use_symbol=False)
+    def current_task(self) -> bool:
+        return False
 
-    @pwndbg.lib.cache.cache_until("stop")
-    def init_task(self) -> pwndbg.dbg_mod.Value:
-        init_task = pwndbg.aglib.symbol.lookup_symbol("init_task")
-        if not init_task:
-            init_task = pwndbg.aglib.kernel.ktask.INIT_TASK
-        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", init_task)
+    @kernel_symbol_func()
+    def init_task(self) -> bool:
+        return False
 
     def _node_data(self) -> int | None:
         raise NotImplementedError()
@@ -438,6 +434,9 @@ class ArchSymbols:
 
     def _current_task(self) -> int | None:
         raise NotImplementedError()
+
+    def _init_task(self) -> int | None:
+        return pwndbg.aglib.kernel.ktask.INIT_TASK
 
 
 class x86_64Symbols(ArchSymbols):
@@ -534,7 +533,7 @@ class x86_64Symbols(ArchSymbols):
         return None
 
     def _map_idr(self) -> int | None:
-        disass = self.disass(self.bpf_map_heuristic_func, lines=50)
+        disass = self.disass(self.bpf_map_heuristic_func)
         if not disass:
             return None
         result = self.qword_mov_reg_const(disass, nth=1)
@@ -543,7 +542,7 @@ class x86_64Symbols(ArchSymbols):
         return self.qword_mov_reg_const(disass)
 
     def _prog_idr(self) -> int | None:
-        disass = self.disass(self.bpf_prog_heuristic_func, lines=50)
+        disass = self.disass(self.bpf_prog_heuristic_func)
         if not disass:
             return None
         result = self.qword_mov_reg_const(disass, nth=1)
@@ -552,7 +551,7 @@ class x86_64Symbols(ArchSymbols):
         return self.qword_mov_reg_const(disass)
 
     def _current_task(self) -> int | None:
-        disass = self.disass(self.current_task_heuristic_func, lines=20)
+        disass = self.disass(self.current_task_heuristic_func)
         if not disass:
             return None
         result = self.dword_mov_reg_const(disass)
@@ -650,7 +649,7 @@ class Aarch64Symbols(ArchSymbols):
         return None
 
     def _map_idr(self) -> int | None:
-        disass = self.disass(self.bpf_map_heuristic_func, lines=50)
+        disass = self.disass(self.bpf_map_heuristic_func)
         if not disass:
             return None
         result = self.qword_adrp_add_const(disass, nth=1)
@@ -659,7 +658,7 @@ class Aarch64Symbols(ArchSymbols):
         return self.qword_adrp_add_const(disass)
 
     def _prog_idr(self) -> int | None:
-        disass = self.disass(self.bpf_prog_heuristic_func, lines=50)
+        disass = self.disass(self.bpf_prog_heuristic_func)
         if not disass:
             return None
         result = self.qword_adrp_add_const(disass, nth=1)
@@ -667,5 +666,6 @@ class Aarch64Symbols(ArchSymbols):
             return result
         return self.qword_adrp_add_const(disass)
 
-    def _current_task(self) -> int | None:
+    @override
+    def current_task(self) -> int | None:
         return pwndbg.aglib.regs.read_reg("sp_el0")

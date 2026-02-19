@@ -36,7 +36,7 @@ def kmod(module_name: str | None = None, path: str | None = None) -> None:
         )
         return
 
-    print(f"Kernel modules address found at {int(modules_head):#x}.\n")
+    print(f"Kernel modules address found at {modules_head:#x}.\n")
 
     table = []
     headers = ["Address", "Name", "Size", "Used by"]
@@ -62,7 +62,7 @@ def kmod(module_name: str | None = None, path: str | None = None) -> None:
             if not module_name or module_name in name:
                 table.append([f"{addr:#x}", name, size, uses])
     else:
-        cur = pwndbg.aglib.memory.read_pointer_width(int(modules_head))
+        cur = pwndbg.aglib.memory.read_pointer_width(modules_head)
         name_offset = pwndbg.aglib.kernel.kmod.module_name_offset()
         if not name_offset:
             print(message.warn("module->name offset not found"))
