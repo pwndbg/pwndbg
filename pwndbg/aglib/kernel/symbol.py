@@ -298,7 +298,7 @@ class NeedLookup:
 
 
 def kernel_symbol_func(
-    t: str | None = None, use_symbol: bool = True, symbol_name: str | None = None
+    t: str | None = None, symbol_name: str | None = None
 ) -> Callable[[Callable[P, Any]], Callable[P, int | pwndbg.dbg_mod.Value | None]]:
     """
     Marks a kernel symbol lookup function.
@@ -324,11 +324,11 @@ def kernel_symbol_func(
             result = f(*args, **kwargs)
             if isinstance(result, int | pwndbg.dbg_mod.Value | None):
                 return result
-            if use_symbol:
-                result = pwndbg.aglib.symbol.lookup_symbol(
-                    f.__name__ if symbol_name is None else symbol_name
-                )
-            if not result:
+            result = pwndbg.aglib.symbol.lookup_symbol(
+                f.__name__ if symbol_name is None else symbol_name
+            )
+            if not isinstance(result, pwndbg.dbg_mod.Value):
+                # we use heuristics if the symbol could not be resolved by lookup_symbol
                 heuristic_func = f"{f.__name__}_heuristic_func"
                 if hasattr(self, heuristic_func):
                     func_name = getattr(self, heuristic_func)
@@ -336,8 +336,6 @@ def kernel_symbol_func(
                         return None
                     _func: Callable[[], int | None] = getattr(self, f"_{f.__name__}")
                     result = _func()
-            if not isinstance(result, int | pwndbg.dbg_mod.Value | None):
-                return None
             if t and result is not None:
                 if t[-1] == "*":
                     if not pwndbg.aglib.kernel.has_debug_info():
@@ -424,7 +422,6 @@ class ArchSymbols:
     def prog_idr(self) -> type[NeedLookup]:
         return NeedLookup
 
-    # using symbols usually yield incorrect results
     @kernel_symbol_func()
     def current_task(self) -> type[NeedLookup]:
         return NeedLookup
