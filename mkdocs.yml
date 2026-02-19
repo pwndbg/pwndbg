@@ -130,6 +130,8 @@ plugins:
               ignore_init_summary: true
               trim_doctest_flags: true
               warn_unknown_params: true
+              # https://github.com/mkdocstrings/mkdocstrings/issues/817#issuecomment-3927886394
+              returns_multiple_items: false
 
   # Generate the whole Source page magically (hooks into mkdocstrings)
   - api-autonav:
