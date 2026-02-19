@@ -727,20 +727,6 @@ def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
     raise NotImplementedError()
 
 
-def PAGE_ENTRY_MASK() -> int:
-    pi = arch_paginginfo()
-    if pi:
-        return pi.PAGE_ENTRY_MASK
-    raise NotImplementedError()
-
-
-def STRUCT_PAGE_SIZE() -> int:
-    pi = arch_paginginfo()
-    if pi:
-        return pi.STRUCT_PAGE_SIZE
-    raise NotImplementedError()
-
-
 def slab_to_virt(slab: int) -> int:
     pi = arch_paginginfo()
     if pi:

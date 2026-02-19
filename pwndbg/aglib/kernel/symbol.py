@@ -10,7 +10,6 @@ from typing_extensions import ParamSpec
 
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.kernel
-import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
@@ -407,10 +406,6 @@ class ArchSymbols:
     def current_task(self) -> bool:
         return False
 
-    @kernel_symbol_func()
-    def init_task(self) -> bool:
-        return False
-
     def _node_data(self) -> int | None:
         raise NotImplementedError()
 
@@ -434,9 +429,6 @@ class ArchSymbols:
 
     def _current_task(self) -> int | None:
         raise NotImplementedError()
-
-    def _init_task(self) -> int | None:
-        return pwndbg.aglib.kernel.ktask.INIT_TASK
 
 
 class x86_64Symbols(ArchSymbols):
