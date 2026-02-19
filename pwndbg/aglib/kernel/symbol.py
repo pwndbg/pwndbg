@@ -96,7 +96,7 @@ def node_data_pointer() -> pwndbg.dbg_mod.Value | None:
         return None
     node_data = pwndbg.aglib.memory.get_typed_pointer("struct pglist_data", addr)
     if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
-        node_data = node_data.cast(node_data.type.pointer())
+        return node_data.cast(node_data.type.pointer())
     return node_data
 
 
