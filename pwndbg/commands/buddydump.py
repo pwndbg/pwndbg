@@ -7,8 +7,8 @@ from dataclasses import dataclass
 import pwndbg
 import pwndbg.aglib.kernel.buddydump
 import pwndbg.aglib.kernel.symbol
-import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 import pwndbg.commands
 import pwndbg.dbg_mod
 from pwndbg.aglib import kernel
@@ -23,8 +23,6 @@ log = logging.getLogger(__name__)
 MAX_PG_FREE_LIST_STR_RESULT_CNT = 0x10
 MAX_PG_FREE_LIST_CNT = 0x1000
 NONE_TUPLE = (None, None)
-# https://elixir.bootlin.com/linux/v6.13.12/source/include/linux/mmzone.h#L52
-MIGRATE_PCPTYPES = 3
 
 
 @dataclass
@@ -238,6 +236,11 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
         log.warning("cannot find pcplist")
         return
     nr_pcp_lists = pwndbg.aglib.kernel.symbol.npcplist()
+    # https://elixir.bootlin.com/linux/v6.13.12/source/include/linux/mmzone.h#L52
+    MIGRATE_PCPTYPES = 3
+    migratetype = pwndbg.aglib.typeinfo.load("enum migratetype")
+    if migratetype and (val := migratetype.enum_member("MIGRATE_PCPTYPES")):
+        MIGRATE_PCPTYPES = val
     for i in range(0, nr_pcp_lists, MIGRATE_PCPTYPES):
         # https://elixir.bootlin.com/linux/v6.13.12/source/include/linux/mmzone.h#L660
         order = i // MIGRATE_PCPTYPES

@@ -77,7 +77,6 @@ def find_zone_offsets() -> tuple[int, int, int, int, int]:
 def recover_buddydump_typeinfo() -> str:
     nmtypes = pwndbg.aglib.kernel.symbol.nmtypes()
     nzones = pwndbg.aglib.kernel.symbol.nzones()
-    nnodes = pwndbg.aglib.kernel.num_numa_nodes()
     npcplist = pwndbg.aglib.kernel.symbol.npcplist()
 
     result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
@@ -102,12 +101,7 @@ def recover_buddydump_typeinfo() -> str:
         struct per_cpu_pages pcp;
     }};
 #endif
-/* custom type for page list data */
-#ifdef CONFIG_NUMA
-    typedef struct pglist_data *node_data_t[{nnodes}];
-#else
-    typedef struct pglist_data node_data_t;
-#endif
+    /* custom type for page list data */
     struct zone {{
         char _pad1[{pcp_off}];
 #if KVERSION < KERNEL_VERSION(5, 14, 0)
