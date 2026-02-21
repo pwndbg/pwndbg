@@ -1560,8 +1560,19 @@ def context_backtrace(
     frame = newest_frame
     i = 0
     bt_prefix = f"{pwndbg.config.backtrace_prefix}"
+    # Use visual width of the prefix (strip color codes) so Unicode chars like ► are measured correctly
+    bt_prefix_visual_len = len(pwndbg.color.strip(bt_prefix))
+
+    # Pre-compute total number of frames to pad the frame label width consistently
+    total_frames = i
+    tmp = newest_frame
+    while tmp != oldest_frame:
+        total_frames += 1
+        tmp = tmp.parent()
+    frame_label_width = len(f"{backtrace_frame_label}{total_frames}")
+
     while True:
-        prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
+        prefix = bt_prefix if frame == this_frame else " " * bt_prefix_visual_len
         prefix = f" {c.prefix(prefix)}"
         addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
         symbol = c.symbol(pwndbg.aglib.symbol.resolve_addr(int(frame.pc())))
@@ -1572,7 +1583,8 @@ def context_backtrace(
                 if parts:
                     symbol = f"{parts[1]}+{int(parts[2]):#x}"
             addrsz = f"{addrsz} {symbol}"
-        result.append(f"{prefix} {c.frame_label(f'{backtrace_frame_label}{i}')} {addrsz}")
+        frame_label = f"{backtrace_frame_label}{i}".rjust(frame_label_width)
+        result.append(f"{prefix} {c.frame_label(frame_label)} {addrsz}")
 
         if frame == oldest_frame:
             break
