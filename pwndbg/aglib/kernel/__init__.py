@@ -876,6 +876,5 @@ def current_task(cpu: int | None = None) -> int | None:
 @pwndbg.lib.cache.cache_until("stop")
 def init_task() -> int | None:
     if (syms := arch_symbols()) is not None:
-        if (result := syms.init_task()) and isinstance(result, int):
-            return result
+        return syms.init_task()
     return None
