@@ -400,7 +400,11 @@ class ArchSymbols:
         return None
 
     @kernel_symbol_func()
-    def node_data(self) -> type[NeedLookup]:
+    def node_data(self) -> int | type[NeedLookup]:
+        if "CONFIG_NUMA" not in pwndbg.aglib.kernel.kconfig():
+            addr = pwndbg.aglib.symbol.lookup_symbol_addr("contig_page_data")
+            if addr:
+                return addr
         return NeedLookup
 
     @kernel_symbol_func()

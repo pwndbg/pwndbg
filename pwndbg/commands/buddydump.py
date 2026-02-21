@@ -33,6 +33,7 @@ class ParsedBuddyArgs:
     mtype: str | None
     cpu: int | None
     find: int | None
+    MIGRATE_TYPES: int
 
 
 @dataclass
@@ -107,6 +108,10 @@ parser.add_argument(
     dest="find",
     default=None,
     help="The address to find in page free lists.",
+)
+
+parser.add_argument(
+    "--MIGRATE_TYPES", type=int, default=3, help="Use the specified MIGRATE_TYPES value"
 )
 
 
@@ -237,7 +242,7 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
         return
     nr_pcp_lists = pwndbg.aglib.kernel.symbol.npcplist()
     # https://elixir.bootlin.com/linux/v6.13.12/source/include/linux/mmzone.h#L52
-    MIGRATE_PCPTYPES = 3
+    MIGRATE_PCPTYPES = pba.MIGRATE_TYPES
     migratetype = pwndbg.aglib.typeinfo.load("enum migratetype")
     if migratetype and (val := migratetype.enum_member("MIGRATE_PCPTYPES")):
         MIGRATE_PCPTYPES = val
@@ -344,14 +349,23 @@ v
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def buddydump(
-    zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, node: int, find: int
+    zone: str | None,
+    pcp_only: bool,
+    order: int | None,
+    mtype: str | None,
+    cpu: int | None,
+    node: int | None,
+    find: int | None,
+    MIGRATE_TYPES: int,
 ) -> None:
     pwndbg.aglib.kernel.buddydump.recover_buddydump_typeinfo()
     node_data = pwndbg.aglib.kernel.symbol.node_data_pointer()
     if not node_data:
         log.warning("WARNING: Symbol 'node_data' not found")
         return
-    pba = ParsedBuddyArgs(zone, order, mtype.lower() if mtype is not None else None, cpu, find)
+    pba = ParsedBuddyArgs(
+        zone, order, mtype.lower() if mtype is not None else None, cpu, find, MIGRATE_TYPES
+    )
     cbp = CurrentBuddyParams(
         [NONE_TUPLE] * 3, IndentContextManager(), None, None, 0, "", None, None, None, False
     )
