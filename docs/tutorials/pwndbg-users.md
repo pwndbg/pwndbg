@@ -29,7 +29,7 @@ Here is a non-exhaustive list of Pwndbg mentions found in the wild. Feel free to
 + [decomp2dbg implements a Pwndbg client](https://github.com/mahaloz/decomp2dbg/blob/36d4b5bbb0ec1d3751d1b4a0e011a4fabf59f26c/decomp2dbg/clients/gdb/pwndbg_client.py) (though we implement our own integration now :) )
 + [An (outdated :( ) pwndbg plugin for scudo exploitation](https://github.com/HexHive/scudo-exploitation/blob/main/gdb-plugin/scudo-pwndbg.py)
 + [gdb-peda-pwndbg-gef](https://github.com/apogiatzis/gdb-peda-pwndbg-gef) - A script that installs those tools
-+ [splitmind]((https://github.com/jerdna-regeiz/splitmind)) - Better organization of Pwndbg contexts via tmux splits
++ [splitmind](https://github.com/jerdna-regeiz/splitmind) - Better organization of Pwndbg contexts via tmux splits
 + [hyperpwn](https://github.com/bet4it/hyperpwn) - Similar as splitmind, but for the hypr terminal
 + [epictreasure](https://github.com/praetorian-inc/epictreasure) - A [vagrant](https://developer.hashicorp.com/vagrant) box that includes Pwndbg
 + [pwn-init-env](https://github.com/giantbranch/pwn-env-init) - A pwn environment that includes Pwndbg

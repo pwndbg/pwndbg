@@ -48,7 +48,7 @@ let
         ${previousAttrs.postInstall or ""}
         cp -v lib/libjemalloc.a $out/lib/
       '';
-      doCheck = false;  # tests fail on aarch64
+      doCheck = false; # tests fail on aarch64
       dontStrip = true; # don't strip the debug symbols we added
     }
   );

@@ -3,10 +3,9 @@ from __future__ import annotations
 import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
-import pwndbg.aglib.typeinfo
 
 
-def get_struct_bpf_prog():
+def get_struct_bpf_prog() -> str:
     result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     result += """
     /* the enum types (probably) have been added to the kernel in decending order */
@@ -142,7 +141,7 @@ def get_struct_bpf_prog():
     return result
 
 
-def get_struct_bpf_map():
+def get_struct_bpf_map() -> str:
     result = ""
     if "CONFIG_SECURITY" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_SECURITY\n"
@@ -206,10 +205,8 @@ def get_struct_bpf_map():
     return result
 
 
-def get_bpf_struct_offsets(prog_idr, map_idr) -> int | None:
+def get_bpf_struct_offsets(prog_idr: int, map_idr: int) -> int | None:
     xarray_pad_sz = None
-    map_idr = int(map_idr)
-    prog_idr = int(prog_idr)
     ptrsize = pwndbg.aglib.arch.ptrsize
     max_idr_sz = abs(map_idr - prog_idr)
     xa_node = None
@@ -232,7 +229,7 @@ def recover_bpf_typeinfo() -> str:
     map_idr = pwndbg.aglib.kernel.map_idr()
     if not prog_idr or not map_idr:
         raise AssertionError("cannot find either prog_idr or map_idr")
-    xarray_pad_sz = get_bpf_struct_offsets(prog_idr, map_idr)
+    xarray_pad_sz = get_bpf_struct_offsets(int(prog_idr), int(map_idr))
     assert xarray_pad_sz, (
         "cannot find xa_head -- might be uninitialized (add a bpf prog/map first!)"
     )

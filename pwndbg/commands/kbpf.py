@@ -18,12 +18,20 @@ import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
+from pwndbg.dbg_mod import BreakpointLocation
 from pwndbg.lib.exception import IndentContextManager
 
 parser = argparse.ArgumentParser(
     description="Prints information about the linux kernel bpf progs and maps."
 )
 parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase the verbosity.")
+parser.add_argument(
+    "-b",
+    "--break",
+    dest="nth",
+    type=int,
+    help="Break at the start of the nth JIT compiled ebpf prog.",
+)
 parser.add_argument(
     "-p", "--progs", dest="print_progs", action="store_true", default=False, help="Print progs"
 )
@@ -44,7 +52,7 @@ BPF_MAP_ARRAY_TYPES = (
 indent = IndentContextManager()
 
 
-def handle_bpf_aux_reg_for_insns_bytes(insns_bytes):
+def handle_bpf_aux_reg_for_insns_bytes(insns_bytes: bytearray) -> list[int]:
     # https://elixir.bootlin.com/linux/v6.17.1/source/include/linux/filter.h#L62
     sz = len(insns_bytes)
     result = [0] * (len(insns_bytes) // 8)
@@ -59,7 +67,7 @@ def handle_bpf_aux_reg_for_insns_bytes(insns_bytes):
     return result
 
 
-def handle_bpf_aux_reg_for_opstr(opstr, regflag):
+def handle_bpf_aux_reg_for_opstr(opstr: str, regflag: int) -> str:
     if regflag == 0:
         return opstr
     pattern = re.compile(r"r0")
@@ -73,7 +81,7 @@ def handle_bpf_aux_reg_for_opstr(opstr, regflag):
     return opstr
 
 
-def bpf_map_array_offset(bpf_array, t, max_entries, value_size):
+def bpf_map_array_offset(bpf_array: int, t: str, max_entries: int, value_size: int) -> int | None:
     global _bpf_map_array_off
     if _bpf_map_array_off:
         # pwndbg.lib.cache is not used here because it would also cache None
@@ -103,7 +111,7 @@ def bpf_map_array_offset(bpf_array, t, max_entries, value_size):
     return _bpf_map_array_off
 
 
-def parse_xa_node(xa_node):
+def parse_xa_node(xa_node: int | pwndbg.dbg_mod.Value) -> list[int]:
     xa_node = int(xa_node) & ~3
     if not pwndbg.aglib.memory.is_kernel(xa_node):
         return []
@@ -125,9 +133,16 @@ def parse_xa_node(xa_node):
     return result
 
 
+def get_slots(idr: pwndbg.dbg_mod.Value) -> list[int]:
+    xa_node = idr["idr_rt"]["xa_head"]
+    if int(xa_node) == 0:
+        return []
+    return parse_xa_node(xa_node)
+
+
 def print_bpf_prog_metadata(
     idx: int | None, slot: int | None, bpf_prog: pwndbg.dbg_mod.Value, indent: IndentContextManager
-) -> None:
+) -> int:
     t = bpf_prog["type"].value_to_human_readable()
     attach_t = bpf_prog["expected_attach_type"].value_to_human_readable()
     prefix = ""
@@ -140,23 +155,23 @@ def print_bpf_prog_metadata(
         jited_len = int(bpf_prog["jited_len"])
         desc = f"func @ {indent.aux_hex(func)} (jited_len: {indent.aux_hex(jited_len)}), aux @ {indent.aux_hex(aux)}"
         indent.print(desc)
+    return func
 
 
-def print_bpf_progs(verbose: int) -> None:
+def print_bpf_progs(verbose: int, nth: int | None) -> None:
     prog_idr = pwndbg.aglib.kernel.prog_idr()
     if int(prog_idr) == 0:
         print(message.warn("cannot find prog_idr"))
         return
     prog_idr = pwndbg.aglib.memory.get_typed_pointer("struct idr", prog_idr)
-    xa_node = prog_idr["idr_rt"]["xa_head"]
     indent.print(indent.prefix("bpf progs") + f": prog_idr @ {indent.addr_hex(int(prog_idr))}")
-    if int(xa_node) == 0:
-        return
-    slots = parse_xa_node(xa_node)
+    slots = get_slots(prog_idr)
     with indent:
         for idx, slot in enumerate(slots):
+            if nth is not None and idx != nth:
+                continue
             bpf_prog = pwndbg.aglib.memory.get_typed_pointer("struct bpf_prog", slot)
-            print_bpf_prog_metadata(idx, slot, bpf_prog, indent)
+            func = print_bpf_prog_metadata(idx, slot, bpf_prog, indent)
             with indent:
                 if verbose > 0:
                     cs = Cs(
@@ -193,6 +208,13 @@ def print_bpf_progs(verbose: int) -> None:
                             opstr = insn.op_str
                             opstr = handle_bpf_aux_reg_for_opstr(opstr, aux_regs[i])
                             indent.print(f"{indent.addr_hex(address)}\t{mnemonic}\t{opstr}")
+                if nth is not None:
+                    if pwndbg.aglib.memory.is_kernel(func):
+                        pwndbg.dbg.selected_inferior().break_at(BreakpointLocation(func))
+                    else:
+                        indent.print(
+                            message.warn("Breaking at JITed function failed, is JIT enabled?")
+                        )
 
 
 def print_bpf_maps(verbose: int) -> None:
@@ -201,11 +223,8 @@ def print_bpf_maps(verbose: int) -> None:
         print(message.warn("cannot find map_idr"))
         return
     map_idr = pwndbg.aglib.memory.get_typed_pointer("struct idr", map_idr)
-    xa_node = map_idr["idr_rt"]["xa_head"]
-    if int(xa_node) == 0:
-        return
     indent.print(indent.prefix("bpf maps") + f": map_idr @ {indent.addr_hex(int(map_idr))}")
-    slots = parse_xa_node(xa_node)
+    slots = get_slots(map_idr)
     with indent:
         for idx, slot in enumerate(slots):
             bpf_array = pwndbg.aglib.memory.get_typed_pointer("struct bpf_array", slot)
@@ -216,9 +235,9 @@ def print_bpf_maps(verbose: int) -> None:
                 key_size = int(bpf_array["map"]["key_size"])
                 value_size = int(bpf_array["map"]["value_size"])
                 max_entries = int(bpf_array["map"]["max_entries"])
-                bpf_array = int(bpf_array)
-                off = bpf_map_array_offset(bpf_array, t, max_entries, value_size)
-                content = indent.aux_hex(bpf_array + off) if off else "unknown"
+                _bpf_array = int(bpf_array)
+                off = bpf_map_array_offset(_bpf_array, t, max_entries, value_size)
+                content = indent.aux_hex(_bpf_array + off) if off else "unknown"
                 desc = f"array @ {content} (key_size: {indent.aux_hex(key_size)}, value_size: {indent.aux_hex(value_size)}, max_entries: {indent.aux_hex(max_entries)})"
                 indent.print(desc)
                 # TODO: what about types other than array
@@ -235,7 +254,7 @@ def print_bpf_maps(verbose: int) -> None:
                             idxfmt = f"[0x{i:02x}]"
                             sz = min(value_size, MAX_PRINTED_VALUE_SIZE)
                             value = ""
-                            for b in pwndbg.aglib.memory.read(bpf_array + off + i * entrysz, sz):
+                            for b in pwndbg.aglib.memory.read(_bpf_array + off + i * entrysz, sz):
                                 value += f"{b:02x} "
                             if sz < value_size:
                                 value += "... (" + message.warn("truncated") + ")"
@@ -247,13 +266,15 @@ def print_bpf_maps(verbose: int) -> None:
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.WarnOnKernelConfigRandstruct
-def kbpf(verbose: int, print_progs: bool, print_maps: bool) -> None:
+def kbpf(verbose: int, print_progs: bool, print_maps: bool, nth: int | None = None) -> None:
     pwndbg.aglib.kernel.bpf.recover_bpf_typeinfo()
     if pwndbg.aglib.typeinfo.load("struct idr") is None:
         return
+    if nth is not None:
+        print_progs = True
     if not print_progs and not print_maps:
         print_progs = print_maps = True
     if print_progs:
-        print_bpf_progs(verbose)
+        print_bpf_progs(verbose, nth)
     if print_maps:
         print_bpf_maps(verbose)

@@ -74,6 +74,9 @@ def main():
     envs["PYTHONNOUSERSITE"] = "1"
     envs["PYTHONPATH"] = ":".join(site.getsitepackages())
 
+    # Ensure arg0 points to the gdb binary; otherwise GDB can pick up a wrong PYTHONHOME.
+    sys.argv[0] = gdb_path
+
     # sys.prefix/sys.exec_prefix must point to the virtual environment,
     # otherwise our auto-upgrade mechanism won't work when the package is installed in editable mode
     prefix_cmd = (

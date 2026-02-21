@@ -1451,7 +1451,7 @@ def get_filename_and_formatted_source(height: int | None = None) -> tuple[str, l
         return "", [], closest_line
 
     nlines = max(int(source_disasm_lines), height or 0)
-    formatted_source = pretty_print.format_source(list(source), nlines, closest_line)
+    formatted_source = pretty_print.format_source(list(source), nlines, closest_line - 1)
 
     return filename, formatted_source, closest_line
 
