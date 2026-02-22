@@ -41,7 +41,7 @@ dependencies = [
 
 [project.optional-dependencies]
 lldb = [
-    # The LLDB REPL requires readline.
+    # Optional? for better LLDB REPL behaviour on python builds that use libeedit.
     'gnureadline>=8.2.13,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
     "lldb-for-pwndbg==21.1.7.post1",
