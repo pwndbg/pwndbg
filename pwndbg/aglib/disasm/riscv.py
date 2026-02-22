@@ -121,12 +121,10 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # AUIPC
             RISCV_INS_AUIPC: self._auipc_annotator,
-            # C.MV / MV alias (capstone 6.0.0a7+)
+            # C.MV
             RISCV_INS_C_MV: self._common_move_annotator,
-            RISCV_INS_ALIAS_MV: self._common_move_annotator,
-            # C.LI / LI alias (capstone 6.0.0a7+)
+            # C.LI
             RISCV_INS_C_LI: self._common_move_annotator,
-            RISCV_INS_ALIAS_LI: self._common_move_annotator,
             # LUI
             RISCV_INS_LUI: self._lui_annotator,
             RISCV_INS_C_LUI: self._lui_annotator,
@@ -210,12 +208,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         self, instruction: PwndbgInstruction, emu: Emulator | None
     ) -> InstructionCondition:
         # B-type instructions have two source registers that are compared.
-        # Guard against unconditional jumps (e.g. c.j / j alias) that have
-        # RISCV_GRP_BRANCH_RELATIVE but carry no register operands.
-        src1_op = instruction.op_find(CS_OP_REG, 1)
-        if src1_op is None:
-            return InstructionCondition.UNDETERMINED
-        src1_unsigned = src1_op.before_value
+        src1_unsigned = instruction.op_find(CS_OP_REG, 1).before_value
         # compressed instructions c.beqz and c.bnez only use one register operand.
         if instruction.op_count(CS_OP_REG) > 1:
             src2_unsigned = instruction.op_find(CS_OP_REG, 2).before_value
