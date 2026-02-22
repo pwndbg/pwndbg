@@ -15,7 +15,19 @@ from typing import ParamSpec
 from typing import TypeVar
 
 if sys.platform != "win32":
-    import gnureadline as readline
+    try:
+        import gnureadline as readline
+    except ImportError:
+        import readline
+
+        backend = None
+        if sys.version_info >= (3, 13):
+            backend = readline.backend
+
+        if backend is not None and backend != "readline":
+            print(
+                "INFO: gnureadline is not installed, for best REPL experience please install gnureadline"
+            )
 else:
     import readline
 
