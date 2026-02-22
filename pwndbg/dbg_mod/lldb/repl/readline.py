@@ -24,10 +24,11 @@ if sys.platform != "win32":
         if sys.version_info >= (3, 13):
             backend = readline.backend
 
-        if backend is not None and backend != "readline":
-            print(
-                "INFO: gnureadline is not installed, for best REPL experience please install gnureadline"
-            )
+        if backend != "readline":
+            info_msg = "INFO: gnureadline is not installed, for best REPL experience please install gnureadline"
+            if sys.stdout.isatty():
+                info_msg = f"\x1b[90m{info_msg}\x1b[0m"
+            print(info_msg)
 else:
     import readline
 
