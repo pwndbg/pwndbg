@@ -1720,6 +1720,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         set backtrace past-main on
         set step-mode on
         set print pretty on
+        set output-radix 16
         set debuginfod enabled on
         handle SIGALRM nostop print nopass
         handle SIGBUS  stop   print nopass
