@@ -258,12 +258,13 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Groups that apply to all architectures: CS_GRP_INVALID | CS_GRP_JUMP | CS_GRP_CALL | CS_GRP_RET | CS_GRP_INT | CS_GRP_IRET | CS_GRP_PRIVILEGE | CS_GRP_BRANCH_RELATIVE
         """
 
-        self.id: int = cs_insn.alias_id if cs_insn.is_alias else cs_insn.id
+        self.id: int = (cs_insn.alias_id or cs_insn.id) if cs_insn.is_alias else cs_insn.id
         """
-        The underlying Capstone ID for the instruction
-        If it's an alias, use the id of the alias
+        The underlying Capstone ID for the instruction.
+        If it's an alias with a named alias ID, use the alias ID.
+        If it's an alias without a named alias ID (alias_id == 0), fall back to the canonical instruction ID.
 
-        Examples: X86_INS_JMP, X86_INS_CALL, RISCV_INS_C_JAL
+        Examples: X86_INS_JMP, X86_INS_CALL, RISCV_INS_C_JAL, RISCV_INS_ALIAS_LI
         """
 
         # For ease, for x86 we will assume Intel syntax (destination operand first).

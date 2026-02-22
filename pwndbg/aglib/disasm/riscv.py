@@ -121,10 +121,12 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # AUIPC
             RISCV_INS_AUIPC: self._auipc_annotator,
-            # C.MV
+            # C.MV / MV alias (capstone 6.0.0a7+)
             RISCV_INS_C_MV: self._common_move_annotator,
-            # C.LI
+            RISCV_INS_ALIAS_MV: self._common_move_annotator,
+            # C.LI / LI alias (capstone 6.0.0a7+)
             RISCV_INS_C_LI: self._common_move_annotator,
+            RISCV_INS_ALIAS_LI: self._common_move_annotator,
             # LUI
             RISCV_INS_LUI: self._lui_annotator,
             RISCV_INS_C_LUI: self._lui_annotator,
@@ -156,7 +158,13 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         elif instruction.id in RISCV_MATH_INSTRUCTIONS:
             # We need this check, because some of these instructions can encoded as aliases
             # Example: NOP is an alias of ADDI where target is x0. In Capstone, the ID will still be that of ADDI but with no operands
-            if len(instruction.operands) >= 2:
+            #
+            # In capstone 6.0.0a7+, `addi rd, x0, imm` is displayed as `li rd, imm` (2 operands,
+            # x0 is dropped). Treat this as a move/load-immediate rather than a binary op to
+            # avoid incorrectly using rd's before-value as the left operand.
+            if len(instruction.operands) == 2 and instruction.operands[1].type == CS_OP_IMM:
+                self._common_move_annotator(instruction, emu)
+            elif len(instruction.operands) >= 2:
                 self._common_binary_op_annotator(
                     instruction,
                     emu,
@@ -201,8 +209,13 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def _is_condition_taken(
         self, instruction: PwndbgInstruction, emu: Emulator | None
     ) -> InstructionCondition:
-        # B-type instructions have two source registers that are compared
-        src1_unsigned = instruction.op_find(CS_OP_REG, 1).before_value
+        # B-type instructions have two source registers that are compared.
+        # Guard against unconditional jumps (e.g. c.j / j alias) that have
+        # RISCV_GRP_BRANCH_RELATIVE but carry no register operands.
+        src1_op = instruction.op_find(CS_OP_REG, 1)
+        if src1_op is None:
+            return InstructionCondition.UNDETERMINED
+        src1_unsigned = src1_op.before_value
         # compressed instructions c.beqz and c.bnez only use one register operand.
         if instruction.op_count(CS_OP_REG) > 1:
             src2_unsigned = instruction.op_find(CS_OP_REG, 2).before_value
@@ -242,6 +255,12 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         # Determine if the conditional jump is taken
         if RISCV_GRP_BRANCH_RELATIVE in instruction.groups:
+            # In capstone 6.0.0a7+, unconditional jumps like j/c.j are placed in
+            # RISCV_GRP_BRANCH_RELATIVE. Detect them by the absence of register operands
+            # (they only have an immediate target).
+            if instruction.op_count(CS_OP_REG) == 0:
+                instruction.declare_is_unconditional_jump = True
+                return InstructionCondition.UNDETERMINED
             return self._is_condition_taken(instruction, emu)
 
         return InstructionCondition.UNDETERMINED
@@ -255,11 +274,12 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         # JAL is unconditional and independent of current register status
         if instruction.id in (RISCV_INS_JAL, RISCV_INS_C_JAL, RISCV_INS_C_J):
             # But that doesn't apply to ARM anyways :)
-            return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
+            # In capstone 6.0.0a7+, the IMM operand is an absolute address (not PC-relative offset).
+            return instruction.op_find(CS_OP_IMM, 1).imm & ptrmask
 
-        # Determine target of branch - all of them are offset to address
+        # Determine target of branch - in capstone 6.0.0a7+ the IMM is an absolute address.
         if RISCV_GRP_BRANCH_RELATIVE in instruction.groups:
-            return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
+            return instruction.op_find(CS_OP_IMM, 1).imm & ptrmask
 
         # Determine the target address of the indirect jump
         if instruction.id == RISCV_INS_JALR:
