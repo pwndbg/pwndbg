@@ -520,26 +520,33 @@ def nearpc(
     breakpoint_prefix = breakpoint_sign.ljust(len(prefix_sign) + 1)
     breakpoint_prefix = c.breakpoint(breakpoint_prefix)
 
+    current_insn_breakpoint_prefix = pwndbg.color.red(c.prefix(f"b{prefix_sign}"))
+
     # Print out each instruction
     for i, (address_str, symbol, instruction, asm) in enumerate(
         zip(addresses, symbols, instructions, assembly_strings)
     ):
-        # Show prefix only on the specified address and don't show it while in repeat-mode
+        # Show a prefix for the instruction that the program counter points to. Don't show it while in repeat-mode
         # or when showing current instruction for the second time
-        show_prefix = instruction.address == pc and not repeat and i == index_of_pc
-        is_breakpoint = False
-        if show_prefix:
-            prefix = current_insn_prefix
-        elif instruction.address in breakpoint_locations:
+        show_pc_prefix = instruction.address == pc and not repeat and i == index_of_pc
+        instruction_has_breakpoint = instruction.address in breakpoint_locations
+
+        is_non_pc_breakpoint = False
+        if show_pc_prefix:
+            if instruction_has_breakpoint:
+                prefix = current_insn_breakpoint_prefix
+            else:
+                prefix = current_insn_prefix
+        elif instruction_has_breakpoint:
             # If the instruction is not the current instruction and a breakpoint,
             # show the breakpoint sign
             prefix = breakpoint_prefix
-            is_breakpoint = True
+            is_non_pc_breakpoint = True
         else:
             prefix = default_prefix
 
         # If this instruction is a breakpoint and not the current pc, highlight it.
-        if is_breakpoint and pwndbg.config.highlight_breakpoints:
+        if is_non_pc_breakpoint and pwndbg.config.highlight_breakpoints:
             address_str = c.breakpoint(address_str)
             symbol = c.breakpoint(symbol)
         # Colorize address and symbol if not highlighted
