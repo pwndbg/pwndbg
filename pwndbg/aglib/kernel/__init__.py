@@ -216,9 +216,7 @@ def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig:
             config_start = result + len("IKCFG_ST")
             config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
     if (
-        not config_start
-        or not config_end
-        or not pwndbg.aglib.memory.is_kernel(config_start)
+        not pwndbg.aglib.memory.is_kernel(config_start)
         or not pwndbg.aglib.memory.is_kernel(config_end)
         or config_start >= config_end
     ):
@@ -471,11 +469,13 @@ class x86_64Ops(x86Ops):
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value:
+    ) -> pwndbg.dbg_mod.Value | None:
         if cpu is None:
             cpu = current_cpu()
 
-        per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
+        per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
+        if per_cpu_offset is None:
+            return None
 
         offset = pwndbg.aglib.memory.read_pointer_width(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
@@ -507,11 +507,13 @@ class Aarch64Ops(ArchOps):
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value:
+    ) -> pwndbg.dbg_mod.Value | None:
         if cpu is None:
             cpu = current_cpu()
 
-        per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
+        per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
+        if per_cpu_offset is None:
+            return None
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
@@ -793,49 +795,65 @@ def num_numa_nodes() -> int:
     return val
 
 
-def node_data() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def node_data() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.node_data()
     return None
 
 
-def slab_caches() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def slab_caches() -> pwndbg.dbg_mod.Value | None:
     if (syms := arch_symbols()) is not None:
-        return syms.slab_caches()
+        if addr := syms.slab_caches():
+            return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", addr)
     return None
 
 
-def per_cpu_offset() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def per_cpu_offset() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.per_cpu_offset()
     return None
 
 
-def modules() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def modules() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.modules()
     return None
 
 
-def db_list() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def db_list() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.db_list()
     return None
 
 
-def prog_idr() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def prog_idr() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.prog_idr()
     return None
 
 
-def map_idr() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def map_idr() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.map_idr()
     return None
 
 
-def current_task(cpu: int | None = None) -> int:
+@pwndbg.lib.cache.cache_until("stop")
+def current_task(cpu: int | None = None) -> int | None:
     if (syms := arch_symbols()) is not None:
-        return syms.current_task(cpu)
+        result = syms.current_task()
+        if not isinstance(result, int):
+            return None
+        if pwndbg.aglib.arch.name == "aarch64":
+            # TODO: how to get the kcurrent for different cpus
+            return result
+        ptr = int(per_cpu(result, cpu=cpu))
+        return pwndbg.aglib.memory.read_pointer_width(ptr)
     return None

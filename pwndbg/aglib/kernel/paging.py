@@ -917,10 +917,10 @@ class Aarch64PagingInfo(ArchPagingInfo):
         return 0x40000000  # default
 
     def pagewalk(self, target: int, entry: int | None, virt: bool = True) -> PagewalkResult:
-        if entry is None:
-            if pwndbg.aglib.memory.is_kernel(target):
-                entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
-            else:
+        if pwndbg.aglib.memory.is_kernel(target):
+            entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
+        else:
+            if entry is None:
                 entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
         if entry is None:
             return PagewalkResult()
