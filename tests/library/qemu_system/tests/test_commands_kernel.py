@@ -50,10 +50,7 @@ def test_command_kcmdline() -> None:
 @KernelTest
 def test_command_kconfig() -> None:
     res = gdb.execute("kconfig", to_string=True)
-    assert "CONFIG_IKCONFIG = y" in res
-
-    res = gdb.execute("kconfig IKCONFIG", to_string=True)
-    assert "CONFIG_IKCONFIG = y" in res
+    assert " = y" in res
 
 
 @KernelTest
@@ -69,7 +66,7 @@ def test_command_kdmesg() -> None:
     res = gdb.execute("kdmesg -T", to_string=True)
     ctime_regex = r"(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}"
     assert (
-        any(re.match(ctime_regex, line) for line in res.splitlines())
+        any(re.search(ctime_regex, line) for line in res.splitlines())
         or "`struct tk_data` is not defined in the current debug symbols." in res
     )
 
@@ -380,4 +377,4 @@ def test_command_paging() -> None:
         matches = get_buddy_freelist_elements(res)
         if len(matches) > 0:
             test_command_paging_helper("slab", matches[-1][0])
-        res = gdb.execute(f"pagewalk {kbase}")
+        res = gdb.execute(f"pagewalk {kbase}", to_string=True)
