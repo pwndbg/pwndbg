@@ -18,6 +18,13 @@ def _is_being_used() -> bool:
 
 
 def version(libc_filepath: str) -> tuple[int, ...]:
+    # If the user explicitly set a glibc version (e.g. via `set glibc 2.35`),
+    # honour it even when the libc is unknown (e.g. statically-linked binaries).
+    # This allows the heuristic heap allocator to work in those cases.
+    from pwndbg.libc.glibc import glibc_version as _user_glibc_version
+
+    if _user_glibc_version:
+        return tuple(int(i) for i in _user_glibc_version.value.split("."))
     return (-1, -1)
 
 

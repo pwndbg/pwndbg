@@ -28,6 +28,7 @@ import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.exception
 import pwndbg.libc
+import pwndbg.libc.glibc
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
@@ -929,9 +930,24 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
 
         # Operating under the assumption that the pwndbg/libc/ code can figure out
         # that we are using glibc with at least as good accuracy as the ptmalloc code.
-        if pwndbg.libc.which() != pwndbg.libc.LibcType.GLIBC:
-            e(f"The currently active libc isn't glibc. It's {pwndbg.libc.which().value}.")
-            return None
+        libc_type = pwndbg.libc.which()
+        if libc_type != pwndbg.libc.LibcType.GLIBC:
+            if libc_type == pwndbg.libc.LibcType.UNKNOWN and pwndbg.libc.glibc.glibc_version:
+                # User gave us an explicit glibc version (e.g. `set glibc 2.35`).
+                # Proceed with heuristics and warn that results may be approximate.
+                w(
+                    f"The currently active libc is 'unknown' (e.g. statically-linked binary), "
+                    f"but a user-set glibc version ({pwndbg.libc.glibc.glibc_version.value}) was found. "
+                    "Attempting heap resolution via heuristics, results may be inaccurate."
+                )
+            else:
+                e(f"The currently active libc isn't glibc. It's {libc_type.value}.")
+                if libc_type == pwndbg.libc.LibcType.UNKNOWN:
+                    w(
+                        "If this is a statically-linked binary compiled against glibc, "
+                        "set the version manually with `set glibc <version>` (e.g. `set glibc 2.35`) and re-run."
+                    )
+                return None
 
         if (
             isinstance(pwndbg.aglib.heap.current, HeuristicHeap)

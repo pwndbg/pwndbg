@@ -26,7 +26,12 @@ def fastbin_index(size: int) -> int:
 
 # Operating under the assumption that the pwndbg/libc/ code can figure out
 # that we are using glibc with at least as good accuracy as the ptmalloc code.
-assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
+# We also allow UNKNOWN libc if the user has manually set a glibc version (e.g. for
+# statically-linked binaries compiled against glibc where version info isn't embedded).
+_libc_type = pwndbg.libc.which()
+assert _libc_type == pwndbg.libc.LibcType.GLIBC or (
+    _libc_type == pwndbg.libc.LibcType.UNKNOWN and pwndbg.libc.version() != (-1, -1)
+)
 GLIBC_VERSION = pwndbg.libc.version()
 # TODO: Move these heap constants and macros to elsewhere, because pwndbg/aglib/heap/ptmalloc.py also uses them, we are duplicating them here.
 SIZE_SZ = pwndbg.aglib.arch.ptrsize
