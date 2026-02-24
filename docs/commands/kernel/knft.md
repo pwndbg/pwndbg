@@ -119,7 +119,7 @@ usage: knft list-rules [-h] [-n NSID] [table_family] [table_name] [chain_name]
 
 ```
 
-Dump netfilter rules form a specific chain
+Dump netfilter rules from a specific chain
 #### Positional arguments
 
 |Positional Argument|Help|
@@ -142,7 +142,7 @@ usage: knft list-chains [-h] [-n NSID] [table_family] [table_name]
 
 ```
 
-Dump netfilter chains form a specific table
+Dump netfilter chains from a specific table
 #### Positional arguments
 
 |Positional Argument|Help|
@@ -164,7 +164,7 @@ usage: knft list-tables [-h] [-n NSID]
 
 ```
 
-Dump netfliter tables from a specific network namespace
+Dump netfilter tables from a specific network namespace
 #### Optional arguments
 
 |Short|Long|Help|
