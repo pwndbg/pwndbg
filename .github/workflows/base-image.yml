@@ -88,6 +88,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
+        id: buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Restore Docker cache mounts
@@ -108,7 +109,7 @@ jobs:
             --key "buildkit-${{ matrix.platform_base.tag_name }}-" \
             --json key -q '.[].key' | while read -r key; do
             echo "Deleting stale cache: $key"
-            gh cache delete "$key"
+            gh cache delete "$key" || echo "::warning::Failed to delete stale cache: $key"
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -122,6 +123,8 @@ jobs:
               "uv-${{ matrix.platform_base.tag_name }}": "/root/.cache/uv",
               "cargo-${{ matrix.platform_base.tag_name }}": "/root/.cargo/registry"
             }
+          builder: ${{ steps.buildx.outputs.name }}
+          skip-extraction: ${{ github.event_name == 'pull_request' }}
 
       - name: Build Docker image
         run: |

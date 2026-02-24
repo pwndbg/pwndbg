@@ -115,9 +115,9 @@ However, you must keep in mind one important thing (that you should be keeping i
 
 Now that we understand how the commands should feel, lets go over some tips on implementing them. Your code should go into `pwndbg/aglib/heap/`, see the other allocator implementations there as well.
 
-### Use cymbol
+### Use pwndbg.aglib.structures
 
-You should use the `pwndbg.aglib.cymbol` API when implementing your allocator. It essentially allows you to read out a C structure from memory and intract with it from your python code. See the `pwndbg/aglib/kernel` subsystem on how to properly do this. The glibc malloc code does not do this and uses the travesty that is `pwndbg/aglib/heap/structs.py`. The mallocng code does not do this but rather does direct memory reads - this is terrible both because it causes unnecessarily bloated code and because it makes it hard to modify if the structs change in a new version of the upstream allocator.
+You should use the `pwndbg.aglib.structures` API when implementing your allocator. It allows you to load an arbitrary C structure into the debugger, which in turn allows you to read out a C structure from memory and intract with it from your python code. See the `pwndbg/aglib/kernel` subsystem on how to properly do this. The glibc malloc code does not do this and uses the travesty that is `pwndbg/aglib/heap/structs.py`. The mallocng code does not do this but rather does direct memory reads - this is terrible both because it causes unnecessarily bloated code and because it makes it hard to modify if the structs change in a new version of the upstream allocator.
 
 ### Comment with links to the source
 
@@ -143,7 +143,7 @@ See [Implementing Libc support#Debug Info](./libc-provider.md#debug-info) for ra
 
 The mallocng implementation unfortunately does not do this, the jemalloc implementation unfortunately only does this (i.e. does not support jemalloc without debug info), the glibc implementation handles this pretty cleanly by having one class which uses debug info and one class which uses heuristics.
 
-The kernel code handles this the best, see `pwndbg/aglib/kernel/__init__.py:typeinfo_recovery()`. If debug info is present, we do nothing, otherwise we add the debug info ourselves using the `cymbol` API. From then on we can simply safely assume that we "have" debug info. This also allows the user to use the types that we infer (e.g. it allows them to do `print *(struct kmem_cache_node*) <some_addr>` even if they don't have debug info).
+The kernel code handles this the best, see `pwndbg/aglib/kernel/__init__.py:typeinfo_recovery()`. If debug info is present, we do nothing, otherwise we add the debug info ourselves using the `pwndbg.aglib.structures` API. From then on we can simply safely assume that we "have" debug info. This also allows the user to use the types that we infer (e.g. it allows them to do `print *(struct kmem_cache_node*) <some_addr>` even if they don't have debug info).
 
 ### Fail gracefully
 
