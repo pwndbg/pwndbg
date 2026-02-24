@@ -179,6 +179,7 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
 @pwndbg_test
 async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
+    import pwndbg.color
     from pwndbg.dbg_mod import BreakpointLocation
 
     await ctrl.launch(SYSCALLS_BINARY)
@@ -206,10 +207,11 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
 
     await ctrl.step_instruction()
     dis = await ctrl.execute_and_capture("nearpc -t 11")
-    # When we stop on a breakpoint, we only highlight it (and not show the "b+" marker)
+
+    # When we stop on a breakpoint, we show a special marker
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
-        " ► 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        "b► 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
         "   0x400094 <_start+20>    syscall <SYS_read>\n"

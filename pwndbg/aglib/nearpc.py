@@ -75,6 +75,11 @@ pwndbg.color.theme.add_param("nearpc-prefix", "►", "prefix marker for nearpc c
 pwndbg.color.theme.add_param(
     "nearpc-breakpoint-prefix", "b+", "breakpoint marker for nearpc command"
 )
+pwndbg.color.theme.add_param(
+    "nearpc-current-breakpoint-prefix",
+    "b►",
+    "marker for when current instruction is at a breakpoint",
+)
 pwndbg.config.add_param("left-pad-disasm", True, "whether to left-pad disassembly")
 show_args = pwndbg.config.add_param(
     "nearpc-show-args", True, "whether to show call arguments below instruction"
@@ -511,16 +516,24 @@ def nearpc(
     breakpoint_locations = pwndbg.dbg.breakpoint_locations()
 
     prefix_sign = pwndbg.config.nearpc_prefix
+
+    # Prefix for instruction at the current program counter
     current_insn_prefix = f" {prefix_sign}"
     current_insn_prefix = c.prefix(current_insn_prefix)
+
+    # Prefix for non-breakpoints and non-current instructions
     default_prefix = " " * (len(prefix_sign) + 1)
     default_prefix = c.prefix(default_prefix)
 
+    # Prefix for when instruction is a breakpoint, but not at the current instruction
     breakpoint_sign = pwndbg.config.nearpc_breakpoint_prefix
     breakpoint_prefix = breakpoint_sign.ljust(len(prefix_sign) + 1)
     breakpoint_prefix = c.breakpoint(breakpoint_prefix)
 
-    current_insn_breakpoint_prefix = pwndbg.color.red(c.prefix(f"b{prefix_sign}"))
+    # Prefix for when current instruction is a breakpoint
+    current_breakpoint_sign = pwndbg.config.nearpc_current_breakpoint_prefix
+    current_insn_breakpoint_prefix = current_breakpoint_sign.ljust(len(prefix_sign) + 1)
+    current_insn_breakpoint_prefix = c.breakpoint(c.prefix(current_insn_breakpoint_prefix))
 
     # Print out each instruction
     for i, (address_str, symbol, instruction, asm) in enumerate(
