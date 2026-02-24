@@ -196,8 +196,8 @@ list_exprs_parser.add_argument("rule_id", nargs="?", type=int, help="Rule Handle
 
 list_rules_parser = subparsers.add_parser(
     "list-rules",
-    description="Dump netfilter rules form a specific chain",
-    help="Dump netfilter rules form a specific chain",
+    description="Dump netfilter rules from a specific chain",
+    help="Dump netfilter rules from a specific chain",
 )
 list_rules_parser.add_argument("-n", "--nsid", type=int, help="Network Namespace ID")
 list_rules_parser.add_argument(
@@ -211,8 +211,8 @@ list_rules_parser.add_argument("chain_name", nargs="?", type=str, help="Chain na
 
 list_chains_parser = subparsers.add_parser(
     "list-chains",
-    description="Dump netfilter chains form a specific table",
-    help="Dump netfilter chains form a specific table",
+    description="Dump netfilter chains from a specific table",
+    help="Dump netfilter chains from a specific table",
 )
 list_chains_parser.add_argument("-n", "--nsid", type=int, help="Network Namespace ID")
 list_chains_parser.add_argument(
@@ -225,8 +225,8 @@ list_chains_parser.add_argument("table_name", nargs="?", type=str, help="Table n
 
 list_tables_parser = subparsers.add_parser(
     "list-tables",
-    description="Dump netfliter tables from a specific network namespace",
-    help="Dump netfliter tables from a specific network namespace",
+    description="Dump netfilter tables from a specific network namespace",
+    help="Dump netfilter tables from a specific network namespace",
 )
 list_tables_parser.add_argument("-n", "--nsid", type=int, help="Network Namespace ID")
 

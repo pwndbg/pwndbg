@@ -177,7 +177,7 @@ async def test_mallocng_slot_start(ctrl: Controller, binary: Path):
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
-    # Check ng-slots is the same as ng-slotu when p == start
+    # Check `ng slots` is the same as `ng slotu` when p == start
     # and that they aren't the same when p != start.
 
     slotu_buffer2_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer2"))
@@ -190,7 +190,7 @@ async def test_mallocng_slot_start(ctrl: Controller, binary: Path):
 
     if binary == HEAP_MALLOCNG_STATIC:
         assert "not cyclic" not in slotu_buffer5_out
-        # Doing `ng-slots buffer5` will give you garbage since buffer5 is not
+        # Doing `ng slots buffer5` will give you garbage since buffer5 is not
         # a valid slot start.
         assert slotu_buffer5_out != slots_buffer5_out
 

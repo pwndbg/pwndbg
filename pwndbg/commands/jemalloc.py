@@ -86,10 +86,16 @@ parser = argparse.ArgumentParser(description="Utility for inspecting the jemallo
 subparsers = parser.add_subparsers(dest="command")
 subparsers.required = True
 
-heap_parser = subparsers.add_parser("heap", description="Prints all extents information")
+heap_parser = subparsers.add_parser(
+    "heap",
+    description="Prints all extents information",
+    help="Prints all extents information",
+)
 
 info_parser = subparsers.add_parser(
-    "extent-info", description="Prints extent information for the given address"
+    "extent-info",
+    description="Prints extent information for the given address",
+    help="Prints extent information for the given address",
 )
 info_parser.add_argument("addr", type=int, help="Address of the extent metadata")
 info_parser.add_argument(
@@ -103,6 +109,7 @@ info_parser.add_argument(
 find_parser = subparsers.add_parser(
     "find-extent",
     description="Returns extent information for pointer address allocated by jemalloc",
+    help="Returns extent information for pointer address allocated by jemalloc",
 )
 find_parser.add_argument("addr", type=int, help="Address of the allocated memory location")
 

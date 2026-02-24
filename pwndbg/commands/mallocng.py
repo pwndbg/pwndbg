@@ -1415,6 +1415,7 @@ slotu_parser.add_argument(
     "-a",
     "--all",
     action="store_true",
+    default=False,
     help="Print out all information. Including meta and group data.",
 )
 
