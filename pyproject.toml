@@ -94,9 +94,9 @@ uv = [
 ruff = [
   { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
 ]
-#lldb-for-pwndbg = [
-#  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
-#]
+lldb-for-pwndbg = [
+  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
+]
 gdb-for-pwndbg = [
   { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
 ]

@@ -1024,7 +1024,33 @@ wheels = [
 [[package]]
 name = "lldb-for-pwndbg"
 version = "22.1.0.post1"
+source = { registry = "https://mirrors.loong64.com/pypi/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.14.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+]
+wheels = [
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/0eb325cacf741478658a29f3ab5128cbddedf8f2a981513450f068d3fa5ffda5/lldb_for_pwndbg-22.1.0.post1-cp310-cp310-manylinux_2_36_loongarch64.whl", hash = "sha256:0eb325cacf741478658a29f3ab5128cbddedf8f2a981513450f068d3fa5ffda5" },
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/79e5b54e262e8c6701bfdd1bc320e744a25e9591c550699aab369252880e7531/lldb_for_pwndbg-22.1.0.post1-cp311-cp311-manylinux_2_36_loongarch64.whl", hash = "sha256:79e5b54e262e8c6701bfdd1bc320e744a25e9591c550699aab369252880e7531" },
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/454b066f954888b0ba9c5d2f7fb7a6290f5f2a1fe23b3a480f2944dc69bf3625/lldb_for_pwndbg-22.1.0.post1-cp312-cp312-manylinux_2_36_loongarch64.whl", hash = "sha256:454b066f954888b0ba9c5d2f7fb7a6290f5f2a1fe23b3a480f2944dc69bf3625" },
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/5a9132d5aebee3ba6982cbf9ae25ab21ff9f8b351a45d5f97258dc9f8b0954f0/lldb_for_pwndbg-22.1.0.post1-cp313-cp313-manylinux_2_36_loongarch64.whl", hash = "sha256:5a9132d5aebee3ba6982cbf9ae25ab21ff9f8b351a45d5f97258dc9f8b0954f0" },
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/060233269e79844ebf2ea112bc58166e82868ec424eaa7f1dc4e247ecc910cd3/lldb_for_pwndbg-22.1.0.post1-cp314-cp314-manylinux_2_36_loongarch64.whl", hash = "sha256:060233269e79844ebf2ea112bc58166e82868ec424eaa7f1dc4e247ecc910cd3" },
+]
+
+[[package]]
+name = "lldb-for-pwndbg"
+version = "22.1.0.post1"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.13' and platform_machine != 'loongarch64') or (python_full_version >= '3.13' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'loongarch64') or (python_full_version == '3.12.*' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'loongarch64') or (python_full_version == '3.11.*' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'loongarch64') or (python_full_version < '3.11' and sys_platform != 'linux')",
+]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/21/01/ea3e11cbe9802463b4649c636cec39b78b5211bfffd9e465897709024358/lldb_for_pwndbg-22.1.0.post1-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:cfd974aa6b33e67172d6484bb4e1f997c13becc2dda0312f754204c3d0b2b98b", size = 59875959, upload-time = "2026-02-25T03:56:02.427Z" },
     { url = "https://files.pythonhosted.org/packages/7f/23/ba4c2ce881459a6febb05a155fe9b198013c09e56b14f3dd40fa85c1e9bb/lldb_for_pwndbg-22.1.0.post1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:dab3207e649eea7a2ce967244a6d2e81885d3606d2d146932d0b88d85c5ea396", size = 57784422, upload-time = "2026-02-25T05:56:35.101Z" },
@@ -1770,7 +1796,8 @@ gdb = [
 ]
 lldb = [
     { name = "gnureadline", marker = "sys_platform != 'win32'" },
-    { name = "lldb-for-pwndbg" },
+    { name = "lldb-for-pwndbg", version = "22.1.0.post1", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
+    { name = "lldb-for-pwndbg", version = "22.1.0.post1", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
     { name = "pyreadline3", marker = "sys_platform == 'win32'" },
 ]
 
@@ -1819,7 +1846,8 @@ requires-dist = [
     { name = "gdb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'gdb') or (sys_platform != 'linux' and extra == 'gdb')", specifier = "==17.1.0.post2" },
     { name = "gnureadline", marker = "sys_platform != 'win32' and extra == 'lldb'", specifier = ">=8.2.13,<9" },
     { name = "ipython", specifier = ">=8.37.0,<9" },
-    { name = "lldb-for-pwndbg", marker = "extra == 'lldb'", specifier = "==22.1.0.post1" },
+    { name = "lldb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", specifier = "==22.1.0.post1", index = "https://mirrors.loong64.com/pypi/simple" },
+    { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'lldb') or (sys_platform != 'linux' and extra == 'lldb')", specifier = "==22.1.0.post1" },
     { name = "niche-elf", specifier = "==0.3.6" },
     { name = "psutil", specifier = ">=7.0.0,<8" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
