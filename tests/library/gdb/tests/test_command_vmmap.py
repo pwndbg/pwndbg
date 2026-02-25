@@ -77,19 +77,28 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
             0x7ffffffde000     0x7ffffffff000 rwxp    21000 3158   [stack]
         0xffffffffff600000 0xffffffffff601000 r-xp     1000 24158  [vsyscall]
 
-    Note that for a core-file we are missing the [vvar] and [vvar_vclock] page ([vvar_vclock] was introduced in a
-    recent kernel version that distributions have picked up, funnily enough searching it online returns no results
-    at the moment). "[vdso]" used to show up as "load2" for coredumps on older versions of GDB.
+    Note that a generated core-file does not contain a handful of mappings that exist at runtime, such as [vvar] or
+    [vvar_vclock] page ([vvar_vclock] was introduced in a recent kernel version that distributions have picked up,
+    funnily enough searching it online returns no results at the moment).
+    "[vdso]" used to show up as "load2" for coredumps on older versions of GDB.
 
     This is... how it is. It just seems that core files (at least those I met) have no info about
     the vvar page and also GDB can't access the [vvar] memory with its x/ command during core debugging.
     """
+
+    # Although these may exist at runtime, they won't show up in the coredump
+    MAPPINGS_NOT_IN_CORE_DUMP = ["[vvar]", "[vvar_vclock]"]
+
     start_binary(CRASH_SIMPLE_BINARY)
 
     # Trigger binary crash
     gdb.execute("continue")
 
     expected_maps = get_proc_maps()
+
+    count_of_non_coredump_mappings = sum(
+        1 for line in expected_maps if line[-1] in MAPPINGS_NOT_IN_CORE_DUMP
+    )
 
     gdb.execute("set vmmap-prefer-relpaths off")
     vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
@@ -131,7 +140,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
         # This was `len(vmmaps) == old_len_vmmaps - 1` before, but all distributions updated to a
         # kernel version which now shows [vvar_vclock] as well, and this does not show up in the
         # corefile.
-        assert len(vmmaps) == old_len_vmmaps - 2
+        assert len(vmmaps) == old_len_vmmaps - count_of_non_coredump_mappings
     else:
         # E.g. on Debian 10 with GDB 8.2.1 the core dump does not contain mappings info
         # (note: we don't support Debian 10 anymore, so this code may be removed in the future)
