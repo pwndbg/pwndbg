@@ -137,9 +137,6 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     )
 
     if has_proc_maps:
-        # This was `len(vmmaps) == old_len_vmmaps - 1` before, but all distributions updated to a
-        # kernel version which now shows [vvar_vclock] as well, and this does not show up in the
-        # corefile.
         assert len(vmmaps) == old_len_vmmaps - count_of_non_coredump_mappings
     else:
         # E.g. on Debian 10 with GDB 8.2.1 the core dump does not contain mappings info
