@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from .....host import Controller
-from .. import get_binary
-from .. import pwndbg_test
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
 HEAP_BINARY = get_binary("heap_bugs.x86-64.out")
 HEAP_CODE = get_binary("heap_bugs.x86-64.c")

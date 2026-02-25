@@ -26,7 +26,7 @@ parser_stop.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PWNDBG)
+@pwndbg.commands.Command(parser, category=CommandCategory.DEV)
 def profiler(command, file="pwndbg.pstats") -> None:
     if command == "start":
         print("Starting profiler.")

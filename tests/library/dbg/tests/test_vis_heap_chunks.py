@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from .....host import Controller
-from .. import get_binary
-from .. import launch_to
-from .. import pwndbg_test
+from ....host import Controller
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
 HEAP_VIS = get_binary("heap_vis.native.out")
 
