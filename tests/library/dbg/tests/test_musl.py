@@ -51,4 +51,7 @@ async def test_musl_static_detection(ctrl: Controller) -> None:
     assert pwndbg.libc.addr() == pwndbg.libc.loader_addr() != 0
     assert not pwndbg.libc.has_exported_symbols()
     assert not pwndbg.libc.has_internal_symbols()
+    # The binary has debug info stripped (see makefile) because on Fedora 43,
+    # -g3 caused struct __ptcb to be present, making has_debug_info() True,
+    # while on other distros it wasn't — leading to inconsistent results.
     assert not pwndbg.libc.has_debug_info()

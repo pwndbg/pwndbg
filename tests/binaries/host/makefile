@@ -180,14 +180,14 @@ heap_musl_dyn.native.out: heap_musl.native.c
 	@echo "[+] Building '$@'"
 	${MUSLCC} -g3 -O0 -o $@ $?
 
-# Ideally I would do:
-# strip heap_musl_static.out
-# here because it would ensure mallocng commands are tested on
-# a musl with no symbols. But that also makes it very hard to
-# write the tests.
+# Note: we strip debug info (but not the symbol table) so that the detection
+# test has consistent assertions across distros. On Fedora 43, -g3 caused
+# struct __ptcb to appear in debug info (making has_debug_info() return True),
+# while on other distros it didn't.
 heap_musl_static.native.out: heap_musl.native.c
 	@echo "[+] Building '$@'"
 	${MUSLCC} -g3 -O0 -static -o $@ $?
+	strip --strip-debug $@
 
 else
 
