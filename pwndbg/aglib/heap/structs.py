@@ -32,6 +32,7 @@ _libc_type = pwndbg.libc.which()
 assert _libc_type == pwndbg.libc.LibcType.GLIBC or (
     _libc_type == pwndbg.libc.LibcType.UNKNOWN and pwndbg.libc.version() != (-1, -1)
 )
+# NOTE: these should be lazily evaluated
 GLIBC_VERSION = pwndbg.libc.version()
 # TODO: Move these heap constants and macros to elsewhere, because pwndbg/aglib/heap/ptmalloc.py also uses them, we are duplicating them here.
 SIZE_SZ = pwndbg.aglib.arch.ptrsize
