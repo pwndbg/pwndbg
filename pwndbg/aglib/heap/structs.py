@@ -552,12 +552,51 @@ class c_heap_info(Structure):
     ]
 
 
+class c_heap_info_2_43(Structure):
+    """
+    This class represents heap_info struct as a ctypes struct.
+
+    https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L53
+
+    typedef struct _heap_info
+    {
+        mstate ar_ptr; /* Arena for this heap. */
+        struct _heap_info *prev; /* Previous heap. */
+        size_t size;   /* Current size in bytes. */
+        size_t mprotect_size; /* Size in bytes that has been mprotected
+                                PROT_READ|PROT_WRITE.  */
+        size_t pagesize; /* Page size used when allocating the arena.  */
+        /* Make sure the following data is properly aligned, particularly
+           that sizeof (heap_info) + 2 * SIZE_SZ is a multiple of
+           MALLOC_ALIGNMENT. */
+        /* Make sure the following data is properly aligned, particularly
+            that sizeof (heap_info) + 2 * SIZE_SZ is a multiple of
+            MALLOC_ALIGNMENT. */
+        char pad[-3 * SIZE_SZ & MALLOC_ALIGN_MASK];
+    } heap_info;
+    """
+
+    _fields_ = [
+        ("ar_ptr", c_pvoid),
+        ("prev", c_pvoid),
+        ("size", c_size_t),
+        ("mprotect_size", c_size_t),
+        ("pagesize", c_size_t),
+        ("pad", ctypes.c_uint8 * (-3 * SIZE_SZ & MALLOC_ALIGN_MASK)),
+    ]
+
+
 class HeapInfo(CStruct2GDB):
     """
     This class represents heap_info struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
-    _c_struct = c_heap_info
+    glibc_version = pwndbg.libc.version()
+
+    if glibc_version >= (2, 43):
+        _c_struct = c_heap_info_2_43
+    else:
+        _c_struct = c_heap_info
     sizeof = ctypes.sizeof(_c_struct)
 
 
