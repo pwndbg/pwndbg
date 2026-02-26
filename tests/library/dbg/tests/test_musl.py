@@ -41,12 +41,10 @@ async def test_musl_static_detection(ctrl: Controller) -> None:
 
     await launch_to(ctrl, MUSL_STATIC, "main")
 
-    # I'd be happy to see this test updated :>
-    assert pwndbg.libc.which() == pwndbg.libc.LibcType.UNKNOWN
+    assert pwndbg.libc.which() == pwndbg.libc.LibcType.MUSL
 
     await ctrl.launch(MUSL_STATIC)
-    # I'd be happy to see this test updated :>
-    assert pwndbg.libc.which() == pwndbg.libc.LibcType.UNKNOWN
+    assert pwndbg.libc.which() == pwndbg.libc.LibcType.MUSL
 
     # Sanity check that we can still resolve the important info.
     assert pwndbg.libc.filepath() == pwndbg.libc.loader_filepath()
