@@ -141,14 +141,14 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     else:
         # E.g. on Debian 10 with GDB 8.2.1 the core dump does not contain mappings info
         # (note: we don't support Debian 10 anymore, so this code may be removed in the future)
-        assert len(vmmaps) == old_len_vmmaps - 3
+        assert len(vmmaps) == old_len_vmmaps - (count_of_non_coredump_mappings + 1)
         binary_map = next(i for i in expected_maps if CRASH_SIMPLE_BINARY in i[-1])
         expected_maps.remove(binary_map)
 
-    # Remove [vvar]
-    expected_maps.remove(next(i for i in expected_maps if i[-1] == "[vvar]"))
-    # Remove [vvar_vclock]
-    expected_maps.remove(next(i for i in expected_maps if i[-1] == "[vvar_vclock]"))
+    # Remove mappings that aren't in the coredump
+    expected_maps = [
+        mapping for mapping in expected_maps if mapping[-1] not in MAPPINGS_NOT_IN_CORE_DUMP
+    ]
 
     def assert_maps():
         for vmmap, expected_map in zip(vmmaps, expected_maps):
