@@ -33,16 +33,35 @@ def fixup_paths(src_root: Path, venv_path: Path):
     # sys.prefix must be changed to point to the virtual environment.
     # This is what python expect: https://docs.python.org/3/library/sys.html#sys.prefix
     sys.prefix = str(venv_path)
+    sys.exec_prefix = str(venv_path)
 
 
 def get_venv_path(src_root: Path):
     venv_path_env = os.environ.get("PWNDBG_VENV_PATH")
     if venv_path_env:
         return Path(venv_path_env).expanduser().resolve()
+
+    # Handle case when `gdbinit.py` is running from inside venv, eg: `venv/share/pwndbg/gdbinit.py`
+    # See, example usage: https://github.com/pwndbg/pwndbg/pull/3737
+    if (
+        src_root.parent.name == "share"
+        and src_root.name == "pwndbg"
+        and (src_root / "../../pyvenv.cfg").exists()
+    ):
+        return src_root.parent.parent
+
     return src_root / ".venv"
 
 
 def main() -> None:
+    # Check if pwndbg was already loaded from `pwndbg` binary
+    if "pwndbg" in sys.modules and hasattr(sys.modules["pwndbg"], "_is_loaded_from_pwndbg"):
+        print(
+            "\033[90m~/.gdbinit: Skipped loading Pwndbg from `source path/gdbinit.py` - already loaded.\033[0m",
+            flush=True,
+        )
+        return
+
     src_root = Path(__file__).parent.resolve()
 
     skip_venv = False

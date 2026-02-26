@@ -31,8 +31,8 @@ import pwndbg.libc
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
-from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
-from pwndbg.lib import TypeNotRecovered
+from pwndbg.lib import SymbolNotRecoveredError
+from pwndbg.lib import TypeNotRecoveredError
 
 log = logging.getLogger(__name__)
 
@@ -48,10 +48,9 @@ class CommandCategory(str, Enum):
     NEXT = "Step/Next/Continue"
     CONTEXT = "Context"
     PTMALLOC2 = "GLibc ptmalloc2 Heap"
-    JEMALLOC = "jemalloc Heap"
+    ALLOCATORS = "Allocators"
     BREAKPOINT = "Breakpoint"
     MEMORY = "Memory"
-    MUSL = "musl"
     STACK = "Stack"
     REGISTER = "Register"
     PROCESS = "Process"
@@ -521,7 +520,7 @@ class CommandObj:
                 print("Feel free to re-enable manually.")
             else:
                 print()
-        except TypeNotRecovered as e:
+        except TypeNotRecoveredError as e:
             print(message.error(f"recovering {e.name} failed with error:"))
             print(e)
             if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
@@ -552,8 +551,8 @@ class Command:
         aliases: list[str] = [],
         examples: str = "",
         notes: str = "",
-        only_debuggers: set[pwndbg.dbg_mod.DebuggerType] = None,
-        exclude_debuggers: set[pwndbg.dbg_mod.DebuggerType] = None,
+        only_debuggers: set[pwndbg.dbg_mod.DebuggerType] | None = None,
+        exclude_debuggers: set[pwndbg.dbg_mod.DebuggerType] | None = None,
     ) -> None:
         # Setup an ArgumentParser even if we were only passed a description.
         if isinstance(parser_or_desc, str):
@@ -891,16 +890,16 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
     # Note: We will still raise the error for developers when exception-* is set to "on"
     try:
         return function(*a, **kw)
-    except SymbolUnresolvableError as err:
-        e(f"{func_name(function)}: Fail to resolve the symbol: `{err.symbol}`")
-        if "thread_arena" == err.symbol:
+    except SymbolNotRecoveredError as err:
+        e(f"{func_name(function)}: Fail to resolve the symbol: `{err.name}`")
+        if "thread_arena" == err.name:
             w(
                 "You are probably debugging a multi-threaded target without debug symbols, so we failed to determine which arena is used by the current thread.\n"
                 "To resolve this issue, you can use the `arenas` command to list all arenas, and use `set thread-arena <addr>` to set the current thread's arena address you think is correct.\n"
             )
         else:
             w(
-                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap-config` command output and set the config for `{err.symbol}`."
+                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap-config` command output and set the config for `{err.name}`."
             )
         if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
             raise err

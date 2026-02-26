@@ -195,7 +195,7 @@ install_jemalloc() {
             ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
             if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
                 echo "Jemalloc tarball exists but has incorrect checksum. Re-downloading..."
-                curl --location --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
+                curl --fail --location --retry 3 --retry-connrefused --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
                 ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
                 if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
                     echo "Jemalloc binary checksum mismatch after re-download."
@@ -208,7 +208,7 @@ install_jemalloc() {
             fi
         else
             echo "Downloading jemalloc..."
-            curl --location --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
+            curl --fail --location --retry 3 --retry-connrefused --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
             ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
             if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
                 echo "Jemalloc binary checksum mismatch"

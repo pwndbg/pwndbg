@@ -157,6 +157,10 @@ class Page:
         return bool(self.flags & self.X_OK)
 
     @property
+    def ro(self) -> bool:
+        return self.read and not (self.write or self.execute)
+
+    @property
     def rw(self) -> bool:
         return self.read and self.write
 

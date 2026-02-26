@@ -955,6 +955,19 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         return None
 
     @override
+    def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
+        block = gdb.block_for_pc(address)
+
+        if block is not None:
+            # Final the top-level function that this block resides it
+            while block.superblock is not None and block.superblock.function is not None:
+                block = block.superblock
+
+            return block.start, block.end
+
+        return None
+
+    @override
     def types_with_name(self, name: str) -> Sequence[pwndbg.dbg_mod.Type]:
         # In GDB, process-level lookups for types are always global.
         #
@@ -1316,14 +1329,22 @@ class GDBCommand(gdb.Command):
         # word=None. Why?
         # Since we only support one level of subcommand completion (i.e. we dont support subsubcommand completion),
         # we don't really care about the text and word distinction.
-        if word is None or text != word:
+        # Correction (#3751): We have to handle the `text != word` case to properly autocomplete stuff like
+        # `knft list-<tab>` (text="list-", word="").
+
+        if word is None:
             return []
         if text == "":
             # Return all subcommands
             return self.subcommand_names
 
         # Find all with matching prefix
-        return [valid for valid in self.subcommand_names if valid.startswith(text)]
+
+        # We need to calculate `comp_start` to handle stuff like `knft list-flowtables`
+        # and only return the matched word. I.e. `knft list-f<tab>` should return "flowtables"
+        # not "list-flowtables".
+        comp_start: int = len(text) - len(word)
+        return [valid[comp_start:] for valid in self.subcommand_names if valid.startswith(text)]
 
 
 class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
@@ -1707,6 +1728,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         set backtrace past-main on
         set step-mode on
         set print pretty on
+        set debuginfod enabled on
         handle SIGALRM nostop print nopass
         handle SIGBUS  stop   print nopass
         handle SIGPIPE nostop print nopass

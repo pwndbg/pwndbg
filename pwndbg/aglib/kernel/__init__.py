@@ -5,6 +5,7 @@ import re
 from abc import ABC
 from abc import abstractmethod
 from collections.abc import Callable
+from collections.abc import Iterator
 from typing import TYPE_CHECKING
 from typing import TypeVar
 
@@ -24,8 +25,8 @@ import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.lib import Status
-from pwndbg.lib import TypeNotFound
-from pwndbg.lib import TypeNotRecovered
+from pwndbg.lib import TypeNotFoundError
+from pwndbg.lib import TypeNotRecoveredError
 from pwndbg.lib.regs import BitFlags
 
 if TYPE_CHECKING:
@@ -108,7 +109,7 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
 
 # Set by pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux() when page typeinfo
 # recovery fails.
-page_typeinfo_recovery_failure: None | TypeNotRecovered = None
+page_typeinfo_recovery_failure: None | TypeNotRecoveredError = None
 
 
 def typeinfo_recovery(
@@ -120,36 +121,36 @@ def typeinfo_recovery(
         def func(*args: P.args, **kwargs: P.kwargs) -> None:
             if not pwndbg.dbg.selected_inferior().is_linux():
                 # make sure the target is linux, should we specify symbols instead?
-                raise TypeNotRecovered(name, "target is not linux")
+                raise TypeNotRecoveredError(name, "target is not linux")
             if has_debug_info():
                 return
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
                 return
             if requires_kversion and kversion() is None:
-                raise TypeNotRecovered(name, "kernel version is unavailable")
+                raise TypeNotRecoveredError(name, "kernel version is unavailable")
             if requires_kbase and kbase() is None:
-                raise TypeNotRecovered(name, "kernel base not found")
+                raise TypeNotRecoveredError(name, "kernel base not found")
 
             try:
                 result = f(*args, **kwargs)
-            except TypeNotFound as e:
+            except TypeNotFoundError as e:
                 # typeinfo_recovery functions depend on
                 # pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux()
                 # succeeding and will try to directly read those types from the debbuger
                 # like e.g. `pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)`
-                # This will raise a TypeNotFound exception.
+                # This will raise a TypeNotFoundError exception.
                 if page_typeinfo_recovery_failure is not None:
                     raise page_typeinfo_recovery_failure
-                raise TypeNotRecovered(name, str(e))
+                raise TypeNotRecoveredError(name, str(e))
             except AssertionError as e:
                 # FIXME: Some type recovery functions `assert` under the assumption that the assert
                 # will be caught here.
-                raise TypeNotRecovered(name, str(e))
+                raise TypeNotRecoveredError(name, str(e))
 
             fname = name.split()[-1] + "_structs"
             err: Status = pwndbg.aglib.structures.add(fname, result)
             if err.is_failure():
-                raise TypeNotRecovered(name, err.message)
+                raise TypeNotRecoveredError(name, err.message)
             return
 
         return func
@@ -216,9 +217,7 @@ def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig:
             config_start = result + len("IKCFG_ST")
             config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
     if (
-        not config_start
-        or not config_end
-        or not pwndbg.aglib.memory.is_kernel(config_start)
+        not pwndbg.aglib.memory.is_kernel(config_start)
         or not pwndbg.aglib.memory.is_kernel(config_end)
         or config_start >= config_end
     ):
@@ -272,7 +271,7 @@ def krelease() -> tuple[int, ...] | None:
     raise Exception("Linux version tuple not found")
 
 
-def get_idt_entries() -> list[pwndbg.lib.kernel.structs.IDTEntry]:
+def get_idt_entries() -> Iterator[pwndbg.lib.kernel.structs.IDTEntry]:
     """
     Retrieves the IDT entries from memory.
     """
@@ -282,15 +281,11 @@ def get_idt_entries() -> list[pwndbg.lib.kernel.structs.IDTEntry]:
     size = pwndbg.aglib.arch.ptrsize * 2
     num_entries = (limit + 1) // size
 
-    entries = []
-
     # TODO: read the entire IDT in one call?
     for i in range(num_entries):
         entry_addr = base + i * size
         entry = pwndbg.lib.kernel.structs.IDTEntry(pwndbg.aglib.memory.read(entry_addr, size))
-        entries.append(entry)
-
-    return entries
+        yield entry
 
 
 def current_cpu() -> int:
@@ -471,11 +466,13 @@ class x86_64Ops(x86Ops):
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value:
+    ) -> pwndbg.dbg_mod.Value | None:
         if cpu is None:
             cpu = current_cpu()
 
-        per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
+        per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
+        if per_cpu_offset is None:
+            return None
 
         offset = pwndbg.aglib.memory.read_pointer_width(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
@@ -507,11 +504,13 @@ class Aarch64Ops(ArchOps):
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value:
+    ) -> pwndbg.dbg_mod.Value | None:
         if cpu is None:
             cpu = current_cpu()
 
-        per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
+        per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
+        if per_cpu_offset is None:
+            return None
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
@@ -793,49 +792,65 @@ def num_numa_nodes() -> int:
     return val
 
 
-def node_data() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def node_data() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.node_data()
     return None
 
 
-def slab_caches() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def slab_caches() -> pwndbg.dbg_mod.Value | None:
     if (syms := arch_symbols()) is not None:
-        return syms.slab_caches()
+        if addr := syms.slab_caches():
+            return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", addr)
     return None
 
 
-def per_cpu_offset() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def per_cpu_offset() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.per_cpu_offset()
     return None
 
 
-def modules() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def modules() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.modules()
     return None
 
 
-def db_list() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def db_list() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.db_list()
     return None
 
 
-def prog_idr() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def prog_idr() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.prog_idr()
     return None
 
 
-def map_idr() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def map_idr() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.map_idr()
     return None
 
 
-def current_task(cpu: int | None = None) -> int:
+@pwndbg.lib.cache.cache_until("stop")
+def current_task(cpu: int | None = None) -> int | None:
     if (syms := arch_symbols()) is not None:
-        return syms.current_task(cpu)
+        result = syms.current_task()
+        if not isinstance(result, int):
+            return None
+        if pwndbg.aglib.arch.name == "aarch64":
+            # TODO: how to get the kcurrent for different cpus
+            return result
+        ptr = int(per_cpu(result, cpu=cpu))
+        return pwndbg.aglib.memory.read_pointer_width(ptr)
     return None

@@ -432,7 +432,8 @@ def near(
     address: int,
     forward_count: int = 1,
     backward_count: int = 0,
-    total_count: int = None,
+    total_count: int | None = None,
+    end_address: int | None = None,
     emulate=False,
     show_prev_insns=True,
     use_cache=False,
@@ -453,6 +454,8 @@ def near(
             if set, returns a list with this many instructions in total.
             The number of backward instructions is limited by `backward_count`.
             If this is set, `forward_count` is ignored.
+        end_address:
+            determines the maximum address (non-inclusive) that can be disassembled.
     """
 
     pc = pwndbg.aglib.regs.pc
@@ -555,6 +558,9 @@ def near(
 
     while insn and len(insns) < target_instruction_count:
         target = insn.next if not linear else insn.address + insn.size
+
+        if end_address is not None and target >= end_address:
+            break
 
         # Emulation may have failed or been disabled in the last call to one()
         if emu:

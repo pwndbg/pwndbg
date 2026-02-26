@@ -1,6 +1,6 @@
 [project]
 name = "pwndbg"
-version = "2025.10.20"
+version = "2026.02.18"
 description = "Exploit Development and Reverse Engineering with GDB Made Easy"
 authors = [{ name = "Dominik 'disconnect3d' Czarnota", email = "dominik.b.czarnota+dc@gmail.com" }]
 requires-python = ">=3.10, <4"
@@ -31,16 +31,17 @@ dependencies = [
     # Optional? 'ziglang' must be optional, as it is not available on every platform.
     # It is only used for the 'cymbol' command and some `asm` functionality.
     "ziglang==0.14.1 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
+    # Used for symbol syncing (e.g. klookup --apply and decompiler integration)
+    "niche-elf==0.3.6",
+    # This dep is optional.
     # For installing the decompiler plugins (we don't actually use it as a python library).
     # If you bump this, also bump the pwndbg/commands/decompiler_integration.py:d2d_required* variables.
     "decomp2dbg==3.14.1",
-    # Used for symbol syncing (e.g. klookup --apply and decompiler integration)
-    "niche-elf==0.3.6",
 ]
 
 [project.optional-dependencies]
 lldb = [
-    # The LLDB REPL requires readline.
+    # Optional? for better LLDB REPL behaviour on python builds that use libeedit.
     'gnureadline>=8.2.13,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
     "lldb-for-pwndbg==21.1.7.post1",
@@ -168,10 +169,13 @@ required-imports = ["from __future__ import annotations"]
 allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
-include = ["/pwndbg", "/pwndbginit"]
+include = ["/pwndbg", "/pwndbginit", "gdbinit.py"]
 
 [tool.hatch.build.targets.wheel]
 include = ["/pwndbg", "/pwndbginit"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"gdbinit.py" = "share/pwndbg/gdbinit.py"
 
 [project.scripts]
 pwndbg = "pwndbginit.pwndbg_gdb:main"

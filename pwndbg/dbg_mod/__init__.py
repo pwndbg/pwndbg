@@ -583,6 +583,15 @@ class Process:
         Raises:
         - pwndbg.dbg_mod.Error: If no object file matching the `objfile_endswith` pattern is found.
         """
+
+    def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
+        """
+        Return the function start and end address for a function that
+        contains address `addr`.
+
+        Returns:
+        - tuple[int, int] | None: [start, end) of function block if found (end address is exclusive)
+        """
         raise NotImplementedError()
 
     # There is an interesting counterpart to this method that exists at the

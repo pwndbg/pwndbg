@@ -75,12 +75,6 @@ install_pacman() {
         sudo pacman -Syu || true
     fi
     sudo pacman -S --noconfirm --needed git gdb python which debuginfod curl gcc make patch
-    if [ -z "$UPDATE_MODE" ]; then
-        if ! grep -qs "^set debuginfod enabled on" ~/.gdbinit; then
-            echo "set debuginfod enabled on" >> ~/.gdbinit
-            echo "[*] Added 'set debuginfod enabled on' to ~/.gdbinit"
-        fi
-    fi
 }
 
 install_freebsd() {
@@ -214,8 +208,10 @@ source ${PWNDBG_VENV_PATH}/bin/activate
 pip install uv
 
 # Install dependencies
+# No need to install vendored GDB / LLDB since they won't be used
+# with this setup.
 echo "Installing dependencies.."
-uv sync --extra gdb --extra lldb
+uv sync
 
 if [ -z "$UPDATE_MODE" ]; then
     if grep -qs '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
@@ -225,6 +221,7 @@ if [ -z "$UPDATE_MODE" ]; then
         echo "source $PWD/gdbinit.py" >> ~/.gdbinit
         echo "[*] Added 'source $PWD/gdbinit.py' to ~/.gdbinit so that Pwndbg will be loaded on every launch of GDB."
     fi
-    echo "Please set the PWNDBG_NO_AUTOUPDATE environment variable to any value"
-    echo "to disable the automatic updating of dependencies when Pwndbg is loaded."
 fi
+
+echo "Set the PWNDBG_NO_AUTOUPDATE environment variable to any value"
+echo "to disable the automatic updating of dependencies when Pwndbg is loaded."
