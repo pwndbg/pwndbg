@@ -456,9 +456,11 @@ class x86_64PagingInfo(ArchPagingInfo):
     @pwndbg.lib.cache.cache_until("stop")
     def kbase(self) -> int | None:
         idt_entries = pwndbg.aglib.kernel.get_idt_entries()
-        if len(idt_entries) == 0:
+        try:
+            entry = next(idt_entries)
+            return self._kbase(entry.offset)
+        except StopIteration:
             return None
-        return self._kbase(idt_entries[0].offset)
 
     @property
     def page_shift(self) -> int:

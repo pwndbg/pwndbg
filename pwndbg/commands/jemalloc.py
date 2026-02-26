@@ -10,14 +10,8 @@ import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
-parser = argparse.ArgumentParser(
-    description="Returns extent information for pointer address allocated by jemalloc"
-)
-parser.add_argument("addr", type=int, help="Address of the allocated memory location")
 
-
-@pwndbg.commands.Command(parser, category=CommandCategory.JEMALLOC)
-def jemalloc_find_extent(addr) -> None:
+def jemalloc_find_extent(addr: int) -> None:
     print(ctx_color.banner("Jemalloc find extent"))
     print("This command was tested only for jemalloc 5.3.0 and does not support lower versions")
     print()
@@ -41,15 +35,7 @@ def jemalloc_find_extent(addr) -> None:
         return
 
 
-parser = argparse.ArgumentParser(description="Prints extent information for the given address")
-parser.add_argument("addr", type=int, help="Address of the extent metadata")
-parser.add_argument(
-    "-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones."
-)
-
-
-@pwndbg.commands.Command(parser, category=CommandCategory.JEMALLOC)
-def jemalloc_extent_info(addr, verbose=False, header=True) -> bool:
+def jemalloc_extent_info(addr: int, verbose: bool = False, header: bool = True) -> bool:
     if header:
         print(ctx_color.banner("Jemalloc extent info"))
         print("This command was tested only for jemalloc 5.3.0 and does not support lower versions")
@@ -75,10 +61,6 @@ def jemalloc_extent_info(addr, verbose=False, header=True) -> bool:
     return True
 
 
-parser = argparse.ArgumentParser(description="Prints all extents information")
-
-
-@pwndbg.commands.Command(parser, category=CommandCategory.JEMALLOC)
 def jemalloc_heap() -> None:
     print(ctx_color.banner("Jemalloc heap"))
     print("This command was tested only for jemalloc 5.3.0 and does not support lower versions")
@@ -98,3 +80,48 @@ def jemalloc_heap() -> None:
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"ERROR: {e}"))
         return
+
+
+parser = argparse.ArgumentParser(description="Utility for inspecting the jemalloc allocator.")
+subparsers = parser.add_subparsers(dest="command")
+subparsers.required = True
+
+heap_parser = subparsers.add_parser(
+    "heap",
+    description="Prints all extents information",
+    help="Prints all extents information",
+)
+
+info_parser = subparsers.add_parser(
+    "extent-info",
+    description="Prints extent information for the given address",
+    help="Prints extent information for the given address",
+)
+info_parser.add_argument("addr", type=int, help="Address of the extent metadata")
+info_parser.add_argument(
+    "-v",
+    "--verbose",
+    action="store_true",
+    default=False,
+    help="Print all chunk fields, even unused ones.",
+)
+
+find_parser = subparsers.add_parser(
+    "find-extent",
+    description="Returns extent information for pointer address allocated by jemalloc",
+    help="Returns extent information for pointer address allocated by jemalloc",
+)
+find_parser.add_argument("addr", type=int, help="Address of the allocated memory location")
+
+
+@pwndbg.commands.Command(parser, command_name="jemalloc", category=CommandCategory.ALLOCATORS)
+def jemalloc_command(command: str, addr: int = -1, verbose: bool = False) -> None:
+    match command:
+        case "heap":
+            jemalloc_heap()
+        case "extent-info":
+            assert addr != -1
+            jemalloc_extent_info(addr, verbose)
+        case "find-extent":
+            assert addr != -1
+            jemalloc_find_extent(addr)
