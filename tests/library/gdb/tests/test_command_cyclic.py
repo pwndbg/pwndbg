@@ -27,7 +27,7 @@ def test_command_cyclic_detect(start_binary):
     endian = pwndbg.aglib.arch.endian
 
     offset_rax = 20
-    pattern_default = cyclic(length=100, n=ptr_size)
+    pattern_default = cyclic(length=100)
     value_rax = int.from_bytes(pattern_default[offset_rax : offset_rax + ptr_size], endian)
     pwndbg.aglib.regs.write_reg("rax", value_rax)
 
@@ -40,7 +40,7 @@ def test_command_cyclic_detect(start_binary):
 
     offset_rcx = 15
     alphabet_custom = b"0123456789ABCDEF"
-    pattern_custom = cyclic(length=100, n=ptr_size, alphabet=alphabet_custom)
+    pattern_custom = cyclic(length=100, alphabet=alphabet_custom)
     value_rcx = int.from_bytes(pattern_custom[offset_rcx : offset_rcx + ptr_size], endian)
     pwndbg.aglib.regs.write_reg("rcx", value_rcx)
 
