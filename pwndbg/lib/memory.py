@@ -156,7 +156,7 @@ class Page:
 
     @property
     def ro(self) -> bool:
-        return self.read and not any([self.write, self.execute])
+        return self.read and not (self.write or self.execute)
 
     @property
     def rw(self) -> bool:
