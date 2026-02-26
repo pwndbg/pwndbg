@@ -48,6 +48,12 @@ class _GDBController(host.Controller):
         os.environ["COLUMNS"] = "80"
         for k, v in env.items():
             self._gdb_execute(f"set environment {k}={v}")
+        # Clear breakpoints from any prior launch. The debugger abstraction
+        # layer sets breakpoints by resolved address (not by symbol name), so
+        # GDB won't re-resolve them on relaunch. With ASLR, stale address
+        # breakpoints point to invalid memory and cause "Cannot access memory"
+        # errors on starti.
+        self._gdb_execute("delete breakpoints")
         self._gdb_execute("starti " + " ".join(args))
         self._show_context()
 
