@@ -2200,5 +2200,5 @@ class HeuristicHeap(
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
         # try to use vmmap or main_arena.top to find the heap
         return (
-            bool(self._get_heap_range()) or (self.can_be_resolved() and self.main_arena.top != 0)
+            bool(self._get_heap_page()) or (self.can_be_resolved() and self.main_arena.top != 0)
         ) and (int(self.mp["sbrk_base"]) != 0)
