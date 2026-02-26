@@ -795,8 +795,9 @@ async def test_context_backtrace_frame_label_padding(ctrl: Controller) -> None:
     await ctrl.launch(DEEP_CALL_BINARY)
 
     # We break on break_deep which provides 12+ frames of callstack.
-    await ctrl.execute("break break_deep")
-    await ctrl.execute("continue")
+    # Use pwndbg's 'b' alias which works on both GDB and LLDB.
+    await ctrl.execute("b break_deep")
+    await ctrl.cont()
 
     # By default, context backtrace limits output to 8 frames. We need >10 for the test.
     await ctrl.execute("set context-backtrace-lines 20")
@@ -846,8 +847,9 @@ async def test_context_backtrace_prefix_alignment(ctrl: Controller) -> None:
     # just to get a process up and running so pwndbg.aglib.arch.ptrsize is populated correctly.
     DEEP_CALL_BINARY = get_binary("deep_call.native.out")
     await ctrl.launch(DEEP_CALL_BINARY)
-    await ctrl.execute("break main")
-    await ctrl.execute("continue")
+    # Use pwndbg's 'b' alias which works on both GDB and LLDB.
+    await ctrl.execute("b main")
+    await ctrl.cont()
 
     # Explicitly test addrsz on 0 to verify fix for #3770 (small address width)
     expected_addr_len = 2 + 2 * pwndbg.aglib.arch.ptrsize
