@@ -171,11 +171,12 @@ def cyclic_cmd(alphabet, length: int, lookup, detect, count=100, filename="", ti
                 lookup = lookup[:length]
         elif isinstance(lookup, str):
             lookup = bytes(lookup, "utf-8")
+            lookup = lookup[:length]
 
         if len(lookup) != length:
             print(
                 message.error(
-                    f"Lookup pattern must be {length} bytes (use `-n <length>` to lookup pattern of different length)"
+                    f"Lookup pattern must be at least {length} bytes (use `-n <length>` to lookup pattern of different length)"
                 )
             )
             return
