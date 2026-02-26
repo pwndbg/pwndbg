@@ -1236,7 +1236,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             return self.largebins(addr)
         return None
 
-    def fastbin_index(self, size: int):
+    def fastbin_index(self, size: int) -> int:
         if pwndbg.aglib.arch.ptrsize == 8:
             return (size >> 4) - 2
         return (size >> 3) - 2
@@ -1284,11 +1284,14 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         num_tcachebins = entries.type.sizeof // entries.type.target().sizeof
         safe_lnk = pwndbg.libc.glibc.check_safe_linking(pwndbg.libc.version())
 
-        def tidx2usize(idx: int):
+        def tidx2usize(idx: int) -> int:
             """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""
             return idx * self.malloc_alignment + self.minsize - self.size_sz
 
-        is_dummy = pwndbg.libc.version() >= (2, 43) and pwndbg.aglib.vmmap.find(tcache.address).ro
+        # TODO: use `__tcache_dummy` symbol when we have debug syms
+        page = pwndbg.aglib.vmmap.find(tcache.address)
+        assert page
+        is_dummy = pwndbg.libc.version() >= (2, 43) and page.ro
 
         result = Bins(BinType.TCACHE)
         for i in range(num_tcachebins):
@@ -1884,11 +1887,13 @@ class HeuristicHeap(
         """Get the [heap] memory page."""
         return next((p for p in pwndbg.aglib.vmmap.get() if p.objfile == "[heap]"), None)
 
-    def _get_heap_range(self):
+    def _get_heap_range(self) -> pwndbg.lib.memory.Page | range:
         """Get the heap start & end"""
         arena = self.thread_arena
         if not arena:
-            return self._get_heap_page()
+            page = self._get_heap_page()
+            assert page is not None
+            return page
         return range(arena.active_heap.start, arena.active_heap.end)
 
     def _search_tls(
