@@ -13,6 +13,7 @@ REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 # WARN: Function not yet ported to dbg/
 
+
 def test_command_cyclic_detect(start_binary):
     """
     Tests the `cyclic --detect` command for:

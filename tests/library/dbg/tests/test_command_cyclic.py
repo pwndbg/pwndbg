@@ -25,8 +25,7 @@ async def test_command_cyclic_value(ctrl: Controller) -> None:
     out = await ctrl.execute_and_capture(f"cyclic -l {hex(val)}")
 
     assert out == (
-        "Finding cyclic pattern of 4 bytes: b'aaak' (hex: 0x6161616b)\n"
-        "Found at offset 37\n"
+        "Finding cyclic pattern of 4 bytes: b'aaak' (hex: 0x6161616b)\nFound at offset 37\n"
     )
 
 
@@ -53,8 +52,7 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
     out = await ctrl.execute_and_capture(f"cyclic -l ${reg_name}")
 
     assert out == (
-        "Finding cyclic pattern of 4 bytes: b'aaam' (hex: 0x6161616d)\n"
-        "Found at offset 45\n"
+        "Finding cyclic pattern of 4 bytes: b'aaam' (hex: 0x6161616d)\nFound at offset 45\n"
     )
 
 
@@ -77,8 +75,7 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
     out = await ctrl.execute_and_capture(f"cyclic -l '*(unsigned long*){hex(addr + test_offset)}'")
 
     assert out == (
-        "Finding cyclic pattern of 4 bytes: b'maaa' (hex: 0x6d616161)\n"
-        "Found at offset 48\n"
+        "Finding cyclic pattern of 4 bytes: b'maaa' (hex: 0x6d616161)\nFound at offset 48\n"
     )
 
 
