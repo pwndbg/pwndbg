@@ -155,12 +155,7 @@ parser.add_argument(
     category=CommandCategory.MISC,
     notes="If you want to write the cyclic pattern to memory, use the `spray` command!",
 )
-def cyclic_cmd(
-    alphabet, length: int | None, lookup, detect, count=100, filename="", timeout=2
-) -> None:
-    if length is None:
-        length = pwndbg.aglib.arch.ptrsize
-
+def cyclic_cmd(alphabet, length: int, lookup, detect, count=100, filename="", timeout=2) -> None:
     if detect:
         detect_register_patterns(alphabet, length, timeout)
         return
