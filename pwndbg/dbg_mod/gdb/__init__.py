@@ -2028,7 +2028,11 @@ class GDB(pwndbg.dbg_mod.Debugger):
     @override
     def addrsz(self, address: Any) -> str:
         address = int(address) & pwndbg.aglib.arch.ptrmask
-        return f"%#{2 * pwndbg.aglib.arch.ptrsize}x" % address
+        # Use zero-padding so every address is exactly 2*ptrsize hex digits wide.
+        # %#x adds '0x' on top of the field width, so small addresses like 0x0
+        # end up shorter than large ones.  Explicit '0x' + %0*x gives a fixed
+        # total width of 2 + 2*ptrsize chars for all addresses.
+        return f"0x{address:0{2 * pwndbg.aglib.arch.ptrsize}x}"
 
     @override
     def get_cmd_window_size(self) -> tuple[int | None, int | None]:

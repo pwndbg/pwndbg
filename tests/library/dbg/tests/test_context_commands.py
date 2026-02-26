@@ -780,3 +780,83 @@ async def test_cli_fixup_resolves_sp_pc_aliases(ctrl: Controller) -> None:
     assert pc_name in regs_pc_output
     assert real_pc_value is not None
     assert hex(real_pc_value) in regs_pc_output
+
+
+@pwndbg_test
+async def test_context_backtrace_frame_label_padding(ctrl: Controller) -> None:
+    """
+    Tests that single-digit frames ('f 0' to 'f 9') are 0-padded (e.g., 'f 0 ') to match
+    double-digit frames ('f10'), maintaining alignment for 10+ frame deep stacks.
+    """
+    import pwndbg.aglib
+
+    # Use the binary designed to nest 12+ layers deep
+    DEEP_CALL_BINARY = get_binary("deep_call.native.out")
+    await ctrl.launch(DEEP_CALL_BINARY)
+
+    # We break on break_deep which provides 12+ frames of callstack.
+    await ctrl.execute("break break_deep")
+    await ctrl.execute("continue")
+
+    # By default, context backtrace limits output to 8 frames. We need >10 for the test.
+    await ctrl.execute("set context-backtrace-lines 20")
+    backtrace = (await ctrl.execute_and_capture("context backtrace")).split("\n")
+
+    # Find the start and end of the backtrace content
+    bt_lines = []
+    in_bt = False
+    for line in backtrace:
+        if "BACKTRACE ]" in line:
+            in_bt = True
+            continue
+        if "LEGEND:" in line:
+            continue
+        if "─" * 40 in line and in_bt:
+            break
+        if in_bt and line.strip() != "":
+            import pwndbg.color
+
+            clean_line = pwndbg.color.strip(line).replace("►", " ").strip("\r")
+            bt_lines.append(clean_line)
+
+    assert len(bt_lines) > 10, f"Expected a deep call stack of >10 frames, got {len(bt_lines)}"
+
+    address_start_cols = []
+    for line in bt_lines:
+        addr_idx = line.find("0x")
+        if addr_idx != -1:
+            address_start_cols.append(addr_idx)
+
+    # Assert all addresses start at the same column (proving frame labels are identical length)
+    assert len(set(address_start_cols)) == 1, (
+        f"Addresses do not align vertically (frame label padding issue): {address_start_cols}"
+    )
+
+
+@pwndbg_test
+async def test_context_backtrace_prefix_alignment(ctrl: Controller) -> None:
+    """
+    Tests that small addresses (like 0x0) and large addresses are zero-padded to a consistent
+    width (e.g., 18 chars for 64-bit), ensuring they don't shift the subsequent text.
+    """
+    import pwndbg.aglib
+    import pwndbg.ui
+
+    # We don't necessarily need a deep call stack for this, but we'll use a simple binary
+    # just to get a process up and running so pwndbg.aglib.arch.ptrsize is populated correctly.
+    DEEP_CALL_BINARY = get_binary("deep_call.native.out")
+    await ctrl.launch(DEEP_CALL_BINARY)
+    await ctrl.execute("break main")
+    await ctrl.execute("continue")
+
+    # Explicitly test addrsz on 0 to verify fix for #3770 (small address width)
+    expected_addr_len = 2 + 2 * pwndbg.aglib.arch.ptrsize
+    null_addr = pwndbg.ui.addrsz(0)
+    assert len(null_addr) == expected_addr_len, (
+        f"0x0 address should be zero-padded to {expected_addr_len} chars, got '{null_addr}'"
+    )
+
+    large_addr = pwndbg.ui.addrsz(0xFFFFFFFF81E945FC)
+    assert len(large_addr) == expected_addr_len, (
+        f"Large address should be padded to {expected_addr_len} chars, got '{large_addr}'"
+    )

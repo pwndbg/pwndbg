@@ -2520,7 +2520,8 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def addrsz(self, address: Any) -> str:
-        return f"{address:#16x}"
+        address = int(address) & pwndbg.aglib.arch.ptrmask
+        return f"0x{address:0{2 * pwndbg.aglib.arch.ptrsize}x}"
 
     @override
     def set_python_diagnostics(self, enabled: bool) -> None:
