@@ -107,7 +107,7 @@ An annoyance with the glibc `hi` and `vis` commands is that it is not obvious wh
 
 ### Use subcommands
 
-Pwndbg supports a bunch of commands. The most straight-forward way for users to discover commands is by browsing the output of the `pwndbg` command. If this output is too cluttered, it will be hard for the user to pick out the commands that are interesting to them. Thus, you shouldn't make the same mistake that `jemalloc` and `mallocng` do and name your commands `ng-slots`, `ns-slotu`, `ng-find`, etc. but rather you should have one base command called `mallocng` and have subcommands: `slots`, `slotu`, `find`, etc. The `slab` command does this properly.
+Pwndbg supports a bunch of commands. The most straight-forward way for users to discover commands is by browsing the output of the `pwndbg` command. If this output is too cluttered, it will be hard for the user to pick out the commands that are interesting to them. Thus, you shouldn't make the same mistake that `jemalloc` and `mallocng` do and name your commands `ng-slots`, `ns-slotu`, `ng-find`, etc. but rather you should have one base command called `mallocng` and have subcommands: `slots`, `slotu`, `find`, etc. (fixed in #3750). The `slab` command does this properly.
 
 However, you must keep in mind one important thing (that you should be keeping in mind when adding any command really). If you determine that e.g. `jemalloc extent-info` is long to type out, and decide to add a `jemalloc -> je` alias, make sure that you are not overriding a shortened usage of any other important command. Test this by just running `pwndbg> je<enter>` and see if GDB runs some command, or complains about some ambiguity. Two to three letter aliases should be used sparingly.
 

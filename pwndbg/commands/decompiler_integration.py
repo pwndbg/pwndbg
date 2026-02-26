@@ -894,7 +894,7 @@ def decompiler_integration(
     list_all: bool = False,
     binary_addr: int = -1,
     binary_path: str = "",
-):
+) -> None:
     # decomp2dbg is an optional dependancy for now, so we check for it.
     try:
         match command:

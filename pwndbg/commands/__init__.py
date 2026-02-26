@@ -48,10 +48,9 @@ class CommandCategory(str, Enum):
     NEXT = "Step/Next/Continue"
     CONTEXT = "Context"
     PTMALLOC2 = "GLibc ptmalloc2 Heap"
-    JEMALLOC = "jemalloc Heap"
+    ALLOCATORS = "Allocators"
     BREAKPOINT = "Breakpoint"
     MEMORY = "Memory"
-    MUSL = "musl"
     STACK = "Stack"
     REGISTER = "Register"
     PROCESS = "Process"
@@ -552,8 +551,8 @@ class Command:
         aliases: list[str] = [],
         examples: str = "",
         notes: str = "",
-        only_debuggers: set[pwndbg.dbg_mod.DebuggerType] = None,
-        exclude_debuggers: set[pwndbg.dbg_mod.DebuggerType] = None,
+        only_debuggers: set[pwndbg.dbg_mod.DebuggerType] | None = None,
+        exclude_debuggers: set[pwndbg.dbg_mod.DebuggerType] | None = None,
     ) -> None:
         # Setup an ArgumentParser even if we were only passed a description.
         if isinstance(parser_or_desc, str):

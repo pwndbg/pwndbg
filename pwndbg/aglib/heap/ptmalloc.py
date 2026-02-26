@@ -372,7 +372,7 @@ class Chunk:
         return self._prev_inuse
 
     @property
-    def fd(self):
+    def fd(self) -> int | None:
         if self._fd is None:
             try:
                 self._fd = int(self._gdbValue["fd"])
@@ -382,7 +382,7 @@ class Chunk:
         return self._fd
 
     @property
-    def bk(self):
+    def bk(self) -> int | None:
         if self._bk is None:
             try:
                 self._bk = int(self._gdbValue["bk"])
@@ -768,7 +768,10 @@ class Arena:
 
         return self._heaps
 
-    def fastbins(self) -> Bins:
+    def fastbins(self) -> Bins | None:
+        if pwndbg.libc.version() >= (2, 43):
+            return None
+
         size = pwndbg.aglib.arch.ptrsize * 2
         fd_offset = pwndbg.aglib.arch.ptrsize * 2
         safe_lnk = pwndbg.libc.glibc.check_safe_linking(pwndbg.libc.version())
@@ -1233,7 +1236,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             return self.largebins(addr)
         return None
 
-    def fastbin_index(self, size: int):
+    def fastbin_index(self, size: int) -> int:
         if pwndbg.aglib.arch.ptrsize == 8:
             return (size >> 4) - 2
         return (size >> 3) - 2
@@ -1281,16 +1284,21 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         num_tcachebins = entries.type.sizeof // entries.type.target().sizeof
         safe_lnk = pwndbg.libc.glibc.check_safe_linking(pwndbg.libc.version())
 
-        def tidx2usize(idx: int):
+        def tidx2usize(idx: int) -> int:
             """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""
             return idx * self.malloc_alignment + self.minsize - self.size_sz
+
+        # TODO: use `__tcache_dummy` symbol when we have debug syms
+        page = pwndbg.aglib.vmmap.find(tcache.address)
+        assert page
+        is_dummy = pwndbg.libc.version() >= (2, 43) and page.ro
 
         result = Bins(BinType.TCACHE)
         for i in range(num_tcachebins):
             size = self._request2size(tidx2usize(i))
             count = int(counts[i])
             if pwndbg.libc.version() >= (2, 42):
-                count = int(self.mp["tcache_count"]) - count
+                count = 0 if is_dummy else int(self.mp["tcache_count"]) - count
             chain = pwndbg.chain.get(
                 int(entries[i]),
                 offset=self.tcache_next_offset,
@@ -1867,7 +1875,7 @@ class HeuristicHeap(
             self._main_arena = Arena(self._main_arena_addr)
             return self._main_arena
 
-        raise SymbolNotRecoveredError("main_arena", "Heuristic failed.")
+        raise SymbolNotRecoveredError("main_arena", "heuristic failed")
 
     def has_tcache(self) -> bool:
         # TODO/FIXME: Can we determine the tcache_bins existence more reliable?
@@ -1875,103 +1883,80 @@ class HeuristicHeap(
         # There is no debug symbols, we determine the tcache_bins existence by checking glibc version only
         return self.is_initialized() and pwndbg.libc.version() >= (2, 26)
 
-    def prompt_for_brute_force_thread_arena_permission(self) -> bool:
-        """Check if the user wants to brute force the thread_arena's value."""
-        print(
-            message.notice("We cannot determine the {}\n".format(message.hint("thread_arena")))
-            + message.notice(
-                "Will you want to brute force it in the memory to determine the address? (y/N)\n"
-            )
-            + message.warn(
-                "Note: This might take a while and might not be reliable, so if you can determine it by yourself or you have modified any of the arena, please do not use this."
-            )
-        )
-        return input().lower() == "y"
+    def _get_heap_page(self) -> pwndbg.lib.memory.Page | None:
+        """Get the [heap] memory page."""
+        return next((p for p in pwndbg.aglib.vmmap.get() if p.objfile == "[heap]"), None)
 
-    def prompt_for_brute_force_thread_cache_permission(self) -> bool:
-        """Check if the user wants to brute force the tcache's value."""
-        print(
-            message.notice("We cannot determine the {}\n".format(message.hint("tcache")))
-            + message.notice(
-                "Will you want to brute force it in the memory to determine the address instead of assuming it's at the beginning of the current thread's heap? (y/N)\n"
-            )
-            + message.warn(
-                "Note: This might take a while and might not be reliable, so if you can determine it by yourself or your current arena is corrupted or you have modified the chunk for the tcache, please do not use this."
-            )
-        )
-        return input().lower() == "y"
+    def _get_heap_range(self) -> pwndbg.lib.memory.Page | range:
+        """Get the heap start & end"""
+        arena = self.thread_arena
+        if not arena:
+            page = self._get_heap_page()
+            assert page is not None
+            return page
+        return range(arena.active_heap.start, arena.active_heap.end)
 
-    def prompt_for_tls_address(self) -> int:
-        """Check if we can determine the TLS address and return it."""
+    def _search_tls(
+        self, func: Callable[[int], bool], offset: int = -0x200, depth: int = 0x400
+    ) -> tuple[int, int] | None:
         tls_address = pwndbg.aglib.tls.find_address_with_register()
-        if not tls_address:
-            print(
-                message.warn("Cannot find TLS address via register. ")
-                + message.notice(
-                    "Will you want to call pthread_self() to find the address? (y/N)\n"
-                )
-                + message.warn("Note: Don't use this if pthread_self() is not available.")
-            )
-            if input().lower() == "y":
-                tls_address = pwndbg.aglib.tls.find_address_with_pthread_self()
-            if not tls_address:
-                print(message.error("Cannot find TLS address via pthread_self()."))
-        return tls_address
-
-    def brute_force_tls_reference_in_got_section(
-        self, tls_address: int, validator: Callable[[int], bool]
-    ) -> tuple[int, int] | None:
-        """Brute force the TLS-reference in the .got section to that can pass the validator."""
-        # Note: This highly depends on the correctness of the TLS address
-        print(message.notice("Brute forcing the TLS-reference in the .got section..."))
-        if self.is_statically_linked():
-            got_address = pwndbg.aglib.proc.get_section_address_by_name(".got")
-        else:
-            got_address = pwndbg.libc.section_address_by_name(".got")
-        if not got_address:
-            print(message.warn("Cannot find the address of the .got section."))
-            return None
-        s_int = (
-            pwndbg.aglib.memory.s32 if pwndbg.aglib.arch.ptrsize == 4 else pwndbg.aglib.memory.s64
-        )
-        for addr in range(got_address, got_address + 0xF0, pwndbg.aglib.arch.ptrsize):
+        for i in range(depth):
+            addr = tls_address + offset + pwndbg.aglib.arch.ptrsize * i
             if not pwndbg.aglib.memory.is_readable_address(addr):
-                break
-            offset = s_int(addr)
-            if (
-                offset
-                and offset % pwndbg.aglib.arch.ptrsize == 0
-                and pwndbg.aglib.memory.is_readable_address(offset + tls_address)
-            ):
-                guess = pwndbg.aglib.memory.read_pointer_width(offset + tls_address)
-                if validator(guess):
-                    return guess, offset + tls_address
+                continue
+            value = pwndbg.aglib.memory.read_pointer_width(addr)
+            if func(value):
+                return value, addr
         return None
 
-    def brute_force_thread_local_variable_near_tls_base(
-        self, tls_address: int, validator: Callable[[int], bool]
-    ) -> tuple[int, int] | None:
-        """Brute force the thread-local variable near the TLS base address that can pass the validator."""
-        print(
-            message.notice(
-                "Brute forcing all the possible thread-local variables near the TLS base address..."
-            )
-        )
-        for search_range in (
-            range(tls_address, tls_address - 0x500, -pwndbg.aglib.arch.ptrsize),
-            range(tls_address, tls_address + 0x500, pwndbg.aglib.arch.ptrsize),
-        ):
-            reading = False
-            for addr in search_range:
-                if pwndbg.aglib.memory.is_readable_address(addr):
-                    reading = True
-                    guess = pwndbg.aglib.memory.read_pointer_width(addr)
-                    if validator(guess):
-                        return guess, addr
-                elif reading:
-                    # Don't need to try now, we only read consecutive memory
-                    break
-        return None
+    def _is_valid_arena(self, addr: int) -> bool:
+        """Check if addr points to a valid arena struct."""
+        if not pwndbg.aglib.memory.is_readable_address(addr):
+            return False
+
+        cand_arena = Arena(addr)
+
+        if not pwndbg.aglib.memory.is_readable_address(cand_arena.next):
+            return False
+
+        if not pwndbg.aglib.memory.is_readable_or_nil_ptr(cand_arena.top):
+            return False
+
+        for bin in cand_arena.bins:
+            if not pwndbg.aglib.memory.is_readable_or_nil_ptr(bin):
+                return False
+        return True
+
+    def _is_tcache_dummy(self, addr: int) -> bool:
+        """Check if addr points to a tcache dummy (glibc >= 2.43, read-only, all zeros)."""
+        if not pwndbg.aglib.vmmap.find(addr).ro:
+            return False
+        tcache_size = self.tcache_perthread_struct.sizeof
+        return pwndbg.aglib.memory.read(addr, tcache_size) == b"\x00" * tcache_size
+
+    def _is_tcache_struct(self, addr: int) -> bool:
+        """Check if addr points to a valid tcache_perthread_struct."""
+        tcache_size = self.tcache_perthread_struct.sizeof
+        chunk_header_size = pwndbg.aglib.arch.ptrsize * 2
+
+        if not pwndbg.aglib.memory.is_readable_address(addr - chunk_header_size):
+            return False
+        if not pwndbg.aglib.memory.is_readable_address(addr + tcache_size):
+            return False
+
+        heap_range = self._get_heap_range()
+        if heap_range and addr in heap_range:
+            chunk = Chunk(addr - chunk_header_size)
+
+            ptr_size = pwndbg.aglib.arch.ptrsize
+            if pwndbg.libc.version() >= (2, 42):
+                return chunk.real_size - ptr_size == tcache_size
+            return chunk.real_size - ptr_size * 2 == tcache_size
+
+        if pwndbg.libc.version() < (2, 43):
+            return False
+
+        return self._is_tcache_dummy(addr)
 
     @property
     def thread_arena(self) -> Arena | None:
@@ -1981,61 +1966,34 @@ class HeuristicHeap(
         if thread_arena_via_symbol:
             thread_arena_value = pwndbg.aglib.memory.read_pointer_width(thread_arena_via_symbol)
             return Arena(thread_arena_value) if thread_arena_value else None
+
         thread_arena_via_config = int(str(pwndbg.config.thread_arena), 0)
         if thread_arena_via_config:
             return Arena(thread_arena_via_config)
 
-        # return the value of the thread_arena if we have it cached
-        thread_arena_value = self._thread_arena_values.get(pwndbg.dbg.selected_thread().index())
-        if thread_arena_value:
-            return Arena(thread_arena_value)
+        thread = pwndbg.dbg.selected_thread()
+        assert thread
+        tidx = thread.index()
+
+        if cached := self._thread_arena_values.get(tidx):
+            return Arena(cached)
 
         assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
-        if (
+
+        if not (
             self.main_arena.address != pwndbg.aglib.heap.current.main_arena.next
             or self.multithreaded
         ):
-            if pwndbg.aglib.arch.name not in ("i386", "x86-64", "arm", "aarch64"):
-                # TODO: Support other architectures
-                raise SymbolNotRecoveredError(
-                    "thread_arena", "Unsupported architecture for thread arena bruteforce."
-                )
-            if self.prompt_for_brute_force_thread_arena_permission():
-                tls_address = self.prompt_for_tls_address()
-                if not tls_address:
-                    raise SymbolNotRecoveredError("thread_arena", "TLS not found.")
-                print(message.notice("Fetching all the arena addresses..."))
-                candidates = [a.address for a in self.arenas]
-
-                def validator(guess: int) -> bool:
-                    return guess in candidates
-
-                found = self.brute_force_tls_reference_in_got_section(
-                    tls_address, validator
-                ) or self.brute_force_thread_local_variable_near_tls_base(tls_address, validator)
-                if found:
-                    value, address = found
-                    print(
-                        message.notice(
-                            f"Found matching arena address {message.hint(hex(value))} at {message.hint(hex(address))}\n"
-                        )
-                    )
-                    arena = Arena(value)
-                    self._thread_arena_values[pwndbg.dbg.selected_thread().index()] = value
-                    return arena
-
-                print(
-                    message.notice(
-                        f"Cannot find {message.hint('thread_arena')}, the arena might be not allocated yet.\n"
-                    )
-                )
-                return None
-            raise SymbolNotRecoveredError("thread_arena", "Thread arena bruteforce failed.")
-        else:  # noqa: RET506
-            self._thread_arena_values[pwndbg.dbg.selected_thread().index()] = (
-                self.main_arena.address
-            )
+            self._thread_arena_values[tidx] = self.main_arena.address
             return self.main_arena
+
+        found = self._search_tls(self._is_valid_arena)
+        if found:
+            value, _ = found
+            self._thread_arena_values[tidx] = value
+            return Arena(value)
+
+        return None
 
     @property
     def thread_cache(self) -> pwndbg.aglib.heap.structs.TcachePerthreadStruct | None:
@@ -2045,81 +2003,43 @@ class HeuristicHeap(
         if not self.has_tcache():
             print(message.warn("This version of GLIBC was not compiled with tcache support."))
             return None
+
         tps = self.tcache_perthread_struct
         thread_cache_via_config = int(str(pwndbg.config.tcache), 0)
+        if thread_cache_via_config:
+            return tps(thread_cache_via_config)
         thread_cache_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
             "tcache", prefer_static=True
         )
-        if thread_cache_via_config:
-            self._thread_cache = tps(thread_cache_via_config)
-            return self._thread_cache
         if thread_cache_via_symbol:
             thread_cache_struct_addr = pwndbg.aglib.memory.read_pointer_width(
                 thread_cache_via_symbol
             )
             if thread_cache_struct_addr:
-                self._thread_cache = tps(int(thread_cache_struct_addr))
-                return self._thread_cache
+                return tps(int(thread_cache_struct_addr))
 
-        # return the value of tcache if we have it cached
-        if self._thread_caches.get(pwndbg.dbg.selected_thread().index()):
-            return self._thread_caches[pwndbg.dbg.selected_thread().index()]
+        thread = pwndbg.dbg.selected_thread()
+        assert thread
+        tidx = thread.index()
+
+        if cached := self._thread_caches.get(tidx):
+            return cached
+
+        found = self._search_tls(self._is_tcache_struct)
+
+        if found:
+            value, _ = found
+            result = tps(value)
+            if not self._is_tcache_dummy(value):  # don't cache tcache dummy
+                self._thread_caches[tidx] = result
+                self._thread_cache = result
+            return result
 
         arena = self.thread_arena
-        if not arena:
-            # arena doesn't be allocated yet, so there's no tcache
-            return None
-
-        if self.main_arena.next != self.main_arena.address or self.multithreaded:
-            if self.prompt_for_brute_force_thread_cache_permission():
-                tls_address = self.prompt_for_tls_address()
-                if tls_address:
-                    chunk_header_size = pwndbg.aglib.arch.ptrsize * 2
-                    tcache_perthread_struct_size = self.tcache_perthread_struct.sizeof
-                    lb, ub = arena.active_heap.start, arena.active_heap.end
-
-                    def validator(guess: int) -> bool:
-                        if guess < lb or guess >= ub:
-                            return False
-                        if not pwndbg.aglib.memory.is_readable_address(
-                            guess - chunk_header_size
-                        ) or not pwndbg.aglib.memory.is_readable_address(
-                            guess + tcache_perthread_struct_size
-                        ):
-                            return False
-                        chunk = Chunk(guess - chunk_header_size)
-                        return chunk.real_size - chunk_header_size == tcache_perthread_struct_size
-
-                    found = self.brute_force_tls_reference_in_got_section(
-                        tls_address, validator
-                    ) or self.brute_force_thread_local_variable_near_tls_base(
-                        tls_address, validator
-                    )
-                    if found:
-                        value, address = found
-                        print(
-                            message.notice(
-                                f"Found possible tcache at {message.hint(hex(address))} with value: {message.hint(hex(value))}\n"
-                            )
-                        )
-                        self._thread_cache = tps(value)
-                        self._thread_caches[pwndbg.dbg.selected_thread().index()] = (
-                            self._thread_cache
-                        )
-                        return self._thread_cache
-
-            print(
-                message.warn(
-                    "Cannot find tcache, we assume it's at the beginning of the heap.\n"
-                    "If you think this is wrong, please manually set it with `set tcache <address>`.\n"
-                )
-            )
-
         # TODO: The result might be wrong if the arena is being shared by multiple thread
-        self._thread_cache = tps(arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2)
-        self._thread_caches[pwndbg.dbg.selected_thread().index()] = self._thread_cache
-
-        return self._thread_cache
+        result = tps(arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2)
+        self._thread_caches[tidx] = result
+        return result
 
     @property
     def mp(self) -> pwndbg.aglib.heap.structs.CStruct2GDB:
@@ -2148,7 +2068,7 @@ class HeuristicHeap(
             self._mp = mps(self._mp_addr)
             return self._mp
 
-        raise SymbolNotRecoveredError("mp_", "Could not find mp_ in the .data section.")
+        raise SymbolNotRecoveredError("mp_", "could not find mp_ in the .data section")
 
     @property
     def global_max_fast(self) -> int:
@@ -2279,6 +2199,6 @@ class HeuristicHeap(
     def is_initialized(self) -> bool:
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
         # try to use vmmap or main_arena.top to find the heap
-        return any("[heap]" == x.objfile for x in pwndbg.aglib.vmmap.get()) or (
-            self.can_be_resolved() and self.main_arena.top != 0
-        )
+        return (
+            bool(self._get_heap_page()) or (self.can_be_resolved() and self.main_arena.top != 0)
+        ) and (int(self.mp["sbrk_base"]) != 0)
