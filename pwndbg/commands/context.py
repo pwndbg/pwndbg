@@ -5,6 +5,7 @@ import ast
 import functools
 import logging
 import math
+import re
 import sys
 from collections import defaultdict
 from collections.abc import Callable
@@ -34,7 +35,7 @@ import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.dbg_mod
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.pretty_print as pretty_print
@@ -175,6 +176,11 @@ config_max_threads_display = pwndbg.config.add_param(
     "context-max-threads",
     4,
     "maximum number of threads displayed by the context command",
+)
+config_backtrace_format = pwndbg.config.add_param(
+    "context-backtrace-hex",
+    False,
+    "whether to use hex for offsets in the backtrace",
 )
 
 # Storing output configuration per section
@@ -1445,7 +1451,7 @@ def get_filename_and_formatted_source(height: int | None = None) -> tuple[str, l
         return "", [], closest_line
 
     nlines = max(int(source_disasm_lines), height or 0)
-    formatted_source = pretty_print.format_source(list(source), nlines, closest_line)
+    formatted_source = pretty_print.format_source(list(source), nlines, closest_line - 1)
 
     return filename, formatted_source, closest_line
 
@@ -1476,7 +1482,7 @@ def context_code(
     if should_decompile and pwndbg.aglib.regs.pc is not None:
         nlines = max(int(source_disasm_lines), height or 0)
         # Will be None if we aren't connected or decompilation fails.
-        code: list[str] | None = pwndbg.integration.manager.decompile_pretty(
+        code: list[str] | None = pwndbg.dintegration.manager.decompile_pretty(
             pwndbg.aglib.regs.pc, nlines
         )
         if code is None:
@@ -1554,14 +1560,31 @@ def context_backtrace(
     frame = newest_frame
     i = 0
     bt_prefix = f"{pwndbg.config.backtrace_prefix}"
+    # Use visual width of the prefix (strip color codes) so Unicode chars like ► are measured correctly
+    bt_prefix_visual_len = len(pwndbg.color.strip(bt_prefix))
+
+    # Pre-compute total number of frames to pad the frame label width consistently
+    total_frames = i
+    tmp = newest_frame
+    while tmp != oldest_frame:
+        total_frames += 1
+        tmp = tmp.parent()
+    frame_label_width = len(f"{backtrace_frame_label}{total_frames}")
+
     while True:
-        prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
+        prefix = bt_prefix if frame == this_frame else " " * bt_prefix_visual_len
         prefix = f" {c.prefix(prefix)}"
         addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
         symbol = c.symbol(pwndbg.aglib.symbol.resolve_addr(int(frame.pc())))
         if symbol:
+            if bool(config_backtrace_format):
+                offset_regex = re.compile(r"^(.+)\+(\d+)$")
+                parts = offset_regex.match(symbol)
+                if parts:
+                    symbol = f"{parts[1]}+{int(parts[2]):#x}"
             addrsz = f"{addrsz} {symbol}"
-        result.append(f"{prefix} {c.frame_label(f'{backtrace_frame_label}{i}')} {addrsz}")
+        frame_label = f"{backtrace_frame_label}{i}".rjust(frame_label_width)
+        result.append(f"{prefix} {c.frame_label(frame_label)} {addrsz}")
 
         if frame == oldest_frame:
             break

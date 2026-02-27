@@ -30,26 +30,30 @@ class _GDBController(host.Controller):
         """
         self._gdb_execute("context")
 
-    async def launch(
-        self, binary_path: Path, args: list[str] = [], env: dict[str, str] = {}
-    ) -> None:
+    async def launch(self, binary: Path, args: list[str] = [], env: dict[str, str] = {}) -> None:
         """
         Launch the given binary.
 
         GDB hides the asynchronous heavy lifting from us, so this call is
         synchronous.
         """
-        if not os.path.exists(binary_path):
-            pytest.skip(f"{os.path.basename(binary_path)} does not exist. Platform not supported.")
+        if not os.path.exists(binary):
+            pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
 
         os.environ["PWNDBG_IN_TEST"] = "1"
-        self._gdb_execute(f"file {binary_path}")
+        self._gdb_execute(f"file {binary}")
         self._gdb_execute("set exception-verbose on")
         self._gdb_execute("set width 80")
         self._gdb_execute("set context-reserve-lines never")
         os.environ["COLUMNS"] = "80"
         for k, v in env.items():
             self._gdb_execute(f"set environment {k}={v}")
+        # Clear breakpoints from any prior launch. The debugger abstraction
+        # layer sets breakpoints by resolved address (not by symbol name), so
+        # GDB won't re-resolve them on relaunch. With ASLR, stale address
+        # breakpoints point to invalid memory and cause "Cannot access memory"
+        # errors on starti.
+        self._gdb_execute("delete breakpoints")
         self._gdb_execute("starti " + " ".join(args))
         self._show_context()
 

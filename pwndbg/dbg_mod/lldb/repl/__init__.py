@@ -1167,6 +1167,10 @@ def process_launch(
             return
         case LaunchResultEarlyExit():
             print_warn("process exited early")
+            if sys.platform == "darwin":
+                print_hint(
+                    "It may be that you are trying to launch a protected binary on a SIP enabled system."
+                )
             return
 
     # Continue execution if the user hasn't requested for a stop at the entry
@@ -1248,6 +1252,10 @@ def _attach_with_info(
             return
         case LaunchResultEarlyExit():
             print_warn("process exited early")
+            if sys.platform == "darwin":
+                print_hint(
+                    "It may be that you are trying to attach to a protected binary on a SIP enabled system."
+                )
             auto.close()
             return
 

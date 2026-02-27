@@ -25,6 +25,7 @@ import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
+import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.path
 from pwndbg.dbg_mod import EventHandlerPriority
@@ -116,16 +117,6 @@ def _get_frame_stack_variables(frame: gdb.Frame) -> tuple[tuple[int, int, str], 
 
     variables = []
     while block:
-        # Workaround for GDB bug:
-        # https://sourceware.org/bugzilla/show_bug.cgi?id=33861
-        # https://github.com/pwndbg/pwndbg/issues/3693
-        # This constant is the size of .text on a lightweight kernel build
-        # with debug info. It is okay if we accidentally break here even though we
-        # shouldn't. The borked block has `block.end - block.start == 0x224f58a`
-        # on my repro.
-        if block.end - block.start > 0x127E000:
-            break
-
         for sym in block:
             if not (sym.is_variable or sym.is_argument):
                 continue
@@ -290,7 +281,19 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         return sal.symtab.fullname(), sal.line
 
     @override
+    @pwndbg.lib.cache.cache_until("forever")
     def stack_variables(self) -> tuple[tuple[int, int, str], ...]:
+        import pwndbg.aglib.qemu
+
+        if pwndbg.aglib.qemu.is_qemu_kernel():
+            # Workaround for GDB bug:
+            # https://sourceware.org/bugzilla/show_bug.cgi?id=33861
+            # https://github.com/pwndbg/pwndbg/issues/3693
+            # Unfortunately there is no consistent way to detect this, I've had it
+            # happen even on block0 with hex(block.end - block.start) == 0x14a,
+            # so we simply don't support getting stack variables on GDB when kernel
+            # debugging.
+            return ()
         return _get_frame_stack_variables(self.inner)
 
     @override
@@ -952,6 +955,19 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         return None
 
     @override
+    def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
+        block = gdb.block_for_pc(address)
+
+        if block is not None:
+            # Final the top-level function that this block resides it
+            while block.superblock is not None and block.superblock.function is not None:
+                block = block.superblock
+
+            return block.start, block.end
+
+        return None
+
+    @override
     def types_with_name(self, name: str) -> Sequence[pwndbg.dbg_mod.Type]:
         # In GDB, process-level lookups for types are always global.
         #
@@ -1313,14 +1329,22 @@ class GDBCommand(gdb.Command):
         # word=None. Why?
         # Since we only support one level of subcommand completion (i.e. we dont support subsubcommand completion),
         # we don't really care about the text and word distinction.
-        if word is None or text != word:
+        # Correction (#3751): We have to handle the `text != word` case to properly autocomplete stuff like
+        # `knft list-<tab>` (text="list-", word="").
+
+        if word is None:
             return []
         if text == "":
             # Return all subcommands
             return self.subcommand_names
 
         # Find all with matching prefix
-        return [valid for valid in self.subcommand_names if valid.startswith(text)]
+
+        # We need to calculate `comp_start` to handle stuff like `knft list-flowtables`
+        # and only return the matched word. I.e. `knft list-f<tab>` should return "flowtables"
+        # not "list-flowtables".
+        comp_start: int = len(text) - len(word)
+        return [valid[comp_start:] for valid in self.subcommand_names if valid.startswith(text)]
 
 
 class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
@@ -1651,11 +1675,20 @@ class GDB(pwndbg.dbg_mod.Debugger):
             is_home_loaded = True
 
         disable_local = not gdb.parameter("auto-load local-gdbinit")
-        should_load_local = (
-            not disable_local
-            and local_file.exists()
-            and not (is_home_loaded and home_file.samefile(local_file))
-        )
+        try:
+            should_load_local = (
+                not disable_local
+                and local_file.exists()
+                and not (is_home_loaded and home_file.samefile(local_file))
+            )
+        except PermissionError:
+            print(
+                message.warn(
+                    f"WARNING: Skipped loading {local_file} because you don't have the correct permissions."
+                )
+            )
+            should_load_local = False
+
         if should_load_local:
             load_source("./.gdbinit")
 
@@ -1695,6 +1728,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         set backtrace past-main on
         set step-mode on
         set print pretty on
+        set debuginfod enabled on
         handle SIGALRM nostop print nopass
         handle SIGBUS  stop   print nopass
         handle SIGPIPE nostop print nopass
