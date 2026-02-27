@@ -211,13 +211,7 @@ def test_command_got_for_target_binary_and_loaded_library(binary_name):
 
     # Check -a option list target binary's GOT also all loaded libraries' GOT
     # First should be target binary
-    try:
-        out = gdb.execute("got -a", to_string=True).splitlines()
-    except gdb.error as e:
-        if "File '[anon_" in str(e):
-            pytest.skip("Anonymous GOT mappings are not inspectable on this platform/GDB version.")
-        else:
-            raise
+    out = gdb.execute("got -a", to_string=True).splitlines()
     assert out[0] == "Filtering out read-only entries (display them with -r or --show-readonly)"
     assert out[1] == ""
     assert out[2] == f"State of the GOT of {Path.cwd() / binary}:"
