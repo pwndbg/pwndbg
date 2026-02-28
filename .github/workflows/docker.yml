@@ -4,17 +4,7 @@ on:
   push:
     branches:
       - dev
-    paths:
-      - "**"
-      - "!mkdocs.yml"
-      - "!docs/**"
-      - "!*.md"
   pull_request:
-    paths:
-      - "**"
-      - "!mkdocs.yml"
-      - "!docs/**"
-      - "!*.md"
 
 concurrency:
   # Pushes (dev): queue sequentially (prevent cache corruption)
@@ -27,7 +17,28 @@ permissions:
   packages: write
 
 jobs:
+  # Use dorny/paths-filter instead of on.paths so that skipped jobs report
+  # as passed to branch protection, allowing docs-only PRs to merge.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@668c092af3649c4b664c54e4b704aa46782f6f7c # master (unreleased, for predicate-quantifier)
+        id: filter
+        with:
+          predicate-quantifier: 'every'
+          filters: |
+            code:
+              - '**'
+              - '!mkdocs.yml'
+              - '!docs/**'
+              - '!*.md'
+
   docker_x86-64:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     name: docker_x86-64 (${{ matrix.image }})
     strategy:
       fail-fast: false
@@ -42,11 +53,27 @@ jobs:
           - { image: fedora43, dockerfile: Dockerfile.dnf, base: fedora:43 }
 
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for Dockerfile or setup changes
+        id: build-check
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          if git diff --name-only "origin/${{ github.base_ref }}...${{ github.event.pull_request.head.sha }}" | \
+             grep -qE '^(Dockerfile.*|setup\.sh|setup-dev\.sh|scripts/common\.sh)$'; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up Docker Buildx
+        if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Login to GHCR
@@ -58,6 +85,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker Buildx ${{ matrix.image }} (cache-enabled)
+        if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
         run: |
           docker buildx build \
             --load \
@@ -71,7 +99,7 @@ jobs:
 
       - name: Run Tests (GDB, DBG-GDB, DBG-LLDB in parallel) on ${{ matrix.image }}
         run: |
-          docker compose run -T --rm ${{ matrix.image }} bash -c '
+          docker compose run -T --rm --quiet-pull -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
             set -euo pipefail
             # Needed to prevent race conditions - prebuild binaries and create libpython symlink
             make -C /pwndbg/tests/binaries/host -j4 all
@@ -110,6 +138,8 @@ jobs:
         run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-amd64
 
   docker_aarch64:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     name: docker_aarch64 (${{ matrix.image }})
     strategy:
       fail-fast: false
@@ -124,8 +154,24 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for Dockerfile or setup changes
+        id: build-check
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          if git diff --name-only "origin/${{ github.base_ref }}...${{ github.event.pull_request.head.sha }}" | \
+             grep -qE '^(Dockerfile.*|setup\.sh|setup-dev\.sh|scripts/common\.sh)$'; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up Docker Buildx
+        if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Login to GHCR
@@ -137,6 +183,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker Buildx ${{ matrix.image }} (cache-enabled)
+        if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
         run: |
           docker buildx build \
             --load \
@@ -150,7 +197,7 @@ jobs:
 
       - name: Run Tests (Cross, DBG-GDB, DBG-LLDB in parallel) on ${{ matrix.image }}
         run: |
-          docker compose run -T --rm ${{ matrix.image }} bash -c '
+          docker compose run -T --rm --quiet-pull -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
             set -euo pipefail
             # Needed to prevent race conditions - prebuild binaries
             make -C /pwndbg/tests/binaries/host -j4 all

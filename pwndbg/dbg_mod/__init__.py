@@ -17,6 +17,7 @@ from typing import Literal
 from typing import TypedDict
 from typing import TypeVar
 
+import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.siginfo import SigInfo
@@ -276,12 +277,15 @@ class Frame:
         """
         raise NotImplementedError()
 
+    @pwndbg.lib.cache.cache_until("forever")
     def stack_variables(self) -> tuple[tuple[int, int, str], ...]:
         """
         Get all stack variables (local variables and arguments) in current frame.
 
         Returns a tuple of (start_address, end_address, name) for each variable.
         Returns an empty tuple if no debug information is available or on error.
+
+        Cached forever since a Frame is to be used ephemerally.
         """
         raise NotImplementedError()
 
@@ -578,6 +582,15 @@ class Process:
 
         Raises:
         - pwndbg.dbg_mod.Error: If no object file matching the `objfile_endswith` pattern is found.
+        """
+
+    def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
+        """
+        Return the function start and end address for a function that
+        contains address `addr`.
+
+        Returns:
+        - tuple[int, int] | None: [start, end) of function block if found (end address is exclusive)
         """
         raise NotImplementedError()
 

@@ -7,8 +7,8 @@ import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
+import pwndbg.aglib.radare2
 import pwndbg.commands
-import pwndbg.radare2
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Launches radare2.")
@@ -38,19 +38,20 @@ Welcome to radare2!
     """,
 )
 @pwndbg.commands.OnlyWithFile
-def r2(arguments, no_seek=False, no_rebase=False) -> None:
+def r2(arguments: list[str], no_seek: bool = False, no_rebase: bool = False) -> None:
     filename = pwndbg.aglib.file.get_proc_exe_file()
 
     # Build up the command line to run
     cmd = ["radare2"]
     flags = ["-e", "io.cache=true"]
-    if pwndbg.aglib.proc.alive():
+    exe = pwndbg.aglib.elf.exe()
+    if pwndbg.aglib.proc.alive() and exe is not None:
         addr = pwndbg.aglib.regs.pc
         if pwndbg.aglib.elf.get_elf_info(filename).is_pie:
             if no_rebase:
-                addr -= pwndbg.aglib.elf.exe().address
+                addr -= exe.address
             else:
-                flags.extend(["-B", hex(pwndbg.aglib.elf.exe().address)])
+                flags.extend(["-B", hex(exe.address)])
         if not no_seek:
             cmd.extend(["-s", hex(addr)])
     cmd.extend(flags)
@@ -95,5 +96,5 @@ pwndbg> r2pipe pdf @ sym.main
     """,
 )
 @pwndbg.commands.OnlyWithFile
-def r2pipe(arguments) -> None:
-    print(pwndbg.radare2.r2cmd(arguments))
+def r2pipe(arguments: list[str]) -> None:
+    print(pwndbg.aglib.radare2.r2cmd(arguments))

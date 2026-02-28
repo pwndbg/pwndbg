@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pwndbg.aglib.memory
 import pwndbg.dbg_mod
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.cache
 from pwndbg.dbg_mod import SymbolLookupType
 
@@ -114,4 +114,18 @@ def resolve_addr(addr: int) -> str | None:
     if symbol_name:
         return symbol_name
 
-    return pwndbg.integration.manager.symbol_at_address(addr)
+    return pwndbg.dintegration.manager.symbol_at_address(addr)
+
+
+@pwndbg.lib.cache.cache_until("objfile")
+def resolve_function_boundaries(addr: int) -> tuple[int, int] | None:
+    """
+    Return the function start and end address for a function that
+    contains address `addr`.
+
+    Returns:
+    - tuple[int, int] | None: [start, end) of function block if found (end address is exclusive)
+    """
+    assert addr >= 0, "address must be positive"
+
+    return pwndbg.dbg.selected_inferior().get_function_boundaries(addr)

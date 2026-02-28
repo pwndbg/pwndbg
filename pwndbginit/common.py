@@ -30,9 +30,9 @@ def run_uv_install(
         tool_name = venv_path.name
         command: list[str] = [str(binary_path), "tool", "upgrade", tool_name]
     else:
-        # We don't want to quietly uninstall dependencies by just specifying
-        # `--extra gdb` so we will be conservative and pull all extras in.
-        command = [str(binary_path), "sync", "--all-extras"]
+        # --inexact makes it so any installed extras aren't uninstalled
+        # (it will also leave in dropped deps, but what can you do /shrug)
+        command = [str(binary_path), "sync", "--inexact"]
         if dev:
             command.append("--all-groups")
     logging.debug(f"Updating deps with command: {' '.join(command)}")

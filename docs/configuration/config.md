@@ -173,6 +173,17 @@ Automatically pass --save to "search" command.
 
 ----------
 
+## **context-backtrace-hex**
+
+
+Whether to use hex for offsets in the backtrace.
+
+
+
+**Default:** off  
+
+----------
+
 ## **context-backtrace-lines**
 
 
@@ -1011,7 +1022,7 @@ Whether to skip repeating lines in vis command output.
 
 
 
-**Default:** on  
+**Default:** off  
 
 ----------
 

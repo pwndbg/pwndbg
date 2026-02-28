@@ -15,7 +15,7 @@ STATIC = get_binary("heap_musl_static.native.out")
 async def test_dynamic_detection(ctrl: Controller) -> None:
     import pwndbg
 
-    ctrl.disable_debuginfod()
+    await ctrl.disable_debuginfod()
 
     await launch_to(ctrl, DYNAMIC, "main")
 
@@ -26,7 +26,7 @@ async def test_dynamic_detection(ctrl: Controller) -> None:
 async def test_static_detection(ctrl: Controller) -> None:
     import pwndbg
 
-    ctrl.disable_debuginfod()
+    await ctrl.disable_debuginfod()
 
     await launch_to(ctrl, STATIC, "main")
 

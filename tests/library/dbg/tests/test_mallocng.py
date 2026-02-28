@@ -31,7 +31,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
 
     # == Check generic command output ==
 
-    buffer1_out = (await ctrl.execute_and_capture("ng-slotu buffer1")).splitlines()
+    buffer1_out = (await ctrl.execute_and_capture("ng slotu buffer1")).splitlines()
 
     # Strip the colors. FIXME: After #3142 is figured out.
     buffer1_out = [color.strip(x) for x in buffer1_out]
@@ -63,8 +63,8 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
         assert re.match(expected_output[i], buffer1_out[i])
 
     # == Check various fields ==
-    buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer2")).splitlines()
-    buffer4_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer4")).splitlines()
+    buffer2_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer2")).splitlines()
+    buffer4_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer4")).splitlines()
 
     stride_idx = 7
     user_size_idx = 8
@@ -136,7 +136,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
     await ctrl.cont()
     await ctrl.finish()
 
-    buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer2"))
+    buffer2_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer2"))
 
     # Make sure we found the thingy even though it is invalid locally.
     assert (
@@ -154,7 +154,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
 
     # Now buffer3 got free()'d and so did the group which contained buffer{1,2,3} so we cannot
     # recover information about buffer2 (it essentially doesn't exist anymore).
-    buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer2"))
+    buffer2_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer2"))
     if binary == HEAP_MALLOCNG_DYN:
         assert (
             "Could not load valid meta from local information, searching the heap.." in buffer2_out
@@ -177,20 +177,20 @@ async def test_mallocng_slot_start(ctrl: Controller, binary: Path):
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
-    # Check ng-slots is the same as ng-slotu when p == start
+    # Check `ng slots` is the same as `ng slotu` when p == start
     # and that they aren't the same when p != start.
 
-    slotu_buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer2"))
-    slots_buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slots buffer2"))
-    slotu_buffer5_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer5"))
-    slots_buffer5_out = color.strip(await ctrl.execute_and_capture("ng-slots buffer5"))
+    slotu_buffer2_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer2"))
+    slots_buffer2_out = color.strip(await ctrl.execute_and_capture("ng slots buffer2"))
+    slotu_buffer5_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer5"))
+    slots_buffer5_out = color.strip(await ctrl.execute_and_capture("ng slots buffer5"))
 
     assert "not cyclic" in slotu_buffer2_out
     assert slotu_buffer2_out == slots_buffer2_out
 
     if binary == HEAP_MALLOCNG_STATIC:
         assert "not cyclic" not in slotu_buffer5_out
-        # Doing `ng-slots buffer5` will give you garbage since buffer5 is not
+        # Doing `ng slots buffer5` will give you garbage since buffer5 is not
         # a valid slot start.
         assert slotu_buffer5_out != slots_buffer5_out
 
@@ -207,14 +207,14 @@ async def test_mallocng_group(ctrl: Controller, binary: Path):
 
     # Fetch the group where buffer1 is in.
 
-    buffer1_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer1"))
+    buffer1_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer1"))
     searchres = re.search(r"group:\s*(0x[0-9a-fA-F]+)", buffer1_out)
     assert searchres is not None
     group_addr = int(searchres.group(1), 16)
 
     # == Check command output looks good.
 
-    group1_out = color.strip(await ctrl.execute_and_capture(f"ng-group {group_addr}")).splitlines()
+    group1_out = color.strip(await ctrl.execute_and_capture(f"ng group {group_addr}")).splitlines()
 
     expected_out = [
         "group",
@@ -263,7 +263,7 @@ async def test_mallocng_group(ctrl: Controller, binary: Path):
         assert searchres is not None
         cur_group_addr = int(searchres.group(1), 16)
         cur_group_out = color.strip(
-            await ctrl.execute_and_capture(f"ng-group {cur_group_addr}")
+            await ctrl.execute_and_capture(f"ng group {cur_group_addr}")
         ).splitlines()
 
     if binary == HEAP_MALLOCNG_STATIC:
@@ -282,7 +282,7 @@ async def test_mallocng_meta(ctrl: Controller, binary: Path):
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
-    buffer1_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer1"))
+    buffer1_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer1"))
     searchres = re.search(r"meta:\s*(0x[0-9a-fA-F]+)", buffer1_out)
     assert searchres is not None
     meta_addr = int(searchres.group(1), 16)
@@ -292,8 +292,8 @@ async def test_mallocng_meta(ctrl: Controller, binary: Path):
 
     # Check that the meta output is the same as the group output.
     # They both print the same group and meta objects.
-    meta_out = color.strip(await ctrl.execute_and_capture(f"ng-meta {meta_addr}"))
-    group_out = color.strip(await ctrl.execute_and_capture(f"ng-group {group_addr}"))
+    meta_out = color.strip(await ctrl.execute_and_capture(f"ng meta {meta_addr}"))
+    group_out = color.strip(await ctrl.execute_and_capture(f"ng group {group_addr}"))
 
     assert meta_out == group_out
 
@@ -317,7 +317,7 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: Path):
         # check this for the dynamically linked binary.
 
         # This is at _dlstart - the heap is uninitialized at this point.
-        ctx_out = color.strip(await ctrl.execute_and_capture("ng-ctx"))
+        ctx_out = color.strip(await ctrl.execute_and_capture("ng ctx"))
 
         assert "Couldn't find" in ctx_out
         assert "will not work" in ctx_out
@@ -331,7 +331,7 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: Path):
     # to the __malloc_context symbol.
     # If we were testing on a stripped static binary this would fail as the
     # heap would only get initialized after the first malloc() in main.
-    ctx_out = color.strip(await ctrl.execute_and_capture("ng-ctx"))
+    ctx_out = color.strip(await ctrl.execute_and_capture("ng ctx"))
     assert "Couldn't find" not in ctx_out
     assert "will not work" not in ctx_out
     assert "aborting" not in ctx_out
@@ -352,7 +352,7 @@ async def test_mallocng_find(ctrl: Controller, binary: Path):
     await ctrl.finish()
 
     # Check no slot found
-    find_out = color.strip(await ctrl.execute_and_capture("ng-find $pc"))
+    find_out = color.strip(await ctrl.execute_and_capture("ng find $pc"))
     assert "No slot found containing that address.\n" == find_out
 
     frame = pwndbg.dbg.selected_frame()
@@ -360,7 +360,7 @@ async def test_mallocng_find(ctrl: Controller, binary: Path):
     buffer1_addr = int(frame.evaluate_expression("buffer1"))
 
     # Check we find the slot in the simplest case of providing p.
-    find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1"))
+    find_out = color.strip(await ctrl.execute_and_capture("ng find buffer1"))
 
     assert "No slot found" not in find_out
     start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
@@ -370,21 +370,21 @@ async def test_mallocng_find(ctrl: Controller, binary: Path):
     group_addr = int(re.findall(r"group:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
 
     # Hit the buffer1 header metadata
-    find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1-1"))
+    find_out = color.strip(await ctrl.execute_and_capture("ng find buffer1-1"))
 
     # We should hit the slot that holds buffer1's group.
     hit_start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
     assert group_addr == hit_start_addr
 
     # Hit the buffer1 header metadata but with -m
-    find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1-1 --metadata"))
+    find_out = color.strip(await ctrl.execute_and_capture("ng find buffer1-1 --metadata"))
 
     # We should hit the buffer1 slot
     hit_start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
     assert buffer1_addr == hit_start_addr
 
     # Check that `--shallow` works. Note that `--all` prints the group allocation method.
-    find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1 --shallow --all"))
+    find_out = color.strip(await ctrl.execute_and_capture("ng find buffer1 --shallow --all"))
     assert "donated by ld" in find_out or "mmap" in find_out
     assert "nested" not in find_out.splitlines()[-1]
 
@@ -399,12 +399,12 @@ async def test_mallocng_metaarea(ctrl: Controller, binary: Path):
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
-    context = color.strip(await ctrl.execute_and_capture("ng-ctx"))
+    context = color.strip(await ctrl.execute_and_capture("ng ctx"))
     secret = int(re.findall(r"secret:\s*(0x[0-9a-fA-F]+)", context)[0], 16)
     meta_area_addr = int(re.findall(r"meta_area_head:\s*(0x[0-9a-fA-F]+)", context)[0], 16)
 
     meta_area_out = color.strip(
-        await ctrl.execute_and_capture(f"ng-metaarea {meta_area_addr:#x}")
+        await ctrl.execute_and_capture(f"ng metaarea {meta_area_addr:#x}")
     ).splitlines()
 
     expected_out = [
@@ -436,7 +436,7 @@ async def test_mallocng_vis(ctrl: Controller, binary: Path):
     await ctrl.cont()
     await ctrl.finish()
 
-    vis_out = color.strip(await ctrl.execute_and_capture("ng-vis buffer1")).splitlines()
+    vis_out = color.strip(await ctrl.execute_and_capture("ng vis buffer1")).splitlines()
 
     expected_out = [
         f"group @ {re_addr}",
@@ -485,14 +485,14 @@ async def test_mallocng_vis(ctrl: Controller, binary: Path):
 
     # Make sure ng-vis properly resolves anywhere inside the slot.
     # The stride of the group is 0x30.
-    vis_out2 = color.strip(await ctrl.execute_and_capture("ng-vis buffer1+0x2F")).splitlines()
+    vis_out2 = color.strip(await ctrl.execute_and_capture("ng vis buffer1+0x2F")).splitlines()
     assert vis_out == vis_out2
 
     # Step over the free(buffer3)
     await ctrl.execute("next")
     # Check that the output is not the same anymore since the group got freed.
     # (Now the outer group will be printed.)
-    vis_out3 = color.strip(await ctrl.execute_and_capture("ng-vis buffer1")).splitlines()
+    vis_out3 = color.strip(await ctrl.execute_and_capture("ng vis buffer1")).splitlines()
     assert len(vis_out3) > len(vis_out)
 
 
@@ -504,7 +504,7 @@ async def test_mallocng_dump(ctrl: Controller, binary: Path):
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
-    dump_out = await ctrl.execute_and_capture("ng-dump")
+    dump_out = await ctrl.execute_and_capture("ng dump")
     assert "meta_area" in dump_out
     assert "group @" in dump_out
     assert "(slot size: 0x60)" in dump_out  # buffer{1,2,3}

@@ -14,7 +14,7 @@ import pwndbg.color.memory
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
-import pwndbg.integration
+import pwndbg.dintegration
 import pwndbg.lib.memory
 from pwndbg.aglib.disasm.disassembly import get_disassembler
 from pwndbg.commands import CommandCategory
@@ -116,7 +116,7 @@ def _rop(
     c.do_load(0, silent=True)
 
     if symbols:
-        decomp_stack_vars: dict[int, str] = pwndbg.integration.manager.get_stack_var_dict_all()
+        decomp_stack_vars: dict[int, str] = pwndbg.dintegration.manager.get_stack_var_dict_all()
     else:
         decomp_stack_vars = {}
 

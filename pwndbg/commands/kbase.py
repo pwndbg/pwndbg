@@ -38,8 +38,7 @@ def kbase(rebase=False, verbose=False) -> None:
 
     if verbose:
         phys = pwndbg.aglib.kernel.virt_to_phys(base)
-        if phys is not None:
-            print(message.success(f"corresponding physical address: {hex(phys)}"))
+        print(message.success(f"corresponding physical address: {hex(phys)}"))
 
     if not rebase:
         return

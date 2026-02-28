@@ -18,6 +18,7 @@ import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.dbg_mod
+import pwndbg.lib.memory
 import pwndbg.libc
 import pwndbg.libc.glibc
 from pwndbg.aglib.heap import heap_chain_limit
@@ -588,7 +589,8 @@ def bins(addr: int | None = None, tcache_addr: int | None = None) -> None:
     if addr is None and allocator.thread_arena is None:
         print_no_arena_found_error()
         return
-    fastbins(addr)
+    if not pwndbg.libc.version() >= (2, 43):
+        fastbins(addr)
     unsortedbin(addr)
     smallbins(addr)
     largebins(addr)
@@ -615,6 +617,10 @@ def fastbins(addr: int | None = None, verbose: bool = False) -> None:
     """
     allocator = pwndbg.aglib.heap.current
     assert isinstance(allocator, GlibcMemoryAllocator)
+
+    if pwndbg.libc.version() >= (2, 43):
+        print(message.warn("Fastbins were removed in glibc 2.43."))
+        return
 
     fastbins = allocator.fastbins(addr)
 
@@ -944,7 +950,7 @@ pwndbg.config.add_param(
 
 pwndbg.config.add_param(
     "vis-skip-repeating-val",
-    True,
+    False,
     "whether to skip repeating lines in vis command output",
 )
 
@@ -1131,11 +1137,11 @@ def vis_heap_chunks(
     bin_labels_map: dict[int, list[str]] = bin_labels_mapping(bin_collections)
 
     # For collapsing repeated lines
-    skip_repeating = False if no_skip else pwndbg.config.vis_skip_repeating_val
-    prev_line_content = None
-    repeat_count = 0
-    line_buffer = ""  # Temporary buffer for building current line (holds first cell)
-    saved_line_addr = ""  # Saved address for the current line
+    skip_repeating: bool = False if no_skip else bool(pwndbg.config.vis_skip_repeating_val)
+    prev_line_content: str | None = None
+    repeat_count: int = 0
+    line_buffer: str = ""  # Temporary buffer for building current line (holds first cell)
+    saved_line_addr: str = ""  # Saved address for the current line
 
     def flush_repeats() -> None:
         """Add collapse message for accumulated repeated lines."""
@@ -1476,7 +1482,7 @@ def try_free(addr: str | int) -> None:
         return
 
     # is fastbin
-    if chunk_size_unmasked <= allocator.global_max_fast:
+    if not pwndbg.libc.version() >= (2, 43) and chunk_size_unmasked <= allocator.global_max_fast:
         print(message.notice("Fastbin checks"))
         chunk_fastbin_idx = allocator.fastbin_index(chunk_size_unmasked)
         fastbin_list = (

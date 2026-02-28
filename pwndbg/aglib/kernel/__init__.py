@@ -5,6 +5,8 @@ import re
 from abc import ABC
 from abc import abstractmethod
 from collections.abc import Callable
+from collections.abc import Iterator
+from typing import TYPE_CHECKING
 from typing import TypeVar
 
 from elftools.elf.elffile import ELFFile
@@ -12,9 +14,6 @@ from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.kernel.kconfig_mod
-import pwndbg.aglib.kernel.paging
-import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.structures
@@ -25,12 +24,17 @@ import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
-from pwndbg.aglib.kernel.paging import ArchPagingInfo
-from pwndbg.aglib.kernel.paging import PagewalkResult
 from pwndbg.lib import Status
-from pwndbg.lib import TypeNotFound
-from pwndbg.lib import TypeNotRecovered
+from pwndbg.lib import TypeNotFoundError
+from pwndbg.lib import TypeNotRecoveredError
 from pwndbg.lib.regs import BitFlags
+
+if TYPE_CHECKING:
+    import pwndbg.aglib.kernel.kconfig_mod
+    import pwndbg.aglib.kernel.paging
+    import pwndbg.aglib.kernel.slab
+    import pwndbg.aglib.kernel.symbol
+    import pwndbg.aglib.kernel.vmmap
 
 _kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 
@@ -105,7 +109,7 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
 
 # Set by pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux() when page typeinfo
 # recovery fails.
-page_typeinfo_recovery_failure: None | TypeNotRecovered = None
+page_typeinfo_recovery_failure: None | TypeNotRecoveredError = None
 
 
 def typeinfo_recovery(
@@ -117,36 +121,36 @@ def typeinfo_recovery(
         def func(*args: P.args, **kwargs: P.kwargs) -> None:
             if not pwndbg.dbg.selected_inferior().is_linux():
                 # make sure the target is linux, should we specify symbols instead?
-                raise TypeNotRecovered(name, "target is not linux")
+                raise TypeNotRecoveredError(name, "target is not linux")
             if has_debug_info():
                 return
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
                 return
             if requires_kversion and kversion() is None:
-                raise TypeNotRecovered(name, "kernel version is unavailable")
+                raise TypeNotRecoveredError(name, "kernel version is unavailable")
             if requires_kbase and kbase() is None:
-                raise TypeNotRecovered(name, "kernel base not found")
+                raise TypeNotRecoveredError(name, "kernel base not found")
 
             try:
                 result = f(*args, **kwargs)
-            except TypeNotFound as e:
+            except TypeNotFoundError as e:
                 # typeinfo_recovery functions depend on
                 # pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux()
                 # succeeding and will try to directly read those types from the debbuger
                 # like e.g. `pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)`
-                # This will raise a TypeNotFound exception.
+                # This will raise a TypeNotFoundError exception.
                 if page_typeinfo_recovery_failure is not None:
                     raise page_typeinfo_recovery_failure
-                raise TypeNotRecovered(name, str(e))
+                raise TypeNotRecoveredError(name, str(e))
             except AssertionError as e:
                 # FIXME: Some type recovery functions `assert` under the assumption that the assert
                 # will be caught here.
-                raise TypeNotRecovered(name, str(e))
+                raise TypeNotRecoveredError(name, str(e))
 
             fname = name.split()[-1] + "_structs"
             err: Status = pwndbg.aglib.structures.add(fname, result)
             if err.is_failure():
-                raise TypeNotRecovered(name, err.message)
+                raise TypeNotRecoveredError(name, err.message)
             return
 
         return func
@@ -213,9 +217,7 @@ def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig:
             config_start = result + len("IKCFG_ST")
             config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
     if (
-        not config_start
-        or not config_end
-        or not pwndbg.aglib.memory.is_kernel(config_start)
+        not pwndbg.aglib.memory.is_kernel(config_start)
         or not pwndbg.aglib.memory.is_kernel(config_end)
         or config_start >= config_end
     ):
@@ -233,6 +235,8 @@ def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig:
 @pwndbg.lib.cache.cache_until("start")
 def kcmdline() -> str:
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("saved_command_line")
+    if not addr:
+        return ""
     cmdline_addr = pwndbg.aglib.memory.read_pointer_width(addr)
     return pwndbg.aglib.memory.string(cmdline_addr).decode("ascii")
 
@@ -267,7 +271,7 @@ def krelease() -> tuple[int, ...] | None:
     raise Exception("Linux version tuple not found")
 
 
-def get_idt_entries() -> list[pwndbg.lib.kernel.structs.IDTEntry]:
+def get_idt_entries() -> Iterator[pwndbg.lib.kernel.structs.IDTEntry]:
     """
     Retrieves the IDT entries from memory.
     """
@@ -277,15 +281,11 @@ def get_idt_entries() -> list[pwndbg.lib.kernel.structs.IDTEntry]:
     size = pwndbg.aglib.arch.ptrsize * 2
     num_entries = (limit + 1) // size
 
-    entries = []
-
     # TODO: read the entire IDT in one call?
     for i in range(num_entries):
         entry_addr = base + i * size
         entry = pwndbg.lib.kernel.structs.IDTEntry(pwndbg.aglib.memory.read(entry_addr, size))
-        entries.append(entry)
-
-    return entries
+        yield entry
 
 
 def current_cpu() -> int:
@@ -319,7 +319,7 @@ def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -
 
 def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
     # name is a substr of any of the target caches' names
-    cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
+    _, cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
     if not cache:
         return False
     if strict:
@@ -358,46 +358,56 @@ class ArchOps(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def pfn_to_page(self, phys: int) -> int:
+    def pfn_to_page(self, pfn: int) -> int:
         raise NotImplementedError()
 
     @abstractmethod
     def page_to_pfn(self, page: int) -> int:
         raise NotImplementedError()
 
+    def _paginginfo(self) -> pwndbg.aglib.kernel.paging.ArchPagingInfo:
+        result = arch_paginginfo()
+        if not result:
+            raise NotImplementedError()
+        return result
+
     @property
     @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SIZE(self):
-        return arch_paginginfo().STRUCT_PAGE_SIZE
+        return self._paginginfo().STRUCT_PAGE_SIZE
 
     @property
     @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SHIFT(self):
-        return arch_paginginfo().STRUCT_PAGE_SHIFT
+        return self._paginginfo().STRUCT_PAGE_SHIFT
 
     @property
     def page_offset(self) -> int:
-        return arch_paginginfo().physmap
+        return self._paginginfo().physmap
 
     @property
     def phys_offset(self) -> int:
-        return arch_paginginfo().phys_offset
+        return self._paginginfo().phys_offset
 
     @property
     def page_shift(self) -> int:
-        return arch_paginginfo().page_shift
+        return self._paginginfo().page_shift
 
     @property
     def vmemmap(self) -> int:
-        return arch_paginginfo().vmemmap
+        return self._paginginfo().vmemmap
 
     @property
     def kbase(self) -> int | None:
-        return arch_paginginfo().kbase
+        return self._paginginfo().kbase
+
+    @property
+    def vmalloc(self) -> int:
+        return self._paginginfo().vmalloc
 
     @property
     def page_size(self) -> int:
-        return 1 << self.page_shift
+        return self._paginginfo().page_size
 
     def virt_to_pfn(self, virt: int) -> int:
         return phys_to_pfn(virt_to_phys(virt))
@@ -420,7 +430,7 @@ class ArchOps(ABC):
 
 class x86Ops(ArchOps):
     def phys_to_virt(self, phys: int) -> int:
-        return (phys + self.page_offset) % (1 << pwndbg.aglib.arch.ptrbits)
+        return pwndbg.aglib.arch.unsigned(phys + self.page_offset)
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.page_shift
@@ -456,11 +466,13 @@ class x86_64Ops(x86Ops):
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value:
+    ) -> pwndbg.dbg_mod.Value | None:
         if cpu is None:
             cpu = current_cpu()
 
-        per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
+        per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
+        if per_cpu_offset is None:
+            return None
 
         offset = pwndbg.aglib.memory.read_pointer_width(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
@@ -469,12 +481,13 @@ class x86_64Ops(x86Ops):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
-        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc):
+        _virt: int | None = virt
+        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < self.vmalloc):
             # if not within physmap range, first find the physmap address
-            virt = pagewalk(virt).virt
-        if virt is None:
-            return None
-        return virt - self.page_offset
+            _virt = pagewalk(virt).virt
+        if _virt is None:
+            _virt = virt
+        return _virt - self.page_offset
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
@@ -491,11 +504,13 @@ class Aarch64Ops(ArchOps):
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value:
+    ) -> pwndbg.dbg_mod.Value | None:
         if cpu is None:
             cpu = current_cpu()
 
-        per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
+        per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
+        if per_cpu_offset is None:
+            return None
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
@@ -504,12 +519,13 @@ class Aarch64Ops(ArchOps):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
-        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc):
+        _virt: int | None = virt
+        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < self.vmalloc):
             # if not within physmap range, first find the physmap address
-            virt = pagewalk(virt).virt
-        if virt is None:
-            return None
-        return virt - self.page_offset + self.phys_offset
+            _virt = pagewalk(virt).virt
+        if _virt is None:
+            _virt = virt
+        return _virt - self.page_offset + self.phys_offset
 
     def phys_to_virt(self, phys: int) -> int:
         # https://elixir.bootlin.com/linux/v6.16.4/source/arch/arm64/include/asm/memory.h#L356
@@ -537,7 +553,7 @@ class Aarch64Ops(ArchOps):
 
 
 @pwndbg.lib.cache.cache_until("start")
-def arch_paginginfo() -> ArchPagingInfo | None:
+def arch_paginginfo() -> pwndbg.aglib.kernel.paging.ArchPagingInfo | None:
     if pwndbg.aglib.arch.name == "aarch64":
         return pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
     if pwndbg.aglib.arch.name == "x86-64":
@@ -680,7 +696,9 @@ def page_shift() -> int:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagewalk(addr, entry: int | None = None, virt: bool = True) -> PagewalkResult:
+def pagewalk(
+    addr, entry: int | None = None, virt: bool = True
+) -> pwndbg.aglib.kernel.paging.PagewalkResult:
     """
     assumes entry is a valid physaddr (+ flags)
     the strategy is to walk any virtual pgd first
@@ -703,6 +721,27 @@ def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
     pi = arch_paginginfo()
     if pi:
         return pi.bitflags(level)
+    raise NotImplementedError()
+
+
+def slab_to_virt(slab: int) -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.slab_to_virt(slab)
+    raise NotImplementedError()
+
+
+def virt_to_slab(slab: int) -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.virt_to_slab(slab)
+    raise NotImplementedError()
+
+
+def slab_virtual() -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.slab_virtual
     raise NotImplementedError()
 
 
@@ -753,49 +792,65 @@ def num_numa_nodes() -> int:
     return val
 
 
-def node_data() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def node_data() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.node_data()
     return None
 
 
-def slab_caches() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def slab_caches() -> pwndbg.dbg_mod.Value | None:
     if (syms := arch_symbols()) is not None:
-        return syms.slab_caches()
+        if addr := syms.slab_caches():
+            return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", addr)
     return None
 
 
-def per_cpu_offset() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def per_cpu_offset() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.per_cpu_offset()
     return None
 
 
-def modules() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def modules() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.modules()
     return None
 
 
-def db_list() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def db_list() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.db_list()
     return None
 
 
-def prog_idr() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def prog_idr() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.prog_idr()
     return None
 
 
-def map_idr() -> pwndbg.dbg_mod.Value:
+@pwndbg.lib.cache.cache_until("stop")
+def map_idr() -> int | None:
     if (syms := arch_symbols()) is not None:
         return syms.map_idr()
     return None
 
 
-def current_task(cpu: int | None = None) -> int:
+@pwndbg.lib.cache.cache_until("stop")
+def current_task(cpu: int | None = None) -> int | None:
     if (syms := arch_symbols()) is not None:
-        return syms.current_task(cpu)
+        result = syms.current_task()
+        if not isinstance(result, int):
+            return None
+        if pwndbg.aglib.arch.name == "aarch64":
+            # TODO: how to get the kcurrent for different cpus
+            return result
+        ptr = int(per_cpu(result, cpu=cpu))
+        return pwndbg.aglib.memory.read_pointer_width(ptr)
     return None

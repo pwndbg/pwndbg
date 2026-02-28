@@ -61,6 +61,9 @@ def main() -> None:
     import pwndbg  # noqa: F811
     import pwndbg.dbg_mod.gdb
 
+    # Mark that pwndbg was loaded from `pwndbg` binary (for double-load detection)
+    setattr(pwndbg, "_is_loaded_from_pwndbg", True)
+
     pwndbg.dbg = pwndbg.dbg_mod.gdb.GDB()
     pwndbg.dbg.setup()
 

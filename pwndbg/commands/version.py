@@ -17,7 +17,7 @@ from urllib.parse import quote
 import pwndbg
 import pwndbg.aglib
 import pwndbg.commands
-import pwndbg.integration
+import pwndbg.dintegration
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import DebuggerType
@@ -62,7 +62,7 @@ def all_versions():
         f"Pwnlib:   {module_version('pwnlib')}",
     )
 
-    integration_ver_text: str | None = pwndbg.integration.manager.version_string()
+    integration_ver_text: str | None = pwndbg.dintegration.manager.version_string()
     if integration_ver_text is not None:
         return most + (integration_ver_text,)
     return most

@@ -9,8 +9,8 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as mem_color
 import pwndbg.dbg_mod
+import pwndbg.dintegration
 import pwndbg.enhance
-import pwndbg.integration
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
@@ -141,7 +141,7 @@ def format(
     arrow_right = c.arrow(f" {config_arrow_right} ")
 
     # Ask the decompiler to resolve stack variables
-    stack_vars = pwndbg.integration.manager.get_stack_var_dict_all()
+    stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
 
     # Colorize the chain
     rest = [
