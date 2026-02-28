@@ -158,6 +158,41 @@ def nextsyscall() -> None:
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(_nextsyscall)
 
 
+def _get_syscall_predicate(
+    syscall_num: int | None, condition: Callable[[], int] | None
+) -> Callable[[], bool] | None:
+    """
+    Helper function to build a predicate function for filtering syscalls based on syscall number and/or condition.
+    """
+    if syscall_num is not None:
+        syscall_abi = pwndbg.aglib.arch.syscall_abi
+        if syscall_abi is None:
+            print("Cannot determine syscall ABI for current architecture")
+            return None
+        syscall_reg = syscall_abi.syscall_register
+
+        def check_syscall() -> bool:
+            return pwndbg.aglib.regs.read_reg(syscall_reg) == syscall_num
+
+        if condition is not None:
+
+            def check_syscall_and_condition() -> bool:
+                return pwndbg.aglib.regs.read_reg(syscall_reg) == syscall_num and bool(condition())
+
+            return check_syscall_and_condition
+        return check_syscall
+    if condition is not None:
+
+        def check_condition() -> bool:
+            try:
+                return bool(condition())
+            except Exception:
+                return False
+
+        return check_condition
+    return None  # No filtering
+
+
 async def _stepsyscall(
     ec: pwndbg.dbg_mod.ExecutionController,
     syscall_num: int | None = None,
@@ -167,44 +202,30 @@ async def _stepsyscall(
     Execution controller for the `stepsyscall` command.
     """
     # Build predicate once based on what filters are provided
-    predicate: Callable[[], bool] | None = None
+    predicate: Callable[[], bool] | None = _get_syscall_predicate(syscall_num, condition)
 
-    if syscall_num is not None:
-        syscall_abi = pwndbg.aglib.arch.syscall_abi
-        if syscall_abi is None:
-            print("Cannot determine syscall ABI for current architecture")
-            return
-        syscall_reg = syscall_abi.syscall_register
-
-        def check_syscall() -> bool:
-            return pwndbg.aglib.regs.read_reg(syscall_reg) == syscall_num
-
-        if condition is not None:
-
-            def check_syscall_and_condition() -> bool:
-                if pwndbg.aglib.regs.read_reg(syscall_reg) != syscall_num:
-                    return False
-                try:
-                    return bool(condition())
-                except Exception:
-                    return False
-
-            predicate = check_syscall_and_condition
-        else:
-            predicate = check_syscall
-    elif condition is not None:
-
-        def check_condition() -> bool:
-            try:
-                return bool(condition())
-            except Exception:
-                return False
-
-        predicate = check_condition
-    # else: predicate remains None (no filtering)
-
-    if await pwndbg.aglib.next.break_next_interrupt_filtered(ec, predicate=predicate):
-        pwndbg.commands.context.context()
+    if predicate is None:
+        while (
+            pwndbg.aglib.proc.alive()
+            and not (await pwndbg.aglib.next.break_next_interrupt(ec, honor_current_branch=True))
+            and (await pwndbg.aglib.next.break_next_branch(ec, including_current=True))
+        ):
+            # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
+            # We need to step so that we take this branch instead of ignoring it
+            await ec.single_step()
+            continue
+    else:
+        while (
+            pwndbg.aglib.proc.alive()
+            and not (
+                await pwndbg.aglib.next.break_next_interrupt_filtered(
+                    ec, predicate=predicate, honor_current_branch=True
+                )
+            )
+            and (await pwndbg.aglib.next.break_next_branch(ec, including_current=True))
+        ):
+            await ec.single_step()
+            continue
 
 
 stepsyscall_parser = argparse.ArgumentParser(

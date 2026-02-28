@@ -155,52 +155,27 @@ async def break_next_interrupt(
 
 async def break_next_interrupt_filtered(
     ec: pwndbg.dbg_mod.ExecutionController,
-    predicate: Callable[[], bool] | None = None,
+    predicate: Callable[[], bool],
+    address: int | None = None,
+    honor_current_branch: bool = False,
 ) -> PwndbgInstruction | None:
     """
-    Break at the next interrupt (syscall), optionally filtering by a predicate.
+    Break at the next interrupt in the current basic block if it matches the predicate.
 
-    Args:
-        ec: Execution controller for stepping/continuing
-        predicate: Optional zero-argument callable returning True to stop, False to continue.
-                   If None, stops at any interrupt.
-
-    Returns:
-        The instruction we stopped at, or None if process died/signaled
+    This behaves exactly like break_next_interrupt (stops at basic block boundaries,
+    does not follow branches), but additionally checks the predicate after stopping
+    at the interrupt instruction.
     """
-    while pwndbg.aglib.proc.alive():
-        # Break on signal as it may be a segfault
-        if pwndbg.aglib.proc.stopped_with_signal():
-            return None
-
-        # Try to find and break at next interrupt in current basic block
-        ins = await break_next_interrupt(ec, honor_current_branch=True)
-
-        if ins:
-            # Evaluate predicate if provided
-            if predicate is not None:
-                try:
-                    if not predicate():
-                        # Didn't match - step past this syscall and continue searching
-                        await ec.single_step()
-                        continue
-                except Exception:
-                    # Treat errors as non-match to keep stepping
-                    await ec.single_step()
-                    continue
-            return ins
-        # No interrupt in current basic block - step to next branch and take it
-        branch = next_branch(pwndbg.aglib.regs.pc, including_current=True)
-        if branch:
-            if branch.address != pwndbg.aglib.regs.pc:
-                proc = pwndbg.dbg.selected_inferior()
-                with proc.break_at(BreakpointLocation(branch.address), internal=True) as bp:
-                    await ec.cont(bp)
-            # Step past the branch
-            await ec.single_step()
-        else:
-            # No branch found either, just single step
-            await ec.single_step()
+    ins = next_int(address, honor_current_branch=honor_current_branch)
+    proc = pwndbg.dbg.selected_inferior()
+    if ins:
+        with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+            await ec.cont(bp)
+        try:
+            if predicate():
+                return ins
+        except Exception:
+            pass
 
     return None
 
