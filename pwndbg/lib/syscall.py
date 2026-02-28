@@ -54,7 +54,7 @@ def syscall_number_to_name(num: int, arch_name: PWNDBG_SUPPORTED_ARCHITECTURES_T
 
     for attr_name, value in vars(arch_module).items():
         if attr_name.startswith("__NR_") and isinstance(value, Constant) and int(value) == num:
-            return attr_name[5:]  # "__NR_write" -> "write"
+            return str(attr_name[5:])  # "__NR_write" -> "write"
 
     return None
 

@@ -166,7 +166,7 @@ async def break_next_interrupt_filtered(
     does not follow branches), but additionally checks the predicate after stopping
     at the interrupt instruction.
     """
-    ins = next_int(address, honor_current_branch=honor_current_branch)
+    ins: PwndbgInstruction | None = next_int(address, honor_current_branch=honor_current_branch)
     proc = pwndbg.dbg.selected_inferior()
     if ins:
         with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
