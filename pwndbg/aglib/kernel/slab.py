@@ -46,7 +46,7 @@ def slab_struct_type() -> str:
 
 
 def slab_list_field() -> str:
-    # In kernels older than ~5.8, struct page uses 'lru' instead of 'slab_list' for the node partial slab list.
+    # In kernels older than 4.18, struct page uses 'lru' instead of 'slab_list' for the node partial slab list.
     page_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
     if page_type is not None and page_type.offsetof("slab_list") is not None:
         return "slab_list"
