@@ -116,7 +116,7 @@ jobs:
 
       - name: Inject/extract cache mounts
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: reproducible-containers/buildkit-cache-dance@v3.3.1
+        uses: reproducible-containers/buildkit-cache-dance@v3.3.2
         with:
           cache-map: |
             {
