@@ -1024,7 +1024,29 @@ wheels = [
 [[package]]
 name = "lldb-for-pwndbg"
 version = "22.1.0.post2"
+source = { registry = "https://mirrors.loong64.com/pypi/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.14.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+]
+wheels = [
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/1155305d6f9b16ad9874309da960ad5ae074384842f0cd7107bad5646433a060/lldb_for_pwndbg-22.1.0.post2-cp310-abi3-manylinux_2_36_loongarch64.whl", hash = "sha256:1155305d6f9b16ad9874309da960ad5ae074384842f0cd7107bad5646433a060" },
+]
+
+[[package]]
+name = "lldb-for-pwndbg"
+version = "22.1.0.post2"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.13' and platform_machine != 'loongarch64') or (python_full_version >= '3.13' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'loongarch64') or (python_full_version == '3.12.*' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'loongarch64') or (python_full_version == '3.11.*' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'loongarch64') or (python_full_version < '3.11' and sys_platform != 'linux')",
+]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/9e/4439e6695fb1c3fa5299d14cf947a16763eaabb64cde568ea172da280f3c/lldb_for_pwndbg-22.1.0.post2-cp310-abi3-macosx_10_13_x86_64.whl", hash = "sha256:461e4c9a1d6bf72d6c6f10e16898466abe8994f0ec8cb02244052d9ea140dd4c", size = 57102195, upload-time = "2026-03-03T21:15:32.772Z" },
     { url = "https://files.pythonhosted.org/packages/c6/81/069ced44b933aa4217707647df6ff09399a876b33d7f40e198fa42a5ae7c/lldb_for_pwndbg-22.1.0.post2-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:577b111cef5531e0e200ba02a97e1cffe7edf6437ef0e3c229299f5655ad5758", size = 55033478, upload-time = "2026-03-04T14:46:00.898Z" },
@@ -1734,7 +1756,8 @@ gdb = [
 ]
 lldb = [
     { name = "gnureadline", marker = "sys_platform != 'win32'" },
-    { name = "lldb-for-pwndbg" },
+    { name = "lldb-for-pwndbg", version = "22.1.0.post2", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
+    { name = "lldb-for-pwndbg", version = "22.1.0.post2", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
     { name = "pyreadline3", marker = "sys_platform == 'win32'" },
 ]
 
@@ -1783,7 +1806,8 @@ requires-dist = [
     { name = "gdb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'gdb') or (sys_platform != 'linux' and extra == 'gdb')", specifier = "==17.1.0.post2" },
     { name = "gnureadline", marker = "sys_platform != 'win32' and extra == 'lldb'", specifier = ">=8.2.13,<9" },
     { name = "ipython", specifier = ">=8.37.0,<9" },
-    { name = "lldb-for-pwndbg", marker = "extra == 'lldb'", specifier = "==22.1.0.post2" },
+    { name = "lldb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", specifier = "==22.1.0.post2", index = "https://mirrors.loong64.com/pypi/simple" },
+    { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'lldb') or (sys_platform != 'linux' and extra == 'lldb')", specifier = "==22.1.0.post2" },
     { name = "niche-elf", specifier = "==0.3.6" },
     { name = "psutil", specifier = ">=7.0.0,<8" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
