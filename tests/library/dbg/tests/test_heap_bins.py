@@ -201,7 +201,17 @@ async def test_largebins_size_range_64bit(ctrl: Controller) -> None:
     Ensure the "largebins" command displays the correct largebin size ranges.
     This test targets 64-bit architectures.
     """
-    await launch_to(ctrl, get_binary("initialized_heap.x86-64.out"), "break_here")
+    import pwndbg.aglib
+
+    arch = pwndbg.aglib.arch.name
+    if arch == "x86-64":
+        binary = get_binary("initialized_heap.x86-64.out")
+    elif arch == "aarch64":
+        binary = get_binary("initialized_heap.aarch64.out")
+    else:
+        pytest.skip(f"Test not supported on {arch}")
+
+    await launch_to(ctrl, binary, "break_here")
 
     command_output = (await ctrl.execute_and_capture("largebins --verbose")).splitlines()[1:]
 
@@ -361,7 +371,17 @@ async def test_smallbins_sizes_64bit(ctrl: Controller) -> None:
     Ensure the "smallbins" command displays the correct smallbin sizes.
     This test targets 64-bit architectures.
     """
-    await launch_to(ctrl, get_binary("initialized_heap.x86-64.out"), "break_here")
+    import pwndbg.aglib
+
+    arch = pwndbg.aglib.arch.name
+    if arch == "x86-64":
+        binary = get_binary("initialized_heap.x86-64.out")
+    elif arch == "aarch64":
+        binary = get_binary("initialized_heap.aarch64.out")
+    else:
+        pytest.skip(f"Test not supported on {arch}")
+
+    await launch_to(ctrl, binary, "break_here")
 
     command_output = (await ctrl.execute_and_capture("smallbins --verbose")).splitlines()[1:]
 

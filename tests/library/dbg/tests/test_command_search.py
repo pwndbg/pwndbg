@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import re
 
-import pytest
-
 from ....host import Controller
 from . import get_binary
 from . import launch_to
@@ -19,12 +17,7 @@ async def test_command_search_literal(ctrl: Controller) -> None:
     """
     Searches for a string literal in a few different ways
     """
-    import pwndbg.aglib
-
     await launch_to(ctrl, SEARCH_BINARY, "break_here")
-
-    if pwndbg.aglib.arch.name != "x86-64":
-        pytest.skip("TODO weird bug only on github-ci")
 
     # Perform three equivalent searches, and chop off the first line of verbosity.
     result0 = (await ctrl.execute_and_capture("search -t bytes Hello!")).splitlines()[1:]
