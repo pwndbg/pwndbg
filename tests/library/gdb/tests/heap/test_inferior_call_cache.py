@@ -38,6 +38,7 @@ def test_heap_after_many_inferior_mallocs(start_binary):
     assert isinstance(allocator, GlibcMemoryAllocator)
 
     # Use a large size (0x10000) to force brk expansion quickly.
-    for _  in range(10):
-        gdb.execute('call (void *)malloc(0x10000)')
-        print((pwndbg.aglib.heap.current.thread_arena))
+    print("Will print next thread arenas, their sizes should increase gradually")
+    for _ in range(10):
+        gdb.execute("call (void *)malloc(0x10000)", to_string=True)
+        print(pwndbg.aglib.heap.current.thread_arena)
