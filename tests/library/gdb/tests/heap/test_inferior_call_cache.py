@@ -41,4 +41,4 @@ def test_heap_after_many_inferior_mallocs(start_binary):
     print("Will print next thread arenas, their sizes should increase gradually")
     for _ in range(10):
         gdb.execute("call (void *)malloc(0x10000)", to_string=True)
-        print(pwndbg.aglib.heap.current.thread_arena)
+        print(pwndbg.aglib.heap.current.thread_arena)  # type: ignore[union-attr]
