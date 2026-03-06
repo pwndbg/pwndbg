@@ -6,7 +6,7 @@ from . import launch_to
 from . import pwndbg_test
 
 MUSL_DYNAMIC = get_binary("heap_musl_dyn.native.out")
-MUSL_STATIC = get_binary("heap_musl_static.native.out")
+MUSL_STATIC = get_binary("heap_musl_static_stripped.native.out")
 
 
 @pwndbg_test
@@ -51,7 +51,7 @@ async def test_musl_static_detection(ctrl: Controller) -> None:
     assert pwndbg.libc.addr() == pwndbg.libc.loader_addr() != 0
     assert not pwndbg.libc.has_exported_symbols()
     assert not pwndbg.libc.has_internal_symbols()
-    # The binary has debug info stripped (see makefile) because on Fedora 43,
-    # -g3 caused struct __ptcb to be present, making has_debug_info() True,
-    # while on other distros it wasn't — leading to inconsistent results.
+    # This test uses the stripped binary (heap_musl_static_stripped) because on
+    # Fedora 43, -g3 caused struct __ptcb to appear in debug info, making
+    # has_debug_info() True, while on other distros it didn't.
     assert not pwndbg.libc.has_debug_info()
