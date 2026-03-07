@@ -53,6 +53,7 @@ class GDBTestHost(TestHost):
         case: str,
         coverage_out: Path | None,
         interactive: bool,
+        profile_out: Path | None = None,
     ) -> TestResult:
         gdb_args_before = []
         if coverage_out is not None:
@@ -73,6 +74,10 @@ class GDBTestHost(TestHost):
         env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
         if interactive:
             env["USE_PDB"] = "1"
+        if profile_out is not None:
+            # Sanitize the test case name for use in the profile filename
+            safe_name = case.replace("/", "_").replace("::", "_")
+            env["PWNDBG_PROFILE_OUT"] = str(profile_out / f"{safe_name}.prof")
 
         # Run the test to completion and time it.
         started_at = time.monotonic_ns()

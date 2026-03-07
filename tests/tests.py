@@ -39,6 +39,11 @@ def main() -> None:
     if args.cov:
         print("Will run codecov")
         coverage_out = Path(".cov/coverage")
+    profile_out = None
+    if args.profile:
+        print("Will profile test cases")
+        profile_out = Path(".profile")
+        profile_out.mkdir(parents=True, exist_ok=True)
     if args.pdb:
         print("Will run tests in serial and with Python debugger")
         args.serial = True
@@ -86,6 +91,7 @@ def main() -> None:
         force_serial or args.serial,
         args.verbose,
         coverage_out,
+        profile_out,
     )
 
 
@@ -96,6 +102,7 @@ def run_tests_and_print_stats(
     serial: bool,
     verbose: bool,
     coverage_out: Path | None,
+    profile_out: Path | None,
 ) -> None:
     """
     Runs all the tests made available by a given test host.
@@ -117,13 +124,13 @@ def run_tests_and_print_stats(
     if serial:
         print("\nRunning tests in series")
         for test in tests_list:
-            result = host.run(test, coverage_out, pdb)
+            result = host.run(test, coverage_out, pdb, profile_out)
             stats.handle_test_result(test, result, verbose)
     else:
         print("\nRunning tests in parallel")
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             for test in tests_list:
-                executor.submit(host.run, test, coverage_out, pdb).add_done_callback(
+                executor.submit(host.run, test, coverage_out, pdb, profile_out).add_done_callback(
                     # `test=test` forces the variable to bind early. This will
                     # change the type of the lambda, however, so we have to
                     # assure MyPy we know what we're doing.
@@ -322,6 +329,11 @@ def parse_args() -> argparse.Namespace:
         help="enable pdb (Python debugger) post mortem debugger on failed tests",
     )
     parser.add_argument("-c", "--cov", action="store_true", help="enable codecov")
+    parser.add_argument(
+        "--profile",
+        action="store_true",
+        help="enable profiling of test cases using cProfile",
+    )
     parser.add_argument(
         "-v",
         "--verbose",

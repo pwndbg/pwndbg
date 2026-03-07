@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import cProfile
 import os
+import pstats
 import sys
 from collections.abc import Callable
 from collections.abc import Coroutine
@@ -121,7 +123,16 @@ if use_pdb:
 
 print(f"Launching pytest with args: {args}")
 
-return_code = pytest.main(args)
+# Check if profiling is enabled
+profile_out = os.environ.get("PWNDBG_PROFILE_OUT")
+if profile_out:
+    # Run pytest with profiling
+    profiler = cProfile.Profile()
+    return_code = profiler.runcall(pytest.main, args)
+    profiler.dump_stats(profile_out)
+    print(f"Profile data saved to: {profile_out}")
+else:
+    return_code = pytest.main(args)
 
 if return_code != 0:
     print("-" * 80)

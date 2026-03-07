@@ -127,7 +127,13 @@ class TestResult:
 
 
 class TestHost:
-    def run(self, case: str, coverage_out: Path | None, interactive: bool) -> TestResult:
+    def run(
+        self,
+        case: str,
+        coverage_out: Path | None,
+        interactive: bool,
+        profile_out: Path | None = None,
+    ) -> TestResult:
         """
         Runs a single test case of given name.
 
@@ -141,6 +147,9 @@ class TestHost:
 
         Collection of code coverage data may be enabled for the test by
         specifying a coverage file path in `coverage_out`.
+
+        Profiling of the test may be enabled by specifying a directory path in
+        `profile_out`. Profile data will be saved to files in this directory.
         """
         raise NotImplementedError()
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import cProfile
 import os
+import pstats
 import shlex
 import sys
 from collections.abc import Callable
@@ -148,7 +150,15 @@ if __name__ == "__main__":
             pytest_plugins = None
 
     # Start the test, proper.
-    status = run(pytest_args, pytest_plugins)
+    profile_out = os.environ.get("PWNDBG_PROFILE_OUT")
+    if profile_out:
+        # Run with profiling
+        profiler = cProfile.Profile()
+        status = profiler.runcall(run, pytest_args, pytest_plugins)
+        profiler.dump_stats(profile_out)
+        print(f"Profile data saved to: {profile_out}")
+    else:
+        status = run(pytest_args, pytest_plugins)
 
     if op == Operation.COLLECT:
         for nodeid in pytest_plugins[0].collected:

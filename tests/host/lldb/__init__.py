@@ -33,6 +33,7 @@ class LLDBTestHost(TestHost):
         test_name: str | None,
         capture: bool,
         pdb: bool,
+        profile_out: Path | None = None,
     ) -> subprocess.CompletedProcess[str]:
         assert op in ("RUN-TEST", "COLLECT")
         assert op != "RUN-TEST" or test_name is not None
@@ -50,6 +51,10 @@ class LLDBTestHost(TestHost):
         env["PWNDBG_IN_TEST"] = "1"
         if test_name is not None:
             env["TEST_NAME"] = test_name
+        if profile_out is not None and test_name is not None:
+            # Sanitize the test case name for use in the profile filename
+            safe_name = test_name.replace("/", "_").replace("::", "_")
+            env["PWNDBG_PROFILE_OUT"] = str(profile_out / f"{safe_name}.prof")
 
         return subprocess.run(
             [interpreter, "-m", "tests.host.lldb.launch_guest"],
@@ -66,9 +71,15 @@ class LLDBTestHost(TestHost):
         # We execute from Pwndbg root, so we need to prepend tests/ to the names.
         return [f"tests/{name}" for name in names]
 
-    def run(self, case: str, coverage_out: Path | None, interactive: bool) -> TestResult:
+    def run(
+        self,
+        case: str,
+        coverage_out: Path | None,
+        interactive: bool,
+        profile_out: Path | None = None,
+    ) -> TestResult:
         beg = time.monotonic_ns()
-        result = self._launch("RUN-TEST", case, not interactive, interactive)
+        result = self._launch("RUN-TEST", case, not interactive, interactive, profile_out)
         end = time.monotonic_ns()
 
         return _result_from_pytest(result, end - beg)
