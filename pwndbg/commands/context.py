@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import errno as errno_module
 import functools
 import logging
 import math
@@ -1260,10 +1261,53 @@ class RegisterContext(RegisterContextProtocol):
         val = self.get_register_value(reg)
         if val is None:
             return None
-        desc = ""
         desc = pwndbg.chain.format(val)
         prefix = self.get_prefix(reg)
+
+        # Check if this is the return value register and value might be a negative errno
+        retval = pwndbg.aglib.regs.current.retval
+        if retval is not None and reg.lower() == retval.lower():
+            errno_info = self._get_errno_info(val)
+            if errno_info is not None:
+                desc = f"{desc} {errno_info}"
+
         return f"{prefix} {desc}"
+
+    def _get_errno_info(self, val: int) -> str | None:
+        """
+        Returns a formatted errno string if the value looks like a negative errno.
+
+        Linux syscalls return negative errno values (-1 to -4095) on error.
+        """
+        # Linux syscall error values are in range -1 to -4095
+        # These appear as large unsigned values when stored in registers
+        ptrsize = pwndbg.aglib.arch.ptrsize
+
+        # Check if value is in the negative range by checking the MSB
+        # and that the absolute value is within valid errno range
+        if ptrsize == 8:
+            # For 64-bit: values from 0xfffffffffffff001 to 0xffffffffffffffff
+            # are -4095 to -1
+            if 0xFFFFFFFFFFFFF001 <= val <= 0xFFFFFFFFFFFFFFFF:
+                errno_val = val - (1 << 64)
+            else:
+                return None
+        elif ptrsize == 4:
+            # For 32-bit: values from 0xfffff001 to 0xffffffff
+            # are -4095 to -1
+            if 0xFFFFF001 <= val <= 0xFFFFFFFF:
+                errno_val = val - (1 << 32)
+            else:
+                return None
+        else:
+            return None
+
+        # Get errno name
+        errno_name = errno_module.errorcode.get(-errno_val)
+        if errno_name is None:
+            return None
+
+        return ctx_color.comment(f"<{errno_name}>")
 
 
 def get_regs(in_regs: list[str | VisitableRegister | None] | None = None) -> list[str]:
