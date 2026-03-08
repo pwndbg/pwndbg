@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import cProfile
 import os
-import pstats
 import shlex
 import sys
 from collections.abc import Callable
