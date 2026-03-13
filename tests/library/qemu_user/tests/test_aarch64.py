@@ -407,7 +407,7 @@ def test_aarch64_store_instructions(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
-        " ► 0x1010180 <stores>       ldr    x4, stores+56     X4, [stores+56] => 0x10201d8 (value1) ◂— 0\n"
+        "b► 0x1010180 <stores>       ldr    x4, stores+56     X4, [stores+56] => 0x10201d8 (value1) ◂— 0\n"
         "   0x1010184 <stores+4>     strb   w0, [x4]          [value1] <= 0xf0\n"
         "   0x1010188 <stores+8>     ldr    x5, stores+64     X5, [stores+64] => 0x10201d9 (value2) ◂— 0\n"
         "   0x101018c <stores+12>    strh   w0, [x5]          [value2] <= 0xdef0\n"
@@ -482,7 +482,7 @@ def test_aarch64_load_instructions(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
-        " ► 0x101017c <loads>       ldrb   w9, [x4]          W9, [value1] => 0xf0\n"
+        "b► 0x101017c <loads>       ldrb   w9, [x4]          W9, [value1] => 0xf0\n"
         "   0x1010180 <loads+4>     ldrsb  w10, [x4]         W10, [value1] => 0xfffffff0\n"
         "   0x1010184 <loads+8>     ldrh   w12, [x5]         W12, [value2] => 0xdef0\n"
         "   0x1010188 <loads+12>    ldrsh  w13, [x5]         W13, [value2] => 0xffffdef0\n"

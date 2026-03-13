@@ -14,6 +14,38 @@ from . import util
 from .dispatch import LibcType
 from .dispatch import LibcURLs
 
+# Precomputed byte patterns for musl's mallocng size_classes array (uint16_t[48]).
+# Present in any musl binary that calls malloc(). Works for musl v1.2.1+ (when
+# mallocng replaced oldmalloc).
+# https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L12
+#
+# Generated with:
+#   import struct
+#   sc = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 20, 25, 31, 36, 42,
+#         50, 63, 72, 84, 102, 127, 146, 170, 204, 255, 292, 340, 409, 511,
+#         584, 682, 818, 1023, 1169, 1364, 1637, 2047, 2340, 2730, 3276,
+#         4095, 4680, 5460, 6552, 8191]
+#   struct.pack(f"<{len(sc)}H", *sc)  # little-endian
+#   struct.pack(f">{len(sc)}H", *sc)  # big-endian
+# fmt: off
+_MALLOCNG_SIZE_CLASSES_LE = (
+    b"\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08\x00"
+    b"\x09\x00\x0a\x00\x0c\x00\x0f\x00\x12\x00\x14\x00\x19\x00\x1f\x00"
+    b"\x24\x00\x2a\x00\x32\x00\x3f\x00\x48\x00\x54\x00\x66\x00\x7f\x00"
+    b"\x92\x00\xaa\x00\xcc\x00\xff\x00\x24\x01\x54\x01\x99\x01\xff\x01"
+    b"\x48\x02\xaa\x02\x32\x03\xff\x03\x91\x04\x54\x05\x65\x06\xff\x07"
+    b"\x24\x09\xaa\x0a\xcc\x0c\xff\x0f\x48\x12\x54\x15\x98\x19\xff\x1f"
+)
+_MALLOCNG_SIZE_CLASSES_BE = (
+    b"\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06\x00\x07\x00\x08"
+    b"\x00\x09\x00\x0a\x00\x0c\x00\x0f\x00\x12\x00\x14\x00\x19\x00\x1f"
+    b"\x00\x24\x00\x2a\x00\x32\x00\x3f\x00\x48\x00\x54\x00\x66\x00\x7f"
+    b"\x00\x92\x00\xaa\x00\xcc\x00\xff\x01\x24\x01\x54\x01\x99\x01\xff"
+    b"\x02\x48\x02\xaa\x03\x32\x03\xff\x04\x91\x05\x54\x06\x65\x07\xff"
+    b"\x09\x24\x0a\xaa\x0c\xcc\x0f\xff\x12\x48\x15\x54\x19\x98\x1f\xff"
+)
+# fmt: on
+
 
 def type() -> LibcType:
     return LibcType.MUSL
@@ -69,7 +101,13 @@ def verify_libc_candidate(mapping_name: str) -> bool:
     if rodata is None:
         return False
     _, _, data = rodata
-    return b"/tmp/tmpnam_XXXX" in data
+    if b"/tmp/tmpnam_XXXX" in data:
+        return True
+
+    # Fallback for statically linked musl: the tmpnam string may be absent because
+    # the linker only includes referenced code/data. Instead, look for mallocng's
+    # size_classes array, which is present in any program that calls malloc().
+    return _MALLOCNG_SIZE_CLASSES_LE in data or _MALLOCNG_SIZE_CLASSES_BE in data
 
 
 def verify_ld_candidate(mapping_name: str) -> bool:

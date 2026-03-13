@@ -105,6 +105,10 @@ def is_readable_address(address: int) -> bool:
     return pwndbg.aglib.vmmap.find(address) is not None and peek(address) is not None
 
 
+def is_readable_or_nil_ptr(address: int) -> bool:
+    return True if address == 0 else is_readable_address(address)
+
+
 def poke(address: int) -> bool:
     """poke(address)
 

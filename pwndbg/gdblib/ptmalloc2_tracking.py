@@ -211,12 +211,13 @@ def _delete_defered():
 
 
 class Tracker:
-    def __init__(self) -> None:
+    def __init__(self, rel_addr: bool = False) -> None:
         self.free_chunks: SortedDict[int, Chunk] = SortedDict()
         self.alloc_chunks: SortedDict[int, Chunk] = SortedDict()
         self.free_watchpoints: dict[int, FreeChunkWatchpoint] = {}
         self.memory_management_calls: dict[int, bool] = {}
         self.colorized_heap_ptrs: dict[int, str] = {}
+        self.rel_addr = rel_addr
 
     def is_performing_memory_management(self):
         thread = gdb.selected_thread().global_num
@@ -254,10 +255,21 @@ class Tracker:
             return colored_ptr
 
         idx = len(self.colorized_heap_ptrs) % len(PTRS_COLORS)
-        colored = PTRS_COLORS[idx](f"{ptr:#x}")
+
+        if self.rel_addr:
+            page = pwndbg.aglib.vmmap.find(ptr)
+            region_start = pwndbg.aglib.vmmap.addr_region_start(ptr) if page else None
+
+            if page and region_start is not None:
+                label = page.objfile or "anon"
+                offset = ptr - region_start
+                colored = PTRS_COLORS[idx](f"{label}+{offset:#x}")
+            else:
+                colored = PTRS_COLORS[idx](f"{ptr:#x}")
+        else:
+            colored = PTRS_COLORS[idx](f"{ptr:#x}")
 
         self.colorized_heap_ptrs[ptr] = colored
-
         return colored
 
     def malloc(self, chunk: Chunk) -> None:
@@ -652,7 +664,7 @@ free_enter = None
 stop_on_error = True
 
 
-def install(disable_hardware_watchpoints=True) -> None:
+def install(disable_hardware_watchpoints=True, rel_addr=False) -> None:
     global malloc_enter
     global calloc_enter
     global realloc_enter
@@ -712,7 +724,7 @@ def install(disable_hardware_watchpoints=True) -> None:
         print()
 
     # Install the heap tracker.
-    tracker = Tracker()
+    tracker = Tracker(rel_addr=rel_addr)
 
     malloc_enter = MallocEnterBreakpoint(available[0], tracker)
     free_enter = FreeEnterBreakpoint(available[1], tracker)
@@ -726,6 +738,8 @@ def install(disable_hardware_watchpoints=True) -> None:
         realloc_enter = ReallocEnterBreakpoint(realloc_address, tracker)
 
     print("Heap tracker installed.")
+    if rel_addr:
+        print("The heap tracker will use offsets instead of absolute addresses in the report.")
 
 
 def uninstall() -> None:

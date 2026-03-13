@@ -1329,14 +1329,22 @@ class GDBCommand(gdb.Command):
         # word=None. Why?
         # Since we only support one level of subcommand completion (i.e. we dont support subsubcommand completion),
         # we don't really care about the text and word distinction.
-        if word is None or text != word:
+        # Correction (#3751): We have to handle the `text != word` case to properly autocomplete stuff like
+        # `knft list-<tab>` (text="list-", word="").
+
+        if word is None:
             return []
         if text == "":
             # Return all subcommands
             return self.subcommand_names
 
         # Find all with matching prefix
-        return [valid for valid in self.subcommand_names if valid.startswith(text)]
+
+        # We need to calculate `comp_start` to handle stuff like `knft list-flowtables`
+        # and only return the matched word. I.e. `knft list-f<tab>` should return "flowtables"
+        # not "list-flowtables".
+        comp_start: int = len(text) - len(word)
+        return [valid[comp_start:] for valid in self.subcommand_names if valid.startswith(text)]
 
 
 class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):

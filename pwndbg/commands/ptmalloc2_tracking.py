@@ -35,6 +35,14 @@ enable.add_argument(
     default=False,
     help="Force the tracker to use hardware breakpoints.",
 )
+enable.add_argument(
+    "-r",
+    "--relative-addresses",
+    dest="rel_addr",
+    action="store_true",
+    default=False,
+    help="Use offsets instead of absolute addresses in the report.",
+)
 enable.set_defaults(mode="enable")
 
 # Subcommand that disables the tracker.
@@ -54,10 +62,10 @@ toggle_break.set_defaults(mode="toggle-break")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.LINUX, command_name="track-heap")
 @pwndbg.commands.OnlyWhenRunning
-def track_heap(mode=None, use_hardware_breakpoints=False):
+def track_heap(mode=None, use_hardware_breakpoints=False, rel_addr=False):
     if mode == "enable":
         # Enable the tracker.
-        pwndbg.gdblib.ptmalloc2_tracking.install()
+        pwndbg.gdblib.ptmalloc2_tracking.install(rel_addr=rel_addr)
     elif mode == "disable":
         # Disable the tracker.
         pwndbg.gdblib.ptmalloc2_tracking.uninstall()

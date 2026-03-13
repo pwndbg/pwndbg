@@ -589,7 +589,8 @@ def bins(addr: int | None = None, tcache_addr: int | None = None) -> None:
     if addr is None and allocator.thread_arena is None:
         print_no_arena_found_error()
         return
-    fastbins(addr)
+    if not pwndbg.libc.version() >= (2, 43):
+        fastbins(addr)
     unsortedbin(addr)
     smallbins(addr)
     largebins(addr)
@@ -616,6 +617,10 @@ def fastbins(addr: int | None = None, verbose: bool = False) -> None:
     """
     allocator = pwndbg.aglib.heap.current
     assert isinstance(allocator, GlibcMemoryAllocator)
+
+    if pwndbg.libc.version() >= (2, 43):
+        print(message.warn("Fastbins were removed in glibc 2.43."))
+        return
 
     fastbins = allocator.fastbins(addr)
 
@@ -1477,7 +1482,7 @@ def try_free(addr: str | int) -> None:
         return
 
     # is fastbin
-    if chunk_size_unmasked <= allocator.global_max_fast:
+    if not pwndbg.libc.version() >= (2, 43) and chunk_size_unmasked <= allocator.global_max_fast:
         print(message.notice("Fastbin checks"))
         chunk_fastbin_idx = allocator.fastbin_index(chunk_size_unmasked)
         fastbin_list = (
