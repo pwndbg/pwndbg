@@ -45,6 +45,14 @@ def slab_struct_type() -> str:
     return "page"
 
 
+def slab_list_field() -> str:
+    # In kernels older than 4.18, struct page uses 'lru' instead of 'slab_list' for the node partial slab list.
+    page_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
+    if page_type is not None and page_type.offsetof("slab_list") is not None:
+        return "slab_list"
+    return "lru"
+
+
 OO_SHIFT = 16
 OO_MASK = (1 << OO_SHIFT) - 1
 
@@ -324,7 +332,7 @@ class NodeCache:
     def partial_slabs(self) -> list[Slab]:
         ret = []
         for slab in for_each_entry(
-            self._node_cache["partial"], f"struct {slab_struct_type()}", "slab_list"
+            self._node_cache["partial"], f"struct {slab_struct_type()}", slab_list_field()
         ):
             ret.append(Slab(slab.dereference(), node_cache=self))
         return ret
