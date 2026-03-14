@@ -1854,6 +1854,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         elif arch_name == "riscv64":
             # Pwndbg use a different name for riscv64.
             arch_name = "rv64"
+        elif arch_name in ("powerpc64", "powerpc64le"):
+            # LLDB uses "powerpc64" and "powerpc64le" in the target triple for
+            # 64-bit PowerPC, but Pwndbg uses the unified name "powerpc".
+            arch_name = "powerpc"
 
         # Distinguish Apple platforms, default to Linux otherwise.
         if len(names) >= 2 and names[1] == "apple":
