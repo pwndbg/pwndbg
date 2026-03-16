@@ -474,7 +474,7 @@ def nearpc(
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
 
-    instructions = pwndbg.aglib.disasm.disassembly.near(
+    instructions, index_of_pc = pwndbg.aglib.disasm.disassembly.near(
         pc,
         forward_count=lines,
         backward_count=back_lines,
@@ -545,7 +545,9 @@ def nearpc(
     ):
         # Show a prefix for the instruction at `address_to_highlight`. Don't show it while in repeat-mode
         # or when showing current instruction for the second time
-        show_pc_prefix = instruction.address == address_to_highlight and not repeat
+        show_pc_prefix = (
+            instruction.address == address_to_highlight and not repeat and i == index_of_pc
+        )
         instruction_has_breakpoint = instruction.address in breakpoint_locations
 
         is_non_pc_breakpoint = False
@@ -575,7 +577,7 @@ def nearpc(
         ):
             address_str = c.address(address_str)
             symbol = c.symbol(symbol)
-        elif pwndbg.config.highlight_pc and instruction.address == address_to_highlight:
+        elif pwndbg.config.highlight_pc and show_pc_prefix:
             # If this instruction is the one the PC is at.
             # In case of tight loops, with emulation we may display the same instruction multiple times.
             # Only highlight current instance, not past or future times.

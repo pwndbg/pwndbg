@@ -378,14 +378,14 @@ first_time_emulate = True
 def no_emulate_one():
     result = near(pwndbg.aglib.regs.pc, emulate=False, show_prev_insns=False)
     if result:
-        return result[0]
+        return result[0][0]
     return None
 
 
 def emulate_one():
     result = near(pwndbg.aglib.regs.pc, emulate=True, show_prev_insns=False)
     if result:
-        return result[0]
+        return result[0][0]
     return None
 
 
@@ -401,7 +401,7 @@ def one_with_config():
         show_prev_insns=False,
     )
     if result:
-        return result[0]
+        return result[0][0]
     return None
 
 
@@ -427,6 +427,7 @@ def set_visual_split(
         set_ins.split = SplitType.BRANCH_NOT_TAKEN
 
 
+# Return (list of PwndbgInstructions, index in list where instruction.address = passed in address)
 def near(
     address: int,
     forward_count: int = 1,
@@ -437,7 +438,7 @@ def near(
     show_prev_insns=True,
     use_cache=False,
     linear=False,
-) -> list[PwndbgInstruction]:
+) -> tuple[list[PwndbgInstruction], int]:
     """
     Disassembles instructions near given `address`. Passing `emulate` makes use of
     unicorn engine to emulate instructions to predict branches that will be taken.
@@ -473,7 +474,7 @@ def near(
         except pwndbg.dbg_mod.Error as e:
             match = re.search(r"Memory at address (\w+) unavailable\.", str(e))
             if match:
-                return []
+                return ([], -1)
             raise
 
     # By using the same assistant for all the instructions disassembled in this pass, we can track and share information across the instructions
@@ -493,7 +494,7 @@ def near(
             print("Emulator failed at first step")
 
     if current is None:
-        return []
+        return ([], -1)
 
     # A linked list that contains the order of instructions that emulation
     # determines will run upon uses of the "nexti" command.
@@ -535,6 +536,7 @@ def near(
     else:
         target_instruction_count = len(insns) + forward_count
 
+    index_of_current_instruction = len(insns)
     insns.append(current)
 
     if DEBUG_ENHANCEMENT:
@@ -670,7 +672,7 @@ def near(
     while insns and len(insns) > 2 and insns[-3].address == insns[-2].address == insns[-1].address:
         del insns[-1]
 
-    return insns
+    return (insns, index_of_current_instruction)
 
 
 ALL_DISASSEMBLY_ASSISTANTS: dict[
