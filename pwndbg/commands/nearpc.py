@@ -60,7 +60,7 @@ parser.add_argument(
 )
 
 
-# sentinal value used when `--function` option is given without an argument
+# sentinel value used when `--function` option is given without an argument
 class CurrentFunction:
     pass
 
