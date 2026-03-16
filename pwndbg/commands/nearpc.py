@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 
+import gdb
+
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.symbol
 import pwndbg.commands
@@ -110,9 +112,12 @@ def nearpc(
         back_lines = min(int(nearpc_backwards_lines), total - 1)
 
     end_address = None
+    address_to_highlight = None
     if function is not None:
         # Emulate GDB behavior of "disass" - it disassembles the entire function in which
         # the input address resides. User can input integer or string name of function, or an expression
+        address_to_highlight = int(gdb.selected_frame().pc())
+
         boundaries = pwndbg.aglib.symbol.resolve_function_boundaries(function)
         if boundaries is None:
             print(f"Error: function boundaries of '{function}' could not be found")
@@ -146,6 +151,7 @@ def nearpc(
                 use_cache=use_cache,
                 linear=linear,
                 branch_visualization=not no_branch,
+                address_to_highlight=address_to_highlight,
                 end_address=end_address,
             )
         )

@@ -422,6 +422,7 @@ def nearpc(
     use_cache=False,
     linear=False,
     branch_visualization=False,
+    address_to_highlight: int | None = None,
     end_address: int | None = None,
 ) -> list[str]:
     """
@@ -447,6 +448,9 @@ def nearpc(
 
     pc = int(pc)
 
+    if address_to_highlight is None:
+        address_to_highlight = pc
+
     # Check whether we can even read this address
     if not pwndbg.aglib.memory.peek(pc):
         result.append(message.error(f"Invalid address {pc:#x}"))
@@ -470,7 +474,7 @@ def nearpc(
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
 
-    instructions, index_of_pc = pwndbg.aglib.disasm.disassembly.near(
+    instructions = pwndbg.aglib.disasm.disassembly.near(
         pc,
         forward_count=lines,
         backward_count=back_lines,
@@ -539,9 +543,9 @@ def nearpc(
     for i, (address_str, symbol, instruction, asm) in enumerate(
         zip(addresses, symbols, instructions, assembly_strings)
     ):
-        # Show a prefix for the instruction that the program counter points to. Don't show it while in repeat-mode
+        # Show a prefix for the instruction at `address_to_highlight`. Don't show it while in repeat-mode
         # or when showing current instruction for the second time
-        show_pc_prefix = instruction.address == pc and not repeat and i == index_of_pc
+        show_pc_prefix = instruction.address == address_to_highlight and not repeat
         instruction_has_breakpoint = instruction.address in breakpoint_locations
 
         is_non_pc_breakpoint = False
@@ -566,10 +570,12 @@ def nearpc(
         # symbol is fetched from gdb and it can be e.g. '<main+8>'
         # In case there are duplicate instances of an instruction (tight loop),
         # ones that the instruction pointer is not at stick out a little, to indicate the repetition
-        elif not pwndbg.config.highlight_pc or instruction.address != pc or repeat:
+        elif (
+            not pwndbg.config.highlight_pc or instruction.address != address_to_highlight or repeat
+        ):
             address_str = c.address(address_str)
             symbol = c.symbol(symbol)
-        elif pwndbg.config.highlight_pc and i == index_of_pc:
+        elif pwndbg.config.highlight_pc and instruction.address == address_to_highlight:
             # If this instruction is the one the PC is at.
             # In case of tight loops, with emulation we may display the same instruction multiple times.
             # Only highlight current instance, not past or future times.
@@ -591,7 +597,7 @@ def nearpc(
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))
             opcodes = opcodes.ljust(align)
-            if pwndbg.config.highlight_pc and i == index_of_pc:
+            if pwndbg.config.highlight_pc and instruction.address == address_to_highlight:
                 opcodes = ctx_color.highlight(opcodes)
 
         if branch_visualization:
