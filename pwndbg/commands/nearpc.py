@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import argparse
 
-import gdb
-
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.symbol
 import pwndbg.commands
@@ -127,7 +125,7 @@ def nearpc(
     if function is not None:
         # Emulate GDB behavior of "disass" - it disassembles the entire function in which
         # the input address resides. User can input integer or string name of function, or an expression
-        address_to_highlight = int(gdb.selected_frame().pc())
+        address_to_highlight = int(pwndbg.dbg.selected_frame().pc())
         if function is CURRENT_FUNCTION:
             function = address_to_highlight
 
