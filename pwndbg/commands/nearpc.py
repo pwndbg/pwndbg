@@ -59,12 +59,23 @@ parser.add_argument(
     help="Disable showing branch visualizations.",
 )
 
+
+# sentinal value used when `--function` option is given without an argument
+class CurrentFunction:
+    pass
+
+
+CURRENT_FUNCTION = CurrentFunction()
+
+
 parser.add_argument(
     "-f",
     "--function",
     type=int,
+    nargs="?",
     default=None,
-    help="Disassemble an entire function. Takes an expression (such as a function name or address) and disassembles the function surrounding the evaluated address.",
+    const=CURRENT_FUNCTION,
+    help="Disassemble an entire function. Takes an expression (such as a function name or address) and disassembles the function surrounding the evaluated address, defaulting to the pc of the selected frame.",
 )
 
 
@@ -117,6 +128,8 @@ def nearpc(
         # Emulate GDB behavior of "disass" - it disassembles the entire function in which
         # the input address resides. User can input integer or string name of function, or an expression
         address_to_highlight = int(gdb.selected_frame().pc())
+        if function is CURRENT_FUNCTION:
+            function = address_to_highlight
 
         boundaries = pwndbg.aglib.symbol.resolve_function_boundaries(function)
         if boundaries is None:
