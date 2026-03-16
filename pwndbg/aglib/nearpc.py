@@ -430,6 +430,9 @@ def nearpc(
 
     The `linear` argument specifies if we should disassemble linearly in memory, or take jumps into account
     """
+    assert address_to_highlight is None or linear, (
+        "Only pc can be highlighted if linear=False"  # because we need pc_index to display emulated loops correctly
+    )
 
     # Repeating nearpc (pressing enter) makes it show next addresses
     # (writing nearpc explicitly again will reset its state)
@@ -546,7 +549,9 @@ def nearpc(
         # Show a prefix for the instruction at `address_to_highlight`. Don't show it while in repeat-mode
         # or when showing current instruction for the second time
         show_pc_prefix = (
-            instruction.address == address_to_highlight and not repeat and i == index_of_pc
+            instruction.address == address_to_highlight
+            and not repeat
+            and (linear or i == index_of_pc)
         )
         instruction_has_breakpoint = instruction.address in breakpoint_locations
 
