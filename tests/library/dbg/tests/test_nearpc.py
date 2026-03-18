@@ -9,7 +9,6 @@ from . import pwndbg_test
 
 SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
 BRANCH_VISUALIZATION_BINARY = get_binary("branch_visualization.x86-64.out")
-CONTEXT_ARGS_BINARY = get_binary("context_args.native.out")
 
 OPCODE_BYTES_TESTS_EXPECTED_OUTPUT = {
     1: [
@@ -342,40 +341,32 @@ async def test_nearpc_branch_visualization(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_nearpc_function(ctrl: Controller) -> None:
-    await launch_to(ctrl, CONTEXT_ARGS_BINARY, "func_with_args")
-
-    # disable annotations because libc addresses vary across distros
+    await launch_to(ctrl, get_binary("initialized_heap.x86-64.out"), "break_here")
     await ctrl.execute("set disasm-annotations off")
     await ctrl.step_instruction()
 
     # disassemble current function
-    dis = await ctrl.execute_and_capture("nearpc --function -t 10")
-    func_expected = (
-        "b+ 0x1001560 <func_with_args>       push   rbp\n"
-        " {} 0x1001561 <func_with_args+1>     mov    rbp, rsp\n"
-        "   0x1001564 <func_with_args+4>     sub    rsp, 0x20\n"
-        "   0x1001568 <func_with_args+8>     mov    dword ptr [rbp - 4], edi\n"
-        "   0x100156b <func_with_args+11>    mov    dword ptr [rbp - 8], esi\n"
-        "   0x100156e <func_with_args+14>    mov    dword ptr [rbp - 0xc], edx\n"
-        "   0x1001571 <func_with_args+17>    mov    dword ptr [rbp - 0x10], ecx\n"
-        "   0x1001574 <func_with_args+20>    mov    dword ptr [rbp - 0x14], r8d\n"
-        "   0x1001578 <func_with_args+24>    mov    dword ptr [rbp - 0x18], r9d\n"
-        "   0x100157c <func_with_args+28>    mov    esi, dword ptr [rbp - 4]\n"
+    dis = await ctrl.execute_and_capture("nearpc --function")
+    expected_break_here = (
+        "b+ 0x10014d0 <break_here>      push   rbp\n"
+        " ► 0x10014d1 <break_here+1>    mov    rbp, rsp\n"
+        "   0x10014d4 <break_here+4>    pop    rbp\n"
+        "   0x10014d5 <break_here+5>    ret   \n"
     )
-    assert dis == func_expected.format("►")
+    assert dis == expected_break_here
 
     # disassemble parent function
     await ctrl.execute("up")
     dis = (await ctrl.execute_and_capture("nearpc --function")).splitlines()[-4:]
     expected = [
-        " ► 0x10015d4 <main+52>    xor    eax, eax",
-        "   0x10015d6 <main+54>    add    rsp, 0x10",
-        "   0x10015da <main+58>    pop    rbp",
-        "   0x10015db <main+59>    ret   ",
+        " ► 0x1001502 <main+34>    xor    eax, eax",
+        "   0x1001504 <main+36>    add    rsp, 0x10",
+        "   0x1001508 <main+40>    pop    rbp",
+        "   0x1001509 <main+41>    ret   ",
     ]
     assert dis == expected
 
-    # disassemble func_with_args again
-    dis = await ctrl.execute_and_capture("nearpc -f (char*)func_with_args+9 -t 10")
+    # disassemble break_here again
+    dis = await ctrl.execute_and_capture("nearpc -f (char*)break_here+2")
     # no "►" prefix this time cause we switched to the parent frame:
-    assert dis == func_expected.format(" ")
+    assert dis == expected_break_here.replace("►", " ")
