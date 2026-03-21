@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import struct
 from typing import Literal
+from typing import cast
 
 import pwnlib
 import pwnlib.context
@@ -43,6 +44,7 @@ from pwndbg.lib.abi import SYSCALL_ABIS
 from pwndbg.lib.abi import SyscallABI
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import PWNLIB_ARCH_MAPPINGS
+from pwndbg.lib.arch import LLDB_TO_PWNDBG
 from pwndbg.lib.arch import PWNLIB_PLATFORM_MAPPINGS
 from pwndbg.lib.arch import ArchAttribute
 from pwndbg.lib.arch import ArchDefinition
@@ -414,21 +416,33 @@ def get_thumb_mode_string() -> Literal["arm", "thumb"] | None:
 
 def update() -> None:
     a = pwndbg.dbg.selected_inferior().arch()
+    mapped_name = LLDB_TO_PWNDBG.get(a.name)
 
-    pwnlib.context.context.arch = PWNLIB_ARCH_MAPPINGS.get(a.name, "none")
+    if mapped_name is None:
+        raise pwndbg.dbg_mod.Error(
+            f"Unsupported architecture: {a.name}. "
+            f"It may be that Pwndbg is not correctly categorizing the architecture. "
+            f"Please file a bug report. "
+        )
+
+    pwnlib.context.context.arch = PWNLIB_ARCH_MAPPINGS.get(mapped_name, "none")
     pwnlib.context.context.bits = a.ptrsize * 8
     pwnlib.context.context.endian = a.endian
     pwnlib.context.context.os = PWNLIB_PLATFORM_MAPPINGS.get(a.platform, "linux")
 
     # Will be None the first time around.
-    if pwndbg.aglib.arch is None or a.name != pwndbg.aglib.arch.name:
-        pwndbg_arch = get_pwndbg_architecture(a.name)
+    if pwndbg.aglib.arch is None or mapped_name != pwndbg.aglib.arch.name:
+        pwndbg_arch = get_pwndbg_architecture(
+            cast(PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, mapped_name)
+        )
+        
         if pwndbg_arch is None:
             raise pwndbg.dbg_mod.Error(
-                f"Unsupported architecture: {a.name}. "
+                f"Unsupported architecture: {mapped_name}. "
                 f"It may be that Pwndbg is not correctly categorizing the architecture. "
                 f"Please file a bug report. "
             )
         pwndbg.aglib.set_arch(pwndbg_arch)
 
     pwndbg.aglib.arch.update(a)
+

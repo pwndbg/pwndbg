@@ -47,6 +47,25 @@ PWNDBG_SUPPORTED_ARCHITECTURES: list[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE] = list
     typing.get_args(PWNDBG_SUPPORTED_ARCHITECTURES_TYPE)
 )
 
+# mapping between lldb and pwndbg arch names 
+LLDB_TO_PWNDBG = {
+    "amd64": "x86-64",
+    "x86_64": "x86-64",
+    "x86-64": "x86-64",
+    "i386": "i386",
+    "arm": "arm",
+    "thumb": "armcm",
+    "aarch64": "aarch64",
+    "mips": "mips",
+    "riscv32": "rv32",
+    "riscv64": "rv64",
+    "powerpc": "powerpc",
+    "powerpc64le": "powerpc",
+    "ppc64le": "powerpc",
+    "sparc": "sparc",
+    "s390x": "s390x",
+    "loongarch64": "loongarch64",
+}
 # mapping between pwndbg and pwntools arch names
 PWNLIB_ARCH_MAPPINGS = {
     "x86-64": "amd64",
