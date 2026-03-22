@@ -1856,7 +1856,6 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             arch_name = "rv64"
         elif arch_name in ("powerpc", "powerpc64le", "ppc64le"):
             arch_name = "powerpc"
-            
 
         # Distinguish Apple platforms, default to Linux otherwise.
         if len(names) >= 2 and names[1] == "apple":
