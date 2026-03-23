@@ -548,7 +548,7 @@ def nearpc(
     ):
         # Show a prefix for the instruction at `address_to_highlight`. Don't show it while in repeat-mode
         # or when showing current instruction for the second time
-        show_pc_prefix = (
+        highlight_line = (
             instruction.address == address_to_highlight
             and not repeat
             and (linear or i == index_of_pc)
@@ -556,7 +556,7 @@ def nearpc(
         instruction_has_breakpoint = instruction.address in breakpoint_locations
 
         is_non_pc_breakpoint = False
-        if show_pc_prefix:
+        if highlight_line:
             if instruction_has_breakpoint:
                 prefix = current_insn_breakpoint_prefix
             else:
@@ -577,12 +577,10 @@ def nearpc(
         # symbol is fetched from gdb and it can be e.g. '<main+8>'
         # In case there are duplicate instances of an instruction (tight loop),
         # ones that the instruction pointer is not at stick out a little, to indicate the repetition
-        elif (
-            not pwndbg.config.highlight_pc or instruction.address != address_to_highlight or repeat
-        ):
+        elif not highlight_line:
             address_str = c.address(address_str)
             symbol = c.symbol(symbol)
-        elif pwndbg.config.highlight_pc and show_pc_prefix:
+        else:
             # If this instruction is the one the PC is at.
             # In case of tight loops, with emulation we may display the same instruction multiple times.
             # Only highlight current instance, not past or future times.
@@ -604,7 +602,7 @@ def nearpc(
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))
             opcodes = opcodes.ljust(align)
-            if pwndbg.config.highlight_pc and instruction.address == address_to_highlight:
+            if highlight_line:
                 opcodes = ctx_color.highlight(opcodes)
 
         if branch_visualization:
