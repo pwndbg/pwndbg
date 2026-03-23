@@ -331,9 +331,11 @@ def addr() -> int:
     May be the same as loader_addr() for some libc's.
     """
     yes = pwndbg.aglib.vmmap.named_region_start(str(filepath()))
-    # We know filepath() will return an actual mapped objfile, so
-    # `yes` must be non-None.
-    assert yes is not None
+    if yes is None:
+        raise LibcNotFound(
+            "Binary path from filepath() is not listed in memory maps "
+            "(e.g. Linux kernel / vmlinux is not mapped like a userspace ELF)."
+        )
     return yes
 
 
@@ -346,9 +348,11 @@ def loader_addr() -> int:
     May be the same as addr() for some libc's.
     """
     yes = pwndbg.aglib.vmmap.named_region_start(str(loader_filepath()))
-    # We know loader_filepath will return an actual mapped objfile, so
-    # `yes` must be non-None.
-    assert yes is not None
+    if yes is None:
+        raise LibcNotFound(
+            "Binary path from loader_filepath() is not listed in memory maps "
+            "(e.g. Linux kernel / vmlinux is not mapped like a userspace ELF)."
+        )
     return yes
 
 
