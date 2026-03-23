@@ -20,13 +20,12 @@ async def test_command_cyclic_value(ctrl: Controller) -> None:
 
     ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 37
-    pattern = cyclic(length=80, n=ptr_size)
+    pattern = cyclic(length=80)
     val = int.from_bytes(pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian)
     out = await ctrl.execute_and_capture(f"cyclic -l {hex(val)}")
 
     assert out == (
-        "Finding cyclic pattern of 8 bytes: b'aaafaaaa' (hex: 0x6161616661616161)\n"
-        "Found at offset 37\n"
+        "Finding cyclic pattern of 4 bytes: b'aaak' (hex: 0x6161616b)\nFound at offset 37\n"
     )
 
 
@@ -45,7 +44,7 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
     ptr_size = pwndbg.aglib.arch.ptrsize
 
     test_offset = 45
-    pattern = cyclic(length=80, n=ptr_size)
+    pattern = cyclic(length=80)
     pwndbg.aglib.regs.write_reg(
         reg_name,
         int.from_bytes(pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian),
@@ -53,8 +52,7 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
     out = await ctrl.execute_and_capture(f"cyclic -l ${reg_name}")
 
     assert out == (
-        "Finding cyclic pattern of 8 bytes: b'aaagaaaa' (hex: 0x6161616761616161)\n"
-        "Found at offset 45\n"
+        "Finding cyclic pattern of 4 bytes: b'aaam' (hex: 0x6161616d)\nFound at offset 45\n"
     )
 
 
@@ -71,15 +69,13 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 
     addr = pwndbg.aglib.regs.sp
-    ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 48
-    pattern = cyclic(length=80, n=ptr_size)
+    pattern = cyclic(length=80)
     pwndbg.aglib.memory.write(addr, pattern)
     out = await ctrl.execute_and_capture(f"cyclic -l '*(unsigned long*){hex(addr + test_offset)}'")
 
     assert out == (
-        "Finding cyclic pattern of 8 bytes: b'gaaaaaaa' (hex: 0x6761616161616161)\n"
-        "Found at offset 48\n"
+        "Finding cyclic pattern of 4 bytes: b'maaa' (hex: 0x6d616161)\nFound at offset 48\n"
     )
 
 
@@ -89,7 +85,7 @@ async def test_command_cyclic_wrong_alphabet(ctrl: Controller) -> None:
 
     out = await ctrl.execute_and_capture("cyclic -l 1234")
     assert out == (
-        "Finding cyclic pattern of 8 bytes: b'\\xd2\\x04\\x00\\x00\\x00\\x00\\x00\\x00' (hex: 0xd204000000000000)\n"
+        "Finding cyclic pattern of 4 bytes: b'\\xd2\\x04\\x00\\x00' (hex: 0xd2040000)\n"
         "Pattern contains characters not present in the alphabet\n"
     )
 
@@ -98,7 +94,7 @@ async def test_command_cyclic_wrong_alphabet(ctrl: Controller) -> None:
 async def test_command_cyclic_wrong_length(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 
-    out = await ctrl.execute_and_capture("cyclic -l qwerty")
+    out = await ctrl.execute_and_capture("cyclic -l qwe")
     assert out == (
-        "Lookup pattern must be 8 bytes (use `-n <length>` to lookup pattern of different length)\n"
+        "Lookup pattern must be at least 4 bytes (use `-n <length>` to lookup pattern of different length)\n"
     )

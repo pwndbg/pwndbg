@@ -75,6 +75,11 @@ pwndbg.color.theme.add_param("nearpc-prefix", "►", "prefix marker for nearpc c
 pwndbg.color.theme.add_param(
     "nearpc-breakpoint-prefix", "b+", "breakpoint marker for nearpc command"
 )
+pwndbg.color.theme.add_param(
+    "nearpc-current-breakpoint-prefix",
+    "b►",
+    "marker for when current instruction is at a breakpoint",
+)
 pwndbg.config.add_param("left-pad-disasm", True, "whether to left-pad disassembly")
 show_args = pwndbg.config.add_param(
     "nearpc-show-args", True, "whether to show call arguments below instruction"
@@ -511,35 +516,50 @@ def nearpc(
     breakpoint_locations = pwndbg.dbg.breakpoint_locations()
 
     prefix_sign = pwndbg.config.nearpc_prefix
+
+    # Prefix for instruction at the current program counter
     current_insn_prefix = f" {prefix_sign}"
     current_insn_prefix = c.prefix(current_insn_prefix)
+
+    # Prefix for non-breakpoints and non-current instructions
     default_prefix = " " * (len(prefix_sign) + 1)
     default_prefix = c.prefix(default_prefix)
 
+    # Prefix for when instruction is a breakpoint, but not at the current instruction
     breakpoint_sign = pwndbg.config.nearpc_breakpoint_prefix
     breakpoint_prefix = breakpoint_sign.ljust(len(prefix_sign) + 1)
     breakpoint_prefix = c.breakpoint(breakpoint_prefix)
+
+    # Prefix for when current instruction is a breakpoint
+    current_breakpoint_sign = pwndbg.config.nearpc_current_breakpoint_prefix
+    current_insn_breakpoint_prefix = current_breakpoint_sign.ljust(len(prefix_sign) + 1)
+    current_insn_breakpoint_prefix = c.breakpoint(c.prefix(current_insn_breakpoint_prefix))
 
     # Print out each instruction
     for i, (address_str, symbol, instruction, asm) in enumerate(
         zip(addresses, symbols, instructions, assembly_strings)
     ):
-        # Show prefix only on the specified address and don't show it while in repeat-mode
+        # Show a prefix for the instruction that the program counter points to. Don't show it while in repeat-mode
         # or when showing current instruction for the second time
-        show_prefix = instruction.address == pc and not repeat and i == index_of_pc
-        is_breakpoint = False
-        if show_prefix:
-            prefix = current_insn_prefix
-        elif instruction.address in breakpoint_locations:
+        show_pc_prefix = instruction.address == pc and not repeat and i == index_of_pc
+        instruction_has_breakpoint = instruction.address in breakpoint_locations
+
+        is_non_pc_breakpoint = False
+        if show_pc_prefix:
+            if instruction_has_breakpoint:
+                prefix = current_insn_breakpoint_prefix
+            else:
+                prefix = current_insn_prefix
+        elif instruction_has_breakpoint:
             # If the instruction is not the current instruction and a breakpoint,
             # show the breakpoint sign
             prefix = breakpoint_prefix
-            is_breakpoint = True
+            is_non_pc_breakpoint = True
         else:
             prefix = default_prefix
 
         # If this instruction is a breakpoint and not the current pc, highlight it.
-        if is_breakpoint and pwndbg.config.highlight_breakpoints:
+        if is_non_pc_breakpoint and pwndbg.config.highlight_breakpoints:
             address_str = c.breakpoint(address_str)
             symbol = c.breakpoint(symbol)
         # Colorize address and symbol if not highlighted
