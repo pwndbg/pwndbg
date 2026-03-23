@@ -1744,7 +1744,14 @@ def save_signal() -> None:
     if not process:
         return
 
-    if not (process.stopped_with_signal() or process.stopped_at_breakpoint()):
+    if pwndbg.dbg.is_gdblib_available():
+        try:
+            stopped = process.stopped_with_signal() or process.stopped_at_breakpoint()
+        except gdb.error:
+            return
+    else:
+        stopped = process.stopped_with_signal() or process.stopped_at_breakpoint()
+    if not stopped:
         return
 
     signal = pwndbg.aglib.signal.get_last_signal()
