@@ -153,7 +153,7 @@ def traverse_pglist(
                 )
             )
             cbp.found = True
-        if counter == MAX_PG_FREE_LIST_STR_RESULT_CNT:
+        if counter == MAX_PG_FREE_LIST_STR_RESULT_CNT and pba.find is None:
             msgs.append(f"{indent.prefix('... (truncated)')}")
             msgs.append(
                 f"This doubly linked list reached size {indent.aux_hex(MAX_PG_FREE_LIST_STR_RESULT_CNT)}"
