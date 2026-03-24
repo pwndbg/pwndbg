@@ -323,7 +323,7 @@ def slab_contains(address: str) -> None:
         slab = slab_cache.find_containing_slab(addr)
         objcnt = ""
         if slab:
-            objcnt = f"[{slab.inuse}/{slab.object_count}]"
+            objcnt = f"{slab.inuse}/{slab.object_count}"
             if addr in slab.free_objects:
                 inuse = "free"
             elif addr in slab.objects:
@@ -339,6 +339,7 @@ def slab_contains(address: str) -> None:
         else:
             inuse = "in-use"
         indent.print("slab:", message.hint(f"{hex(base)}"), desc)
-        indent.print("status:", message.hint(inuse), objcnt)
+        indent.print("status:", message.hint(inuse))
+        indent.print("In-Use:", message.hint(objcnt))
     except Exception as e:
         print(message.warn(f"address does not belong to a SLUB cache: {e}"))
