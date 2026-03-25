@@ -318,7 +318,6 @@ def slab_contains(address: str) -> None:
         assert base and slab_cache, "cannot find the kmem_cache the address belongs to."
         addr = base + ((addr - base) // slab_cache.size) * slab_cache.size
         indent.print(f"{addr:#x} @", message.hint(f"{slab_cache.name}"))
-        desc = "[inactive]"
         inuse = f"[something went wrong: {hex(addr)}]"
         slab = slab_cache.find_containing_slab(addr)
         if slab:
@@ -328,16 +327,16 @@ def slab_contains(address: str) -> None:
             elif addr in slab.objects:
                 inuse = "in-use"
             if slab.is_active:
-                if slab.is_cpu:
-                    desc = f"[active, cpu {slab.cpu_cache.cpu}]"
+                location = f"active, cpu {slab.cpu_cache.cpu}"
             else:
                 if slab.is_cpu:
-                    desc = f"[partial, cpu {slab.cpu_cache.cpu}]"
+                    location = f"partial, cpu {slab.cpu_cache.cpu}"
                 else:
-                    desc = f"[partial, node {slab.node_cache.node}]"
-            desc = desc[:-1] + ", " + objcnt + "]"
+                    location = f"partial, node {slab.node_cache.node}"
+            desc = f"[{location}, {objcnt}]"
         else:
             inuse = "in-use"
+            desc = "[full]"
         indent.print("slab:", message.hint(f"{hex(base)}"), desc)
         indent.print("status:", message.hint(inuse))
     except Exception as e:
