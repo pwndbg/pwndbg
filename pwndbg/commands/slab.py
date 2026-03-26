@@ -321,7 +321,6 @@ def slab_contains(address: str) -> None:
         inuse = f"[something went wrong: {hex(addr)}]"
         slab = slab_cache.find_containing_slab(addr)
         if slab:
-            objcnt = f"{slab.inuse}/{slab.object_count} in-use"
             if addr in slab.free_objects:
                 inuse = "free"
             elif addr in slab.objects:
@@ -333,10 +332,14 @@ def slab_contains(address: str) -> None:
                     location = f"partial, cpu {slab.cpu_cache.cpu}"
                 else:
                     location = f"partial, node {slab.node_cache.node}"
+            if slab.inuse == slab.object_count:
+                objcnt = "full"
+            else:
+                objcnt = f"{slab.inuse}/{slab.object_count} in-use"
             desc = f"[{location}, {objcnt}]"
         else:
             inuse = "in-use"
-            desc = "[full]"
+            desc = "[inactive, full]"
         indent.print("slab:", message.hint(f"{hex(base)}"), desc)
         indent.print("status:", message.hint(inuse))
     except Exception as e:
