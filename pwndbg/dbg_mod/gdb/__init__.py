@@ -959,7 +959,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         block = gdb.block_for_pc(address)
 
         if block is not None:
-            # Final the top-level function that this block resides it
+            # Find the top-level function that this block resides in
             while block.superblock is not None and block.superblock.function is not None:
                 block = block.superblock
 

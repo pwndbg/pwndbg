@@ -423,6 +423,7 @@ def update() -> None:
     # Will be None the first time around.
     if pwndbg.aglib.arch is None or a.name != pwndbg.aglib.arch.name:
         pwndbg_arch = get_pwndbg_architecture(a.name)
+
         if pwndbg_arch is None:
             raise pwndbg.dbg_mod.Error(
                 f"Unsupported architecture: {a.name}. "

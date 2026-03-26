@@ -16,6 +16,8 @@ and [CHEATSHEET][CHEATSHEET] (feel free to print it!). If you have any questions
 
 [CHEATSHEET]: https://pwndbg.re/dev/CHEATSHEET.pdf
 
+Want Pwndbg to keep moving fast, or, have us give a talk about it? [Sponsor us!](https://github.com/sponsors/pwndbg)
+
 ## Why?
 
 Vanilla GDB and LLDB are terrible to use for reverse engineering and exploit development.

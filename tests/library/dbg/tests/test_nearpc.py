@@ -4,6 +4,7 @@ import pytest
 
 from ....host import Controller
 from . import get_binary
+from . import launch_to
 from . import pwndbg_test
 
 SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
@@ -336,3 +337,36 @@ async def test_nearpc_branch_visualization(ctrl: Controller) -> None:
     )
 
     assert dis == expected
+
+
+@pwndbg_test
+async def test_nearpc_function(ctrl: Controller) -> None:
+    await launch_to(ctrl, get_binary("initialized_heap.x86-64.out"), "break_here")
+    await ctrl.execute("set disasm-annotations off")
+    await ctrl.step_instruction()
+
+    # disassemble current function
+    dis = await ctrl.execute_and_capture("nearpc --function")
+    expected_break_here = (
+        "b+ 0x10014d0 <break_here>      push   rbp\n"
+        " ► 0x10014d1 <break_here+1>    mov    rbp, rsp\n"
+        "   0x10014d4 <break_here+4>    pop    rbp\n"
+        "   0x10014d5 <break_here+5>    ret   \n"
+    )
+    assert dis == expected_break_here
+
+    # disassemble parent function
+    await ctrl.execute("up")
+    dis = (await ctrl.execute_and_capture("nearpc --function")).splitlines()[-4:]
+    expected = [
+        " ► 0x1001502 <main+34>    xor    eax, eax",
+        "   0x1001504 <main+36>    add    rsp, 0x10",
+        "   0x1001508 <main+40>    pop    rbp",
+        "   0x1001509 <main+41>    ret   ",
+    ]
+    assert dis == expected
+
+    # disassemble break_here again
+    dis = await ctrl.execute_and_capture("nearpc -f (char*)break_here+2")
+    # no "►" prefix this time cause we switched to the parent frame:
+    assert dis == expected_break_here.replace("►", " ")
