@@ -82,13 +82,7 @@ You may want to install Pwndbg through your distribution's package manager. This
     ```{.bash .copy}
     sudo pacman -S pwndbg
     ```
-    You will also need to source Pwndbg from your `~/.gdbinit`. Add this line to the beginning of that file:
-    ```{.bash .copy}
-    source /usr/share/pwndbg/gdbinit.py
-    ```
-    Pwndbg will be started every time you invoke `gdb` now.
-
-    Note that the Arch package is [quite outdated](https://archlinux.org/packages/extra/any/pwndbg/). Once it gets updated you will not need the `source` line in your `~/.gdbinit` and will be able to run Pwndbg with the `pwndbg` and `pwndbg-lldb` commands. See [packaging Pwndbg](tutorials/packaging.md).
+    Pwndbg will now be available with the `pwndbg` and `pwndbg-lldb` commands.
 
 === "Gentoo"
     ```{.bash .copy}

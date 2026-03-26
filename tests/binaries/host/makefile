@@ -64,10 +64,10 @@ endif
 
 ALL_MUSL_TARGETS :=
 ifeq ($(HAVE_MUSL),yes)
-ALL_MUSL_TARGETS += heap_musl_dyn.native.out heap_musl_static.native.out
+ALL_MUSL_TARGETS += heap_musl_dyn.native.out heap_musl_static.native.out heap_musl_static_stripped.native.out
 endif
 
-CUSTOM_TARGETS = heap_find_fake_fast.native.out reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out symbol_1600_and_752.native.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_musl_dyn.native.out heap_musl_static.native.out gosample.i386.out gosample.x86-64.out
+CUSTOM_TARGETS = heap_find_fake_fast.native.out reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out symbol_1600_and_752.native.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_musl_dyn.native.out heap_musl_static.native.out heap_musl_static_stripped.native.out gosample.i386.out gosample.x86-64.out
 NATIVE_CUSTOM_TARGETS  := $(filter %.native.out %.$(HOST_ARCH).out %.$(HOST_ARCH_32).out,$(CUSTOM_TARGETS))
 
 ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(NATIVE_CUSTOM_TARGETS) \
@@ -189,12 +189,24 @@ heap_musl_static.native.out: heap_musl.native.c
 	@echo "[+] Building '$@'"
 	${MUSLCC} -g3 -O0 -static -o $@ $?
 
+# Same as above but with debug info stripped (keeping the symbol table).
+# Used by the musl detection test so that has_debug_info() is consistently
+# False across distros. On Fedora 43, -g3 caused struct __ptcb to appear in
+# debug info, while on other distros it didn't.
+heap_musl_static_stripped.native.out: heap_musl.native.c
+	@echo "[+] Building '$@'"
+	${MUSLCC} -g3 -O0 -static -o $@ $?
+	strip --strip-debug $@
+
 else
 
 heap_musl_dyn.native.out: heap_musl.native.c
 	@echo "[!] Skip '$@'"
 
 heap_musl_static.native.out: heap_musl.native.c
+	@echo "[!] Skip '$@'"
+
+heap_musl_static_stripped.native.out: heap_musl.native.c
 	@echo "[!] Skip '$@'"
 
 $(info [!] musl compiler not found ($(MUSLCC)) – skipping musl targets)

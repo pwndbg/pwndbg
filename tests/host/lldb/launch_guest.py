@@ -67,7 +67,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
 
         async def disable_debuginfod(self) -> None:
             # Could also consider disabling `symbols.enable-external-lookup`
-            await self.pc.execute("settings set plugin.symbol-locator.debuginfod.server-urls {}")
+            await self.pc.execute("settings clear plugin.symbol-locator.debuginfod.server-urls")
 
         async def generate_core_file(self, path: Path) -> None:
             await self.pc.execute(f"process save-core {path}")

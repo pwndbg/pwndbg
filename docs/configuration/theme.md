@@ -875,6 +875,17 @@ Breakpoint marker for nearpc command.
 
 ----------
 
+## **nearpc-current-breakpoint-prefix**
+
+
+Marker for when current instruction is at a breakpoint.
+
+
+
+**Default:** 'b►'  
+
+----------
+
 ## **nearpc-integration-comments-color**
 
 
