@@ -220,13 +220,10 @@ def heap(
         print(message.error("`--count` must be greater than 0."))
         return
 
-    if addr_end is not None:
-        if addr_start is None:
-            print(message.error("`addr_end` requires `addr_start`."))
-            return
-        if addr_end <= addr_start:
-            print(message.error("`addr_end` must be greater than `addr_start`."))
-            return
+    assert addr_end is None or addr_start is not None
+    if addr_end is not None and addr_end <= addr_start:
+        print(message.error("`addr_end` must be greater than `addr_start`."))
+        return
 
     printed_chunks = 0
 
