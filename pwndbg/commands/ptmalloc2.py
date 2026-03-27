@@ -185,7 +185,7 @@ parser.add_argument(
     help="Optional inclusive upper bound for chunk start addresses.",
 )
 parser.add_argument(
-    "-n",
+    "-c",
     "--count",
     type=int,
     default=None,
