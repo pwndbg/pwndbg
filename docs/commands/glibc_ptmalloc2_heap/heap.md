@@ -2,7 +2,7 @@
 # heap
 
 ```text
-usage: heap [-h] [-n COUNT] [-v] [-s] [addr_start] [addr_end]
+usage: heap [-h] [-c COUNT] [-v] [-s] [addr_start] [addr_end]
 
 ```
 
@@ -29,7 +29,7 @@ Range mode can be combined with --count; walking stops when either limit is hit 
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
-|-n|--count|Maximum number of chunks to print.|
+|-c|--count|Maximum number of chunks to print.|
 |-v|--verbose|Print all chunk fields, even unused ones.|
 |-s|--simple|Simply print malloc_chunk struct's contents.|
 
