@@ -338,8 +338,8 @@ def v2p(vaddr: gdb.Value) -> int:
     Example:
     ```
     # Get the kmem_cache of a random heap object (`msg` here) manually (pretty much `slab contains`)
-    pwndbg> p ((struct slab*)((struct page*)vmemmap_base + ($v2p(msg) >> 12)))->slab_cache
-    $10 = (struct kmem_cache *) 0xffffea000014d401
+    pwndbg> p ((struct slab*)((((struct page*)vmemmap_base + ($v2p(msg) >> 12))->compound_head) & ~1))->slab_cache
+    $10 = (struct kmem_cache *) 0xffff8880064fcd00
     ```
     """
     # Copied from pwndbg.commands.v2p().
