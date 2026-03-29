@@ -412,7 +412,7 @@ def vmmap_explore(address: int) -> None:
 
 @pwndbg.commands.Command(
     "Clear custom vmmap entries added by vmmap_add and vmmap_explore and reset caches.",
-    category=CommandCategory.MEMORY
+    category=CommandCategory.MEMORY,
 )
 @pwndbg.commands.OnlyWhenRunning
 def vmmap_clear() -> None:
