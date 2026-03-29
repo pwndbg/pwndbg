@@ -90,8 +90,12 @@ def dt(
                     ftype.code in (pwndbg.dbg_mod.TypeCode.POINTER, pwndbg.dbg_mod.TypeCode.ARRAY)
                     and ftype.target() == pwndbg.aglib.typeinfo.uchar
                 ):
-                    data = pwndbg.aglib.memory.read(int(obj_value.address), ftype.sizeof)
-                    extra = " ".join(f"{b:02x}" for b in data)
+                    # Flexible array members have size 0, skip reading memory for them
+                    if ftype.sizeof == 0:
+                        extra = "[]"
+                    else:
+                        data = pwndbg.aglib.memory.read(int(obj_value.address), ftype.sizeof)
+                        extra = " ".join(f"{b:02x}" for b in data)
                 else:
                     extra = obj_value.value_to_human_readable()
             except pwndbg.dbg_mod.Error as e:

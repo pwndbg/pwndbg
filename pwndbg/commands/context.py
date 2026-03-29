@@ -950,7 +950,7 @@ def compact_regs_normal(
     ↪ R15  0x7ffff7f83e60 (_rl_orig_sigset) ◂— 0
     ↪ RCX  0x7ffff7c90efa (__internal_syscall_cancel+138) ◂— add rsp, 0x18
     ↪ RIP  0x7ffff7c90efa (__internal_syscall_cancel+138) ◂— add rsp, 0x18
-    ↪ EFLAGS 0x202 [ cf pf af zf sf IF df of ac ]
+    ↪ EFLAGS 0x202 [ cf pf af zf sf IF df of iopl:00 ac ]
     """
     result: list[str] = []
 
@@ -1050,7 +1050,7 @@ def compact_regs_very(
      R12  0x7fffffffccb0 ◂— 1
      RIP  0x7ffff7c90efa (__internal_syscall_cancel+138) ◂— add rsp, 0x18
      RSI  0x7fffffffccb0 ◂— 1          R13  0
-     EFLAGS 0x202 [ cf pf af zf sf IF df of ac ]
+     EFLAGS 0x202 [ cf pf af zf sf IF df of iopl:00 ac ]
     """
     result: list[str] = []
 
