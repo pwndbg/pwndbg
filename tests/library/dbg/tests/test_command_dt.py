@@ -30,7 +30,7 @@ async def test_command_dt_works_with_address(ctrl: Controller) -> None:
     # Accounting for differences between architectures and glibc versions (specifically 2.42)
     exp_regex = (
         "struct tcache_perthread_struct @ 0x[0-9a-f]+\n"
-        "    0x[0-9a-f]+ \\+0x0000 (counts|num_slots) +: +.*\\{([0-9]+, [0-9]+ <repeats (63|75) times>|(\\s*\\[[0-9]+\\] = [0-9]){20,76}\\s*([.]+\\s*)?)\\}\n"
+        "    0x[0-9a-f]+ \\+0x0000 (counts|num_slots) +: +.*\\{((0x[0-9a-f]+|[0-9]+), (0x[0-9a-f]+|[0-9]+) <repeats (63|75) times>|(\\s*\\[[0-9]+\\] = [0-9]){20,76}\\s*([.]+\\s*)?)\\}\n"
         "    0x[0-9a-f]+ \\+0x[0-9a-f]{4} entries +: +.*\\{(0x[0-9a-f]+, 0x[0-9a-f]+ <repeats (63|75) times>|(\\s*\\[[0-9]+\\] = (0x[0-9a-f]+|NULL)){20,76}\\s*([.]+\\s*)?)\\}"
     )
     assert re.match(exp_regex, out)
