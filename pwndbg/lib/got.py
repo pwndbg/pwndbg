@@ -5,7 +5,6 @@ from enum import Enum
 from elftools.elf.elffile import ELFFile
 from elftools.elf.relocation import RelocationSection
 
-cmd_name = "readelf"
 
 
 class RelocationType(Enum):
