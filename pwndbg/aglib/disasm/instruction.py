@@ -60,6 +60,7 @@ from capstone6pwndbg.x86 import X86_INS_RET
 from capstone6pwndbg.x86 import X86Op
 from typing_extensions import override
 
+import pwndbg
 from pwndbg.dbg_mod import DisassembledInstruction
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally

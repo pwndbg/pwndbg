@@ -1331,5 +1331,5 @@ reg_sets: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "powerpc": powerpc,
     "loongarch64": loongarch64,
     "s390x": s390x,
-    "hexagon": hexagon
+    "hexagon": hexagon,
 }
