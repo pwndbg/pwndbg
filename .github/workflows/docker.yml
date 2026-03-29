@@ -236,7 +236,7 @@ jobs:
 
   create_manifest:
     needs: [docker_x86-64, docker_aarch64]
-    if: github.event_name == 'push'
+    if: ${{ !cancelled() && github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
