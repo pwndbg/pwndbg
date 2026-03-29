@@ -160,14 +160,36 @@ def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
 parser = argparse.ArgumentParser(
     description="""Iteratively print chunks on a heap.
 
-Default to the current thread's active heap.""",
+Default to the current thread's active heap.
+
+Usage:
+  heap
+  heap --count <N>
+  heap <addr_start>
+  heap <addr_start> <addr_end> (includes chunks with start address <= addr_end)
+
+Range mode can be combined with --count; walking stops when either limit is hit first.""",
 )
 parser.add_argument(
-    "addr",
+    "addr_start",
     nargs="?",
     type=int,
     default=None,
     help="Address of the first chunk (malloc_chunk struct start, prev_size field).",
+)
+parser.add_argument(
+    "addr_end",
+    nargs="?",
+    type=int,
+    default=None,
+    help="Optional inclusive upper bound for chunk start addresses.",
+)
+parser.add_argument(
+    "-c",
+    "--count",
+    type=int,
+    default=None,
+    help="Maximum number of chunks to print.",
 )
 parser.add_argument(
     "-v", "--verbose", action="store_true", help="Print all chunk fields, even unused ones."
@@ -181,28 +203,59 @@ parser.add_argument(
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
-def heap(addr: int | None = None, verbose: bool = False, simple: bool = False) -> None:
+def heap(
+    addr_start: int | None = None,
+    addr_end: int | None = None,
+    count: int | None = None,
+    verbose: bool = False,
+    simple: bool = False,
+) -> None:
     """Iteratively print chunks on a heap, default to the current thread's
     active heap.
     """
     allocator = pwndbg.aglib.heap.current
     assert isinstance(allocator, GlibcMemoryAllocator)
 
-    if addr is not None:
-        chunk = Chunk(addr)
-        while chunk is not None:
-            malloc_chunk(chunk.address, verbose=verbose, simple=simple)
-            chunk = chunk.next_chunk()
-    else:
-        arena = allocator.thread_arena
-        # arena might be None if the current thread doesn't allocate the arena
-        if arena is None:
-            print_no_arena_found_error()
-            return
-        h = arena.active_heap
+    if count is not None and count <= 0:
+        print(message.error("`--count` must be greater than 0."))
+        return
 
-        for chunk in h:
+    assert addr_end is None or addr_start is not None
+    if addr_end is not None and addr_end <= addr_start:
+        print(message.error("`addr_end` must be greater than `addr_start`."))
+        return
+
+    printed_chunks = 0
+
+    def should_stop(chunk_addr: int) -> bool:
+        if count is not None and printed_chunks >= count:
+            return True
+        if addr_end is not None and chunk_addr > addr_end:
+            return True
+        return False
+
+    if addr_start is not None:
+        chunk = Chunk(addr_start)
+        while chunk is not None:
+            if should_stop(chunk.address):
+                break
             malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+            printed_chunks += 1
+            chunk = chunk.next_chunk()
+        return
+
+    arena = allocator.thread_arena
+    # arena might be None if the current thread doesn't allocate the arena
+    if arena is None:
+        print_no_arena_found_error()
+        return
+    h = arena.active_heap
+
+    for chunk in h:
+        if should_stop(chunk.address):
+            break
+        malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+        printed_chunks += 1
 
 
 parser = argparse.ArgumentParser(
