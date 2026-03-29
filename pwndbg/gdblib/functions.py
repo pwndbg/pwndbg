@@ -336,10 +336,10 @@ def v2p(vaddr: gdb.Value) -> int:
     Only when kernel debugging with QEMU.
 
     Example:
+    Get the kmem_cache of a random heap object (`0xffff88800555c000` here) manually (pretty much `slab contains`).
     ```
-    # Get the kmem_cache of a random heap object (`msg` here) manually (pretty much `slab contains`)
-    pwndbg> p ((struct slab*)((((struct page*)vmemmap_base + ($v2p(msg) >> 12))->compound_head) & ~1))->slab_cache
-    $10 = (struct kmem_cache *) 0xffff8880064fcd00
+    pwndbg> p ((struct slab*)({$obj=0xffff88800555c000,$tpage=((struct page*)vmemmap_base+($v2p($obj)>>12)),$tpage->compound_head&1?$tpage->compound_head^1:$tpage}[2]))->slab_cache
+    $33 = (struct kmem_cache *) 0xffff888006552e00
     ```
     """
     # Copied from pwndbg.commands.v2p().
