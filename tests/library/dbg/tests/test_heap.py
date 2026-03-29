@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import pytest
@@ -12,6 +13,17 @@ from . import pwndbg_test
 
 HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.native.out")
+
+ADDR_RE = re.compile(r"^Addr: (0x[0-9a-f]+)$")
+
+
+def extract_chunk_addrs(output: str) -> list[int]:
+    chunk_addrs: list[int] = []
+    for line in output.splitlines():
+        match = ADDR_RE.match(line)
+        if match:
+            chunk_addrs.append(int(match.group(1), 16))
+    return chunk_addrs
 
 
 def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, Any]:
@@ -135,6 +147,61 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
     ]
 
     return expected
+
+
+@pwndbg_test
+async def test_heap_command_count(ctrl: Controller) -> None:
+    import pwndbg.aglib
+
+    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
+    count_output = await ctrl.execute_and_capture("heap allocated_chunk --count 2")
+    count_addrs = extract_chunk_addrs(count_output)
+    assert len(count_addrs) == 2
+
+
+@pwndbg_test
+async def test_heap_command_range_and_count(ctrl: Controller) -> None:
+    import pwndbg.aglib
+    import pwndbg.aglib.symbol
+    from pwndbg.aglib.heap.ptmalloc import Chunk
+
+    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
+    chunk_start_addr = pwndbg.aglib.symbol.lookup_symbol_value("allocated_chunk")
+    assert chunk_start_addr is not None
+
+    first_chunk = Chunk(chunk_start_addr)
+    second_chunk = first_chunk.next_chunk()
+    assert second_chunk is not None
+    third_chunk = second_chunk.next_chunk()
+    assert third_chunk is not None
+    fourth_chunk = third_chunk.next_chunk()
+    assert fourth_chunk is not None
+
+    range_start = first_chunk.address
+    range_end = third_chunk.address
+
+    range_output = await ctrl.execute_and_capture(f"heap {range_start:#x} {range_end:#x}")
+    range_addrs = extract_chunk_addrs(range_output)
+
+    assert range_addrs == [first_chunk.address, second_chunk.address, third_chunk.address]
+    assert all(addr <= range_end for addr in range_addrs)
+    assert fourth_chunk.address not in range_addrs
+
+    range_count_output = await ctrl.execute_and_capture(
+        f"heap {range_start:#x} {fourth_chunk.address:#x} --count 2"
+    )
+    range_count_addrs = extract_chunk_addrs(range_count_output)
+
+    assert range_count_addrs == [first_chunk.address, second_chunk.address]
+
+    invalid_range_output = await ctrl.execute_and_capture(f"heap {range_start:#x} {range_start:#x}")
+    assert "`addr_end` must be greater than `addr_start`." in invalid_range_output
 
 
 @pwndbg_test
