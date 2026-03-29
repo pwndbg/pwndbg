@@ -56,14 +56,14 @@ parser.add_argument(
     parser,
     category=CommandCategory.LINUX,
     examples="""
-> got
+>got
     Print all writable GOT entries in the executable.
-> got -r puts
+>got -r puts
     Print all GOT entries that contain the string "puts".
-> got -p libc
+>got -p libc
     Print all writable GOT entries used by libc. (And any other loaded
     object files that contain the string "libc" in their path).
-> got -ra
+>got -ra
     Print all GOT entries in the address space.
 """,
 )
@@ -128,37 +128,29 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
         bin_base_offset = page.start
 
     # Parse the output of readelf line by line
-    for category, lines in got_entry.items():
-        for line in lines:
-            # There are 5 fields in the output of readelf:
-            # "Offset", "Info", "Type", "Sym. Value", and "Symbol's Name"
-            # We only care about "Offset", "Sym. Value" and "Symbol's Name" here
-            offset, _, _, *rest = line.split()[:5]
-            if len(rest) < 2:
-                # "Sym. Value" or "Symbol's Name" are not present in this case
-                # The output of readelf might look like this (missing both value and name):
-                # 00004e88  00000008 R_386_RELATIVE
-                # or something like this (only missing name):
-                # 00000000001ec018  0000000000000025 R_X86_64_IRELATIVE                        a0480
-                # TODO: Is it possible that we are missing the value but not the name?
-                value = rest[0] if rest else ""
-                name = ""
-            else:
-                # Every fields are present in this case
-                # The output of readelf might look like this:
-                # 00000000001ec030  0000020a00000007 R_X86_64_JUMP_SLOT     000000000009ae80 realloc@@GLIBC_2.2.5 + 0
-                value, name = rest
-            address = int(offset, 16) + bin_base_offset
+    for category, entries in got_entry.items():
+        for entry in entries:
+            offset = entry["offset"]
+            value = entry["value"]
+            name = entry["name"]
+
+            # Type narrowing assertions
+            assert isinstance(offset, int)
+            assert isinstance(value, int)
+            assert isinstance(name, str)
+
+            address = offset + bin_base_offset
             # TODO/FIXME: This check might not work correctly if we failed to get the correct vmmap result
             if not accept_readonly and not pwndbg.aglib.vmmap.find(address).write:
                 continue
             if not name and category == RelocationType.IRELATIVE:
-                # TODO/FIXME: I don't know the naming logic behind this yet, I'm just modifying @bata24's code here :p
-                # We might need to add some comments here to explain the logic in the future, and also fix it if something wrong
+                # I'm not entirely sure why this naming logic exists, but I'm preserving
+                # the behavior from the original implementation (credit to @bata24).
+                # If we figure out the "why" later, we should update this comment!
                 if pwndbg.aglib.arch.name == "i386":
                     name = "*ABS*"
                 else:
-                    name = f"*ABS*+0x{int(value, 16):x}"
+                    name = f"*ABS*+0x{value:x}"
             if symbol_filter not in name:
                 continue
             outputs.append(

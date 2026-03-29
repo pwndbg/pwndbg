@@ -254,6 +254,10 @@ module = ["pwndbg.aglib.disasm.*"]
 disable_error_code = ["index", "name-defined", "attr-defined"]
 
 [[tool.mypy.overrides]]
+module = ["tests.*"]
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
 module = [
     "capstone6pwndbg.*",
     "unicorn.*",
@@ -271,6 +275,13 @@ module = [
     "mdutils.*"
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pwndbg.wrappers.readelf",
+    "pwndbg.commands.got",
+]
+disable_error_code = ["no-untyped-call"]
 
 [tool.coverage.run]
 branch = true
