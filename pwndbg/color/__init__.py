@@ -196,6 +196,35 @@ class ColorConfig:
         raise AttributeError(f"ColorConfig object for {self._namespace} has no attribute '{attr}'")
 
 
+VALID_COLOR_NAMES: frozenset[str] = frozenset(
+    {
+        "none",
+        "normal",
+        "black",
+        "red",
+        "green",
+        "yellow",
+        "blue",
+        "purple",
+        "cyan",
+        "light_gray",
+        "light_grey",
+        "foreground",
+        "gray",
+        "grey",
+        "light_red",
+        "light_green",
+        "light_yellow",
+        "light_blue",
+        "light_purple",
+        "light_cyan",
+        "white",
+        "bold",
+        "underline",
+    }
+)
+
+
 def generateColorFunction(
     config: str | Parameter, _globals: dict[str, Callable[[str], str]] = globals()
 ) -> Callable[[object], str]:
@@ -211,6 +240,12 @@ def generateColorFunction(
 
     for color in config.split(","):
         func_name = color.lower().replace("-", "_")
+        if func_name not in VALID_COLOR_NAMES:
+            print(
+                f"Warning: invalid color '{color}'. "
+                f"Valid colors: {', '.join(sorted(VALID_COLOR_NAMES - {'light_grey', 'grey'}))}"
+            )
+            continue
         function = generateColorFunctionInner(function, _globals[func_name])
     return function
 
