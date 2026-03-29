@@ -710,7 +710,7 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.address = address
         self.size = ins["length"]
 
-        self.mnemonic = asm[0].strip()
+        self.mnemonic = asm[0].strip() if len(asm) > 0 else ""
         self.op_str = asm[1].strip() if len(asm) > 1 else ""
         self.groups = set()
 
