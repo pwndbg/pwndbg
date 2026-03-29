@@ -112,12 +112,15 @@ def dt(
                 extra_lines.append(35 * " " + line)
         extra = "\n".join(extra_lines)
 
-        bitpos_str = "" if not bitpos else (f".{bitpos}")
+        bitpos_str = f".{bitpos}" if bitpos else ""
+        # Pad the bitpos suffix to a fixed width so that field names stay aligned
+        # even when some fields have bitfield offsets (e.g. ".5") and others don't
+        offset_suffix = f"{bitpos_str:<2}"
 
         if obj:
-            line = f"    0x{int(obj.address) + offset:016x} +0x{offset:04x}{bitpos_str} {field_name:<20} : {extra}"
+            line = f"    0x{int(obj.address) + offset:016x} +0x{offset:04x}{offset_suffix} {field_name:<20} : {extra}"
         else:
-            line = f"    +0x{offset:04x}{bitpos_str} {field_name:<20} : {extra}"
+            line = f"    +0x{offset:04x}{offset_suffix} {field_name:<20} : {extra}"
         rv.append(line)
 
     return "\n".join(rv)
