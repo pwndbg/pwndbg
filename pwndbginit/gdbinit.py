@@ -58,6 +58,16 @@ def main() -> None:
     except gdb.error as e:
         print(f"Warning: Cannot set gdb charset: '{e}'")
 
+        # Ensure executable is loaded before pwndbg init
+    try:
+        if not gdb.current_progspace().filename:
+            # attempt to load file if provided
+            args = gdb.execute("show args", to_string=True)
+            if args:
+                gdb.execute("file " + args.strip(), to_string=True)
+    except Exception:
+        pass
+
     import pwndbg  # noqa: F811
     import pwndbg.dbg_mod.gdb
 
