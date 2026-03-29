@@ -12,12 +12,12 @@ import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.memory as mem_color
 import pwndbg.commands
+import pwndbg.lib.got
 import pwndbg.lib.memory
 import pwndbg.wrappers.checksec
-import pwndbg.wrappers.readelf
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-from pwndbg.wrappers.readelf import RelocationType
+from pwndbg.lib.got import RelocationType
 
 parser = argparse.ArgumentParser(
     description="Show the state of the Global Offset Table.",
@@ -115,7 +115,7 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
 
     relro_status = pwndbg.wrappers.checksec.relro_status(local_path)
     pie_status = pwndbg.wrappers.checksec.pie_status(local_path)
-    got_entry = pwndbg.wrappers.readelf.get_got_entry(local_path)
+    got_entry = pwndbg.lib.got.get_got_entry(local_path)
 
     # The following code is inspired by the "got" command of https://github.com/bata24/gef/blob/dev/gef.py by @bata24, thank you!
     # TODO/FIXME: Maybe a -v option to show more information will be better
@@ -127,7 +127,7 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
         assert page is not None, f"unable to find vmmap entry for objfile: {path}"
         bin_base_offset = page.start
 
-    # Parse the output of readelf line by line
+    # Process each GOT relocation entry
     for category, entries in got_entry.items():
         for entry in entries:
             offset = entry["offset"]

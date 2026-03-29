@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from enum import Enum
 
+from elftools.elf.descriptions import describe_reloc_type
 from elftools.elf.elffile import ELFFile
 from elftools.elf.relocation import RelocationSection
-
-cmd_name = "readelf"
 
 
 class RelocationType(Enum):
@@ -34,7 +33,6 @@ def get_got_entry(local_path: str) -> dict[RelocationType, list[dict[str, int | 
                 symbol_name = symbol.name
 
                 # Try to get the symbol version (e.g., @GLIBC_2.2.5)
-                # This matches the output format of readelf
                 symbol_version = ""
                 try:
                     # Get the version section if it exists
@@ -73,8 +71,6 @@ def get_got_entry(local_path: str) -> dict[RelocationType, list[dict[str, int | 
                 # pyelftools gives us the integer type via `rel['r_info_type']`.
                 # We use `describe_reloc_type` to translate that integer into a human-readable string
                 # like "R_X86_64_JUMP_SLOT".
-                from elftools.elf.descriptions import describe_reloc_type
-
                 reloc_type_name = describe_reloc_type(rel["r_info_type"], elf)
 
                 # Now we check if this string contains one of the types we care about.
