@@ -307,7 +307,10 @@ def slab_contains(address: str) -> None:
 
     addr = None
     try:
-        addr = int(pwndbg.dbg.selected_frame().evaluate_expression(address)) & pwndbg.aglib.arch.ptrmask
+        addr = (
+            int(pwndbg.dbg.selected_frame().evaluate_expression(address))
+            & pwndbg.aglib.arch.ptrmask
+        )
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"Could not parse '{address}'"))
         print(message.error(f"Message: {e}"))
