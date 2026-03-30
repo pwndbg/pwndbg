@@ -4,12 +4,13 @@ import argparse
 import math
 import os
 
-import pwndbg.aglib.arch
-import pwndbg.aglib.elf
+import pwndbg.aglib
+import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -47,8 +48,15 @@ def flags_str2int(flags_s):
 parser = argparse.ArgumentParser(
     description="Pointer scan for possible offset leaks.",
 )
-parser.add_argument("address", nargs="?", default="$sp", help="Leak memory address")
-parser.add_argument("count", nargs="?", default=0x40, help="Leak size in bytes")
+parser.add_argument(
+    "address",
+    nargs="?",
+    type=int,
+    # Legal because it will get parsed by the debugger.
+    default="$sp",
+    help="Leak memory address",
+)
+parser.add_argument("count", nargs="?", default=0x40, type=int, help="Leak size in bytes")
 parser.add_argument(
     "--max-distance",
     type=int,
@@ -87,7 +95,12 @@ which points to a libc rwx page.
 )
 @pwndbg.commands.OnlyWhenRunning
 def probeleak(
-    address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None
+    address: int,
+    count: int = 0x40,
+    max_distance: int = 0x0,
+    point_to: str | None = None,
+    max_ptrs: int = 0,
+    flags: str | None = None,
 ) -> None:
     address = int(address)
     address &= pwndbg.aglib.arch.ptrmask
@@ -100,8 +113,7 @@ def probeleak(
     if count > address > 0x10000:  # in case someone puts in an end address and not a count (smh)
         print(
             message.warn(
-                "Warning: you gave an end address, not a count. Subtracting 0x%x from the count."
-                % (address)
+                f"Warning: you gave an end address, not a count. Subtracting 0x{address:x} from the count."
             )
         )
         count -= address
@@ -131,7 +143,7 @@ def probeleak(
             if flags is not None and not satisfied_flags(require_flags, page.flags):
                 continue
             if not found:
-                print(M.legend())
+                print(mem_color.legend())
                 found = True
 
             mod_name = page.objfile
@@ -139,24 +151,17 @@ def probeleak(
                 mod_name = "[anon]"
 
             if p >= page.end:
-                right_text = "({}) {} + 0x{:x} + 0x{:x} (outside of the page)".format(
-                    page.permstr,
-                    mod_name,
-                    page.memsz,
-                    p - page.end,
-                )
+                right_text = f"({page.permstr}) {mod_name} + 0x{page.memsz:x} + 0x{p - page.end:x} (outside of the page)"
             elif p < page.start:
-                right_text = "({}) {} - 0x{:x} (outside of the page)".format(
-                    page.permstr,
-                    mod_name,
-                    page.start - p,
+                right_text = (
+                    f"({page.permstr}) {mod_name} - 0x{page.start - p:x} (outside of the page)"
                 )
             else:
                 right_text = f"({page.permstr}) {mod_name} + 0x{p - page.start:x}"
 
-            offset_text = "0x%0*x" % (off_zeros, i)
-            p_text = "0x%0*x" % (int(ptrsize * 2), p)
-            text = f"{offset_text}: {M.get(p, text=p_text)} = {M.get(p, text=right_text)}"
+            offset_text = f"0x{i:0{off_zeros}x}"
+            p_text = f"0x{p:0{int(ptrsize * 2)}x}"
+            text = f"{offset_text}: {mem_color.get(p, text=p_text)} = {mem_color.get(p, text=right_text)}"
 
             symbol = pwndbg.aglib.symbol.resolve_addr(p)
             if symbol:

@@ -1,23 +1,19 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
-from typing import Tuple
 
-from capstone import *  # noqa: F403
-from capstone.x86 import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.x86 import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.typeinfo
-import pwndbg.chain
-import pwndbg.color.memory as MemoryColor
-import pwndbg.color.message as MessageColor
-import pwndbg.enhance
+import pwndbg.color.memory as mem_color
+import pwndbg.color.message as message
+import pwndbg.dintegration
 from pwndbg.aglib.disasm.arch import memory_or_register_assign
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
@@ -50,10 +46,12 @@ X86_MATH_INSTRUCTIONS = {
 # This class handles enhancement for x86 and x86_64. This is because Capstone itself
 # represents both architectures using the same class
 class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+    supports_manual_emulation = True
+
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
             X86_INS_MOV: self.handle_mov,
             X86_INS_MOVABS: self.handle_mov,
@@ -145,8 +143,8 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             alignment_mask = mem_operand.cs_op.size - 1
 
             if mem_operand.before_value & alignment_mask != 0:
-                instruction.annotation = MessageColor.error(
-                    f"<[{MemoryColor.get(mem_operand.before_value)}] not aligned to {mem_operand.cs_op.size} bytes>"
+                instruction.annotation = message.error(
+                    f"<[{mem_color.get(mem_operand.before_value)}] not aligned to {mem_operand.cs_op.size} bytes>"
                 )
 
     def handle_lea(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -156,6 +154,9 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
         if right.before_value is not None:
+            # We have determined the value written to this register - propagate this to future instructions.
+            instruction.register_writes[left.reg] = right.before_value
+
             telescope_addresses = super()._telescope(
                 right.before_value, TELESCOPE_DEPTH, instruction, emu
             )
@@ -172,13 +173,19 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             instruction.annotation = (
                 memory_or_register_assign(
                     left.str,
-                    MemoryColor.get_address_or_symbol(right.before_value_resolved),
+                    mem_color.get_address_or_symbol(
+                        right.before_value_resolved,
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
+                    ),
                     left.type == CS_OP_MEM,
                 )
                 + ", "
                 + memory_or_register_assign(
                     right.str,
-                    MemoryColor.get_address_or_symbol(left.before_value_resolved),
+                    mem_color.get_address_or_symbol(
+                        left.before_value_resolved,
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
+                    ),
                     right.type == CS_OP_MEM,
                 )
             )
@@ -196,14 +203,21 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             if emu and reg_operand.after_value is not None:
                 # After emulation, the register has taken on the popped value
                 instruction.annotation = register_assign(
-                    reg_operand.str, MemoryColor.get_address_and_symbol(reg_operand.after_value)
+                    reg_operand.str,
+                    mem_color.get_address_and_symbol(
+                        reg_operand.after_value,
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
+                    ),
                 )
             elif pc_is_at_instruction:
                 # Attempt to read from the top of the stack
                 try:
                     value = pwndbg.aglib.memory.read_pointer_width(pwndbg.aglib.regs.sp)
                     instruction.annotation = register_assign(
-                        reg_operand.str, MemoryColor.get_address_and_symbol(value)
+                        reg_operand.str,
+                        mem_color.get_address_and_symbol(
+                            value, pwndbg.dintegration.manager.get_stack_var_dict_all()
+                        ),
                     )
                 except Exception:
                     pass
@@ -213,6 +227,8 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         # If zeroing the register with XOR A, A. Can reason about this no matter where the instruction is
         if left.type == CS_OP_REG and right.type == CS_OP_REG and left.reg == right.reg:
+            # We know that 0 is written to this register - propagate this to future instructions.
+            instruction.register_writes[left.reg] = 0
             instruction.annotation = register_assign(left.str, "0")
         else:
             self._common_binary_op_annotator(
@@ -231,7 +247,10 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if operand.after_value_resolved is not None:
             instruction.annotation = memory_or_register_assign(
                 operand.str,
-                MemoryColor.get_address_and_symbol(operand.after_value_resolved),
+                mem_color.get_address_and_symbol(
+                    operand.after_value_resolved,
+                    pwndbg.dintegration.manager.get_stack_var_dict_all(),
+                ),
                 operand.type == CS_OP_MEM,
             )
 
@@ -251,8 +270,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         if operand.type == CS_OP_MEM:
             return self._read_memory(value, operand.cs_op.size, instruction, emu)
-        else:
-            return super()._resolve_used_value(value, instruction, operand, emu)
+        return super()._resolve_used_value(value, instruction, operand, emu)
 
     @override
     def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
@@ -262,8 +280,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             # Ex: lea    rax, [rip + 0xd55]
             # We can reason RIP no matter the current pc
             return instruction.address + instruction.size
-        else:
-            return super()._read_register(instruction, operand_id, emu)
+        return super()._read_register(instruction, operand_id, emu)
 
     @override
     def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
@@ -377,7 +394,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         return InstructionCondition.TRUE if bool(conditional) else InstructionCondition.FALSE
 
     @override
-    def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> Tuple[str, str]:
+    def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> tuple[str, str]:
         # Since this class handles both x86 and x86_64, we need to choose the correct
         # syscall arch depending on the instruction being executed.
 
@@ -421,7 +438,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             if arith:
                 sz += " + "
 
-            index = pwndbg.aglib.regs[instruction.cs_insn.reg_name(index)]
+            index = pwndbg.aglib.regs.read_reg(instruction.cs_insn.reg_name(index))
             sz += f"{index}*{op.mem.scale:#x}"
             arith = True
 

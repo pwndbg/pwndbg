@@ -3,8 +3,6 @@ from __future__ import annotations
 from re import match
 from re import search
 from struct import unpack_from
-from typing import Dict
-from typing import Tuple
 
 from pwnlib.util.packing import p16
 from pwnlib.util.packing import u32
@@ -14,16 +12,14 @@ import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.kmod
 import pwndbg.aglib.memory
-import pwndbg.color.message as M
-import pwndbg.commands
+import pwndbg.color.message as message
 import pwndbg.lib.cache
-import pwndbg.search
 
 
 @pwndbg.lib.cache.cache_until("start")
-def get() -> Dict[str, Tuple[int, str]]:
+def get() -> tuple[tuple[str, str, int], ...]:
     ks = Kallsyms()
-    return ks.kallsyms
+    return tuple(ks.kallsyms)
 
 
 class Kallsyms:
@@ -42,8 +38,11 @@ class Kallsyms:
     """
 
     def __init__(self):
-        self.kallsyms: Dict[str, Tuple[int, str]] = {}
+        self.kallsyms: list[tuple[str, str, int]] = []
         self.kbase = pwndbg.aglib.kernel.kbase()
+        if self.kbase is None:
+            print(message.warn("could not find kbase, kernel has not finished initialization?"))
+            return
 
         mapping = pwndbg.aglib.kernel.first_kernel_ro_page()
         assert mapping is not None, "kernel memory mappings are missing"
@@ -64,11 +63,11 @@ class Kallsyms:
         if self.token_table is None:
             if not self.find_names_uncompressed():
                 return
-            print(M.info("Detected Uncompressed Kallsyms"))
+            print(message.info("Detected Uncompressed Kallsyms"))
             self.is_uncompressed = True
             self.markers = self.find_markers_uncompressed()
         else:
-            print(M.info("Detected Compressed Kallsyms"))
+            print(message.info("Detected Compressed Kallsyms"))
             self.token_index = self.find_token_index()
             self.markers = self.find_markers()
 
@@ -82,8 +81,8 @@ class Kallsyms:
         self.kernel_addresses = self.get_kernel_addresses()
         self.parse_symbol_table()
         for sym_name, sym_addr, sym_type in pwndbg.aglib.kernel.kmod.all_modules_kallsyms():
-            self.kallsyms[sym_name] = (sym_addr, sym_type)
-        print(M.info(f"Found {len(self.kallsyms)} ksymbols"))
+            self.kallsyms.append((sym_name, sym_type, sym_addr))
+        print(message.info(f"Found {len(self.kallsyms)} ksymbols"))
 
     def find_token_table(self) -> int:
         """
@@ -151,7 +150,7 @@ class Kallsyms:
                     break
 
                 if chars_in_token >= 50 - 1:
-                    print(M.error("This structure is not a kallsyms_token_table"))
+                    print(message.error("This structure is not a kallsyms_token_table"))
                     return None
 
         position += 1
@@ -191,7 +190,7 @@ class Kallsyms:
 
         position = self.kernel_ro_mem.find(seq_to_find, self.token_table)
         if position == -1:
-            print(M.error("Unable to find the kallsyms_token_index"))
+            print(message.error("Unable to find the kallsyms_token_index"))
             return None
 
         return position
@@ -228,7 +227,7 @@ class Kallsyms:
             position = self.kernel_ro_mem.rfind(seq_to_find, 0, position)
 
             if position == -1:
-                print(M.error("Failed to find kallsyms_markers"))
+                print(message.error("Failed to find kallsyms_markers"))
                 return None
 
             position -= position % elem_size  # aligning
@@ -372,7 +371,9 @@ class Kallsyms:
             return kernel_addresses
 
         number_of_negative_items = len([offset for offset in kernel_addresses if offset < 0])
-        abs_percpu = number_of_negative_items / len(kernel_addresses) >= 0.5
+        abs_percpu = (len(kernel_addresses) == 0) or (
+            number_of_negative_items / len(kernel_addresses) >= 0.5
+        )
 
         for idx, offset in enumerate(kernel_addresses):
             if abs_percpu:
@@ -406,7 +407,7 @@ class Kallsyms:
             symbol_names.append(symbol_name)
 
         for addr, name in zip(self.kernel_addresses, symbol_names):
-            self.kallsyms[name[1:]] = (addr, name[0])
+            self.kallsyms.append((name[1:], name[0], addr))
 
     def get_token_table(self):
         if not self.is_uncompressed:
@@ -433,7 +434,7 @@ class Kallsyms:
         )
 
         if not ksymtab_match:
-            print(M.error("Failed to find kallsyms"))
+            print(message.error("Failed to find kallsyms"))
             return None
 
         kallsyms_names__offset = ksymtab_match.start(0)
@@ -460,7 +461,7 @@ class Kallsyms:
             num_syms += 1
 
         if num_syms < 100:
-            print(M.error("Failed to find kallsyms"))
+            print(message.error("Failed to find kallsyms"))
             return None
 
         self.end_of_kallsyms_names_uncompressed = position
@@ -516,7 +517,7 @@ class Kallsyms:
             max_number_of_space_between_two_nulls -= 1
 
         if max_number_of_space_between_two_nulls not in (2, 4, 8):
-            print(M.error("Could not guess the architecture register size for kernel"))
+            print(message.error("Could not guess the architecture register size for kernel"))
             return None
 
         self.offset_table_element_size = max_number_of_space_between_two_nulls

@@ -4,12 +4,10 @@ Prints structures in a manner similar to WinDbg's "dt" command.
 
 from __future__ import annotations
 
-from typing import List
-
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.dbg
+import pwndbg.dbg_mod
 
 
 def _field_to_human(
@@ -37,7 +35,7 @@ def dt(
     """
     # Return value is a list of strings.of
     # We concatenate at the end.
-    rv: List[str] = []
+    rv: list[str] = []
 
     if obj and not name:
         t = obj.type
@@ -92,8 +90,12 @@ def dt(
                     ftype.code in (pwndbg.dbg_mod.TypeCode.POINTER, pwndbg.dbg_mod.TypeCode.ARRAY)
                     and ftype.target() == pwndbg.aglib.typeinfo.uchar
                 ):
-                    data = pwndbg.aglib.memory.read(int(obj_value.address), ftype.sizeof)
-                    extra = " ".join("%02x" % b for b in data)
+                    # Flexible array members have size 0, skip reading memory for them
+                    if ftype.sizeof == 0:
+                        extra = "[]"
+                    else:
+                        data = pwndbg.aglib.memory.read(int(obj_value.address), ftype.sizeof)
+                        extra = " ".join(f"{b:02x}" for b in data)
                 else:
                     extra = obj_value.value_to_human_readable()
             except pwndbg.dbg_mod.Error as e:
@@ -102,7 +104,7 @@ def dt(
         # Adjust trailing lines in 'extra' to line up
         # This is necessary when there are nested structures.
         # Ideally we'd expand recursively if the type is complex.
-        extra_lines: List[str] = []
+        extra_lines: list[str] = []
         for i, line in enumerate(str(extra).splitlines()):
             if i == 0:
                 extra_lines.append(line)
@@ -110,18 +112,12 @@ def dt(
                 extra_lines.append(35 * " " + line)
         extra = "\n".join(extra_lines)
 
-        bitpos_str = "" if not bitpos else (".%i" % bitpos)
+        bitpos_str = "" if not bitpos else (f".{bitpos}")
 
         if obj:
-            line = "    0x%016x +0x%04x%s %-20s : %s" % (
-                int(obj.address) + offset,
-                offset,
-                bitpos_str,
-                field_name,
-                extra,
-            )
+            line = f"    0x{int(obj.address) + offset:016x} +0x{offset:04x}{bitpos_str} {field_name:<20} : {extra}"
         else:
-            line = "    +0x%04x%s %-20s : %s" % (offset, bitpos_str, field_name, extra)
+            line = f"    +0x{offset:04x}{bitpos_str} {field_name:<20} : {extra}"
         rv.append(line)
 
     return "\n".join(rv)

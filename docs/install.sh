@@ -25,12 +25,74 @@ echoerr() {
     echo "${RED}$@${NC}"
 }
 
+get_distro_name() {
+    if [ "$OS" = "Darwin" ]; then
+        if command -v sw_vers > /dev/null 2>&1; then
+            version=$(sw_vers -productVersion)
+            echo "macos@$version"
+        else
+            echo "macos@unknown"
+        fi
+    elif [ -f /etc/os-release ]; then
+        distro=$(
+            . /etc/os-release
+            echo "${ID}@${VERSION_ID}"
+        )
+        echo "$distro"
+    else
+        echo "Unknown"
+    fi
+}
+
+download() {
+    url=$1
+    outfile=$2
+
+    fail_download() {
+        echoerr "Problem with downloading the file. Please check your internet connection or try again."
+        exit 1
+    }
+
+    user_agent="pwndbg-installer ($DISTRO_NAME; $ARCH; $OS)"
+    if command -v curl > /dev/null 2>&1; then
+        curl --proto '=https' --tlsv1.2 --progress-bar -LSf -A "$user_agent" "$url" -o "$outfile" || fail_download
+        return 0
+    fi
+
+    if command -v wget > /dev/null 2>&1; then
+        # 'wget' on BusyBox don't support progress options
+        if wget --help 2>&1 | grep -qi 'busybox'; then
+            WGET_CMD="wget -q"
+        else
+            WGET_CMD="wget --https-only --secure-protocol=TLSv1_2 -q --show-progress"
+        fi
+
+        $WGET_CMD -U "$user_agent" "$url" -O "$outfile" || fail_download
+        return 0
+    fi
+
+    # Should be unreachable
+    echoerr "Neither 'curl' nor 'wget' is installed. Please install one of them to proceed."
+    exit 1
+}
+
 missing=""
-for cmd in wget tar xz uname mktemp rm mkdir ln grep; do
+for cmd in tar xz uname mktemp rm mkdir ln grep; do
     if ! command -v $cmd > /dev/null 2>&1; then
         missing="$missing$cmd "
     fi
 done
+
+found_downloader=0
+for cmd in wget curl; do
+    if command -v "$cmd" > /dev/null 2>&1; then
+        found_downloader=1
+        break
+    fi
+done
+if [ $found_downloader -eq 0 ]; then
+    missing="$missing""wget/curl"
+fi
 
 if [ -n "$missing" ]; then
     echoerr "Error: The following required commands are missing: ${YELLOW}$missing"
@@ -38,7 +100,12 @@ if [ -n "$missing" ]; then
     exit 1
 fi
 
-VERSION="2025.05.30"
+# Detect OS and architecture
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+DISTRO_NAME=$(get_distro_name)
+
+VERSION="2026.02.18"
 TYPE=""
 ROOTLESS=false
 
@@ -109,10 +176,6 @@ case "$TYPE" in
         ;;
 esac
 
-# Detect OS and architecture
-OS="$(uname -s)"
-ARCH="$(uname -m)"
-
 if [ "$ROOTLESS" = "true" ]; then
     echoinfo "Installing rootless..."
     INSTALL_DIR="$HOME/.local/lib/${TYPE}"
@@ -137,8 +200,12 @@ else
             ${*}
         }
     else
-        echoinfo "Requesting 'sudo' privileges. You may be prompted for your password..."
-        sudo -v
+        # Before prompting, check if the user can run sudo without password,
+        # or if the credentials are already cached
+        if ! sudo -n true 2> /dev/null; then
+            echoinfo "Requesting 'sudo' privileges. You may be prompted for your password..."
+            sudo -v
+        fi
     fi
 fi
 
@@ -148,7 +215,8 @@ case "$OS" in
             x86_64) FILE="${BINARY_NAME}_${VERSION}_x86_64-portable.tar.xz" ;;
             i686) FILE="${BINARY_NAME}_${VERSION}_x86_32-portable.tar.xz" ;;
             aarch64) FILE="${BINARY_NAME}_${VERSION}_arm64-portable.tar.xz" ;;
-            armv7*) FILE="${BINARY_NAME}_${VERSION}_armv7-portable.tar.xz" ;;
+            armv7l) FILE="${BINARY_NAME}_${VERSION}_armv7-portable.tar.xz" ;;
+            armv8l) FILE="${BINARY_NAME}_${VERSION}_armv7-portable.tar.xz" ;;
             riscv64) FILE="${BINARY_NAME}_${VERSION}_riscv64-portable.tar.xz" ;;
             ppc64) FILE="${BINARY_NAME}_${VERSION}_powerpc64-portable.tar.xz" ;;
             ppc64le) FILE="${BINARY_NAME}_${VERSION}_powerpc64le-portable.tar.xz" ;;
@@ -188,24 +256,14 @@ fi
 
 # Create a temporary directory for downloading the file
 TEMP_DIR=$(mktemp -d)
-URL="https://github.com/pwndbg/pwndbg/releases/download/${VERSION}/${FILE}"
+URL="https://releases.pwndbg.re/releases/${VERSION}/${FILE}"
 
 # Ensure the temporary directory is cleaned up on script exit (even in case of an error)
 trap "rm -rf $TEMP_DIR" EXIT
 
 echoinfo "Downloading... ${URL}"
 
-# 'wget' on BusyBox don't support progress options
-if wget --help 2>&1 | grep -qi 'busybox'; then
-    WGET_CMD="wget -q"
-else
-    WGET_CMD="wget -q --show-progress"
-fi
-
-$WGET_CMD "$URL" -O "$TEMP_DIR/$FILE" || {
-    echoerr "Problem with downloading the file. Please check your internet connection or try again."
-    exit 1
-}
+download "$URL" "$TEMP_DIR/$FILE"
 
 if [ -d "$INSTALL_DIR" ]; then
     echoinfo "Removing... old installation from $INSTALL_DIR"

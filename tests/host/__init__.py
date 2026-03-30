@@ -1,20 +1,17 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
+from collections.abc import Coroutine
 from enum import Enum
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Any
-from typing import Awaitable
-from typing import Callable
-from typing import Coroutine
-from typing import Dict
-from typing import List
 
 
 def _collection_from_pytest(
     result: CompletedProcess[str], pwndbg_root: Path, pytest_root: Path
-) -> List[str]:
+) -> list[str]:
     """
     Given the output of a completed Pytest collection, return a list of tests.
     """
@@ -45,15 +42,20 @@ def _result_from_pytest(result: CompletedProcess[str], duration_ns: int) -> Test
     # Determine high-granularity status from process output, if possible.
     stdout_status = None
     stdout_context = None
+
+    # Check for the result string in STDOUT of the test.
+    # Exceptions raised by the test function itself print the result without newline.
+    # Context string can sometimes span multiple lines, only the one line is captured. This can
+    # happen anywhere withing the context string, so matching is not easy.
     if result.stdout is not None:
         entries = re.search(
-            r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)( .*::.* -)?( (.*))?",
+            r"(?:\x1b\[3.m)?(PASSED|FAILED|SKIPPED|XPASS|XFAIL)(?:\x1b\[0m)?(?: .*::.* -)?(?: (.*))?",
             result.stdout,
             re.MULTILINE,
         )
         if entries:
-            stdout_status = entries[2]
-            stdout_context = entries[5]
+            stdout_status = entries[1]
+            stdout_context = entries[2]
 
     # If possible, augment the status with the high-granularity output.
     if stdout_status is not None:
@@ -113,9 +115,9 @@ class TestResult:
         stderr: str | None,
         context: str | None,
     ):
-        assert (stdout is None and stderr is None) or (
-            stdout is not None and stderr is not None
-        ), "either both stderr and stdout are captured, or neither is"
+        assert (stdout is None and stderr is None) or (stdout is not None and stderr is not None), (
+            "either both stderr and stdout are captured, or neither is"
+        )
 
         self.status = status
         self.duration_ns = duration_ns
@@ -142,7 +144,7 @@ class TestHost:
         """
         raise NotImplementedError()
 
-    def collect(self) -> List[str]:
+    def collect(self) -> list[str]:
         """
         Collect the names of all the tests available to this host.
         """
@@ -150,16 +152,14 @@ class TestHost:
 
 
 class Controller:
-    def launch(
-        self, binary: Path, args: List[str] = [], env: Dict[str, str] = {}
-    ) -> Awaitable[None]:
+    async def launch(self, binary: Path, args: list[str] = [], env: dict[str, str] = {}) -> None:
         """
         Launch the binary with the given path, relative to the binaries folder
         for the calling test.
         """
         raise NotImplementedError()
 
-    def execute_and_capture(self, command: str) -> Awaitable[str]:
+    async def execute_and_capture(self, command: str) -> str:
         """
         Execute the given command and capture its output.
 
@@ -169,7 +169,7 @@ class Controller:
         """
         raise NotImplementedError()
 
-    def execute(self, command: str) -> Awaitable[None]:
+    async def execute(self, command: str) -> None:
         """
         Execute the given command.
 
@@ -179,27 +179,45 @@ class Controller:
         """
         raise NotImplementedError()
 
-    def cont(self) -> Awaitable[None]:
+    async def cont(self) -> None:
         """
         Resume execution until the next stop event.
         """
         raise NotImplementedError()
 
-    def step_instruction(self) -> Awaitable[None]:
+    async def step_instruction(self) -> None:
         """
         Perform a step in the scope of a single instruction.
         """
         raise NotImplementedError()
 
-    def finish(self) -> Awaitable[None]:
+    async def finish(self) -> None:
         """
         Resume execution; stop after the current function returns.
         """
         raise NotImplementedError()
 
-    def select_thread(self, tid: int) -> Awaitable[None]:
+    async def select_thread(self, tid: int) -> None:
         """
         Select the thread with the given ID.
+        """
+        raise NotImplementedError()
+
+    async def disable_debuginfod(self) -> None:
+        """
+        Tells the debugger not to use debuginfod (for retrieving
+        debugging information / symbols).
+
+        This should be called before .launch().
+        """
+        raise NotImplementedError()
+
+    async def generate_core_file(self, path: Path) -> None:
+        """
+        Generate a core file at `path` and switch the debugger
+        to debugging that core file.
+
+        After this returns `pwndbg.dbg.selected_inferior().is_core_file()` must be True
         """
         raise NotImplementedError()
 

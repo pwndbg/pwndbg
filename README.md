@@ -10,17 +10,19 @@
 with a focus on features needed by low-level software developers, hardware hackers,
 reverse-engineers and exploit developers.
 
-It has a boatload of features, see our [Features page](https://pwndbg.re/pwndbg/latest/features/)
+It has a boatload of features, see our [Features page](https://pwndbg.re/stable/features/)
 and [CHEATSHEET][CHEATSHEET] (feel free to print it!). If you have any questions you may read the
-[documentation](https://pwndbg.re/pwndbg/latest/) or asks us in our [Discord server](https://discord.gg/x47DssnGwm).
+[documentation](https://pwndbg.re/stable/) or asks us in our [Discord server](https://discord.gg/x47DssnGwm).
 
-[CHEATSHEET]: https://pwndbg.re/pwndbg/dev/CHEATSHEET.pdf
+[CHEATSHEET]: https://pwndbg.re/dev/CHEATSHEET.pdf
+
+Want Pwndbg to keep moving fast, or, have us give a talk about it? [Sponsor us!](https://github.com/sponsors/pwndbg)
 
 ## Why?
 
 Vanilla GDB and LLDB are terrible to use for reverse engineering and exploit development.
 Typing `x/30gx $rsp` or navigating cumbersome LLDB commands is not fun and often provides
-minimal information. The year is 2025, and core debuggers still lack many user-friendly
+minimal information. The year is 2026, and core debuggers still lack many user-friendly
 features such as a robust hexdump command. WinDbg users are completely lost when they
 occasionally need to bump into GDB or LLDB.
 
@@ -30,14 +32,14 @@ smoothing out rough edges and making them more user-friendly.
 
 ## Installation
 
-See [installation instructions](https://pwndbg.re/pwndbg/latest/setup).
+See [installation instructions](https://pwndbg.re/stable/setup).
 
 ## What about ...?
 
 Many past ([gdbinit][gdbinit], [PEDA][PEDA]) and present projects ([GEF][GEF],
 [bata24/GEF][bata24/GEF]) offer great features, but are hard to extend and are packaged
 as large single files ([103KB][gdbinit2], [195KB][peda.py], [423KB][gef.py],
-[4.12MB][bata24/gef.py]). Pwndbg aims to replace them with a faster, cleaner, and
+[5.24MB][bata24/gef.py]). Pwndbg aims to replace them with a faster, cleaner, and
 more robust implementation.
 
 [gdbinit]: https://github.com/gdbinit/Gdbinit
@@ -80,7 +82,7 @@ Pwndbg ensures a consistent experience across both, so switching between them is
 
 
 ## Contributing
-Pull requests are welcome ❤️. Check out the [Contributing Guide](https://pwndbg.re/pwndbg/dev/contributing/).
+Pull requests are welcome ❤️. Check out the [Contributing Guide](https://pwndbg.re/dev/contributing/).
 
 ## Acknowledgements
 Pwndbg was originally created by [Zach Riggle](https://github.com/zachriggle), who is no longer with us. We want to thank Zach for all of his contributions to pwndbg and the wider security community.

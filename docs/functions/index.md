@@ -123,107 +123,6 @@ returned.
 
 ----------
 
-### **bn_eval**
-
-
-``` {.python .no-copy}
-bn_eval(expr: gdb.Value) -> int | None
-```
-
-
-Parse and evaluate a Binary Ninja expression.
-
-Read more about binary ninja expressions here:
-https://api.binary.ninja/binaryninja.binaryview-module.html#binaryninja.binaryview.BinaryView.parse_expression
-
-All registers in the current register set are available as magic variables (e.g. $rip).
-The $piebase magic variable is also included, with the computed executable base.
-
-This function cannot see stack local variables.
-
-#### Example
-```
-pwndbg> set integration-provider binja
-Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
-Set which provider to use for integration features to 'binja'.
-pwndbg> p/x $bn_eval("10+20")
-$6 = 0x30
-pwndbg> p/x $bn_eval("main")
-$7 = 0x1645
-pwndbg> p/x $rebase($bn_eval("main"))
-$8 = 0x555555555645
-pwndbg> p some_global_var
-No symbol "some_global_var" in current context.
-pwndbg> p/x $rebase($bn_eval("some_global_var+$rax"))
-$9 = 0x5555555586b8
-pwndbg> p $rebase($bn_eval("some_global_var+$rax")) == $bn_sym("some_global_var") + $rax
-$10 = 1
-pwndbg> p $bn_eval("$piebase+some_global_var+$rax") == $bn_sym("some_global_var") + $rax
-$11 = 1
-```
-
-----------
-
-### **bn_sym**
-
-
-``` {.python .no-copy}
-bn_sym(name_val: gdb.Value) -> int | None
-```
-
-
-Lookup a symbol's address by name from Binary Ninja.
-
-This function sees symbols like functions and global variables,
-but not stack local variables, use `bn_var` for that.
-
-#### Example
-```
-pwndbg> set integration-provider binja
-Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
-Set which provider to use for integration features to 'binja'.
-pwndbg> p main
-No symbol "main" in current context.
-pwndbg> p/x $bn_sym("main")
-$2 = 0x555555555645
-pwndbg> b *($bn_sym("main"))
-Breakpoint 1 at 0x555555555645
-```
-
-----------
-
-### **bn_var**
-
-
-``` {.python .no-copy}
-bn_var(name_val: gdb.Value) -> int | None
-```
-
-
-Lookup a stack variable's address by name from Binary Ninja.
-
-This function doesn't see functions or global variables,
-use `bn_sym` for that.
-
-#### Example
-```
-pwndbg> set integration-provider binja
-Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
-Set which provider to use for integration features to 'binja'.
-pwndbg> p user_choice
-No symbol "user_choice" in current context.
-pwndbg> p/x $bn_var("user_choice")
-$4 = 0x7fffffffe118
-pwndbg> vmmap $4
-    0x7ffff7ffe000     0x7ffff7fff000 rw-p     1000      0 [anon_7ffff7ffe]
-►   0x7ffffffde000     0x7ffffffff000 rw-p    21000      0 [stack] +0x20118
-pwndbg> p/x $bn_var("main")
-TypeError: Could not convert Python object: None.
-Error while executing Python code.
-```
-
-----------
-
 ### **environ**
 
 
@@ -368,30 +267,33 @@ Especially useful for quickly converting pwntools output.
 
 ----------
 
-### **ida**
+### **p2v**
 
 
 ``` {.python .no-copy}
-ida(name: gdb.Value) -> int
+p2v(paddr: gdb.Value) -> int
 ```
 
 
-Lookup a symbol's address by name from IDA.
-Evaluate ida.LocByName() on the supplied value.
+Convert a physical address to a virtual (physmap) address.
 
-This functions doesn't see stack local variables.
+Only when kernel debugging with QEMU.
 
 #### Example
 ```
-pwndbg> set integration-provider ida
-Pwndbg successfully connected to Ida Pro xmlrpc: http://127.0.0.1:31337
-Set which provider to use for integration features to 'ida'.
-pwndbg> p main
-No symbol "main" in current context.
-pwndbg> p/x $ida("main")
-$1 = 0x555555555645
-pwndbg> b *$ida("main")
-Breakpoint 2 at 0x555555555645
+# A heap allocated object is already in physmap.
+pwndbg> p $v2p(0xffff8880055eb000)
+$9 = 0x55eb000
+pwndbg> p $p2v($9)
+$10 = 0xffff8880055eb000
+```
+A kernel .text pointer has multiple virtual address mappings, the one in physmap
+is returned.
+```
+pwndbg> p $p2v($v2p(0xffffffff81cfd5b5))
+$11 = 0xffff888001cfd5b5
+pwndbg> vmmap $11
+► 0xffff888001000000 0xffff888002bf4000 r--p  1bf4000 1000000 physmap +0xcfd5b5
 ```
 
 ----------
@@ -423,6 +325,27 @@ pwndbg> tele $rebase(0xd9020)
 02:0010│  0x55555562d030 ◂— 0x65720021656d616e /* 'name!' */
 03:0018│  0x55555562d038 ◂— 'adline stdin'
 [...]
+```
+
+----------
+
+### **v2p**
+
+
+``` {.python .no-copy}
+v2p(vaddr: gdb.Value) -> int
+```
+
+
+Convert a virtual address to a physical address.
+
+Only when kernel debugging with QEMU.
+
+#### Example
+Get the kmem_cache of a random heap object (`0xffff88800555c000` here) manually (pretty much `slab contains`).
+```
+pwndbg> p ((struct slab*)({$obj=0xffff88800555c000,$tpage=((struct page*)vmemmap_base+($v2p($obj)>>12)),$tpage->compound_head&1?$tpage->compound_head^1:$tpage}[2]))->slab_cache
+$33 = (struct kmem_cache *) 0xffff888006552e00
 ```
 
 ----------

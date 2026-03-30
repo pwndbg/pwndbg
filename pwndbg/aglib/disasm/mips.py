@@ -1,16 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
-from typing import List
 
-from capstone import *  # noqa: F403
-from capstone.mips import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.mips import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib.disasm.arch
-import pwndbg.color.memory as MemoryColor
+import pwndbg.color.memory as mem_color
+import pwndbg.dintegration
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
@@ -84,17 +83,17 @@ BRANCH_LIKELY_INSTRUCTIONS = {
     MIPS_INS_ALIAS_BEQZL,
 }
 
-CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
+CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
     MIPS_INS_BEQZ: lambda ops: ops[0] == 0,
     MIPS_INS_BNEZ: lambda ops: ops[0] != 0,
     MIPS_INS_BEQ: lambda ops: ops[0] == ops[1],
     MIPS_INS_BNE: lambda ops: ops[0] != ops[1],
-    MIPS_INS_BGEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) >= 0,
-    MIPS_INS_BGEZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) >= 0,
-    MIPS_INS_BGTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) > 0,
-    MIPS_INS_BLEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) <= 0,
-    MIPS_INS_BLTZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) < 0,
-    MIPS_INS_BLTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) < 0,
+    MIPS_INS_BGEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) >= 0,
+    MIPS_INS_BGEZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) >= 0,
+    MIPS_INS_BGTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) > 0,
+    MIPS_INS_BLEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) <= 0,
+    MIPS_INS_BLTZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) < 0,
+    MIPS_INS_BLTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) < 0,
 }
 
 CONDITION_RESOLVERS[MIPS_INS_ALIAS_BEQZ] = CONDITION_RESOLVERS[MIPS_INS_BEQZ]
@@ -184,7 +183,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOVE
             MIPS_INS_MOVE: self._common_move_annotator,
             MIPS_INS_ALIAS_MOVE: self._common_move_annotator,
@@ -240,7 +239,10 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 address = right.before_value << 16
 
             instruction.annotation = register_assign(
-                result_operand.str, MemoryColor.get_address_and_symbol(address)
+                result_operand.str,
+                mem_color.get_address_and_symbol(
+                    address, pwndbg.dintegration.manager.get_stack_var_dict_all()
+                ),
             )
 
     @override
@@ -249,7 +251,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             return InstructionCondition.UNDETERMINED
 
         # Not using list comprehension because they run in a separate scope in which super() does not exist
-        resolved_operands: List[int] = []
+        resolved_operands: list[int] = []
         for op in instruction.operands:
             resolved_operands.append(
                 super()._resolve_used_value(op.before_value, instruction, op, emu)

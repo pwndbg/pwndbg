@@ -6,15 +6,15 @@ from __future__ import annotations
 
 import argparse
 import queue
-from typing import Dict
-from typing import List
 
 import pwndbg
 import pwndbg.aglib.memory
+import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
-import pwndbg.color.memory as M
+import pwndbg.chain
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
-from pwndbg.chain import c as C
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -24,7 +24,7 @@ from pwndbg.commands import CommandCategory
 # visited_map is a map of children -> (parent,parent_start)
 def get_rec_addr_string(addr, visited_map):
     page = pwndbg.aglib.vmmap.find(addr)
-    arrow_right = C.arrow(" %s " % pwndbg.config.chain_arrow_right)
+    arrow_right = pwndbg.chain.c.arrow(f" {pwndbg.config.chain_arrow_right} ")
 
     if page is not None:
         if addr not in visited_map:
@@ -41,11 +41,10 @@ def get_rec_addr_string(addr, visited_map):
             return ""
         return (
             get_rec_addr_string(parent_base_addr, visited_map)
-            + M.get(parent_base_addr, text=curText)
+            + mem_color.get(parent_base_addr, text=curText)
             + arrow_right
         )
-    else:
-        return ""
+    return ""
 
 
 # Useful for debugging. Prints a map of child -> (parent, parent_start)
@@ -149,7 +148,7 @@ def leakfind(
     # We need to store both so that we can nicely create our leak chain.
     visited_map = {}
     visited_set = {address}
-    address_queue: "queue.Queue[int]" = queue.Queue()
+    address_queue: queue.Queue[int] = queue.Queue()
     address_queue.put(address)
     depth = 0
     time_to_depth_increase = 0
@@ -182,8 +181,8 @@ def leakfind(
                 break
 
     # A map of length->list of lines. Used to let us print in a somewhat nice manner.
-    output_map: Dict[int, List[str]] = {}
-    arrow_right = C.arrow(" %s " % pwndbg.config.chain_arrow_right)
+    output_map: dict[int, list[str]] = {}
+    arrow_right = pwndbg.chain.c.arrow(f" {pwndbg.config.chain_arrow_right} ")
 
     for child in visited_map:
         child_page = pwndbg.aglib.vmmap.find(child)
@@ -192,9 +191,9 @@ def leakfind(
                 continue
             line = (
                 get_rec_addr_string(child, visited_map)
-                + M.get(child)
+                + mem_color.get(child)
                 + " "
-                + M.get(child, text=child_page.objfile)
+                + mem_color.get(child, text=child_page.objfile)
             )
             chain_length = line.count(arrow_right)
             if chain_length in output_map:

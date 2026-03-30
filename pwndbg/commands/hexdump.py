@@ -3,10 +3,10 @@ from __future__ import annotations
 import argparse
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.commands
+import pwndbg.dbg_mod
 import pwndbg.hexdump
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -45,12 +45,28 @@ def address_or_module_name(s) -> int:
         pages = list(filter(lambda page: module_name in page.objfile, pwndbg.aglib.vmmap.get()))
         if pages:
             return pages[0].vaddr
-        else:
-            raise argparse.ArgumentTypeError(f"Could not find pages for module {module_name}")
-    elif isinstance(addr_or_str, int):
+        raise argparse.ArgumentTypeError(f"Could not find pages for module {module_name}")
+    if isinstance(addr_or_str, int):
         return addr_or_str
-    else:
-        raise argparse.ArgumentTypeError("Unknown hexdump argument type.")
+    raise argparse.ArgumentTypeError("Unknown hexdump argument type.")
+
+
+def format_c(data: bytes) -> str:
+    toks = [f"{b:#02x}" for b in data]
+    lines = []
+    for i in range(0, len(toks), 16):
+        elem = ", ".join(toks[i : i + 16])
+        lines.append(f"    {elem},")
+    body = "\n".join(lines)
+    return f"static const unsigned char data[] = {{\n{body}\n}};\n"
+
+
+def format_py(data: bytes) -> str:
+    lines = []
+    for i in range(0, len(data), 16):
+        seg = "".join(f"\\x{b:02x}" for b in data[i : i + 16])
+        lines.append(f'    b"{seg}"')
+    return "data = (\n{}\n)\n".format("\n".join(lines))
 
 
 parser = argparse.ArgumentParser(
@@ -64,13 +80,32 @@ parser.add_argument(
     help="Address or module name to dump",
 )
 parser.add_argument(
-    "count", nargs="?", default=pwndbg.config.hexdump_bytes, help="Number of bytes to dump"
+    "count",
+    type=int,
+    nargs="?",
+    default=pwndbg.config.hexdump_bytes,
+    help="Number of bytes to dump",
+)
+parser.add_argument(
+    "-C",
+    "--code",
+    type=str,
+    nargs="?",
+    const="py",
+    choices=("py", "c"),
+    help="Output as Python or C code data definition (default: py)",
 )
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
+def hexdump(
+    address: str | int, count: int = int(pwndbg.config.hexdump_bytes), code: str | None = None
+) -> None:
+    if count <= 0:
+        print(f"count must be larger than 0 (is {count}).")
+        return
+
     if hexdump.repeat:
         address = hexdump.last_address
     else:
@@ -129,19 +164,23 @@ def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
         print(e)
         return
 
-    result = pwndbg.hexdump.hexdump(
-        data,
-        address=address,
-        width=width,
-        group_width=group_width,
-        flip_group_endianness=flip_group_endianness,
-        offset=hexdump.offset,
-    )
+    if code:
+        source = format_py(data) if code == "py" else format_c(data)
+        print(source)
+        hexdump.offset += len(data)
+    else:
+        result = pwndbg.hexdump.hexdump(
+            data,
+            address=address,
+            width=width,
+            group_width=group_width,
+            flip_group_endianness=flip_group_endianness,
+            offset=hexdump.offset,
+        )
+        for line in result:
+            print(line)
 
-    for line in result:
-        print(line)
-
-    hexdump.offset += count
+    hexdump.offset += len(data)
 
 
 hexdump.last_address = 0

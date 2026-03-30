@@ -6,17 +6,22 @@ from __future__ import annotations
 
 import argparse
 import string
-from typing import List
-from typing import Optional
 
 import pwndbg
 import pwndbg.aglib.heap.mallocng as mallocng
 import pwndbg.aglib.memory as memory
+import pwndbg.aglib.proc
+import pwndbg.aglib.typeinfo
 import pwndbg.aglib.typeinfo as typeinfo
-import pwndbg.color as C
+import pwndbg.aglib.vmmap
+import pwndbg.color as color
+import pwndbg.color.memory as mem_color
 import pwndbg.color.message as message
+import pwndbg.commands
+import pwndbg.dbg_mod
+import pwndbg.lib.config
 from pwndbg import config
-from pwndbg.aglib.heap.mallocng import mallocng as ng
+from pwndbg.aglib.heap.mallocng import ng
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.pretty_print import Property
 from pwndbg.lib.pretty_print import from_properties
@@ -36,12 +41,12 @@ commands will search the heap to try to find the correct meta/group.
     scope=pwndbg.lib.config.Scope.heap,
 )
 
-state_alloc_color = C.BLUE
-state_alloc_color_alt = C.CYAN
-state_freed_color = C.RED
-state_freed_color_alt = C.LIGHT_RED
-state_avail_color = C.GRAY
-state_avail_color_alt = C.LIGHT_GRAY
+state_alloc_color = color.BLUE
+state_alloc_color_alt = color.CYAN
+state_freed_color = color.RED
+state_freed_color_alt = color.LIGHT_RED
+state_avail_color = color.GRAY
+state_avail_color_alt = color.LIGHT_GRAY
 
 
 def get_slot_color(state: mallocng.SlotState, last_color: str = "") -> str:
@@ -61,17 +66,17 @@ def get_slot_color(state: mallocng.SlotState, last_color: str = "") -> str:
 
 
 def get_colored_slot_state(ss: mallocng.SlotState) -> str:
-    return C.colorize(ss.value, get_slot_color(ss))
+    return color.colorize(ss.value, get_slot_color(ss))
 
 
 def get_colored_slot_state_short(ss: mallocng.SlotState) -> str:
     match ss:
         case mallocng.SlotState.ALLOCATED:
-            return C.colorize("U", state_alloc_color)
+            return color.colorize("U", state_alloc_color)
         case mallocng.SlotState.FREED:
-            return C.colorize("F", state_freed_color)
+            return color.colorize("F", state_freed_color)
         case mallocng.SlotState.AVAIL:
-            return C.colorize("A", state_avail_color)
+            return color.colorize("A", state_avail_color)
 
 
 def dump_group(group: mallocng.Group) -> str:
@@ -80,12 +85,12 @@ def dump_group(group: mallocng.Group) -> str:
         group_size = group.group_size
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"Error while reading meta: {e}"))
-        print(C.bold("Cannot determine group size."))
+        print(color.bold("Cannot determine group size."))
         group_size = -1
 
-    group_range = "@ " + C.memory.get(group.addr)
+    group_range = "@ " + mem_color.get(group.addr)
     if group_size != -1:
-        group_range += " - " + C.memory.get(group.addr + group_size)
+        group_range += " - " + mem_color.get(group.addr + group_size)
 
     output = from_properties(
         "group",
@@ -109,7 +114,7 @@ def dump_group(group: mallocng.Group) -> str:
     return output
 
 
-def dump_meta(meta: mallocng.Meta, focus_slot: Optional[int] = None) -> str:
+def dump_meta(meta: mallocng.Meta, focus_slot: int | None = None) -> str:
     """
     Arguments:
         meta: the meta to dump
@@ -137,33 +142,33 @@ def dump_meta(meta: mallocng.Meta, focus_slot: Optional[int] = None) -> str:
             Property(name="sizeclass", value=meta.sizeclass, alt_value=f"stride: {meta.stride:#x}"),
             Property(name="maplen", value=meta.maplen),
         ],
-        preamble="@ " + C.memory.get(meta.addr),
+        preamble="@ " + mem_color.get(meta.addr),
     )
 
     if meta.is_donated:
-        output += C.bold("\nGroup donated by ld as unused part of ")
+        output += color.bold("\nGroup donated by ld as unused part of ")
 
         mapping = pwndbg.aglib.vmmap.find(meta.mem)
 
         if mapping is None:
-            output += C.red("<cannot determine>")
+            output += color.red("<cannot determine>")
         else:
-            output += C.bold(f'"{mapping.objfile}"')
+            output += color.bold(f'"{mapping.objfile}"')
 
-        output += C.bold(".\n")
+        output += color.bold(".\n")
 
     elif meta.is_mmaped:
-        output += C.bold("\nGroup allocated with mmap().\n")
+        output += color.bold("\nGroup allocated with mmap().\n")
     else:
         assert meta.is_nested
-        output += C.bold("\nGroup nested in slot of another group")
+        output += color.bold("\nGroup nested in slot of another group")
         try:
             parent_group = meta.parent_group()
             assert parent_group != -1
-            output += " (" + C.memory.get(parent_group) + ")"
+            output += " (" + mem_color.get(parent_group) + ")"
         except pwndbg.dbg_mod.Error as e:
             print(message.error(f"Could not fetch parent group: {e}"))
-        output += C.bold(".\n")
+        output += color.bold(".\n")
 
     # Print the slot statuses.
     slot_statuses = "\nSlot statuses: "
@@ -175,12 +180,12 @@ def dump_meta(meta: mallocng.Meta, focus_slot: Optional[int] = None) -> str:
 
         slot_statuses += this_slot
 
-    slot_statuses = C.bold(slot_statuses + "\n")
+    slot_statuses = color.bold(slot_statuses + "\n")
     # Explain the notation.
     slot_statuses += (
-        f"  ({C.bold(get_colored_slot_state_short(mallocng.SlotState.ALLOCATED))}: Inuse (allocated)"
-        f" / {C.bold(get_colored_slot_state_short(mallocng.SlotState.FREED))}: Freed"
-        f" / {C.bold(get_colored_slot_state_short(mallocng.SlotState.AVAIL))}: Available)\n"
+        f"  ({color.bold(get_colored_slot_state_short(mallocng.SlotState.ALLOCATED))}: Inuse (allocated)"
+        f" / {color.bold(get_colored_slot_state_short(mallocng.SlotState.FREED))}: Freed"
+        f" / {color.bold(get_colored_slot_state_short(mallocng.SlotState.AVAIL))}: Available)\n"
     )
 
     output += slot_statuses
@@ -333,7 +338,7 @@ def dump_slot(
 
 
 def smart_dump_slot(
-    slot: mallocng.Slot, all: bool, gslot: Optional[mallocng.GroupedSlot] = None
+    slot: mallocng.Slot, all: bool, gslot: mallocng.GroupedSlot | None = None
 ) -> str:
     try:
         slot.preload()
@@ -397,19 +402,18 @@ def smart_dump_slot(
         else:
             gslot, fslot = ng.find_slot(slot.p, False, False)
 
-        if gslot is None:
+        if gslot is None or fslot is None:
             output += "Not found.\n\n"
             output += dump_slot(slot, all, False, False)
             return output
+        if fslot.p == slot.p:
+            output += "Found it.\n\n"
         else:
-            if fslot.p == slot.p:
-                output += "Found it.\n\n"
-            else:
-                output += "\nFound a slot with p @ " + C.memory.get(fslot.p) + "."
-                output += " The slot you are looking for\ndoesn't seem to exist. Maybe its group got freed?\n\n"
-                output += "Local memory:\n"
-                output += dump_slot(slot, all, False, False)
-                return output
+            output += "\nFound a slot with p @ " + mem_color.get(fslot.p) + "."
+            output += " The slot you are looking for\ndoesn't seem to exist. Maybe its group got freed?\n\n"
+            output += "Local memory:\n"
+            output += dump_slot(slot, all, False, False)
+            return output
 
     # Now we have a valid gslot.
 
@@ -430,16 +434,16 @@ def dump_meta_area(meta_area: mallocng.MetaArea, coming_from_dump: bool = False)
     else:
         area_range = (
             "@ "
-            + C.memory.get(meta_area.addr)
+            + mem_color.get(meta_area.addr)
             + " - "
-            + C.memory.get(meta_area.addr + meta_area.area_size)
+            + mem_color.get(meta_area.addr + meta_area.area_size)
         )
 
     if coming_from_dump:
         slots = ""
         slots_is_addr = False
         # Don't color according to mapping.
-        next_prop = Property(name="next", value=hex(meta_area.next), value_color_func=C.normal)
+        next_prop = Property(name="next", value=hex(meta_area.next), value_color_func=color.normal)
     else:
         slots = meta_area.slots
         slots_is_addr = True
@@ -506,36 +510,12 @@ def dump_malloc_context(ctx: mallocng.MallocContext) -> str:
         ]
     )
 
-    ctx_addr = "@ " + C.memory.get(ctx.addr)
+    ctx_addr = "@ " + mem_color.get(ctx.addr)
     output = from_properties("ctx", props, preamble=ctx_addr, value_offset=22)
 
     return output
 
 
-parser = argparse.ArgumentParser(
-    description="""
-Dump information about a mallocng slot, given its user address.
-    """,
-)
-parser.add_argument(
-    "address",
-    type=int,
-    help="The start of user memory. Referred to as `p` in the source.",
-)
-parser.add_argument(
-    "-a",
-    "--all",
-    action="store_true",
-    help="Print out all information. Including meta and group data.",
-)
-
-
-@pwndbg.commands.Command(
-    parser,
-    category=CommandCategory.MUSL,
-    aliases=["ng-slotu"],
-)
-@pwndbg.commands.OnlyWhenRunning
 def mallocng_slot_user(address: int, all: bool) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
@@ -545,30 +525,6 @@ def mallocng_slot_user(address: int, all: bool) -> None:
     print(smart_dump_slot(slot, all, None), end="")
 
 
-parser = argparse.ArgumentParser(
-    description="""
-Dump information about a mallocng slot, given its start address.
-    """,
-)
-parser.add_argument(
-    "address",
-    type=int,
-    help="The start of the slot (not including IB).",
-)
-parser.add_argument(
-    "-a",
-    "--all",
-    action="store_true",
-    help="Print out all information. Including meta and group data.",
-)
-
-
-@pwndbg.commands.Command(
-    parser,
-    category=CommandCategory.MUSL,
-    aliases=["ng-slots"],
-)
-@pwndbg.commands.OnlyWhenRunning
 def mallocng_slot_start(address: int, all: bool) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
@@ -578,24 +534,6 @@ def mallocng_slot_start(address: int, all: bool) -> None:
     print(smart_dump_slot(slot, all, None), end="")
 
 
-parser = argparse.ArgumentParser(
-    description="""
-Print out information about a mallocng group given the address of its meta.
-    """,
-)
-parser.add_argument(
-    "address",
-    type=int,
-    help="The address of the meta object.",
-)
-
-
-@pwndbg.commands.Command(
-    parser,
-    category=CommandCategory.MUSL,
-    aliases=["ng-meta"],
-)
-@pwndbg.commands.OnlyWhenRunning
 def mallocng_meta(address: int) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
@@ -619,32 +557,7 @@ def mallocng_meta(address: int) -> None:
     print(dump_meta(meta), end="")
 
 
-parser = argparse.ArgumentParser(
-    description="""
-Print out information about a mallocng group at the given address.
-    """,
-)
-parser.add_argument(
-    "address",
-    type=int,
-    help="The address of the group object.",
-)
-parser.add_argument(
-    "-i",
-    "--index",
-    type=int,
-    default=None,
-    help="Print start address of slot at given index (0-indexed).",
-)
-
-
-@pwndbg.commands.Command(
-    parser,
-    category=CommandCategory.MUSL,
-    aliases=["ng-group"],
-)
-@pwndbg.commands.OnlyWhenRunning
-def mallocng_group(address: int, index: Optional[int] = None) -> None:
+def mallocng_group(address: int, index: int | None = None) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
         return
@@ -663,7 +576,7 @@ def mallocng_group(address: int, index: Optional[int] = None) -> None:
         if index < 0:
             print(message.error("Index is negative."))
             return
-        print(f"Start of slot {index} is @ " + C.memory.get(group.at_index(index)))
+        print(f"Start of slot {index} is @ " + mem_color.get(group.at_index(index)))
 
     try:
         meta = group.meta
@@ -683,32 +596,7 @@ def mallocng_group(address: int, index: Optional[int] = None) -> None:
         return
 
 
-parser = argparse.ArgumentParser(
-    description="""
-Print out a mallocng meta_area object at the given address.
-    """,
-)
-parser.add_argument(
-    "address",
-    type=int,
-    help="The address of the meta_area object.",
-)
-parser.add_argument(
-    "-i",
-    "--index",
-    type=int,
-    default=None,
-    help="Print address of meta at given index (0-indexed).",
-)
-
-
-@pwndbg.commands.Command(
-    parser,
-    category=CommandCategory.MUSL,
-    aliases=["ng-metaarea", "ng-ma"],
-)
-@pwndbg.commands.OnlyWhenRunning
-def mallocng_meta_area(address: int, index: Optional[int] = None) -> None:
+def mallocng_meta_area(address: int, index: int | None = None) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
         return
@@ -723,7 +611,7 @@ def mallocng_meta_area(address: int, index: Optional[int] = None) -> None:
                 print(message.error("\nIndex is negative."))
                 return
 
-            print(f"\nMeta {index} is @ " + C.memory.get(meta_area.at_index(index)))
+            print(f"\nMeta {index} is @ " + mem_color.get(meta_area.at_index(index)))
 
             if index >= meta_area.nslots:
                 print(
@@ -736,31 +624,13 @@ def mallocng_meta_area(address: int, index: Optional[int] = None) -> None:
         return
 
 
-parser = argparse.ArgumentParser(
-    description="""
-Print out the mallocng __malloc_context (ctx) object.
-    """,
-)
-parser.add_argument(
-    "address",
-    nargs="?",
-    type=int,
-    help="Use the provided address instead of the one Pwndbg found.",
-)
-
-
-@pwndbg.commands.Command(
-    parser,
-    category=CommandCategory.MUSL,
-    aliases=["ng-ctx"],
-)
-@pwndbg.commands.OnlyWhenRunning
-def mallocng_malloc_context(address: Optional[int] = None) -> None:
+def mallocng_malloc_context(address: int | None = None) -> None:
     if address is None:
         if not ng.init_if_needed():
             print(message.error("Couldn't find the allocator, aborting the command."))
             return
 
+        assert ng.ctx, "Successful init but ctx is not set?"
         ctx = ng.ctx
     else:
         if not memory.is_readable_address(address):
@@ -776,51 +646,6 @@ def mallocng_malloc_context(address: Optional[int] = None) -> None:
     print(dump_malloc_context(ctx), end="")
 
 
-parser = argparse.ArgumentParser(
-    description="""
-Find slot which contains the given address.
-
-Returns the `start` of the slot. We say a slot 'contains'
-an address if the address is in [start, start + stride).
-    """,
-)
-parser.add_argument(
-    "address",
-    type=int,
-    help="The address to look for.",
-)
-parser.add_argument(
-    "-a",
-    "--all",
-    action="store_true",
-    help="Print out all information. Including meta and group data.",
-)
-parser.add_argument(
-    "-m",
-    "--metadata",
-    action="store_true",
-    help=(
-        "If the given address falls onto some in-band metadata, return the slot which owns that metadata."
-        " In other words, the containment check becomes [start - IB, end)."
-    ),
-)
-parser.add_argument(
-    "-s",
-    "--shallow",
-    action="store_true",
-    help=(
-        "Return the biggest slot which contains this address, don't recurse for smaller slots. The group "
-        " which owns this slot will not be a nested group."
-    ),
-)
-
-
-@pwndbg.commands.Command(
-    parser,
-    category=CommandCategory.MUSL,
-    aliases=["ng-find"],
-)
-@pwndbg.commands.OnlyWhenRunning
 def mallocng_find(
     address: int, all: bool = False, metadata: bool = False, shallow: bool = False
 ) -> None:
@@ -848,12 +673,12 @@ def bin_ascii(bs: bytearray):
     return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 
-vis_cyclic_offset_color = C.YELLOW
-vis_offset_color = C.LIGHT_YELLOW
-vis_cycled_mark_color = C.PURPLE
-vis_pn3_reserved_color = C.LIGHT_CYAN
-vis_big_offset_check_color = C.BLACK
-vis_ftr_reserved_color = C.GREEN
+vis_cyclic_offset_color = color.YELLOW
+vis_offset_color = color.LIGHT_YELLOW
+vis_cycled_mark_color = color.PURPLE
+vis_pn3_reserved_color = color.LIGHT_CYAN
+vis_big_offset_check_color = color.BLACK
+vis_ftr_reserved_color = color.GREEN
 
 
 def colorize_pointer(
@@ -871,14 +696,14 @@ def colorize_pointer(
         # Yes, bold the parts that are.
         boldable_bytes = min(slot.p + slot.nominal_size - address, ptrsize)
         plain_part = out[: (-2 * boldable_bytes)]
-        bold_part = C.bold(out[(-2 * boldable_bytes) :])
+        bold_part = color.bold(out[(-2 * boldable_bytes) :])
         out = plain_part + bold_part
 
     # Are we in the p header of this slot?
     if address == slot.p - ptrsize:
-        offset_part = C.colorize(out[:4], vis_offset_color)
-        pn3_part = C.colorize(out[4:6], vis_pn3_reserved_color)
-        big_offset_part = C.colorize(out[6:8], vis_big_offset_check_color)
+        offset_part = color.colorize(out[:4], vis_offset_color)
+        pn3_part = color.colorize(out[4:6], vis_pn3_reserved_color)
+        big_offset_part = color.colorize(out[6:8], vis_big_offset_check_color)
         plain_part = out[8:]
 
         out = offset_part + pn3_part + big_offset_part + plain_part
@@ -888,7 +713,7 @@ def colorize_pointer(
         # Highlight ftr reserved if it is used.
         if slot.reserved_in_header == 5:
             plain_part = out[:8]
-            ftr_reserved_part = C.colorize(out[8:], vis_ftr_reserved_color)
+            ftr_reserved_part = color.colorize(out[8:], vis_ftr_reserved_color)
             out = plain_part + ftr_reserved_part
 
     return out
@@ -906,13 +731,13 @@ def colorize_start_header_line(shline: str, state: mallocng.SlotState, slot: mal
     if slot.start != slot.p:
         # A cycled slot. The offset has completely different meaning
         # than in p header. The hdr_res has kinda~ different meaning.
-        offset_part = C.colorize(rightvalplus[:4], vis_cyclic_offset_color)
-        sorpn3 = C.colorize(rightvalplus[4:6], vis_cycled_mark_color)
+        offset_part = color.colorize(rightvalplus[:4], vis_cyclic_offset_color)
+        sorpn3 = color.colorize(rightvalplus[4:6], vis_cycled_mark_color)
     else:
-        offset_part = C.colorize(rightvalplus[:4], vis_offset_color)
-        sorpn3 = C.colorize(rightvalplus[4:6], vis_pn3_reserved_color)
+        offset_part = color.colorize(rightvalplus[:4], vis_offset_color)
+        sorpn3 = color.colorize(rightvalplus[4:6], vis_pn3_reserved_color)
 
-    big_offset_part = C.colorize(rightvalplus[6:8], vis_big_offset_check_color)
+    big_offset_part = color.colorize(rightvalplus[6:8], vis_big_offset_check_color)
     plain_part = rightvalplus[8:]
 
     out = (
@@ -936,7 +761,7 @@ def line_decoration(addr: int, slot_state: mallocng.SlotState, slot: mallocng.Sl
     if addr != slot.p - 2 * pwndbg.aglib.typeinfo.ptrsize:
         return ""
 
-    return "   " + C.colorize(
+    return "   " + color.colorize(
         f"{slot.idx} + ({slot.reserved_in_header} << 5)", vis_pn3_reserved_color
     )
 
@@ -949,30 +774,8 @@ default_vis_count = pwndbg.config.add_param(
     scope=pwndbg.lib.config.Scope.heap,
 )
 
-parser = argparse.ArgumentParser(
-    description="""Visualize slots in a group.""",
-)
-parser.add_argument(
-    "address",
-    type=int,
-    help="Address which is inside some slot.",
-)
-parser.add_argument(
-    "count",
-    type=int,
-    default=default_vis_count,
-    nargs="?",  # Optional
-    help="The amount of slots to visualize.",
-)
 
-
-@pwndbg.commands.Command(
-    parser,
-    category=CommandCategory.MUSL,
-    aliases=["ng-vis"],
-)
-@pwndbg.commands.OnlyWhenRunning
-def mallocng_visualize_slots(address: int, count: int = default_vis_count):
+def mallocng_visualize_slots(address: int, count: int = int(default_vis_count)):
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
 
     if ptrsize != 8:
@@ -989,7 +792,7 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
 
     first_grouped_slot, first_slot = ng.find_slot(address, False, False)
 
-    if first_slot is None:
+    if first_grouped_slot is None or first_slot is None:
         print(message.info("No slot found containing that address."))
         return
 
@@ -997,8 +800,8 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
     meta: mallocng.Meta = first_grouped_slot.meta
     first_idx: int = first_grouped_slot.idx
 
-    print("group @ " + C.memory.get(group.addr))
-    print("meta @ " + C.memory.get(meta.addr))
+    print("group @ " + mem_color.get(group.addr))
+    print("meta @ " + mem_color.get(meta.addr))
 
     if first_idx + count >= meta.cnt:
         if count != default_vis_count:
@@ -1011,12 +814,12 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
 
         count = meta.cnt - first_idx
 
-    cyc_offset_part = C.colorize("cyclic offset", vis_cyclic_offset_color)
-    cycled_mark_part = C.colorize("cycled mark", vis_cycled_mark_color)
-    offset_part = C.colorize("offset", vis_offset_color)
-    pn3_part = C.colorize("p[-3] = idx + (hdr reserved << 5)", vis_pn3_reserved_color)
-    big_offset_part = C.colorize("big offset mark", vis_big_offset_check_color)
-    ftr_reserved_part = C.colorize("ftr reserved", vis_ftr_reserved_color)
+    cyc_offset_part = color.colorize("cyclic offset", vis_cyclic_offset_color)
+    cycled_mark_part = color.colorize("cycled mark", vis_cycled_mark_color)
+    offset_part = color.colorize("offset", vis_offset_color)
+    pn3_part = color.colorize("p[-3] = idx + (hdr reserved << 5)", vis_pn3_reserved_color)
+    big_offset_part = color.colorize("big offset mark", vis_big_offset_check_color)
+    ftr_reserved_part = color.colorize("ftr reserved", vis_ftr_reserved_color)
 
     legend = (
         "LEGEND: "
@@ -1035,24 +838,24 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
     )
     legend += (
         "LEGEND: "
-        + C.colorize("allo", state_alloc_color)
-        + C.colorize("cated", state_alloc_color_alt)
+        + color.colorize("allo", state_alloc_color)
+        + color.colorize("cated", state_alloc_color_alt)
         + "; "
-        + C.colorize("fr", state_freed_color)
-        + C.colorize("eed", state_freed_color_alt)
+        + color.colorize("fr", state_freed_color)
+        + color.colorize("eed", state_freed_color_alt)
         + "; "
-        + C.colorize("avai", state_avail_color)
-        + C.colorize("lable", state_avail_color_alt)
+        + color.colorize("avai", state_avail_color)
+        + color.colorize("lable", state_avail_color_alt)
         + "\n"
     )
     print(legend)
 
-    out: List[str] = []  # List of lines.
+    out: list[str] = []  # List of lines.
     last_color = "nothing"
 
     # Add the line before the start of the first slot, to include its start header.
     shline_addr = group.at_index(first_idx) - 2 * ptrsize
-    shline_bytes = pwndbg.aglib.memory.read(shline_addr, ptrsize * 2)
+    shline_bytes = memory.read(shline_addr, ptrsize * 2)
     leftptr = pwndbg.aglib.arch.unpack(shline_bytes[:ptrsize])
     rightptr = pwndbg.aglib.arch.unpack(shline_bytes[ptrsize:])
     out.append(
@@ -1076,7 +879,7 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
             except pwndbg.dbg_mod.Error as e:
                 print(
                     message.error(
-                        f"Error while reading slot {idx} @ {C.memory.get(start_address)}: {e}"
+                        f"Error while reading slot {idx} @ {mem_color.get(start_address)}: {e}"
                     )
                 )
                 return
@@ -1092,7 +895,7 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
         # Make the output line by line (advance 0x10 bytes at a time).
         cur_address = start_address
         while cur_address < next_start_address:
-            line_bytes = pwndbg.aglib.memory.read(cur_address, ptrsize * 2)
+            line_bytes = memory.read(cur_address, ptrsize * 2)
             leftptr = pwndbg.aglib.arch.unpack(line_bytes[:ptrsize])
             rightptr = pwndbg.aglib.arch.unpack(line_bytes[ptrsize:])
 
@@ -1101,7 +904,7 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
             line_out += "\t0x" + colorize_pointer(cur_address + ptrsize, rightptr, slot_state, slot)
             line_out += f"\t{bin_ascii(line_bytes)}"
 
-            line_out = pwndbg.color.colorize(line_out, cur_slot_color)
+            line_out = color.colorize(line_out, cur_slot_color)
             line_out += line_decoration(cur_address, slot_state, slot)
 
             out.append(line_out)
@@ -1113,43 +916,12 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
     print("\n".join(out))
 
 
-parser = argparse.ArgumentParser(
-    description="""
-Dump the mallocng heap.
-
-May produce lots of output.
-    """,
-)
-parser.add_argument(
-    "-ma", "--meta-area", type=int, help="Dump only the meta area at the provided address."
-)
-
-
-@pwndbg.commands.Command(
-    parser,
-    category=CommandCategory.MUSL,
-    aliases=["ng-dump"],
-    notes=(
-        f"""
-Since the command may produce lots of output, you may want to pipe it to
-less with `| ng-dump | less -R`.
-
-The [index] next to the metas is their index in the doubly linked list
-pointed to by ctx.freed_meta_head. The [index] next to the slots is
-the slot's index inside of its group (thus, these will always be sequential).
-
-Notice that the pointers in the output of this command aren't colored according
-to their mapping's color but rather according to the object's allocation status.
-Color legend: {C.colorize("allocated", state_alloc_color)}; """
-        f'{C.colorize("freed", state_freed_color)}; {C.colorize("available", state_avail_color)}.'
-    ),
-)
-@pwndbg.commands.OnlyWhenRunning
-def mallocng_dump(meta_area: Optional[int] = None) -> None:
+def mallocng_dump(meta_area: int | None = None) -> None:
     if not ng.init_if_needed():
         print(message.error("Couldn't find the allocator, aborting the command."))
         return
 
+    assert ng.ctx, "Successful init but ctx is not set?"
     ctx: mallocng.MallocContext = ng.ctx
 
     try:
@@ -1187,12 +959,14 @@ def mallocng_dump(meta_area: Optional[int] = None) -> None:
             if meta_addr in free_metas:
                 print(
                     meta_padding
-                    + C.colorize(f"{meta_addr:#x} [{free_metas[meta_addr][0]}]", state_freed_color)
+                    + color.colorize(
+                        f"{meta_addr:#x} [{free_metas[meta_addr][0]}]", state_freed_color
+                    )
                 )
             elif ng.meta_is_avail(meta_addr):
-                print(meta_padding + C.colorize(f"{meta_addr:#x}", state_avail_color))
+                print(meta_padding + color.colorize(f"{meta_addr:#x}", state_avail_color))
             else:
-                print(meta_padding + C.colorize(f"{meta_addr:#x}", state_alloc_color), end="")
+                print(meta_padding + color.colorize(f"{meta_addr:#x}", state_alloc_color), end="")
 
                 try:
                     meta = mallocng.Meta(meta_addr)
@@ -1212,7 +986,9 @@ def mallocng_dump(meta_area: Optional[int] = None) -> None:
                     sstate = meta.slotstate_at_index(idx)
                     cur_slot_color = get_slot_color(sstate)
                     print(
-                        slot_padding + C.colorize(f"{slot_addr:#x}", cur_slot_color) + f" [{idx}]"
+                        slot_padding
+                        + color.colorize(f"{slot_addr:#x}", cur_slot_color)
+                        + f" [{idx}]"
                     )
                     idx += 1
 
@@ -1226,99 +1002,104 @@ def mallocng_dump(meta_area: Optional[int] = None) -> None:
             break
 
 
-@pwndbg.commands.Command(
-    "Gives a quick explanation of musl's mallocng allocator.",
-    category=CommandCategory.MUSL,
-    aliases=["ng-explain"],
-)
 def mallocng_explain() -> None:
     txt = (
-        C.bold("mallocng")
+        color.bold("mallocng")
         + ' is a slab allocator. The "unit of allocation" is called a '
-        + C.bold("slot")
+        + color.bold("slot")
         + "\n"
     )
     txt += '(the equivalent of glibc\'s "chunk"). Slots are in 0x10 granularity and\n'
     txt += (
-        "alignment. The slots are organized into objects called " + C.bold('"groups"') + " (the \n"
+        "alignment. The slots are organized into objects called "
+        + color.bold('"groups"')
+        + " (the \n"
     )
     txt += "slabs). Each group is composed of slots of the same size. If a group is big\n"
     txt += "it is allocated using mmap, otherwise it is allocated as a slot of a larger\n"
     txt += "group.\n\n"
 
     txt += "Each group has some associated metadata. This metadata is stored in a separate\n"
-    txt += "object called " + C.bold('"meta"') + ". Metas are allocated separately from groups in\n"
-    txt += C.bold('"meta areas"') + " to make it harder to reach them during exploitation.\n\n"
+    txt += (
+        "object called "
+        + color.bold('"meta"')
+        + ". Metas are allocated separately from groups in\n"
+    )
+    txt += color.bold('"meta areas"') + " to make it harder to reach them during exploitation.\n\n"
 
     txt += "Here are the definitions of group, meta and meta_area.\n\n"
 
-    txt += C.bold("struct group {\n")
+    txt += color.bold("struct group {\n")
     txt += "  // the metadata of this group\n"
-    txt += C.bold("  struct meta *meta;\n")
+    txt += color.bold("  struct meta *meta;\n")
     txt += "  unsigned char active_idx:5;\n"
     txt += "  char pad[UNIT - sizeof(struct meta *) - 1];\n"
     txt += "  // start of the slots array\n"
-    txt += C.bold("  unsigned char storage[];\n")
-    txt += C.bold("};\n\n")
+    txt += color.bold("  unsigned char storage[];\n")
+    txt += color.bold("};\n\n")
 
-    txt += C.bold("struct meta {\n")
+    txt += color.bold("struct meta {\n")
     txt += "  // doubly linked list connecting meta's\n"
-    txt += C.bold("  struct meta *prev, *next;\n")
+    txt += color.bold("  struct meta *prev, *next;\n")
     txt += "  // which group is this metadata for\n"
-    txt += C.bold("  struct group *mem;\n")
+    txt += color.bold("  struct group *mem;\n")
     txt += "  // slot bitmap\n"
     txt += "  //   avail - slots which have not yet been allocated\n"
     txt += "  //   freed - free slots\n"
-    txt += C.bold("  volatile int avail_mask, freed_mask;\n")
+    txt += color.bold("  volatile int avail_mask, freed_mask;\n")
     txt += "  uintptr_t last_idx:5;\n"
     txt += "  uintptr_t freeable:1;\n"
     txt += "  // describes the size of the slots\n"
-    txt += C.bold("  uintptr_t sizeclass:6;\n")
+    txt += color.bold("  uintptr_t sizeclass:6;\n")
     txt += "  // if this group was mmaped, how many pages did we use?\n"
     txt += "  uintptr_t maplen:8*sizeof(uintptr_t)-12;\n"
-    txt += C.bold("};\n\n")
+    txt += color.bold("};\n\n")
 
-    txt += C.bold("struct meta_area {\n")
+    txt += color.bold("struct meta_area {\n")
     txt += "  uint64_t check;\n"
     txt += "  struct meta_area *next;\n"
     txt += "  int nslots;\n"
     txt += "  // start of the meta array\n"
-    txt += C.bold("  struct meta slots[];\n")
-    txt += C.bold("};\n\n")
+    txt += color.bold("  struct meta slots[];\n")
+    txt += color.bold("};\n\n")
 
     txt += (
-        "Two other important definitions are " + C.bold("IB") + " and " + C.bold("UNIT") + ".\n\n"
+        "Two other important definitions are "
+        + color.bold("IB")
+        + " and "
+        + color.bold("UNIT")
+        + ".\n\n"
     )
 
     txt += "// the aforementioned slot alignment.\n"
-    txt += C.bold("#define UNIT 16\n")
+    txt += color.bold("#define UNIT 16\n")
     txt += "// the size of the in-band metadata.\n"
-    txt += C.bold("#define IB 4\n\n")
+    txt += color.bold("#define IB 4\n\n")
 
     txt += "The allocator state is stored in the global `ctx` variable which is of\n"
     txt += "type `struct malloc_context`. It is accessible through the __malloc_context\n"
     txt += "symbol.\n\n"
 
-    txt += C.bold("struct malloc_context {\n")
-    txt += C.bold("  uint64_t secret;\n")
+    txt += color.bold("struct malloc_context {\n")
+    txt += color.bold("  uint64_t secret;\n")
     txt += "#ifndef PAGESIZE\n"
     txt += "  size_t pagesize;\n"
     txt += "#endif\n"
     txt += "  int init_done;\n"
     txt += "  unsigned mmap_counter;\n"
-    txt += C.bold("  struct meta *free_meta_head;\n")
-    txt += C.bold("  struct meta *avail_meta;\n")
+    txt += color.bold("  struct meta *free_meta_head;\n")
+    txt += color.bold("  struct meta *avail_meta;\n")
     txt += "  size_t avail_meta_count, avail_meta_area_count, meta_alloc_shift;\n"
-    txt += C.bold("  struct meta_area *meta_area_head, *meta_area_tail;\n")
-    txt += C.bold("  unsigned char *avail_meta_areas;\n")
+    txt += color.bold("  struct meta_area *meta_area_head, *meta_area_tail;\n")
+    txt += color.bold("  unsigned char *avail_meta_areas;\n")
     txt += '  // the "active" group for each sizeclass\n'
     txt += "  // it will be picked for allocation\n"
-    txt += C.bold("  struct meta *active[48];\n")
+    txt += color.bold("  struct meta *active[48];\n")
     txt += "  size_t usage_by_class[48];\n"
     txt += "  uint8_t unmap_seq[32], bounces[32];\n"
     txt += "  uint8_t seq;\n"
     txt += "  uintptr_t brk;\n"
-    txt += C.bold("};\n\n")
+    txt += color.bold("};\n\n")
 
     txt += "Here is a diagram of how these components interact.\n\n"
 
@@ -1372,75 +1153,317 @@ def mallocng_explain() -> None:
 Unfortunately, musl doesn't provide a struct which describes the
 slot's in-band metadata. It does however use consistent variable
 names to describe the values saved in slots, so we will use those
-as well. Check the {C.bold('enframe()')} function in the source, it is very
+as well. Check the {color.bold("enframe()")} function in the source, it is very
 important.
 
-{C.bold('idx')} is the index of the slot within its group. The {C.bold("stride")} of
+{color.bold("idx")} is the index of the slot within its group. The {color.bold("stride")} of
 a group is (generally) determined by the sizeclass as
-{C.bold("UNIT * size_classes[meta.sizeclass]")}. {C.bold("start")} is the starting
+{color.bold("UNIT * size_classes[meta.sizeclass]")}. {color.bold("start")} is the starting
 address of the slot (the slot0, slot1, ... in the above diagram).
-The start of a slot with index i is {C.bold("group.storage + i * stride")}.
+The start of a slot with index i is {color.bold("group.storage + i * stride")}.
 The "nominal size" is the amount of memory the user requested with
-their malloc() call, in the source it is also referred to as {C.bold("n")}.
+their malloc() call, in the source it is also referred to as {color.bold("n")}.
 
 For every slot in a group, the memory in [start - IB, start) contains
 some metadata that we will call the "start header". For this reason,
-the {C.bold("end")} of a slot is calculated as {C.bold("start + stride - IB")}. The
-{C.bold("slack")} of a slot is calculated as {C.bold("(stride - n - IB) / UNIT")} and
+the {color.bold("end")} of a slot is calculated as {color.bold("start + stride - IB")}. The
+{color.bold("slack")} of a slot is calculated as {color.bold("(stride - n - IB) / UNIT")} and
 describes the amount of unused memory within a slot.
 
 To prevent double-frees and exploitation attempts, the mallocng
 allocator performs "cycling" i.e. the actual start of user data
 (the pointer returned by malloc) can be at some offset from the
-{C.bold("start")} of the slot. The start of user data is called {C.bold("p")} and it
-is also UNIT aligned. We will call the distance between {C.bold("p")} and
-{C.bold("start")} the "cyclic offset" ({C.bold("off")} in code). When calculating
-the cyclic offset, mallocng ensures {C.bold("off <= slack")}.
+{color.bold("start")} of the slot. The start of user data is called {color.bold("p")} and it
+is also UNIT aligned. We will call the distance between {color.bold("p")} and
+{color.bold("start")} the "cyclic offset" ({color.bold("off")} in code). When calculating
+the cyclic offset, mallocng ensures {color.bold("off <= slack")}.
 
 If a slot is in fact cycled, then that is stored in the start
-header as {C.bold("off = *(uint16_t*)(start-2)")} and {C.bold("start[-3] = 7 << 5")}.
-The {C.bold("start[-3]")} field acts as a flag.
+header as {color.bold("off = *(uint16_t*)(start-2)")} and {color.bold("start[-3] = 7 << 5")}.
+The {color.bold("start[-3]")} field acts as a flag.
 
 For every slot, the memory in [p - IB, p) contains some metadata.
 We will call this the "p header". If the slot is not cycled i.e.
-{C.bold("start == p")}, then [start - IB, start) will contain the p header
+{color.bold("start == p")}, then [start - IB, start) will contain the p header
 fields and start[-3] >> 5 will *not* be 7.
 
-The value in {C.bold("*(uint16_t*)(p-2)")} is the {C.bold("offset")} from the slot's
-{C.bold("start")} to the start of the group (divided by UNIT). The value
-in {C.bold("p[-4]")} is either 0 or 1 and describes if a "big offset" should
+The value in {color.bold("*(uint16_t*)(p-2)")} is the {color.bold("offset")} from the slot's
+{color.bold("start")} to the start of the group (divided by UNIT). The value
+in {color.bold("p[-4]")} is either 0 or 1 and describes if a "big offset" should
 be used. It is usually zero and gets set to one only in some cases
 in aligned_alloc(). If it is 1, the offset is to be calculated as
-{C.bold("*(uint32_t *)(p - 8)")}.
+{color.bold("*(uint32_t *)(p - 8)")}.
 
-{C.bold("p[-3]")} contains multiple pieces of information. If {C.bold("p[-3] == 0xFF")}
+{color.bold("p[-3]")} contains multiple pieces of information. If {color.bold("p[-3] == 0xFF")}
 the slot is freed. Otherwise, the lower 5 bits of p[-3] describe
-the index of the slot in its group: {C.bold("idx = p[-3] & 31")}. The top
-3 bits desribed the {C.bold("reserved")} area size. This is the memory
-between the end of user memory and {C.bold("end")} i.e. {C.bold("reserved = end - p - n")}.
+the index of the slot in its group: {color.bold("idx = p[-3] & 31")}. The top
+3 bits desribed the {color.bold("reserved")} area size. This is the memory
+between the end of user memory and {color.bold("end")} i.e. {color.bold("reserved = end - p - n")}.
 
-We will call the value {C.bold("p[-3] >> 5")}, "hdr reserved" for "reserved as
+We will call the value {color.bold("p[-3] >> 5")}, "hdr reserved" for "reserved as
 specified in the p header". It can happen however, that the value
-{C.bold("reserved = end - p - n")} is large and so doesn't fit in the three
+{color.bold("reserved = end - p - n")} is large and so doesn't fit in the three
 bits in p[-3]. In this case "hdr reserved" will be strictly 5, which
 denotes that we need to look at the slot's footer to read the actual
-value of {C.bold("reserved")}. As a special case, if {C.bold("p[-3] >> 5 == 6")} that
+value of {color.bold("reserved")}. As a special case, if {color.bold("p[-3] >> 5 == 6")} that
 doesn't describe the reserved size at all, but specifies that there
-is a group nested inside this slot. {C.bold("p[-3] >> 5")} should never be 7,
-contrary to {C.bold("start[-3] >> 5")}.
+is a group nested inside this slot. {color.bold("p[-3] >> 5")} should never be 7,
+contrary to {color.bold("start[-3] >> 5")}.
 
 The "footer" of a slot is the third and final area of a slot's
 memory where metadata is contained. This is the [end - 4, end)
 area. It only contains the reserved size as
-{C.bold("reserved = *(const uint32_t *)(end-4)")} when {C.bold("p[-3] >> 5 == 5")}.
+{color.bold("reserved = *(const uint32_t *)(end-4)")} when {color.bold("p[-3] >> 5 == 5")}.
 
 All of the above is only generally true for allocated slots. Mallocng
-ensures {C.bold("p[-3] = 0xFF")} and {C.bold("*(uint16_t *)(p - 2) = 0")} for freed slots,
+ensures {color.bold("p[-3] = 0xFF")} and {color.bold("*(uint16_t *)(p - 2) = 0")} for freed slots,
 which makes the start of the slot's group (and thus meta) unreachable.
-Only in this case does {C.bold("p[-3] >> 5")} become 7. Available slots,
+Only in this case does {color.bold("p[-3] >> 5")} become 7. Available slots,
 i.e. those that haven't been allocated nor freed yet (but are ready
 for allocation), have almost no guarantees on their data and
 metadata contents.
 """
 
     print(txt)
+
+
+parser = argparse.ArgumentParser(
+    description="Utility for inspecting the mallocng (musl) allocator."
+)
+subparsers = parser.add_subparsers(dest="command")
+subparsers.required = True
+
+explain_parser = subparsers.add_parser(
+    "explain",
+    description="Gives a quick explanation of musl's mallocng allocator.",
+    help="Gives a quick explanation of musl's mallocng allocator.",
+)
+
+dump_parser = subparsers.add_parser(
+    "dump",
+    description=f"""
+Dump the mallocng heap.
+
+Since the command may produce lots of output, you may want to pipe it to
+less with `| ng-dump | less -R`.
+
+The [index] next to the metas is their index in the doubly linked list
+pointed to by ctx.freed_meta_head. The [index] next to the slots is
+the slot's index inside of its group (thus, these will always be sequential).
+
+Notice that the pointers in the output of this command aren't colored according
+to their mapping's color but rather according to the object's allocation status.
+Color legend: {color.colorize("allocated", state_alloc_color)}; """
+    f"""{color.colorize("freed", state_freed_color)}; {color.colorize("available", state_avail_color)}.
+""",
+    help="Dump the mallocng heap.",
+)
+dump_parser.add_argument(
+    "-ma", "--meta-area", type=int, help="Dump only the meta area at the provided address."
+)
+
+vis_parser = subparsers.add_parser(
+    "vis",
+    description="Visualize slots in a group.",
+    help="Visualize slots in a group.",
+)
+vis_parser.add_argument(
+    "address",
+    type=int,
+    help="Address which is inside some slot.",
+)
+vis_parser.add_argument(
+    "count",
+    type=int,
+    default=default_vis_count,
+    nargs="?",  # Optional
+    help="The amount of slots to visualize.",
+)
+
+find_parser = subparsers.add_parser(
+    "find",
+    description="""
+Find slot which contains the given address.
+
+Returns the `start` of the slot. We say a slot 'contains'
+an address if the address is in [start, start + stride).
+    """,
+    help="Find slot which contains the given address.",
+)
+find_parser.add_argument(
+    "address",
+    type=int,
+    help="The address to look for.",
+)
+find_parser.add_argument(
+    "-a",
+    "--all",
+    action="store_true",
+    default=False,
+    help="Print out all information. Including meta and group data.",
+)
+find_parser.add_argument(
+    "-m",
+    "--metadata",
+    action="store_true",
+    default=False,
+    help=(
+        "If the given address falls onto some in-band metadata, return the slot which owns that metadata."
+        " In other words, the containment check becomes [start - IB, end)."
+    ),
+)
+find_parser.add_argument(
+    "-s",
+    "--shallow",
+    action="store_true",
+    default=False,
+    help=(
+        "Return the biggest slot which contains this address, don't recurse for smaller slots. The group "
+        " which owns this slot will not be a nested group."
+    ),
+)
+
+ctx_parser = subparsers.add_parser(
+    "ctx",
+    description="Print out the mallocng __malloc_context (ctx) object.",
+    help="Print out the mallocng __malloc_context (ctx) object.",
+)
+ctx_parser.add_argument(
+    "address",
+    nargs="?",
+    type=int,
+    help="Use the provided address instead of the one Pwndbg found.",
+)
+
+metaarea_parser = subparsers.add_parser(
+    "metaarea",
+    aliases=["ma"],
+    description="Print out a mallocng meta_area object at the given address.",
+    help="Print out a mallocng meta_area object at the given address.",
+)
+metaarea_parser.add_argument(
+    "address",
+    type=int,
+    help="The address of the meta_area object.",
+)
+metaarea_parser.add_argument(
+    "-i",
+    "--index",
+    type=int,
+    default=None,
+    help="Print address of meta at given index (0-indexed).",
+)
+
+group_parser = subparsers.add_parser(
+    "group",
+    description="Print out information about a mallocng group at the given address.",
+    help="Print out information about a mallocng group at the given address.",
+)
+group_parser.add_argument(
+    "address",
+    type=int,
+    help="The address of the group object.",
+)
+group_parser.add_argument(
+    "-i",
+    "--index",
+    type=int,
+    default=None,
+    help="Print start address of slot at given index (0-indexed).",
+)
+
+meta_parser = subparsers.add_parser(
+    "meta",
+    description="Print out information about a mallocng group given the address of its meta.",
+    help="Print out information about a mallocng group given the address of its meta.",
+)
+meta_parser.add_argument(
+    "address",
+    type=int,
+    help="The address of the meta object.",
+)
+
+slots_parser = subparsers.add_parser(
+    "slots",
+    description="Dump information about a mallocng slot, given its start address.",
+    help="Dump information about a mallocng slot, given its start address.",
+)
+slots_parser.add_argument(
+    "address",
+    type=int,
+    help="The start of the slot (not including IB).",
+)
+slots_parser.add_argument(
+    "-a",
+    "--all",
+    action="store_true",
+    default=False,
+    help="Print out all information. Including meta and group data.",
+)
+
+slotu_parser = subparsers.add_parser(
+    "slotu",
+    description="Dump information about a mallocng slot, given its user address.",
+    help="Dump information about a mallocng slot, given its user address.",
+)
+slotu_parser.add_argument(
+    "address",
+    type=int,
+    help="The start of user memory. Referred to as `p` in the source.",
+)
+slotu_parser.add_argument(
+    "-a",
+    "--all",
+    action="store_true",
+    default=False,
+    help="Print out all information. Including meta and group data.",
+)
+
+
+@pwndbg.commands.Command(
+    parser, command_name="mallocng", aliases=["ng"], category=CommandCategory.ALLOCATORS
+)
+def mallocng_command(
+    command: str,
+    meta_area: int | None = None,
+    address: int | None = None,
+    count: int = int(default_vis_count),
+    all: bool = False,
+    metadata: bool = False,
+    shallow: bool = False,
+    index: int | None = None,
+) -> None:
+    if command == "explain":
+        mallocng_explain()
+        return
+
+    if not pwndbg.aglib.proc.alive():
+        print(message.error("mallocng: The program is not being run."))
+        return
+
+    match command:
+        case "dump":
+            mallocng_dump(meta_area)
+        case "vis":
+            assert address is not None
+            mallocng_visualize_slots(address, count)
+        case "find":
+            assert address is not None
+            mallocng_find(address, all, metadata, shallow)
+        case "ctx":
+            mallocng_malloc_context(address)
+        case "metaarea":
+            assert address is not None
+            mallocng_meta_area(address, index)
+        case "group":
+            assert address is not None
+            mallocng_group(address, index)
+        case "meta":
+            assert address is not None
+            mallocng_meta(address)
+        case "slots":
+            assert address is not None
+            mallocng_slot_start(address, all)
+        case "slotu":
+            assert address is not None
+            mallocng_slot_user(address, all)

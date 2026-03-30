@@ -1,69 +1,72 @@
 [project]
 name = "pwndbg"
-version = "2025.05.30"
+version = "2026.02.18"
 description = "Exploit Development and Reverse Engineering with GDB Made Easy"
 authors = [{ name = "Dominik 'disconnect3d' Czarnota", email = "dominik.b.czarnota+dc@gmail.com" }]
-requires-python = "~=3.10"
+requires-python = ">=3.10, <4"
 readme = "README.md"
 dependencies = [
-    "capstone==6.0.0a5",
-    "unicorn>=2.1.3,<3",
-    "pwntools>=4.14.0,<5",
+    "capstone6pwndbg==6.0.0a6",
+    "unicorn>=2.1.4,<3",
+    "pwntools>=4.14.1,<5",
     "sortedcontainers>=2.4.0,<3",
     "tabulate>=0.9.0,<0.10",
-    "typing-extensions>=4.12.0,<5",
-    "pycparser~=2.22",
-    "pyelftools>=0.29,<0.30",
-    "pygments>=2.18.0,<3",
+    "typing-extensions>=4.15.0,<5",
+    "pycparser~=3.0",
+    "pyelftools>=0.32,<0.33",
+    "pygments>=2.19.2,<3",
     "psutil>=7.0.0,<8",
     # We install uv to the venv
-    "uv>=0.7.6",
+    "uv>=0.8.14",
     # Optional? only for 'ipi' command
-    "ipython>=8.27.0,<9",
+    "ipython>=8.37.0,<9",
     # Optional? only for 'ropgadget' command
-    "ropgadget==7.3",
+    "ropgadget==7.6",
     # Optional? only for 'ai' commands
-    "requests>=2.32.3,<3",
+    "requests>=2.32.5,<3",
     # Optional? only for pretty print traceback
-    "rich>=13.7.1,<14",
+    "rich>=14.1.0,<15",
     # Optional? only for qemu-system vmmap
-    "pt",
+    "pt @ git+https://github.com/martinradev/gdb-pt-dump@50227bda0b6332e94027f811a15879588de6d5cb",
     # Optional? 'ziglang' must be optional, as it is not available on every platform.
     # It is only used for the 'cymbol' command and some `asm` functionality.
-    "ziglang==0.14.1",
+    "ziglang==0.14.1 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
+    # Used for symbol syncing (e.g. klookup --apply and decompiler integration)
+    "niche-elf==0.3.6",
+    # This dep is optional.
+    # For installing the decompiler plugins (we don't actually use it as a python library).
+    # If you bump this, also bump the pwndbg/commands/decompiler_integration.py:d2d_required* variables.
+    "decomp2dbg==3.14.1",
 ]
 
 [project.optional-dependencies]
 lldb = [
-    # The LLDB REPL requires readline.
-    'gnureadline>=8.2.10,<9; sys_platform != "win32"',
+    # Optional? for better LLDB REPL behaviour on python builds that use libeedit.
+    'gnureadline>=8.2.13,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
-    "lldb-for-pwndbg==20.1.8.post1",
+    "lldb-for-pwndbg==22.1.0.post2",
 ]
 gdb = [
-    "gdb-for-pwndbg==16.3.0.post1",
+    "gdb-for-pwndbg==17.1.0.post2",
 ]
 
 [dependency-groups]
 dev = [
-    "sortedcontainers-stubs>=2.4.2,<3",
-    "types-pygments>=2.17.0.20240310,<3",
-    "types-requests>=2.31.0.20240406,<3",
+    "sortedcontainers-stubs>=2.4.3,<3",
+    "types-pygments>=2.19.0.20250809,<3",
+    "types-requests>=2.32.4.20250809,<3",
     "types-tabulate>=0.9.0.20240106,<0.10",
     "types-gdb>=12.1.4.20240704,<13",
     "types-psutil>=7.0.0.20250601,<8",
 ]
 lint = [
-    # Newer mypy has more types to fix. Please fix types in the future.
-    "mypy==1.13.0",
-    "isort>=5.13.2,<6",
-    "ruff>=0.4.1,<0.5",
+    "mypy>=1.18.2,<2",
+    "ruff==0.14.10",
     "vermin>=1.6.0,<2",
 ]
 tests = [
     # Newer versions of pytest break CI on GitHub
     "pytest==8.0.2",
-    "pytest-cov>=4.1.0,<5",
     "coverage[toml]>=7.5.0,<8",
 ]
 docs = [
@@ -84,6 +87,25 @@ docs = [
     "mkdocs-awesome-nav",
 ]
 
+[tool.uv.sources]
+uv = [
+  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
+]
+ruff = [
+  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
+]
+lldb-for-pwndbg = [
+  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
+]
+gdb-for-pwndbg = [
+  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
+]
+
+[[tool.uv.index]]
+name = "loong64"
+url = "https://mirrors.loong64.com/pypi/simple"
+explicit = true
+
 [tool.ruff]
 line-length = 100
 
@@ -96,15 +118,17 @@ select = [
     "F",      # pyflakes
     "W",      # pycodestyle
     "C4",     # flake8-comprehensions
+    "I",      # isort
     "ISC",    # flake8-implicit-str-concat
     "SLOT",   # flake8-slots
     "FLY",    # flynt
     "PGH",    # pygrep-hooks
+    "RET505", # flake8-return: superfluous-else-return
     "RET506", # flake8-return: superfluous-else-raise
     "RET507", # flake8-return: superfluous-else-continue
     "RET508", # flake8-return: superfluous-else-break
+    "UP",      # pyugprade
     # We want to enable the below lints, but they currently return too many errors
-    # "RET505", # flake8-return: superfluous-else-return
     # "SLF" # flake8-self
     # "SIM", # flake8-simplify
     # "PTH", # flake8-use-pathlib
@@ -112,9 +136,6 @@ select = [
 
 [tool.uv]
 default-groups = []
-
-[tool.uv.sources]
-pt = { git = "https://github.com/martinradev/gdb-pt-dump", rev = "50227bda0b6332e94027f811a15879588de6d5cb" }
 
 [tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = [
@@ -133,11 +154,28 @@ builtins-ignorelist = [
     "type",
 ]
 
+[tool.ruff.lint.isort]
+force-single-line = true
+known-third-party = [
+    "capstone6pwndbg",
+    "unicorn",
+    "pycparser",
+    "gdb",
+    "lldb",
+]
+required-imports = ["from __future__ import annotations"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.hatch.build.targets.sdist]
-include = ["/pwndbg", "/pwndbginit"]
+include = ["/pwndbg", "/pwndbginit", "gdbinit.py"]
 
 [tool.hatch.build.targets.wheel]
 include = ["/pwndbg", "/pwndbginit"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"gdbinit.py" = "share/pwndbg/gdbinit.py"
 
 [project.scripts]
 pwndbg = "pwndbginit.pwndbg_gdb:main"
@@ -148,7 +186,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]
+# FIXME
+"pwndbg/gdblib/__init__.py" = ["F401"]
 
 [tool.mypy]
 strict_optional = false
@@ -176,7 +215,6 @@ disable_error_code = ["name-defined"]
 
 [[tool.mypy.overrides]]
 module = [
-    "pwndbg.aglib.arch",
     "pwndbg.color.*",
     "pwndbg.commands.context",
     "pwndbg.commands.cymbol",
@@ -216,8 +254,12 @@ module = ["pwndbg.aglib.disasm.*"]
 disable_error_code = ["index", "name-defined", "attr-defined"]
 
 [[tool.mypy.overrides]]
+module = ["tests.*"]
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
 module = [
-    "capstone.*",
+    "capstone6pwndbg.*",
     "unicorn.*",
     "pwnlib.*",
     "ropgadget.*",
@@ -229,20 +271,17 @@ module = [
     "pt.*",
     "lldb.*",
     "gnureadline",
+    "decomp2dbg.*",
+    "mdutils.*"
 ]
 ignore_missing_imports = true
 
-[tool.isort]
-profile = "black"
-force_single_line = true
-known_third_party = [
-    "capstone",
-    "unicorn",
-    "pycparser",
-    "gdb",
-    "lldb",
+[[tool.mypy.overrides]]
+module = [
+    "pwndbg.wrappers.readelf",
+    "pwndbg.commands.got",
 ]
-add_imports = "from __future__ import annotations"
+disable_error_code = ["no-untyped-call"]
 
 [tool.coverage.run]
 branch = true

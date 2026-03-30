@@ -3,19 +3,19 @@ from __future__ import annotations
 import os
 import shlex
 import sys
+from collections.abc import Callable
+from collections.abc import Coroutine
 from enum import Enum
 from pathlib import Path
 from typing import Any
-from typing import Callable
-from typing import Coroutine
-from typing import Dict
-from typing import List
+
+import pytest
 
 
 async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> None:
     # We only import this here, as pwndbg-lldb is responsible for setting Pwndbg
     # up on our behalf.
-    from pwndbg.dbg.lldb.repl import PwndbgController
+    from pwndbg.dbg_mod.lldb.repl import PwndbgController
 
     from ...host import Controller
 
@@ -28,8 +28,11 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             self.pc = pc
 
         async def launch(
-            self, binary: Path, args: List[str] = [], env: Dict[str, str] = {}
+            self, binary: Path, args: list[str] = [], env: dict[str, str] = {}
         ) -> None:
+            if not os.path.exists(binary):
+                pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
+
             await self.pc.execute("set context-reserve-lines never")
             await self.pc.execute(f"target create {binary}")
             env_args = " ".join((f"-E{k}={v}" for k, v in env.items()))
@@ -50,7 +53,11 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             )
 
         async def step_instruction(self) -> None:
+            # Since LLDB 21+, `step-inst` will stop on breakpoints too.. so `step-instr` will not move forward
+            # See: https://github.com/llvm/llvm-project/issues/160219
+            await self.pc.execute("break disable")
             await self.pc.execute("thread step-inst")
+            await self.pc.execute("break enable")
 
         async def finish(self) -> None:
             await self.pc.execute("thread step-out")
@@ -58,12 +65,21 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
         async def select_thread(self, tid: int) -> None:
             await self.pc.execute(f"thread select {tid}")
 
+        async def disable_debuginfod(self) -> None:
+            # Could also consider disabling `symbols.enable-external-lookup`
+            await self.pc.execute("settings clear plugin.symbol-locator.debuginfod.server-urls")
+
+        async def generate_core_file(self, path: Path) -> None:
+            await self.pc.execute(f"process save-core {path}")
+            await self.pc.execute("target delete")
+            await self.pc.execute(f"target create --core {path}")
+
     await outer(_LLDBController(ctrl))
 
 
-def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> int:
+def run(pytest_args: list[str], pytest_plugins: list[Any] | None) -> int:
     # The import path is set up before this function is called.
-    os.environ["NO_COLOR"] = "1"
+    os.environ.setdefault("NO_COLOR", "1")
 
     from pwndbginit import pwndbg_lldb
 
@@ -123,7 +139,9 @@ if __name__ == "__main__":
             # is careful.
             assert test_name
 
-            pytest_args = [test_name, "-vvv", "-s", "--showlocals", "--color=yes"]
+            # pytest_args = [test_name, "-vvv", "-s", "--showlocals", "--color=yes"]
+            color = "no" if os.environ.get("NO_COLOR") == "1" else "yes"
+            pytest_args = [test_name, "-vvv", "-s", "--showlocals", f"--color={color}"]
             if os.environ["TEST_PDB_ON_FAIL"] == "1":
                 pytest_args.append("--pdb")
 

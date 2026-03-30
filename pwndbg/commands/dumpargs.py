@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import argparse
-from typing import List
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.commands
-import pwndbg.commands.telescope
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -27,11 +25,11 @@ def dumpargs(force: bool = False) -> None:
     else:
         print("Couldn't resolve call arguments from registers.")
         print(
-            f"Detected ABI: {pwndbg.aglib.arch.name} ({pwndbg.aglib.arch.ptrsize * 8} bit) either doesn't pass arguments through registers or is not implemented. Maybe they are passed on the stack?"
+            f"Detected ABI: {pwndbg.aglib.arch.name} ({pwndbg.aglib.arch.ptrbits} bit) either doesn't pass arguments through registers or is not implemented. Maybe they are passed on the stack?"
         )
 
 
-def call_args() -> List[str]:
+def call_args() -> list[str]:
     """
     Returns list of resolved call argument strings for display.
     Attempts to resolve the target and determine the number of arguments.
@@ -46,13 +44,13 @@ def call_args() -> List[str]:
     ]
 
 
-def all_args() -> List[str]:
+def all_args() -> list[str]:
     """
     Returns list of all argument strings for display.
     """
-    results: List[str] = []
+    results: list[str] = []
 
     for name, value in pwndbg.arguments.arguments():
-        results.append("%4s = %s" % (name, pwndbg.chain.format(value)))
+        results.append(f"{name:>4} = {pwndbg.chain.format(value)}")
 
     return results

@@ -6,19 +6,20 @@ from __future__ import annotations
 
 import argparse
 import os.path
-from typing import Tuple
 
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
-import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
+import pwndbg.dbg_mod
+import pwndbg.lib.cache
+import pwndbg.lib.memory
 from pwndbg.color import cyan
 from pwndbg.color import green
 from pwndbg.color import red
@@ -35,22 +36,21 @@ def pages_filter(gdbval_or_str):
         return lambda page: module_name in page.objfile
 
     # returns an address filter
-    elif isinstance(gdbval_or_str, integer_types):
+    if isinstance(gdbval_or_str, integer_types):
         addr = gdbval_or_str
         return lambda page: addr in page
 
-    else:
-        raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
+    raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
 
 
-def print_vmmap_table_header() -> None:
+def print_vmmap_table_header(prefix: str = "") -> None:
     """
     Prints the table header for the vmmap command.
     """
     prefer_relpaths = "on" if pwndbg.config.vmmap_prefer_relpaths else "off"
     width = 2 + 2 * pwndbg.aglib.arch.ptrsize
     print(
-        f"{'Start':>{width}} {'End':>{width}} {'Perm'} {'Size':>8} {'Offset':>7} "
+        f"{prefix}{'Start':>{width}} {'End':>{width}} {'Perm'} {'Size':>8} {'Offset':>7} "
         f"{'File'} (set vmmap-prefer-relpaths {prefer_relpaths})"
     )
 
@@ -70,14 +70,14 @@ def print_vmmap_gaps_table_header() -> None:
     print(header)
 
 
-def calculate_total_memory(pages: Tuple[Page, ...]) -> None:
+def calculate_total_memory(pages: tuple[Page, ...]) -> None:
     total = 0
     for page in pages:
         total += page.memsz
     if total > 1024 * 1024:
-        print(f"Total memory mapped: {total:#x} ({total//1024//1024} MB)")
+        print(f"Total memory mapped: {total:#x} ({total // 1024 // 1024} MB)")
     else:
-        print(f"Total memory mapped: {total:#x} ({total//1024} KB)")
+        print(f"Total memory mapped: {total:#x} ({total // 1024} KB)")
 
 
 def gap_text(page: Page) -> str:
@@ -111,7 +111,7 @@ def print_gap(current: Page, last_map: Page):
     )
 
 
-def print_vmmap_gaps(pages: Tuple[Page, ...]) -> None:
+def print_vmmap_gaps(pages: tuple[Page, ...]) -> None:
     """
     Indicates the size of adjacent memory regions and unmapped gaps between them in process memory
     """
@@ -271,8 +271,13 @@ def vmmap(
         print_vmmap_gaps(tuple(total_pages))
         return
 
-    print(M.legend())
-    print_vmmap_table_header()
+    # Determine prefix width for alignment when showing filtered results
+    prefix_str = str(pwndbg.config.backtrace_prefix)
+    empty_prefix = " " * len(prefix_str) if filtered_pages else None
+    header_prefix = f"{empty_prefix} " if filtered_pages else ""
+
+    print(mem_color.legend())
+    print_vmmap_table_header(header_prefix)
 
     shared_cache_first = None
     shared_cache_last = None
@@ -281,13 +286,14 @@ def vmmap(
     def flush_shared_cache_info():
         nonlocal shared_cache_first
         nonlocal shared_cache_last
-        if shared_cache_last is not None:
+        if shared_cache_first is not None and shared_cache_last is not None:
             print(
                 pwndbg.lib.memory.format_address(
                     shared_cache_first.start,
                     shared_cache_last.end - shared_cache_first.start,
                     "---p",
                     shared_cache_first.offset,
+                    pwndbg.aglib.arch.ptrsize,
                     "[DYLD Shared Cache]",
                 )
             )
@@ -308,18 +314,18 @@ def vmmap(
             continue
         flush_shared_cache_info()
 
-        backtrace_prefix = None
+        backtrace_prefix = empty_prefix
         display_text = str(page)
 
         if page in filtered_pages:
             # If page was one of the original results, add an arrow for clarity
-            backtrace_prefix = str(pwndbg.config.backtrace_prefix)
+            backtrace_prefix = prefix_str
 
             # If the page is the only filtered page, insert offset
             if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):
                 display_text = str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)
 
-        print(M.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
+        print(mem_color.get(page.vaddr, text=display_text, prefix=backtrace_prefix, page=page))
 
     flush_shared_cache_info()
     if shared_cache_collapsed > 0:
@@ -369,10 +375,10 @@ def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
             return
         perm |= flag_val
 
-    page = pwndbg.lib.memory.Page(start, size, perm, offset)
+    page = pwndbg.lib.memory.Page(start, size, perm, offset, pwndbg.aglib.arch.ptrsize)
     pwndbg.aglib.vmmap_custom.add_custom_page(page)
 
-    print("%r added" % page)
+    print(f"{page!r} added")
 
 
 parser = argparse.ArgumentParser(description="Explore a page, trying to guess permissions.")
@@ -391,7 +397,7 @@ def vmmap_explore(address: int) -> None:
     old_value = pwndbg.config.auto_explore_pages.value
     pwndbg.config.auto_explore_pages.value = "yes"
     try:
-        pwndbg.aglib.vmmap.find.cache.clear()  # type: ignore[attr-defined]
+        pwndbg.lib.cache.clear_function_cache(pwndbg.aglib.vmmap.find)
         page = pwndbg.aglib.vmmap.find(address)
     finally:
         pwndbg.config.auto_explore_pages.value = old_value
@@ -441,6 +447,7 @@ def vmmap_load(filename) -> None:
     with open(filename, "rb") as f:
         elffile = ELFFile(f)
 
+        ptrsize: int = pwndbg.aglib.arch.ptrsize
         for section in elffile.iter_sections():
             vaddr = section["sh_addr"]
             memsz = section["sh_size"]
@@ -459,10 +466,10 @@ def vmmap_load(filename) -> None:
                 flags |= pwndbg.aglib.elf.PF_X
 
             page = pwndbg.lib.memory.Page(
-                vaddr, memsz, flags, offset, f"[{section.name}]: {file_basename}"
+                vaddr, memsz, flags, offset, ptrsize, f"[{section.name}]: {file_basename}"
             )
             pages.append(page)
 
     for page in pages:
         pwndbg.aglib.vmmap_custom.add_custom_page(page)
-        print("%r added" % page)
+        print(f"{page!r} added")

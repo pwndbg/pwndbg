@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from typing import List
-
+import pwndbg.aglib
 import pwndbg.aglib.nearpc
-import pwndbg.aglib.regs
-import pwndbg.chain
-import pwndbg.color.context as C
+import pwndbg.color.context as ctx_color
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -39,7 +36,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
 
     # Highlight the current line if enabled
     if pwndbg.config.highlight_pc and ins.address == pwndbg.aglib.regs.pc:
-        asm = C.highlight(asm)
+        asm = ctx_color.highlight(asm)
 
     is_call_or_jump = ins.groups & ALL_JUMP_GROUPS
 
@@ -65,20 +62,20 @@ WHITESPACE_LIMIT = 20
 # To making the padding visually nicer, the following padding scheme is used for annotations:
 # All instructions in a group will have the same amount of left-adjusting spaces, so they are aligned.
 # A group is defined as a sequence of instructions surrounded by instructions that can change the instruction pointer.
-def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]:
-    result: List[str] = []
+def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]:
+    result: list[str] = []
 
     cur_padding_len = None
 
     # Stores intermediate padding results so we can do a final pass to clean up edges and jagged parts
     # None if padding doesn't apply to the instruction
-    paddings: List[int | None] = []
+    paddings: list[int | None] = []
 
     # Used for padding. List of groups.
     # Each group is a list of index into paddings list
-    groups: List[List[int]] = []
+    groups: list[list[int]] = []
 
-    current_group: List[int] = []
+    current_group: list[int] = []
 
     for i, (ins, asm) in enumerate(zip(instructions, (one_instruction(i) for i in instructions))):
         if ins.has_jump_target:

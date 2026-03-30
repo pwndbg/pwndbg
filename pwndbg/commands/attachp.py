@@ -5,14 +5,13 @@ import datetime
 import os
 import stat
 import time
-from typing import List
 from typing import NamedTuple
-from typing import Union
 
 import gdb
 from tabulate import tabulate
 
 import pwndbg.commands
+import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.ui import get_window_size
@@ -82,7 +81,7 @@ parser.add_argument(
 import psutil
 
 
-def find_pids(target: str, user: str | None, exact: bool, all: bool) -> List[int]:
+def find_pids(target: str, user: str | None, exact: bool, all: bool) -> list[int]:
     # Note: we can't use `ps -C <target>` because this does not accept process names with spaces
     # so target='a b' would actually match process names 'a' and 'b' here
     # so instead, we will filter by process name or full cmdline later on
@@ -97,7 +96,7 @@ def find_pids(target: str, user: str | None, exact: bool, all: bool) -> List[int
     iter_process = psutil.process_iter(["pid", "name", "cmdline", "username"])
     iter_process = filter(lambda p: p.pid != current_pid, iter_process)
     if user is not None:
-        iter_process = filter(lambda p: proc.username() == user, iter_process)
+        iter_process = filter(lambda p: p.username() == user, iter_process)
 
     for proc in iter_process:
         try:
@@ -121,12 +120,11 @@ def find_pids(target: str, user: str | None, exact: bool, all: bool) -> List[int
 
     if exact and all:
         return pids_exact_match_cmd + pids_partial_match_cmd + pids_partial_match_args
-    elif exact:
+    if exact:
         return pids_exact_match_cmd
-    elif all:
+    if all:
         return pids_exact_match_cmd + pids_partial_match_cmd + pids_partial_match_args
-    else:
-        return pids_exact_match_cmd or pids_partial_match_cmd or pids_partial_match_args
+    return pids_exact_match_cmd or pids_partial_match_cmd or pids_partial_match_args
 
 
 class ProcessInfo(NamedTuple):
@@ -138,11 +136,11 @@ class ProcessInfo(NamedTuple):
 
 
 def resolve_target_process(
-    pids: List[int],
+    pids: list[int],
     method: str,
     no_truncate: bool,
 ) -> int | None:
-    proc_infos: List[ProcessInfo] = []
+    proc_infos: list[ProcessInfo] = []
 
     for pid in pids:
         try:
@@ -169,59 +167,58 @@ def resolve_target_process(
 
     if method == _OLDEST:
         return proc_infos[0].pid
-    elif method == _NEWEST:
+    if method == _NEWEST:
         return proc_infos[-1].pid
+    print(
+        message.warn(
+            f'Multiple processes found. Current resolution method is "{method}". '
+            f"Run `config attachp-resolution-method` to see more information."
+        )
+    )
+
+    headers = ["pid", "user", "elapsed", "command"]
+    showindex: bool | range = False if method == _NONE else range(1, len(proc_infos) + 1)
+
+    # Cast proc_infos for printing
+    table_proc_infos = [
+        [str(o.pid), str(o.user), str(o.elapsed), str(o.command)] for o in proc_infos
+    ]
+
+    # Calculate column width for truncation
+    test_table = tabulate(table_proc_infos, headers=headers, showindex=showindex)
+    table_width = len(test_table.splitlines()[1])
+    max_command_width = max(len(row.command) for row in proc_infos)
+    max_col_widths = max(max_command_width - (table_width - get_window_size()[1]), 10)
+
+    # Truncate commands
+    if not no_truncate:
+        for row in table_proc_infos:
+            row[3] = _truncate_string(row[3], max_col_widths)
+
+    # Show the table
+    msg = tabulate(
+        table_proc_infos, headers=headers, showindex=showindex, maxcolwidths=max_col_widths
+    )
+    print(message.notice(msg))
+
+    if method == _NONE:
+        print(message.warn("Use `attach <pid>` to attach"))
+        return None
+    if method == _ASK:
+        while True:
+            prompt = message.notice(f"Which process to attach to? (1-{len(proc_infos)}) ")
+            try:
+                inp = input(prompt).strip()
+            except EOFError:
+                return None
+            try:
+                choice = int(inp)
+                if 1 <= choice <= len(proc_infos):
+                    return proc_infos[choice - 1].pid
+            except ValueError:
+                continue
     else:
-        print(
-            message.warn(
-                f'Multiple processes found. Current resolution method is "{method}". '
-                f"Run `config attachp-resolution-method` to see more information."
-            )
-        )
-
-        headers = ["pid", "user", "elapsed", "command"]
-        showindex: Union[bool, range] = False if method == _NONE else range(1, len(proc_infos) + 1)
-
-        # Cast proc_infos for printing
-        table_proc_infos = [
-            [str(o.pid), str(o.user), str(o.elapsed), str(o.command)] for o in proc_infos
-        ]
-
-        # Calculate column width for truncation
-        test_table = tabulate(table_proc_infos, headers=headers, showindex=showindex)
-        table_width = len(test_table.splitlines()[1])
-        max_command_width = max(len(row.command) for row in proc_infos)
-        max_col_widths = max(max_command_width - (table_width - get_window_size()[1]), 10)
-
-        # Truncate commands
-        if not no_truncate:
-            for row in table_proc_infos:
-                row[3] = _truncate_string(row[3], max_col_widths)
-
-        # Show the table
-        msg = tabulate(
-            table_proc_infos, headers=headers, showindex=showindex, maxcolwidths=max_col_widths
-        )
-        print(message.notice(msg))
-
-        if method == _NONE:
-            print(message.warn("Use `attach <pid>` to attach"))
-            return None
-        elif method == _ASK:
-            while True:
-                prompt = message.notice(f"Which process to attach to? (1-{len(proc_infos)}) ")
-                try:
-                    inp = input(prompt).strip()
-                except EOFError:
-                    return None
-                try:
-                    choice = int(inp)
-                    if 1 <= choice <= len(proc_infos):
-                        return proc_infos[choice - 1].pid
-                except ValueError:
-                    continue
-        else:
-            raise Exception("unreachable")
+        raise Exception("unreachable")
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.START)
@@ -230,7 +227,7 @@ def attachp(
 ) -> None:
     # As a default, the user may want to attach to a binary name taken from currently loaded file name
     if target is None:
-        bin_path = pwndbg.aglib.proc.exe
+        bin_path = pwndbg.aglib.proc.exe()
         if bin_path is None:
             print(
                 message.error(

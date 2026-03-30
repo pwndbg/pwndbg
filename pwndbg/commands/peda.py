@@ -8,8 +8,6 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.auxv
 import pwndbg.commands
-import pwndbg.commands.context
-import pwndbg.commands.telescope
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -30,10 +28,10 @@ def xuntil(target) -> None:
         addr = target
 
         if not pwndbg.aglib.memory.peek(addr):
-            print(message.error("Invalid address %#x" % addr))
+            print(message.error(f"Invalid address {addr:#x}"))
             return
 
-        spec = "*%#x" % (addr)
+        spec = f"*{addr:#x}"
     except (TypeError, ValueError):
         # The following gdb command will throw an error if the symbol is not defined.
         try:
@@ -44,7 +42,7 @@ def xuntil(target) -> None:
         spec = target
 
     gdb.Breakpoint(spec, temporary=True)
-    if pwndbg.aglib.proc.alive:
+    if pwndbg.aglib.proc.alive():
         gdb.execute("continue", from_tty=False)
     else:
         gdb.execute("run", from_tty=False)

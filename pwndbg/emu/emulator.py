@@ -7,45 +7,43 @@ from __future__ import annotations
 import binascii
 import re
 import string
-from typing import Dict
-from typing import List
 from typing import NamedTuple
-from typing import Tuple
 
-import capstone as C
+import capstone6pwndbg as C
 import unicorn as U
+import unicorn.ppc_const
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.strings
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.enhance as E
-import pwndbg.color.memory as M
-import pwndbg.dbg
+import pwndbg.color.memory as mem_color
+import pwndbg.dbg_mod
+import pwndbg.dintegration
 import pwndbg.enhance
-import pwndbg.integration
 import pwndbg.lib.memory
 import pwndbg.lib.regs
 from pwndbg import color
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color.syntax_highlight import syntax_highlight
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
 
 
-def parse_consts(u_consts) -> Dict[str, int]:
+def parse_consts(u_consts) -> dict[str, int]:
     """
     Unicorn "consts" is a python module consisting of a variable definition
     for each known entity. We repack it here as a dict for performance.
 
     Maps "UC_*" -> integer value of the constant
     """
-    consts: Dict[str, int] = {}
+    consts: dict[str, int] = {}
     for name in dir(u_consts):
         if name.startswith("UC_"):
             consts[name] = getattr(u_consts, name)
@@ -54,14 +52,14 @@ def parse_consts(u_consts) -> Dict[str, int]:
 
 # Generate Map<Register name, unicorn constant>
 def create_reg_to_const_map(
-    base_consts: Dict[str, int], additional_mapping: Dict[str, int] = None
-) -> Dict[str, int]:
+    base_consts: dict[str, int], additional_mapping: dict[str, int] = None
+) -> dict[str, int]:
     # base_consts is Map<"UC_*_REG_", constant>
     # additional mapping is the manually additions that add to the returned dict
 
     # Create a map of "register_name" -> Capstone ID, for faster lookup
     # Example of one field in the mapping for x86: { "RAX": 35 }
-    reg_to_const: Dict[str, int] = {}
+    reg_to_const: dict[str, int] = {}
 
     r = re.compile(r"^UC_.*_REG_(.*)$")
     for k, v in base_consts.items():
@@ -80,22 +78,22 @@ def create_reg_to_const_map(
 
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
-arch_to_UC = {
+arch_to_UC: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, int] = {
     "i386": U.UC_ARCH_X86,
     "x86-64": U.UC_ARCH_X86,
     "mips": U.UC_ARCH_MIPS,
-    "sparc": U.UC_ARCH_SPARC,
+    # "sparc": U.UC_ARCH_SPARC,
     "arm": U.UC_ARCH_ARM,
     "armcm": U.UC_ARCH_ARM,
     "aarch64": U.UC_ARCH_ARM64,
-    # 'powerpc': U.UC_ARCH_PPC,
+    "powerpc": U.UC_ARCH_PPC,
     "rv32": U.UC_ARCH_RISCV,
     "rv64": U.UC_ARCH_RISCV,
     "s390x": U.UC_ARCH_S390X,
 }
 
 # Architecture specific maps: Map<"UC_*_REG_*",constant>
-arch_to_UC_consts = {
+arch_to_UC_consts: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]] = {
     "i386": parse_consts(U.x86_const),
     "x86-64": parse_consts(U.x86_const),
     "mips": parse_consts(U.mips_const),
@@ -103,13 +101,14 @@ arch_to_UC_consts = {
     "arm": parse_consts(U.arm_const),
     "armcm": parse_consts(U.arm_const),
     "aarch64": parse_consts(U.arm64_const),
+    "powerpc": parse_consts(unicorn.ppc_const),
     "rv32": parse_consts(U.riscv_const),
     "rv64": parse_consts(U.riscv_const),
     "s390x": parse_consts(U.s390x_const),
 }
 
 # Architecture specific maps: Map<reg_name, Unicorn constant>
-arch_to_reg_const_map = {
+arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]] = {
     "i386": create_reg_to_const_map(arch_to_UC_consts["i386"]),
     "x86-64": create_reg_to_const_map(
         arch_to_UC_consts["x86-64"],
@@ -122,14 +121,53 @@ arch_to_reg_const_map = {
     "aarch64": create_reg_to_const_map(
         arch_to_UC_consts["aarch64"], {"CPSR": U.arm64_const.UC_ARM64_REG_NZCV}
     ),
+    "powerpc": create_reg_to_const_map(
+        arch_to_UC_consts["powerpc"],
+        {
+            "R0": unicorn.ppc_const.UC_PPC_REG_0,
+            "SP": unicorn.ppc_const.UC_PPC_REG_1,
+            "R2": unicorn.ppc_const.UC_PPC_REG_2,
+            "R3": unicorn.ppc_const.UC_PPC_REG_3,
+            "R4": unicorn.ppc_const.UC_PPC_REG_4,
+            "R5": unicorn.ppc_const.UC_PPC_REG_5,
+            "R6": unicorn.ppc_const.UC_PPC_REG_6,
+            "R7": unicorn.ppc_const.UC_PPC_REG_7,
+            "R8": unicorn.ppc_const.UC_PPC_REG_8,
+            "R9": unicorn.ppc_const.UC_PPC_REG_9,
+            "R10": unicorn.ppc_const.UC_PPC_REG_10,
+            "R11": unicorn.ppc_const.UC_PPC_REG_11,
+            "R12": unicorn.ppc_const.UC_PPC_REG_12,
+            "R13": unicorn.ppc_const.UC_PPC_REG_13,
+            "R14": unicorn.ppc_const.UC_PPC_REG_14,
+            "R15": unicorn.ppc_const.UC_PPC_REG_15,
+            "R16": unicorn.ppc_const.UC_PPC_REG_16,
+            "R17": unicorn.ppc_const.UC_PPC_REG_17,
+            "R18": unicorn.ppc_const.UC_PPC_REG_18,
+            "R19": unicorn.ppc_const.UC_PPC_REG_19,
+            "R20": unicorn.ppc_const.UC_PPC_REG_20,
+            "R21": unicorn.ppc_const.UC_PPC_REG_21,
+            "R22": unicorn.ppc_const.UC_PPC_REG_22,
+            "R23": unicorn.ppc_const.UC_PPC_REG_23,
+            "R24": unicorn.ppc_const.UC_PPC_REG_24,
+            "R25": unicorn.ppc_const.UC_PPC_REG_25,
+            "R26": unicorn.ppc_const.UC_PPC_REG_26,
+            "R27": unicorn.ppc_const.UC_PPC_REG_27,
+            "R28": unicorn.ppc_const.UC_PPC_REG_28,
+            "R29": unicorn.ppc_const.UC_PPC_REG_29,
+            "R30": unicorn.ppc_const.UC_PPC_REG_30,
+            "R31": unicorn.ppc_const.UC_PPC_REG_31,
+        },
+    ),
     "rv32": create_reg_to_const_map(arch_to_UC_consts["rv32"]),
     "rv64": create_reg_to_const_map(arch_to_UC_consts["rv64"]),
     "s390x": create_reg_to_const_map(arch_to_UC_consts["s390x"]),
 }
 
 # Architectures for which we want to enable virtual TLB mode
-enable_virtual_tlb = {
+enable_virtual_tlb: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, bool] = {
     "s390x": True,
+    "powerpc": True,
+    "sparc": True,
 }
 
 # combine the flags with | operator. -1 for all
@@ -235,7 +273,7 @@ class Emulator:
             debug(DEBUG_INIT, "# Setting TLB mode to virtual")
             self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
 
-        self.regs: pwndbg.lib.regs.RegisterSet = pwndbg.aglib.regs.current
+        self.reg_set: pwndbg.lib.regs.RegisterSet = pwndbg.aglib.regs.current
 
         # Whether the emulator is allowed to emulate instructions
         # There are cases when the emulator is incorrect or we want to disable it for certain instruction types,
@@ -254,7 +292,7 @@ class Emulator:
         self.last_single_step_result = InstructionExecutedResult(None, None)
 
         # Initialize the register state
-        for emu_reg in self.regs.emulated_regs_order:
+        for emu_reg in self.reg_set.emulated_regs_order:
             reg = emu_reg.name
             enum = self.get_reg_enum(reg)
 
@@ -265,7 +303,7 @@ class Emulator:
             if reg in blacklisted_regs:
                 debug(DEBUG_INIT, "Skipping blacklisted register %r", reg)
                 continue
-            value = getattr(pwndbg.aglib.regs, reg)
+            value = pwndbg.aglib.regs.read_reg(reg)
             if None in (enum, value):
                 if reg not in blacklisted_regs:
                     debug(DEBUG_INIT, "# Could not set register %r", reg)
@@ -305,6 +343,9 @@ class Emulator:
 
         return None
         # raise AttributeError(f"AttributeError: {self!r} object has no register {name!r}")
+
+    def pc(self) -> int:
+        return self.read_register(self.reg_set.pc)
 
     # Read size worth of memory, return None on error
     def read_memory(self, address: int, size: int) -> bytes | None:
@@ -348,7 +389,7 @@ class Emulator:
     # Recursively dereference memory, return list of addresses
     # read_size typically must be either 1, 2, 4, or 8. It dictates the size to read
     # Naturally, if it is less than the pointer size, then only one value would be telescoped
-    def telescope(self, address: int, limit: int, read_size: int = None) -> List[int]:
+    def telescope(self, address: int, limit: int, read_size: int = None) -> list[int]:
         read_size = read_size if read_size is not None else pwndbg.aglib.arch.ptrsize
 
         result = [address]
@@ -379,7 +420,7 @@ class Emulator:
         return self.format_telescope_list(address_list, limit)
 
     def format_telescope_list(
-        self, chain: List[int], limit: int, enhance_string_len: int = None
+        self, chain: list[int], limit: int, enhance_string_len: int = None
     ) -> str:
         # Code is near identical to pwndbg.chain.format, but takes into account reading from
         # the emulator's memory when necessary
@@ -392,7 +433,7 @@ class Emulator:
             symbol = pwndbg.aglib.symbol.resolve_addr(link) or None
             if symbol:
                 symbol = f"{link:#x} ({symbol})"
-            rest.append(M.get(link, symbol))
+            rest.append(mem_color.get(link, symbol))
 
         # If the dereference limit is zero, skip any enhancements.
         if limit == 0:
@@ -438,10 +479,6 @@ class Emulator:
         # For the purpose of following pointers, don't display
         # anything on the stack or heap as 'code'
         if "[stack" in page.objfile or "[heap" in page.objfile:
-            rwx = exe = False
-
-        # If integration doesn't think it's in a function, don't display it as code.
-        if not pwndbg.integration.provider.is_in_function(value):
             rwx = exe = False
 
         if exe:
@@ -511,7 +548,7 @@ class Emulator:
         else:
             return E.integer(pwndbg.enhance.int_str(intval0))
 
-        retval_final: Tuple[str] = tuple(filter(lambda x: x is not None, retval))
+        retval_final: tuple[str] = tuple(filter(lambda x: x is not None, retval))
 
         if len(retval_final) == 0:
             return E.unknown("???")
@@ -549,18 +586,10 @@ class Emulator:
 
         return sz[:max_string_len] + "..."
 
-    def __getattr__(self, name: str):
-        reg = self.get_reg_enum(name)
-
-        if reg:
-            return self.uc.reg_read(reg)
-
-        raise AttributeError(f"AttributeError: {self!r} object has no attribute {name!r}")
-
     def update_pc(self, pc=None) -> None:
         if pc is None:
             pc = pwndbg.aglib.regs.pc
-        self.uc.reg_write(self.get_reg_enum(self.regs.pc), pc)
+        self.uc.reg_write(self.get_reg_enum(self.reg_set.pc), pc)
 
     def read_thumb_bit(self) -> int:
         """
@@ -571,13 +600,13 @@ class Emulator:
 
         Return None if the Thumb bit is not relevent to the current architecture
 
-        Mimics the `read_thumb_bit` function defined in aglib/arch.py
+        Mimics the `read_thumb_bit` function defined in aglib/arch_mod.py
         """
         if self.arch == "arm":
-            if (cpsr := self.cpsr) is not None:
+            if (cpsr := self.read_register("cpsr")) is not None:
                 return (cpsr >> 5) & 1
         elif self.arch == "armcm":
-            if (xpsr := self.xpsr) is not None:
+            if (xpsr := self.read_register("xpsr")) is not None:
                 return (xpsr >> 24) & 1
         return 0
 
@@ -591,12 +620,16 @@ class Emulator:
         if arch == "armcm":
             mode |= (
                 (U.UC_MODE_MCLASS | U.UC_MODE_THUMB)
-                if (pwndbg.aglib.regs.xpsr & (1 << 24))
+                if (pwndbg.aglib.regs.read_reg("xpsr") & (1 << 24))
                 else U.UC_MODE_MCLASS
             )
 
         elif arch in ("arm", "aarch64"):
-            mode |= U.UC_MODE_THUMB if (pwndbg.aglib.regs.cpsr & (1 << 5)) else U.UC_MODE_ARM
+            mode |= (
+                U.UC_MODE_THUMB
+                if (pwndbg.aglib.regs.read_reg("cpsr") & (1 << 5))
+                else U.UC_MODE_ARM
+            )
 
         elif (
             arch == "mips"
@@ -604,6 +637,8 @@ class Emulator:
             and "isa32r6" in gdb.newest_frame().architecture().name()
         ):
             mode |= U.UC_MODE_MIPS32R6
+        elif arch == "sparc":
+            mode |= {4: U.UC_MODE_SPARC32, 8: U.UC_MODE_SPARC64}[pwndbg.aglib.arch.ptrsize]
         elif arch == "s390x":
             pass  # fails with invalid mode error otherwise
         else:
@@ -619,6 +654,8 @@ class Emulator:
     def map_page(self, page) -> bool:
         page = pwndbg.lib.memory.page_align(page)
         size = pwndbg.lib.memory.PAGE_SIZE
+
+        # TODO: for Sparc, page size must be 0x2000
 
         debug(DEBUG_MEM_MAP, "# Mapping %#x-%#x", (page, page + size))
 
@@ -675,34 +712,14 @@ class Emulator:
 
         Also supports general registers like 'sp' and 'pc'.
         """
-        if not self.regs:
+        if not self.reg_set:
             return None
 
-        # If we're looking for an exact register ('eax', 'ebp', 'r0') then
-        # we can look those up easily.
-        #
-        #  'eax' ==> enum
-        #
-        # if reg in self.regs.all:
+        # Look up the Unicorn enum for an exact register ('eax', 'ebp', 'r0')
+        # This does not handle aliases, such as "sp" or "pc"
         e = self.const_regs.get(reg.upper(), None)
         if e is not None:
             return e
-
-        # If we're looking for an abstract register which *is* accounted for,
-        # we can also do an indirect lookup.
-        #
-        #   'pc' ==> 'eip' ==> enum
-        #
-        if hasattr(self.regs, reg):
-            return self.get_reg_enum(getattr(self.regs, reg))
-
-        # If we're looking for an abstract register which does not exist on
-        # the RegisterSet objects, we need to do an indirect lookup.
-        #
-        #   'sp' ==> 'stack' ==> 'esp' ==> enum
-        #
-        elif reg == "sp":
-            return self.get_reg_enum(self.regs.stack)
 
         return None
 
@@ -727,7 +744,7 @@ class Emulator:
     def emulate_with_hook(self, hook, count=512) -> None:
         ident = self.hook_add(U.UC_HOOK_CODE, hook)
 
-        pc: int = self.pc
+        pc: int = self.pc()
         # Unicorn appears to disregard the UC_MODE_THUMB mode passed into the constructor, and instead
         # determines Thumb mode based on the PC that is passed to the `emu_start` function
         # https://github.com/unicorn-engine/unicorn/issues/391
@@ -827,7 +844,7 @@ class Emulator:
         )
         self.until_syscall_address = address
 
-    def single_step(self, pc=None, instruction: PwndbgInstruction | None = None) -> Tuple[int, int]:
+    def single_step(self, pc=None, instruction: PwndbgInstruction | None = None) -> tuple[int, int]:
         """Steps one instruction.
 
         Yields:
@@ -842,7 +859,7 @@ class Emulator:
 
         self.last_single_step_result = InstructionExecutedResult(None, None)
 
-        pc = pc or self.pc
+        pc = pc or self.pc()
 
         if instruction is None:
             instruction = pwndbg.aglib.disasm.disassembly.one_raw(pc)
@@ -870,7 +887,7 @@ class Emulator:
 
             # If above call does not throw an Exception, we successfully executed the instruction
             self.last_pc = pc
-            debug(DEBUG_EXECUTING, "Unicorn now at pc=%#x", self.pc)
+            debug(DEBUG_EXECUTING, "Unicorn now at pc=%#x", self.pc())
         except U.unicorn.UcError:
             debug(DEBUG_EXECUTING, "Emulator failed to execute instruction")
             self.last_single_step_result = InstructionExecutedResult(None, None)
@@ -898,24 +915,24 @@ class Emulator:
     # For debugging
     def dumpregs(self) -> None:
         for reg in (
-            list(self.regs.retaddr)
-            + list(self.regs.misc)
-            + list(self.regs.common)
-            + list(self.regs.flags)
+            list(self.reg_set.retaddr)
+            + list(self.reg_set.misc)
+            + list(self.reg_set.common)
+            + list(self.reg_set.flags)
         ):
             enum = self.get_reg_enum(reg)
 
             if not reg or enum is None:
-                print("# Could not dump register %r" % (reg,))
+                print(f"# Could not dump register {reg!r}")
                 continue
 
             name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
             value = self.uc.reg_read(enum)
-            print("uc.reg_read(%s) ==> %x" % (name, value))
+            print(f"uc.reg_read({name}) ==> {value:x}")
 
     def trace_hook(self, _uc, address, instruction_size: int, _user_data) -> None:
         data = binascii.hexlify(self.mem_read(address, instruction_size))
         debug(DEBUG_TRACE, "# trace_hook: %#-8x %r", (address, data))
 
     def __repr__(self) -> str:
-        return f"Valid: {self.valid}, PC: {self.pc:#x}"
+        return f"Valid: {self.valid}, PC: {self.pc():#x}"

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
-from typing import Callable
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 import pwndbg
-import pwndbg.color as color
+import pwndbg.color
+import pwndbg.color.context
+import pwndbg.color.memory
+import pwndbg.lib.config
 from pwndbg.color import theme
 
 max_decimal_number = pwndbg.config.add_param(
@@ -26,8 +26,8 @@ The assembly instruction operands come from capstone, and are thus
 not controlled by this setting. For consistency with them, leave
 this setting at 9 (the default).
 """,
-# We could look into also overwriting the capstone operands string, similarly
-# to what is done here: https://github.com/pwndbg/pwndbg/blob/26db4533aa08d77c4bbc359b4760a0944e0c6b23/pwndbg/aglib/disasm/arch.py#L322-L331
+    # We could look into also overwriting the capstone operands string, similarly
+    # to what is done here: https://github.com/pwndbg/pwndbg/blob/26db4533aa08d77c4bbc359b4760a0944e0c6b23/pwndbg/aglib/disasm/arch.py#L322-L331
 )
 
 
@@ -40,15 +40,14 @@ def int_to_string(num: int) -> str:
     """
     if max_decimal_number == -1:
         return f"{num}"
-    elif max_decimal_number == 0:
+    if max_decimal_number == 0:
         return f"{num:#x}"
-    elif abs(num) > max_decimal_number:
+    if abs(num) > max_decimal_number:
         return f"{num:#x}"
-    else:
-        return f"{num}"
+    return f"{num}"
 
 
-def int_pair_to_string(num1: int, num2: int) -> Tuple[str, str]:
+def int_pair_to_string(num1: int, num2: int) -> tuple[str, str]:
     """
     Converts an integer pair to a string pair.
 
@@ -59,12 +58,11 @@ def int_pair_to_string(num1: int, num2: int) -> Tuple[str, str]:
     """
     if max_decimal_number == -1:
         return f"{num1}", f"{num2}"
-    elif max_decimal_number == 0:
+    if max_decimal_number == 0:
         return f"{num1:#x}", f"{num2:#x}"
-    elif abs(num1) > max_decimal_number or abs(num2) > max_decimal_number:
+    if abs(num1) > max_decimal_number or abs(num2) > max_decimal_number:
         return f"{num1:#x}", f"{num2:#x}"
-    else:
-        return f"{num1}", f"{num2}"
+    return f"{num1}", f"{num2}"
 
 
 config_property_name_color = theme.add_color_param(
@@ -73,7 +71,7 @@ config_property_name_color = theme.add_color_param(
     "color used to highlight the name in name-value pairs",
     help_docstring="""
 Used heavily in mallocng commands.
-"""
+""",
 )
 
 config_property_value_color = theme.add_color_param(
@@ -82,7 +80,7 @@ config_property_value_color = theme.add_color_param(
     "color used to highlight the value in name-value pairs",
     help_docstring="""
 Used heavily in mallocng commands.
-"""
+""",
 )
 
 config_property_title_color = theme.add_color_param(
@@ -91,7 +89,7 @@ config_property_title_color = theme.add_color_param(
     "color used to highlight the title of name-value pair groups",
     help_docstring="""
 Used heavily in mallocng commands.
-"""
+""",
 )
 
 
@@ -112,27 +110,27 @@ class Property:
     # Extra explanation, may be list, e.g.
     #   hdr reserved: 0x5  describes: end - p - n
     #                      use ftr reserved
-    extra: str | List[str] = ""
+    extra: str | list[str] = ""
     # Will print the value as hex and use the address's
     # mapping's color.
     is_addr: bool = False
     # Will turn an integer into its hex representation.
     use_hex: bool = True
     # Override the color used by from_properties().
-    name_color_func: Optional[Callable[[str], str]] = None
-    value_color_func: Optional[Callable[[str], str]] = None
+    name_color_func: Callable[[str], str] | None = None
+    value_color_func: Callable[[str], str] | None = None
 
 
 def from_properties(
     title: str,
-    properties: List[Property],
+    properties: list[Property],
     *,
     preamble: str = "",
     value_offset: int = 14,
     extra_offset: int = 16,
-    title_color_func: Optional[Callable[[str], str]] = None,
-    name_color_func: Optional[Callable[[str], str]] = None,
-    value_color_func: Optional[Callable[[str], str]] = None,
+    title_color_func: Callable[[str], str] | None = None,
+    name_color_func: Callable[[str], str] | None = None,
+    value_color_func: Callable[[str], str] | None = None,
     indent_size: int = 2,
 ) -> str:
     """
@@ -194,24 +192,26 @@ def from_properties(
             prop.alt_value = f"{prop.alt_value:#x}" if prop.use_hex else f"{prop.alt_value}"
 
     indentation_str = indent_size * " "
-    extra_list_pad_str = (
-        indentation_str + value_offset * " " + "  " + extra_offset * " "
-    )
+    extra_list_pad_str = indentation_str + value_offset * " " + "  " + extra_offset * " "
 
     for prop in properties:
         # The property may override the generic color functions.
-        prop_name_cfunc = prop.name_color_func if prop.name_color_func is not None else name_color_func
-        prop_value_cfunc = prop.value_color_func if prop.value_color_func is not None else value_color_func
+        prop_name_cfunc = (
+            prop.name_color_func if prop.name_color_func is not None else name_color_func
+        )
+        prop_value_cfunc = (
+            prop.value_color_func if prop.value_color_func is not None else value_color_func
+        )
 
         text += (
             indentation_str
-            + color.ljust_colored(prop_name_cfunc(prop.name) + ":", value_offset)
+            + pwndbg.color.ljust_colored(prop_name_cfunc(prop.name) + ":", value_offset)
             + "  "
         )
 
         if prop.is_addr:
             base = 16 if prop.use_hex else 10
-            colored_val = color.memory.get(int(prop.value, base))
+            colored_val = pwndbg.color.memory.get(int(prop.value, base))
         else:
             colored_val = prop_value_cfunc(prop.value)
 
@@ -219,7 +219,7 @@ def from_properties(
         if prop.alt_value is not None:
             colored_alt_val = f" ({prop_value_cfunc(prop.alt_value)})"
 
-        text += color.ljust_colored(colored_val + colored_alt_val, extra_offset)
+        text += pwndbg.color.ljust_colored(colored_val + colored_alt_val, extra_offset)
 
         if isinstance(prop.extra, str):
             text += "  " + prop.extra
@@ -236,3 +236,110 @@ def from_properties(
         text += "\n"
 
     return text
+
+
+def nlines_to_range(nlines: int, current: int, total: int) -> tuple[int, int]:
+    """
+    When you want to get nlines of output around a certain interesting line, returns
+    the range to use.
+
+    `end - start` will not be `== nlines` only if `nlines > total`.
+
+    The `current` line may not necessarily be centered in the range, if decentering
+    it gets `end - start` closer to `nlines`.
+
+    Arguments:
+        nlines: The exact amount of lines you want.
+        current: The index of the interesting line (e.g. where PC is in the source context)
+        total: How many lines total you actually have.
+
+    Returns:
+        A tuple giving the range of indecies to use. The format is [start, end).
+    """
+    if nlines > total:
+        return (0, total)
+
+    # Note that in both calculations, ideal_end is exclusive (so we have +1)
+    if nlines % 2 == 1:
+        ideal_start: int = current - (nlines // 2)
+        ideal_end: int = current + (nlines // 2) + 1
+    else:
+        # Since it is impossible to center exactly due to parity, we will make
+        # `current` have the lower index because this is usually more visually pleasing.
+        ideal_start = current - (nlines // 2) + 1
+        ideal_end = current + (nlines // 2) + 1
+
+    # Now it may be that we are outside of the allowed range, but if we are, we
+    # are only outside on one side because we already checked `nlines > total`.
+    if ideal_start < 0:
+        # Now (-ideal_start) is the amount of lines we have to steal from the end
+        # of the range.
+        start = 0
+        # ideal_end + (-ideal_start) = ideal_end - ideal_start
+        end = ideal_end - ideal_start
+        # We don't need to do `end = min(end, total)` because that would imply
+        # that `nlines > total`.
+    elif ideal_end > total:
+        # Now (ideal_end - total) is the amount of lines we have to steal from the start
+        # of the range.
+        # ideal_start - (ideal_end - total) = ideal_start - ideal_end + total
+        start = ideal_start - ideal_end + total
+        end = total
+        # We don't need to do `start = max(start, 0)` because that would imply
+        # that `nlines > total`.
+    else:
+        start = ideal_start
+        end = ideal_end
+
+    return (start, end)
+
+
+def format_source(source: list[str], nlines: int, interesting_line: int) -> list[str]:
+    """
+    Format source code.
+
+    Use correct tab size, add the code prefix (►), add line numbers, align
+    properly.
+
+    Arguments:
+        source: Already highlighted source code. List of lines.
+        nlines: The amount of lines we want back.
+        interesting_line: The line around which to center the output (0-indexed).
+    """
+    start, end = nlines_to_range(nlines, interesting_line, len(source))
+    num_width = len(str(end))
+
+    # split the code
+    source = source[start:end]
+
+    # Compute the prefix_sign length
+    prefix_sign = pwndbg.color.context.prefix(str(pwndbg.config.code_prefix))
+    prefix_width = len(prefix_sign)
+
+    # Format the output
+    formatted_source = []
+    # line_number is 1-indexed (as source code usually is)
+    interesting_line1dx: int = interesting_line + 1
+    for line_number, code in enumerate(source, start=start + 1):
+        # Honor the tab-size setting.
+        if pwndbg.config.context_code_tabstop > 0:
+            code = code.replace("\t", " " * int(pwndbg.config.context_code_tabstop))
+
+        # Remove extra whitespace
+        code = code.rstrip()
+
+        fmt = " {prefix_sign:{prefix_width}} {line_number:>{num_width}} {code}"
+
+        if pwndbg.config.highlight_source and line_number == interesting_line1dx:
+            fmt = pwndbg.color.context.highlight(fmt)
+
+        line = fmt.format(
+            prefix_sign=prefix_sign if line_number == interesting_line1dx else "",
+            prefix_width=prefix_width,
+            line_number=line_number,
+            num_width=num_width,
+            code=code,
+        )
+        formatted_source.append(line)
+
+    return formatted_source

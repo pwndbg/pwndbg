@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
-from typing import Dict
 
+import pwndbg.aglib
+import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -13,7 +15,7 @@ parser.add_argument(
 )
 parser.add_argument("comment", type=str, default=None, help="The text you want to comment")
 
-file_lists: Dict[str, Dict[str, str]] = {}  # This saves all comments.
+file_lists: dict[str, dict[str, str]] = {}  # This saves all comments.
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC)
@@ -26,14 +28,14 @@ def comm(addr=None, comment=None) -> None:
             target = int(addr, 0)
 
             if not pwndbg.aglib.memory.peek(target):
-                print(message.error("Invalid Address %#x" % target))
+                print(message.error(f"Invalid Address {target:#x}"))
 
             else:
-                f.write(f"file:{pwndbg.aglib.proc.exe}=")
+                f.write(f"file:{pwndbg.aglib.proc.exe()}=")
                 f.write(f"{target:#x}:{comment}\n")
-                if pwndbg.aglib.proc.exe not in file_lists:
-                    file_lists[pwndbg.aglib.proc.exe] = {}
-                file_lists[pwndbg.aglib.proc.exe][hex(target)] = comment
+                if pwndbg.aglib.proc.exe() not in file_lists:
+                    file_lists[pwndbg.aglib.proc.exe()] = {}
+                file_lists[pwndbg.aglib.proc.exe()][hex(target)] = comment
     except Exception:
         print(message.error("Permission denied to create file"))
 

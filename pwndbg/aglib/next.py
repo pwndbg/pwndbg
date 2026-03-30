@@ -6,18 +6,22 @@ instruction of some type (call, branch, etc.)
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from itertools import chain
 
-import capstone
+from capstone6pwndbg import CS_GRP_INT
+from capstone6pwndbg import CS_GRP_RET
 
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
+import pwndbg.aglib.vmmap
+import pwndbg.dbg_mod
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import message
-from pwndbg.dbg import BreakpointLocation
+from pwndbg.dbg_mod import BreakpointLocation
 
-interrupts = {capstone.CS_GRP_INT}
+interrupts = {CS_GRP_INT}
 
 
 def next_int(address=None, honor_current_branch=False):
@@ -41,7 +45,7 @@ def next_int(address=None, honor_current_branch=False):
     while ins:
         if ins.jump_like:
             return None
-        elif ins.groups & interrupts:
+        if ins.groups & interrupts:
             return ins
         ins = pwndbg.aglib.disasm.disassembly.one(ins.next)
 
@@ -121,12 +125,12 @@ async def break_next_branch(
     """
     ins = next_branch(address, including_current=including_current)
 
-    proc = pwndbg.dbg.selected_inferior()
+    inf = pwndbg.dbg.selected_inferior()
     if ins:
         # If the branch we found was not at the current program counter, we should step to it.
         # Otherwise, return the current instruction.
         if ins.address != pwndbg.aglib.regs.pc:
-            with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+            with inf.break_at(BreakpointLocation(ins.address), internal=True) as bp:
                 await ec.cont(bp)
         return ins
 
@@ -150,12 +154,39 @@ async def break_next_interrupt(
     return None
 
 
+async def break_next_interrupt_filtered(
+    ec: pwndbg.dbg_mod.ExecutionController,
+    predicate: Callable[[], bool],
+    address: int | None = None,
+    honor_current_branch: bool = False,
+) -> PwndbgInstruction | None:
+    """
+    Break at the next interrupt in the current basic block if it matches the predicate.
+
+    This behaves exactly like break_next_interrupt (stops at basic block boundaries,
+    does not follow branches), but additionally checks the predicate after stopping
+    at the interrupt instruction.
+    """
+    ins: PwndbgInstruction | None = next_int(address, honor_current_branch=honor_current_branch)
+    proc = pwndbg.dbg.selected_inferior()
+    if ins:
+        with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+            await ec.cont(bp)
+        try:
+            if predicate():
+                return ins
+        except Exception:
+            pass
+
+    return None
+
+
 async def break_next_call(ec: pwndbg.dbg_mod.ExecutionController, symbol_regex=None):
     symbol_regex = re.compile(symbol_regex) if symbol_regex else None
 
-    while pwndbg.aglib.proc.alive:
+    while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
-        if pwndbg.aglib.proc.stopped_with_signal:
+        if pwndbg.aglib.proc.stopped_with_signal():
             return
 
         ins = await break_next_branch(ec)
@@ -180,9 +211,9 @@ async def break_next_call(ec: pwndbg.dbg_mod.ExecutionController, symbol_regex=N
 
 
 async def break_next_ret(ec: pwndbg.dbg_mod.ExecutionController, address=None):
-    while pwndbg.aglib.proc.alive:
+    while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
-        if pwndbg.aglib.proc.stopped_with_signal:
+        if pwndbg.aglib.proc.stopped_with_signal():
             return
 
         ins = await break_next_branch(ec, address)
@@ -190,7 +221,7 @@ async def break_next_ret(ec: pwndbg.dbg_mod.ExecutionController, address=None):
         if not ins:
             break
 
-        if capstone.CS_GRP_RET in ins.groups:
+        if CS_GRP_RET in ins.groups:
             return ins
 
 
@@ -205,7 +236,7 @@ async def break_on_next_matching_instruction(
         return False
 
     proc = pwndbg.dbg.selected_inferior()
-    while pwndbg.aglib.proc.alive:
+    while pwndbg.aglib.proc.alive():
         ins = next_matching_until_branch(mnemonic=mnemonic, op_str=op_str)
         if ins is not None:
             if ins.address != pwndbg.aglib.regs.pc:
@@ -215,10 +246,9 @@ async def break_on_next_matching_instruction(
                 with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
                     await ec.cont(bp)
                 return ins
-            else:
-                # We don't want to be spinning in place, nudge execution forward
-                # and try again.
-                pass
+            # We don't want to be spinning in place, nudge execution forward
+            # and try again.
+            pass
         else:
             # Move to the next branch instruction.
             nb = next_branch(pwndbg.aglib.regs.pc, including_current=True)
@@ -231,11 +261,11 @@ async def break_on_next_matching_instruction(
                     # Nudge execution so we take the branch we're on top of.
                     pass
 
-        if pwndbg.aglib.proc.alive:
+        if pwndbg.aglib.proc.alive():
             await ec.single_step()
 
         # Break on signal as it may be a segfault
-        if pwndbg.aglib.proc.stopped_with_signal:
+        if pwndbg.aglib.proc.stopped_with_signal():
             return False
 
     return False
@@ -247,7 +277,7 @@ async def break_on_program_code(ec: pwndbg.dbg_mod.ExecutionController) -> bool:
 
     :return: True for success, False when process ended or when pc is not at the code or if a signal occurred
     """
-    exe = pwndbg.aglib.proc.exe
+    exe = pwndbg.aglib.proc.exe()
     binary_exec_page_ranges = tuple(
         (p.start, p.end) for p in pwndbg.aglib.vmmap.get() if p.objfile == exe and p.execute
     )
@@ -258,12 +288,11 @@ async def break_on_program_code(ec: pwndbg.dbg_mod.ExecutionController) -> bool:
             print(message.error("The pc is already at the binary objfile code. Not stepping."))
             return False
 
-    proc = pwndbg.aglib.proc
     regs = pwndbg.aglib.regs
 
-    while proc.alive:
+    while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
-        if proc.stopped_with_signal:
+        if pwndbg.aglib.proc.stopped_with_signal():
             return False
 
         await break_next_ret(ec)

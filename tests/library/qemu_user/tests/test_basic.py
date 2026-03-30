@@ -25,7 +25,7 @@ def helper(qemu_start_binary, filename: str, arch: str):
     pwndbg.commands.context.context_disasm()
 
     for i in range(NUMBER_OF_STEPS):
-        if not pwndbg.aglib.proc.alive:
+        if not pwndbg.aglib.proc.alive():
             break
         gdb.execute("stepi")
         pwndbg.commands.context.context_disasm()
@@ -48,8 +48,7 @@ def test_basic_riscv32(qemu_start_binary):
 
 
 def test_basic_mips64(qemu_start_binary):
-    # pwnlib.context.endian defaults to "little", but these MIPS binaries are compiled to big endian.
-    helper(qemu_start_binary, "basic.mips64.out", "mips64")
+    helper(qemu_start_binary, "basic.mips64el.out", "mips64el")
 
 
 def test_basic_mips32(qemu_start_binary):
@@ -66,3 +65,7 @@ def test_basic_s390x(qemu_start_binary):
 
 def test_basic_loongarch64(qemu_start_binary):
     helper(qemu_start_binary, "basic.loongarch64.out", "loongarch64")
+
+
+def test_basic_powerpc64le(qemu_start_binary):
+    helper(qemu_start_binary, "basic.powerpc64le.out", "powerpc64le")

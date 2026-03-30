@@ -6,11 +6,10 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Callable
-from typing import Dict
-from typing import List
+from collections.abc import Callable
 from typing import NamedTuple
 
+import pwndbg
 from pwndbg.lib.config import Parameter
 
 from . import theme
@@ -133,6 +132,10 @@ def colorize(x: str, color: str) -> str:
     return color + terminateWith(str(x), color) + NORMAL
 
 
+def nocolor(x: str, color: str) -> str:
+    return x
+
+
 # Taken from https://stackoverflow.com/a/14693789
 ansi_escape_8bit = re.compile(
     r"(?:\x1B[@-Z\\-_]|[\x80-\x9A\x9C-\x9F]|(?:\x1B\[|\x9B)[0-?]*[ -/]*[@-~])"
@@ -148,6 +151,17 @@ disable_colors = theme.add_param(
     bool(os.environ.get("NO_COLOR")),
     "whether to color the output or not",
 )
+
+
+@pwndbg.config.trigger(disable_colors)
+def _disable_colors_trigger():
+    if disable_colors:
+        if not hasattr(colorize, "original_code"):
+            colorize.original_code = colorize.__code__
+        colorize.__code__ = nocolor.__code__
+    else:
+        if hasattr(colorize, "original_code"):
+            colorize.__code__ = colorize.original_code
 
 
 def generateColorFunctionInner(
@@ -166,9 +180,9 @@ class ColorParamSpec(NamedTuple):
 
 
 class ColorConfig:
-    def __init__(self, namespace: str, params: List[ColorParamSpec]) -> None:
+    def __init__(self, namespace: str, params: list[ColorParamSpec]) -> None:
         self._namespace = namespace
-        self._params: Dict[str, theme.ColorParameter] = {}
+        self._params: dict[str, theme.ColorParameter] = {}
         for param in params:
             self._params[param.name] = theme.add_color_param(
                 f"{self._namespace}-{param.name}-color", param.default, param.doc
@@ -183,7 +197,7 @@ class ColorConfig:
 
 
 def generateColorFunction(
-    config: str | Parameter, _globals: Dict[str, Callable[[str], str]] = globals()
+    config: str | Parameter, _globals: dict[str, Callable[[str], str]] = globals()
 ) -> Callable[[object], str]:
     # the `config` here may be a config Parameter object
     # and if we run with disable_colors or if the config value

@@ -59,7 +59,10 @@ def main() -> None:
         print(f"Warning: Cannot set gdb charset: '{e}'")
 
     import pwndbg  # noqa: F811
-    import pwndbg.dbg.gdb
+    import pwndbg.dbg_mod.gdb
+
+    # Mark that pwndbg was loaded from `pwndbg` binary (for double-load detection)
+    setattr(pwndbg, "_is_loaded_from_pwndbg", True)
 
     pwndbg.dbg = pwndbg.dbg_mod.gdb.GDB()
     pwndbg.dbg.setup()

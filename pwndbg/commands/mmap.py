@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import argparse
-from typing import Union
 
-import pwndbg.aglib.file
+import pwndbg.aglib
 import pwndbg.aglib.shellcode
-import pwndbg.chain
+import pwndbg.aglib.vmmap
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.enhance
+import pwndbg.dbg_mod
 import pwndbg.lib.memory
-import pwndbg.wrappers.checksec
-import pwndbg.wrappers.readelf
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -110,7 +107,7 @@ def flag_str_to_val(flagstr):
     return flag_int
 
 
-def parse_str_or_int(val: Union[str, int], parser):
+def parse_str_or_int(val: str | int, parser):
     """
     Try parsing a string with one of the parsers above or by converting it to
     an int, or passes the value through if it is already an integer.
@@ -120,11 +117,10 @@ def parse_str_or_int(val: Union[str, int], parser):
         if candidate != 0:
             return candidate
         return int(val, 0)
-    elif isinstance(val, int):
+    if isinstance(val, int):
         return val
-    else:
-        # Getting here is a bug, we shouldn't be seeing other types at all.
-        raise TypeError(f"invalid type for value: {type(val)}")
+    # Getting here is a bug, we shouldn't be seeing other types at all.
+    raise TypeError(f"invalid type for value: {type(val)}")
 
 
 @pwndbg.commands.Command(
@@ -184,7 +180,7 @@ instead.\
         # need to bother them with any of this information, and get a nice
         # speedup as a bonus.
         if not force:
-            page = pwndbg.lib.memory.Page(addr, int(length), 0, 0)
+            page = pwndbg.lib.memory.Page(addr, int(length), 0, 0, pwndbg.aglib.arch.ptrsize)
             collisions = []
             vm = pwndbg.aglib.vmmap.get()
 
@@ -210,7 +206,7 @@ instead.\
                     m(
                         f"""\
 Trying to mmap with MAP_FIXED for an address range that collides with {len(collisions)}
-existing range{'s' if len(collisions) > 1 else ''}:\
+existing range{"s" if len(collisions) > 1 else ""}:\
 """
                     )
                 )

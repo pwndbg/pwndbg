@@ -4,15 +4,13 @@ Dereference and format pointer chains.
 
 from __future__ import annotations
 
-from typing import List
-
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
+import pwndbg.dbg_mod
+import pwndbg.dintegration
 import pwndbg.enhance
-import pwndbg.integration
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
@@ -40,7 +38,7 @@ def get(
     hard_end: int = 0,
     include_start: bool = True,
     safe_linking: bool = False,
-) -> List[int] | None:
+) -> list[int] | None:
     """
     Recursively dereferences an address. For bare metal, it will stop when the address is not in any of vmmap pages to avoid redundant dereference.
 
@@ -102,7 +100,7 @@ config_contiguous = theme.add_param(
 
 
 def format(
-    value: int | List[int] | None,
+    value: int | list[int] | None,
     limit: int = LIMIT,
     code: bool = True,
     offset: int = 0,
@@ -142,8 +140,13 @@ def format(
     arrow_left = c.arrow(f" {config_arrow_left} ")
     arrow_right = c.arrow(f" {config_arrow_right} ")
 
+    # Ask the decompiler to resolve stack variables
+    stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
+
     # Colorize the chain
-    rest = [M.get_address_and_symbol(addr) if addr >= 0 else "" for addr in chain]
+    rest = [
+        mem_color.get_address_and_symbol(addr, stack_vars) if addr >= 0 else "" for addr in chain
+    ]
 
     # If the dereference limit is zero, skip any enhancements.
     if limit == 0:

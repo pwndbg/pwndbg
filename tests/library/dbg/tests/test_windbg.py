@@ -8,10 +8,8 @@ from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-MEMORY_BINARY = get_binary("memory.out")
-X86_BINARY = get_binary("gosample.x86")
-
-data_addr = "0x401000"
+MEMORY_BINARY = get_binary("memory.native.out")
+X86_BINARY = get_binary("gosample.i386.out")
 
 
 @pwndbg_test
@@ -20,9 +18,15 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     Tests windbg compatibility commands that dump memory
     like dq, dw, db, ds etc.
     """
-    import pwndbg.aglib.regs
+    import pwndbg
+    import pwndbg.aglib
 
     await ctrl.launch(MEMORY_BINARY)
+
+    inf = pwndbg.dbg.selected_inferior()
+    data_addr = hex(int(inf.lookup_symbol("data")))
+    short_str_addr = hex(int(inf.lookup_symbol("short_str")))
+    long_str_addr = hex(int(inf.lookup_symbol("long_str")))
 
     # Try to fail commands in different way
     for cmd_prefix in ("dq", "dd", "dw", "db"):
@@ -45,18 +49,15 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     dq2 = await ctrl.execute_and_capture("dq &data")
     dq3 = await ctrl.execute_and_capture(f"dq {data_addr}")
     dq4 = await ctrl.execute_and_capture(f"dq {data_addr.replace('0x', '')}")
-    assert (
-        dq1
-        == dq2
-        == dq3
-        == dq4
-        == (
-            "0000000000401000     0000000000000000 0000000000000001\n"
-            "0000000000401010     0000000100000002 0001000200030004\n"
-            "0000000000401020     0102030405060708 1122334455667788\n"
-            "0000000000401030     0123456789abcdef 0000000000000000\n"
-        )
+
+    data_addr_int = int(data_addr, 16)
+    expected_dq = (
+        f"{data_addr_int:016x}     0000000000000000 0000000000000001\n"
+        f"{data_addr_int + 0x10:016x}     0000000100000002 0001000200030004\n"
+        f"{data_addr_int + 0x20:016x}     0102030405060708 1122334455667788\n"
+        f"{data_addr_int + 0x30:016x}     0123456789abcdef 0000000000000000\n"
     )
+    assert dq1 == dq2 == dq3 == dq4 == expected_dq
 
     # Try `dq` with different counts
     dq_count1 = await ctrl.execute_and_capture("dq data 2")
@@ -66,29 +67,33 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
         dq_count1
         == dq_count2
         == dq_count3
-        == "0000000000401000     0000000000000000 0000000000000001\n"
+        == f"{data_addr_int:016x}     0000000000000000 0000000000000001\n"
     )
 
     assert (
         await ctrl.execute_and_capture("dq data 1")
-    ) == "0000000000401000     0000000000000000\n"
+        == f"{data_addr_int:016x}     0000000000000000\n"
+    )
     assert (await ctrl.execute_and_capture("dq data 3")) == (
-        "0000000000401000     0000000000000000 0000000000000001\n"
-        "0000000000401010     0000000100000002\n"
+        f"{data_addr_int:016x}     0000000000000000 0000000000000001\n"
+        f"{data_addr_int + 0x10:016x}     0000000100000002\n"
     )
 
     # Try 'dq' with count equal to a register, but lets set it before ;)
     # also note that we use `data2` here
-    pwndbg.aglib.regs.eax = 4
-    assert (await ctrl.execute_and_capture("dq data2 $eax")) == (
-        "0000000000401028     1122334455667788 0123456789abcdef\n"
-        "0000000000401038     0000000000000000 ffffffffffffffff\n"
+    data2_addr_int = int(inf.lookup_symbol("data2"))
+    # Use architecture-appropriate register (eax for x86, w0 for aarch64)
+    test_reg_32 = "w0" if pwndbg.aglib.arch.name == "aarch64" else "eax"
+    pwndbg.aglib.regs.write_reg(test_reg_32, 4)
+    assert (await ctrl.execute_and_capture(f"dq data2 ${test_reg_32}")) == (
+        f"{data2_addr_int:016x}     1122334455667788 0123456789abcdef\n"
+        f"{data2_addr_int + 0x10:016x}     0000000000000000 ffffffffffffffff\n"
     )
 
     # See if we can repeat dq command (use count for shorter data)
-    assert (await ctrl.execute_and_capture("dq data2 2")) == (
-        "0000000000401028     1122334455667788 0123456789abcdef\n"
-    )
+    assert (
+        await ctrl.execute_and_capture("dq data2 2")
+    ) == f"{data2_addr_int:016x}     1122334455667788 0123456789abcdef\n"
 
     # TODO/FIXME: Can we test command repeating here? Neither passing `from_tty=True`
     # or setting `pwndbg.commands.windbg.dq.repeat = True` works here
@@ -103,26 +108,21 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     dd2 = await ctrl.execute_and_capture("dd &data")
     dd3 = await ctrl.execute_and_capture(f"dd {data_addr}")
     dd4 = await ctrl.execute_and_capture(f"dd {data_addr.replace('0x', '')}")
-    assert (
-        dd1
-        == dd2
-        == dd3
-        == dd4
-        == (
-            "0000000000401000     00000000 00000000 00000001 00000000\n"
-            "0000000000401010     00000002 00000001 00030004 00010002\n"
-            "0000000000401020     05060708 01020304 55667788 11223344\n"
-            "0000000000401030     89abcdef 01234567 00000000 00000000\n"
-        )
+    expected_dd = (
+        f"{data_addr_int:016x}     00000000 00000000 00000001 00000000\n"
+        f"{data_addr_int + 0x10:016x}     00000002 00000001 00030004 00010002\n"
+        f"{data_addr_int + 0x20:016x}     05060708 01020304 55667788 11223344\n"
+        f"{data_addr_int + 0x30:016x}     89abcdef 01234567 00000000 00000000\n"
     )
+    assert dd1 == dd2 == dd3 == dd4 == expected_dd
 
     # count tests
-    assert (await ctrl.execute_and_capture("dd data 4")) == (
-        "0000000000401000     00000000 00000000 00000001 00000000\n"
-    )
-    assert (await ctrl.execute_and_capture("dd data 3")) == (
-        "0000000000401000     00000000 00000000 00000001\n"
-    )
+    assert (
+        await ctrl.execute_and_capture("dd data 4")
+    ) == f"{data_addr_int:016x}     00000000 00000000 00000001 00000000\n"
+    assert (
+        await ctrl.execute_and_capture("dd data 3")
+    ) == f"{data_addr_int:016x}     00000000 00000000 00000001\n"
 
     #################################################
     #### dw command tests
@@ -131,31 +131,26 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     dw2 = await ctrl.execute_and_capture("dw &data")
     dw3 = await ctrl.execute_and_capture(f"dw {data_addr}")
     dw4 = await ctrl.execute_and_capture(f"dw {data_addr.replace('0x', '')}")
-    assert (
-        dw1
-        == dw2
-        == dw3
-        == dw4
-        == (
-            "0000000000401000     0000 0000 0000 0000 0001 0000 0000 0000\n"
-            "0000000000401010     0002 0000 0001 0000 0004 0003 0002 0001\n"
-            "0000000000401020     0708 0506 0304 0102 7788 5566 3344 1122\n"
-            "0000000000401030     cdef 89ab 4567 0123 0000 0000 0000 0000\n"
-        )
+    expected_dw = (
+        f"{data_addr_int:016x}     0000 0000 0000 0000 0001 0000 0000 0000\n"
+        f"{data_addr_int + 0x10:016x}     0002 0000 0001 0000 0004 0003 0002 0001\n"
+        f"{data_addr_int + 0x20:016x}     0708 0506 0304 0102 7788 5566 3344 1122\n"
+        f"{data_addr_int + 0x30:016x}     cdef 89ab 4567 0123 0000 0000 0000 0000\n"
     )
+    assert dw1 == dw2 == dw3 == dw4 == expected_dw
 
     # count tests
-    assert (await ctrl.execute_and_capture("dw data 8")) == (
-        "0000000000401000     0000 0000 0000 0000 0001 0000 0000 0000\n"
-    )
+    assert (
+        await ctrl.execute_and_capture("dw data 8")
+    ) == f"{data_addr_int:016x}     0000 0000 0000 0000 0001 0000 0000 0000\n"
 
-    assert (await ctrl.execute_and_capture("dw data 8/2")) == (
-        "0000000000401000     0000 0000 0000 0000\n"
-    )
+    assert (
+        await ctrl.execute_and_capture("dw data 8/2")
+    ) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
 
-    assert (await ctrl.execute_and_capture("dw data $eax")) == (
-        "0000000000401000     0000 0000 0000 0000\n"
-    )
+    assert (
+        await ctrl.execute_and_capture(f"dw data ${test_reg_32}")
+    ) == f"{data_addr_int:016x}     0000 0000 0000 0000\n"
 
     #################################################
     #### db command tests
@@ -164,25 +159,24 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     db2 = await ctrl.execute_and_capture("db &data")
     db3 = await ctrl.execute_and_capture(f"db {data_addr}")
     db4 = await ctrl.execute_and_capture(f"db {data_addr.replace('0x', '')}")
-    assert (
-        db1
-        == db2
-        == db3
-        == db4
-        == (
-            "0000000000401000     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
-            "0000000000401010     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01 00\n"
-            "0000000000401020     08 07 06 05 04 03 02 01 88 77 66 55 44 33 22 11\n"
-            "0000000000401030     ef cd ab 89 67 45 23 01 00 00 00 00 00 00 00 00\n"
-        )
+    expected_db = (
+        f"{data_addr_int:016x}     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
+        f"{data_addr_int + 0x10:016x}     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01 00\n"
+        f"{data_addr_int + 0x20:016x}     08 07 06 05 04 03 02 01 88 77 66 55 44 33 22 11\n"
+        f"{data_addr_int + 0x30:016x}     ef cd ab 89 67 45 23 01 00 00 00 00 00 00 00 00\n"
     )
+    assert db1 == db2 == db3 == db4 == expected_db
 
     # count tests
     assert (await ctrl.execute_and_capture("db data 31")) == (
-        "0000000000401000     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
-        "0000000000401010     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01\n"
+        f"{data_addr_int:016x}     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
+        f"{data_addr_int + 0x10:016x}     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01\n"
     )
-    assert (await ctrl.execute_and_capture("db data $ax")) == ("0000000000401000     00 00 00 00\n")
+    # Use 16-bit register (ax for x86, w0 for aarch64 as it doesn't have 16-bit regs)
+    test_reg_16 = "w0" if pwndbg.aglib.arch.name == "aarch64" else "ax"
+    assert (
+        await ctrl.execute_and_capture(f"db data ${test_reg_16}")
+    ) == f"{data_addr_int:016x}     00 00 00 00\n"
 
     #################################################
     #### dc command tests
@@ -191,19 +185,12 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     dc2 = await ctrl.execute_and_capture("dc &data")
     dc3 = await ctrl.execute_and_capture(f"dc {data_addr}")
     dc4 = await ctrl.execute_and_capture(f"dc {data_addr.replace('0x', '')}")
-    assert (
-        dc1
-        == dc2
-        == dc3
-        == dc4
-        == (
-            "+0000 0x401000  00 00 00 00 00 00 00 00                           "
-            "│........│        │\n"
-        )
-    )
+    expected_dc = f"+0000 {data_addr}  00 00 00 00 00 00 00 00                           │........│        │\n"
+    assert dc1 == dc2 == dc3 == dc4 == expected_dc
 
-    assert (await ctrl.execute_and_capture("dc data 3")) == (
-        "+0000 0x401000  00 00 00                                          │...     │        │\n"
+    assert (
+        (await ctrl.execute_and_capture("dc data 3"))
+        == f"+0000 {data_addr}  00 00 00                                          │...     │        │\n"
     )
 
     #################################################
@@ -211,18 +198,20 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     #################################################
     ds1 = await ctrl.execute_and_capture("ds short_str")
     ds2 = await ctrl.execute_and_capture("ds &short_str")
-    ds3 = await ctrl.execute_and_capture("ds 0x401058")
-    ds4 = await ctrl.execute_and_capture("ds 401058")
-    assert ds1 == ds2 == ds3 == ds4 == "401058 'some cstring here'\n"
+    ds3 = await ctrl.execute_and_capture(f"ds {short_str_addr}")
+    ds4 = await ctrl.execute_and_capture(f"ds {short_str_addr.replace('0x', '')}")
+    short_str_addr_int = int(short_str_addr, 16)
+    assert ds1 == ds2 == ds3 == ds4 == f"{short_str_addr_int:x} 'some cstring here'\n"
 
     # Check too low maxlen
     assert (await ctrl.execute_and_capture("ds short_str 5")) == (
-        "Max str len of 5 too low, changing to 256\n401058 'some cstring here'\n"
+        f"Max str len of 5 too low, changing to 256\n{short_str_addr_int:x} 'some cstring here'\n"
     )
 
     # Check output for a string longer than (the default) maxlen of 256
+    long_str_addr_int = int(long_str_addr, 16)
     assert (await ctrl.execute_and_capture("ds long_str")) == (
-        "40106a 'long string: "
+        f"{long_str_addr_int:x} 'long string: "
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...'\n"
     )
 
@@ -302,14 +291,14 @@ async def test_windbg_eX_commands(ctrl: Controller) -> None:
     ### Test write & output on partial write
     #########################################
     # e.g. when we make a write to the last stack address
-    stack_ea = pwndbg.aglib.regs[pwndbg.aglib.regs.stack]
+    stack_ea = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack)
     stack_page = pwndbg.aglib.vmmap.find(stack_ea)
 
     # Last possible address on stack where we can perform an 8-byte write
     stack_last_qword_ea = stack_page.end - 8
 
     gdb_result = (
-        await ctrl.execute_and_capture("eq %#x 0xCAFEBABEdeadbeef 0xABCD" % stack_last_qword_ea)
+        await ctrl.execute_and_capture(f"eq {stack_last_qword_ea:#x} 0xCAFEBABEdeadbeef 0xABCD")
     ).split("\n")
     assert "Cannot access memory at address" in gdb_result[0]
     assert gdb_result[1] == "(Made 1 writes to memory; skipping further writes)"
@@ -325,7 +314,7 @@ async def test_windbg_commands_x86(ctrl: Controller) -> None:
     like dq, dw, db, ds etc.
     """
     import pwndbg
-    from pwndbg.dbg import DebuggerType
+    from pwndbg.dbg_mod import DebuggerType
 
     if pwndbg.dbg.name() == DebuggerType.LLDB:
         pytest.skip(
@@ -335,58 +324,67 @@ async def test_windbg_commands_x86(ctrl: Controller) -> None:
 
     await ctrl.launch(X86_BINARY)
 
+    esp = pwndbg.aglib.regs.read_reg("esp")
+
     # Prepare memory
-    pwndbg.aglib.memory.write(pwndbg.aglib.regs.esp, b"1234567890abcdef_")
-    pwndbg.aglib.memory.write(pwndbg.aglib.regs.esp + 16, b"\x00" * 16)
-    pwndbg.aglib.memory.write(pwndbg.aglib.regs.esp + 32, bytes(range(16)))
-    pwndbg.aglib.memory.write(pwndbg.aglib.regs.esp + 48, b"Z" * 16)
+    pwndbg.aglib.memory.write(esp, b"1234567890abcdef_")
+    pwndbg.aglib.memory.write(esp + 16, b"\x00" * 16)
+    pwndbg.aglib.memory.write(esp + 32, bytes(range(16)))
+    pwndbg.aglib.memory.write(esp + 48, b"Z" * 16)
 
     #################################################
     #### dX command tests
     #################################################
     db = (await ctrl.execute_and_capture("db $esp")).splitlines()
+    esp = pwndbg.aglib.regs.read_reg("esp")
     assert db == [
-        "%x     31 32 33 34 35 36 37 38 39 30 61 62 63 64 65 66" % pwndbg.aglib.regs.esp,
-        "%x     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00" % (pwndbg.aglib.regs.esp + 16),
-        "%x     00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f" % (pwndbg.aglib.regs.esp + 32),
-        "%x     5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a" % (pwndbg.aglib.regs.esp + 48),
+        f"{esp:x}     31 32 33 34 35 36 37 38 39 30 61 62 63 64 65 66",
+        f"{esp + 16:x}     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+        f"{esp + 32:x}     00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f",
+        f"{esp + 48:x}     5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a",
     ]
 
     dw = (await ctrl.execute_and_capture("dw $esp")).splitlines()
+    esp = pwndbg.aglib.regs.read_reg("esp")
     assert dw == [
-        "%x     3231 3433 3635 3837 3039 6261 6463 6665" % pwndbg.aglib.regs.esp,
-        "%x     0000 0000 0000 0000 0000 0000 0000 0000" % (pwndbg.aglib.regs.esp + 16),
-        "%x     0100 0302 0504 0706 0908 0b0a 0d0c 0f0e" % (pwndbg.aglib.regs.esp + 32),
-        "%x     5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a" % (pwndbg.aglib.regs.esp + 48),
+        f"{esp:x}     3231 3433 3635 3837 3039 6261 6463 6665",
+        f"{esp + 16:x}     0000 0000 0000 0000 0000 0000 0000 0000",
+        f"{esp + 32:x}     0100 0302 0504 0706 0908 0b0a 0d0c 0f0e",
+        f"{esp + 48:x}     5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a",
     ]
 
     dd = (await ctrl.execute_and_capture("dd $esp")).splitlines()
+    esp = pwndbg.aglib.regs.read_reg("esp")
     assert dd == [
-        "%x     34333231 38373635 62613039 66656463" % pwndbg.aglib.regs.esp,
-        "%x     00000000 00000000 00000000 00000000" % (pwndbg.aglib.regs.esp + 16),
-        "%x     03020100 07060504 0b0a0908 0f0e0d0c" % (pwndbg.aglib.regs.esp + 32),
-        "%x     5a5a5a5a 5a5a5a5a 5a5a5a5a 5a5a5a5a" % (pwndbg.aglib.regs.esp + 48),
+        f"{esp:x}     34333231 38373635 62613039 66656463",
+        f"{esp + 16:x}     00000000 00000000 00000000 00000000",
+        f"{esp + 32:x}     03020100 07060504 0b0a0908 0f0e0d0c",
+        f"{esp + 48:x}     5a5a5a5a 5a5a5a5a 5a5a5a5a 5a5a5a5a",
     ]
 
     dq = (await ctrl.execute_and_capture("dq $esp")).splitlines()
+    esp = pwndbg.aglib.regs.read_reg("esp")
     assert dq == [
-        "%x     3837363534333231 6665646362613039" % pwndbg.aglib.regs.esp,
-        "%x     0000000000000000 0000000000000000" % (pwndbg.aglib.regs.esp + 16),
-        "%x     0706050403020100 0f0e0d0c0b0a0908" % (pwndbg.aglib.regs.esp + 32),
-        "%x     5a5a5a5a5a5a5a5a 5a5a5a5a5a5a5a5a" % (pwndbg.aglib.regs.esp + 48),
+        f"{esp:x}     3837363534333231 6665646362613039",
+        f"{esp + 16:x}     0000000000000000 0000000000000000",
+        f"{esp + 32:x}     0706050403020100 0f0e0d0c0b0a0908",
+        f"{esp + 48:x}     5a5a5a5a5a5a5a5a 5a5a5a5a5a5a5a5a",
     ]
 
     #################################################
     #### eX command tests
     #################################################
     await ctrl.execute("eb $esp 00")
-    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 1) == b"\x00"
+    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.read_reg("esp"), 1) == b"\x00"
 
     await ctrl.execute("ew $esp 4141")
-    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 2) == b"\x41\x41"
+    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.read_reg("esp"), 2) == b"\x41\x41"
 
     await ctrl.execute("ed $esp 5252525252")
-    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 4) == b"\x52" * 4
+    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.read_reg("esp"), 4) == b"\x52" * 4
 
     await ctrl.execute("eq $esp 1122334455667788")
-    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 8) == b"\x88\x77\x66\x55\x44\x33\x22\x11"
+    assert (
+        pwndbg.aglib.memory.read(pwndbg.aglib.regs.read_reg("esp"), 8)
+        == b"\x88\x77\x66\x55\x44\x33\x22\x11"
+    )

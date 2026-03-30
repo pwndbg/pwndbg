@@ -13,8 +13,6 @@ import json
 import os
 import sys
 import textwrap
-from typing import Dict
-from typing import Tuple
 
 from mdutils.mdutils import MdUtils
 
@@ -72,14 +70,15 @@ def get_signature_markdown(func: ExtractedFunction, debugger: str):
         " object at " in func.signature or "<" in func.signature
     ):  # '>' is valid in type annotation (->)
         print(f'Signature of {func.name} (from {debugger}) is rendered as "{func.signature}",')
-        print("please edit the sanitize_signature() function (in the extractor) to display")
-        print("the signature better in the docs.")
+        print(
+            "please edit the sanitize_signature() function (./scripts/_docs/extract_function_docs.py) to display the signature better in the docs."
+        )
         sys.exit(5)
 
     return func_signature_code
 
 
-def convert_to_markdown(extracted: list[Tuple[str, list[ExtractedFunction]]]) -> Dict[str, str]:
+def convert_to_markdown(extracted: list[tuple[str, list[ExtractedFunction]]]) -> dict[str, str]:
     """
     Returns:
         A dict which maps filenames to their markdown contents.
@@ -100,7 +99,7 @@ def convert_to_markdown(extracted: list[Tuple[str, list[ExtractedFunction]]]) ->
         # debuggers disagree on what some function should
         # display. We won't add debuggers that don't have the
         # function.
-        func_variants: list[Tuple[str, ExtractedFunction]] = []
+        func_variants: list[tuple[str, ExtractedFunction]] = []
 
         for debugger, dfuncs in extracted:
             # Slow but whatever
@@ -145,7 +144,7 @@ def convert_to_markdown(extracted: list[Tuple[str, list[ExtractedFunction]]]) ->
     return markdowned
 
 
-def read_extracted() -> list[Tuple[str, list[ExtractedFunction]]]:
+def read_extracted() -> list[tuple[str, list[ExtractedFunction]]]:
     """
     Read json files from disk.
 
@@ -154,13 +153,13 @@ def read_extracted() -> list[Tuple[str, list[ExtractedFunction]]]:
         convenience functions that debugger supports).
     """
 
-    result: list[Tuple[str, list[ExtractedFunction]]] = []
+    result: list[tuple[str, list[ExtractedFunction]]] = []
 
     for debugger in ALL_DEBUGGERS:
         filepath = extracted_filename(debugger)
         print(f"Consuming {filepath}..")
 
-        with open(filepath, "r") as file:
+        with open(filepath) as file:
             raw_data = json.loads(file.read())
 
         # Convert the dict objs to ExtractedFunction

@@ -2,25 +2,23 @@ from __future__ import annotations
 
 import ctypes
 import hashlib
-import os
 import re
 import subprocess
 from enum import Enum
+from pathlib import Path
 from typing import Any
-from typing import Dict
-from typing import Tuple
 
 from tabulate import tabulate
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as M
-import pwndbg.dbg
-import pwndbg.glibc
+import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.tempfile
+import pwndbg.libc
 from pwndbg.color import colorize
 from pwndbg.color import generateColorFunction
 
@@ -55,7 +53,7 @@ ONEGADGET_COLOR = {
     "light_green": lambda x: colorize(x, "\x1b[38;5;82m"),
     "light_purple": lambda x: colorize(x, "\x1b[38;5;153m"),
 }
-ONEGADGET_CACHEDIR = pwndbg.lib.tempfile.cachedir("onegadget")
+ONEGADGET_CACHEDIR: Path = pwndbg.lib.tempfile.cachedir("onegadget")
 
 
 class CheckSatResult(Enum):
@@ -69,18 +67,16 @@ class CheckSatResult(Enum):
     def __and__(self, other: CheckSatResult) -> CheckSatResult:
         if self == CheckSatResult.UNSAT or other == CheckSatResult.UNSAT:
             return CheckSatResult.UNSAT
-        elif self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
+        if self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
             return CheckSatResult.UNKNOWN
-        else:
-            return CheckSatResult.SAT
+        return CheckSatResult.SAT
 
     def __or__(self, other: CheckSatResult) -> CheckSatResult:
         if self == CheckSatResult.SAT or other == CheckSatResult.SAT:
             return CheckSatResult.SAT
-        elif self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
+        if self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
             return CheckSatResult.UNKNOWN
-        else:
-            return CheckSatResult.UNSAT
+        return CheckSatResult.UNSAT
 
 
 SAT = CheckSatResult.SAT
@@ -143,7 +139,7 @@ class Lambda:
                 #       |                       ^~~~~~~~~
                 #  while parsing (u64)xmm0 >> 64 for argv[1]
 
-                bits = pwndbg.aglib.arch.ptrsize * 8
+                bits = pwndbg.aglib.arch.ptrbits
                 if XMM_SHIFT in obj:
                     obj = obj.replace(XMM_SHIFT + str(bits), f".v{128 // bits}_int{bits}[1]")
                 else:
@@ -191,13 +187,13 @@ class Lambda:
         self.deref_count -= 1
         return self
 
-    def evaluate(self, context: Dict[Any, Any]) -> int | Lambda:
+    def evaluate(self, context: dict[Any, Any]) -> int | Lambda:
         if self.deref_count > 0 or (self.obj and self.obj not in context):
             raise ValueError(f"Can't eval {self}")
         return context[self.obj] + self.immi
 
     @staticmethod
-    def parse(argument: str, predefined: Dict[Any, Any] = {}) -> int | Lambda:
+    def parse(argument: str, predefined: dict[Any, Any] = {}) -> int | Lambda:
         if not argument or argument == "!":
             return 0
         try:
@@ -224,7 +220,7 @@ class Lambda:
         return obj
 
     @staticmethod
-    def mem_obj(arg: str) -> Tuple[str, int]:
+    def mem_obj(arg: str) -> tuple[str, int]:
         tokens = re.split(r"[+\-]", arg)
         if len(tokens) == 1:
             return tokens[0], 0
@@ -276,10 +272,10 @@ def run_onegadget() -> str:
     """
     Run onegadget and return the output
     """
-    libc_path = pwndbg.aglib.file.get_file(pwndbg.glibc.get_libc_filename_from_info_sharedlibrary())
+    libc_path = pwndbg.aglib.file.get_file(str(pwndbg.libc.filepath()))
     # We need cache because onegadget might be slow
-    cache_file = os.path.join(ONEGADGET_CACHEDIR, compute_file_hash(libc_path))
-    if os.path.exists(cache_file):
+    cache_file: Path = ONEGADGET_CACHEDIR / compute_file_hash(libc_path)
+    if cache_file.exists():
         # Cache hit
         with open(cache_file) as f:
             return f.read()
@@ -290,7 +286,7 @@ def run_onegadget() -> str:
     return output
 
 
-def parse_expression(expr: str) -> Tuple[int | None, str, str | None]:
+def parse_expression(expr: str) -> tuple[int | None, str, str | None]:
     """
     Parse expression, return the result, colorized string and error message
     """
@@ -327,7 +323,7 @@ def parse_expression(expr: str) -> Tuple[int | None, str, str | None]:
         return None, f"{cast}{lambda_expr.color_str}", str(e)
 
 
-def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
+def check_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
     """
     Check argv that's on the stack, return the result and the message
     """
@@ -355,10 +351,9 @@ def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
             return UNSAT, output_msg
         if result == 0:
             if n > 1 and "-c" in exprs[n - 1]:
-                output_msg += f'argv[{n}] = {color_str} = NULL, {color_str} can\'t be NULL because argv[{n-1}] = "-c"\n'
+                output_msg += f'argv[{n}] = {color_str} = NULL, {color_str} can\'t be NULL because argv[{n - 1}] = "-c"\n'
                 return UNSAT, output_msg
-            else:
-                output_msg += f"argv[{n}] = {color_str} = NULL\n"
+            output_msg += f"argv[{n}] = {color_str} = NULL\n"
             if n > 1:
                 return UNKNOWN, output_msg
             return SAT, output_msg
@@ -379,7 +374,7 @@ def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
     return SAT, output_msg
 
 
-def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
+def check_non_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
     """
     Check argv that's not on the stack, return the result and the message
     """
@@ -402,9 +397,8 @@ def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
             if n > 1:
                 output_msg += f"argv[{n}] is NULL, {color_str} might be a valid argv\n"
                 return UNKNOWN, output_msg
-            else:
-                # {whatever_but_readable, NULL} is always a valid argv
-                output_msg += f"argv[{n}] is NULL, {color_str} is a valid argv\n"
+            # {whatever_but_readable, NULL} is always a valid argv
+            output_msg += f"argv[{n}] is NULL, {color_str} is a valid argv\n"
             return SAT, output_msg
         page = pwndbg.aglib.vmmap.find(argv_n)
         if page is None or not page.read:
@@ -414,7 +408,7 @@ def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
         n += 1
 
 
-def check_argv(expr: str) -> Tuple[CheckSatResult, str]:
+def check_argv(expr: str) -> tuple[CheckSatResult, str]:
     """
     Check argv, return the result and the message
     """
@@ -423,7 +417,7 @@ def check_argv(expr: str) -> Tuple[CheckSatResult, str]:
     return check_non_stack_argv(expr)
 
 
-def check_envp(expr: str) -> Tuple[bool, str]:
+def check_envp(expr: str) -> tuple[bool, str]:
     """
     Check envp, return the result and the message
     """
@@ -459,7 +453,7 @@ def check_envp(expr: str) -> Tuple[bool, str]:
         n += 1
 
 
-def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
+def check_constraint(constraint: str) -> tuple[CheckSatResult, str]:
     """
     Parse constraint, return the result and the message
     """
@@ -467,9 +461,9 @@ def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
     if CONSTRAINT_SEPARATOR in constraint:
         final_result = UNSAT
         for sub_constraint in constraint.split(CONSTRAINT_SEPARATOR):
-            result, msg = check_constraint(sub_constraint)
+            result1, msg = check_constraint(sub_constraint)
             output_msg += msg
-            final_result = final_result | result
+            final_result = final_result | result1
             if final_result == SAT:
                 return SAT, output_msg
         return final_result, output_msg
@@ -542,7 +536,7 @@ def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
         expr = IS_GOT_ADDRESS_PATTERN.match(constraint).group(1)
         result, color_str, err = parse_expression(expr)
         if err is None:
-            got_plt_address = pwndbg.glibc.get_section_address_by_name(".got.plt")
+            got_plt_address = pwndbg.libc.section_address_by_name(".got.plt")
             passed = result == got_plt_address
             output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}the GOT address ({got_plt_address:#x}) of libc\n"
         else:
@@ -574,16 +568,16 @@ def check_gadget(
         is_valid_gadget = is_valid_gadget & result
         if result == SAT:
             if verbose:
-                verbose_msg += msg + M.success(f"SAT: {line}") + "\n"
-            result_list.append((M.success(result), M.success(line)))
+                verbose_msg += msg + message.success(f"SAT: {line}") + "\n"
+            result_list.append((message.success(result), message.success(line)))
         elif result == UNSAT:
             if verbose:
-                verbose_msg += msg + M.error(f"UNSAT: {line}") + "\n"
-            result_list.append((M.error(result), M.error(line)))
+                verbose_msg += msg + message.error(f"UNSAT: {line}") + "\n"
+            result_list.append((message.error(result), message.error(line)))
         else:
             if verbose:
-                verbose_msg += msg + M.warn(f"UNKNOWN: {line}") + "\n"
-            result_list.append((M.warn(result), M.warn(line)))
+                verbose_msg += msg + message.warn(f"UNKNOWN: {line}") + "\n"
+            result_list.append((message.warn(result), message.warn(line)))
 
     if verbose:
         output_msg += verbose_msg
@@ -601,7 +595,7 @@ def check_gadget(
 
 def find_gadgets(
     show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False
-) -> Dict[CheckSatResult, int]:
+) -> dict[CheckSatResult, int]:
     """
     Find gadgets by parsing the output of onegadget, return there's any valid gadget
     """

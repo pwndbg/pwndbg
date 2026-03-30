@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import re
 import string
-from typing import Iterator
+from collections.abc import Iterator
 
 import pwndbg
 import pwndbg.aglib.memory
+import pwndbg.dbg_mod
 from pwndbg.lib.memory import Page
 
 length = 15

@@ -1,20 +1,15 @@
 from __future__ import annotations
 
 import argparse
-from typing import Dict
-from typing import List
-from typing import Set
-from typing import Tuple
 
 import pwnlib.rop.srop
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
-import pwndbg.color.context as C
-import pwndbg.color.memory as M
-import pwndbg.color.message
+import pwndbg.chain
+import pwndbg.color.context as ctx_color
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.regs import aarch64
@@ -24,7 +19,7 @@ from pwndbg.lib.regs import i386
 
 # Grab frame values from pwntools. Offsets are defined as the offset to stack pointer when syscall instruction is called
 # Offsets and names are from Linux kernel source. For example x86_64 is defined in CONFIG_X86_64 struct rt_sigframe (Linux Kernel /arch/x86/include/asm/sigframe.h)
-SIGRETURN_FRAME_LAYOUTS: Dict[str, List[Tuple[int, str]]] = {
+SIGRETURN_FRAME_LAYOUTS: dict[str, list[tuple[int, str]]] = {
     "x86-64": sorted([(-8, "&pretcode")] + list(pwnlib.rop.srop.registers["amd64"].items())),
     "i386": sorted(pwnlib.rop.srop.registers["i386"].items()),
     "aarch64": sorted(pwnlib.rop.srop.registers["aarch64"].items()),
@@ -32,7 +27,7 @@ SIGRETURN_FRAME_LAYOUTS: Dict[str, List[Tuple[int, str]]] = {
 }
 
 # Always print these registers (as well as flag register, eflags / cpsr)
-SIGRETURN_CORE_REGISTER: Dict[str, Set[str]] = {
+SIGRETURN_CORE_REGISTER: dict[str, set[str]] = {
     "x86-64": {*amd64.gpr, amd64.frame, amd64.stack, amd64.pc},
     "i386": {*i386.gpr, i386.frame, i386.stack, i386.pc},
     "aarch64": {*aarch64.gpr, "sp", "pc"},
@@ -88,7 +83,7 @@ def sigreturn(address: int = None, display_all=False, print_address=False) -> No
         # Subtract the offset of start of frame, to get the correct offset into "mem"
         mem_offset = stack_offset - frame_start_offset
 
-        regname = C.register(reg.ljust(4).upper())
+        regname = ctx_color.register(reg.ljust(4).upper())
         value = pwndbg.aglib.arch.unpack(mem[mem_offset : mem_offset + ptr_size])
 
         if reg in core_registers:
@@ -98,16 +93,16 @@ def sigreturn(address: int = None, display_all=False, print_address=False) -> No
 
         elif reg in pwndbg.aglib.regs.flags:  # eflags or cpsr
             reg_flags = pwndbg.aglib.regs.flags[reg]
-            desc = C.format_flags(value, reg_flags)
+            desc = ctx_color.format_flags(value, reg_flags)
 
             print_value(f"{regname} {desc}", address + stack_offset, print_address)
 
         elif display_all:
-            print_value(f"{reg} {M.get(value)}", address + stack_offset, print_address)
+            print_value(f"{reg} {mem_color.get(value)}", address + stack_offset, print_address)
 
 
 def print_value(string: str, address: int, print_address) -> None:
     addr = ""
     if print_address:
-        addr = f"{M.get(address)}: "
+        addr = f"{mem_color.get(address)}: "
     print(f"{addr}{string}")

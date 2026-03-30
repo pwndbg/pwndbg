@@ -2,24 +2,34 @@
 # heap
 
 ```text
-usage: heap [-h] [-v] [-s] [addr]
+usage: heap [-h] [-c COUNT] [-v] [-s] [addr_start] [addr_end]
 
 ```
 
 Iteratively print chunks on a heap.
 
 Default to the current thread's active heap.
+
+Usage:
+  heap
+  heap --count <N>
+  heap <addr_start>
+  heap <addr_start> <addr_end> (includes chunks with start address <= addr_end)
+
+Range mode can be combined with --count; walking stops when either limit is hit first.
 ### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
-|addr|Address of the first chunk (malloc_chunk struct start, prev_size field).|
+|addr_start|Address of the first chunk (malloc_chunk struct start, prev_size field).|
+|addr_end|Optional inclusive upper bound for chunk start addresses.|
 
 ### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
+|-c|--count|Maximum number of chunks to print.|
 |-v|--verbose|Print all chunk fields, even unused ones.|
 |-s|--simple|Simply print malloc_chunk struct's contents.|
 

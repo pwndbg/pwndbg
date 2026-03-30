@@ -5,10 +5,9 @@ Common types.
 from __future__ import annotations
 
 import sys
-from typing import Dict
-from typing import Optional
 
 import pwndbg
+import pwndbg.dbg_mod
 
 module = sys.modules[__name__]
 
@@ -25,13 +24,13 @@ uint8: pwndbg.dbg_mod.Type
 uint16: pwndbg.dbg_mod.Type
 uint32: pwndbg.dbg_mod.Type
 uint64: pwndbg.dbg_mod.Type
-unsigned: Dict[int, pwndbg.dbg_mod.Type]
+unsigned: dict[int, pwndbg.dbg_mod.Type]
 
 int8: pwndbg.dbg_mod.Type
 int16: pwndbg.dbg_mod.Type
 int32: pwndbg.dbg_mod.Type
 int64: pwndbg.dbg_mod.Type
-signed: Dict[int, pwndbg.dbg_mod.Type]
+signed: dict[int, pwndbg.dbg_mod.Type]
 
 pvoid: pwndbg.dbg_mod.Type
 ppvoid: pwndbg.dbg_mod.Type
@@ -45,8 +44,10 @@ ssize_t: pwndbg.dbg_mod.Type
 
 
 def lookup_types(*types: str) -> pwndbg.dbg_mod.Type:
-    process = pwndbg.dbg.selected_inferior()
-    assert process, "tried to initialize typeinfo with no inferior"
+    try:
+        process = pwndbg.dbg.selected_inferior()
+    except pwndbg.dbg_mod.NoInferior:
+        raise AssertionError("Tried to initialize typeinfo with no inferior")
     for type_str in types:
         t = process.types_with_name(type_str)
         if len(t) > 0:
@@ -102,7 +103,7 @@ def update() -> None:
         raise Exception("Pointer size not supported")
 
 
-def load(name: str) -> Optional[pwndbg.dbg_mod.Type]:
+def load(name: str) -> pwndbg.dbg_mod.Type | None:
     """Load a symbol; note that new symbols can be added with `add-symbol-file` functionality"""
     names = pwndbg.dbg.selected_inferior().types_with_name(name)
     if len(names) > 0:

@@ -9,23 +9,19 @@ from __future__ import annotations
 
 import re
 import struct
-from typing import Optional
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.file
-import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.aglib.regs
 import pwndbg.aglib.stack
-import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as M
+import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.config
-import pwndbg.lib.memory
 from pwndbg.lib.elftypes import AT_CONSTANT_NAMES
-from pwndbg.lib.elftypes import AUXV
+from pwndbg.lib.elftypes import AT_CONSTANTS
 
 # We use `info.auxv()` when available.
 if pwndbg.dbg.is_gdblib_available():
@@ -64,6 +60,43 @@ example_info_auxv_linux = """
 """
 
 
+class AUXV(dict[str, int | str]):
+    AT_PHDR: int | None
+    AT_BASE: int | None
+    AT_PLATFORM: str | None
+    AT_BASE_PLATFORM: str | None
+    AT_ENTRY: int | None
+    AT_RANDOM: int | None
+    AT_EXECFN: str | None
+    AT_SYSINFO: int | None
+    AT_SYSINFO_EHDR: int | None
+
+    def set(self, const: int, value: int) -> None:
+        name = AT_CONSTANTS.get(const, f"AT_UNKNOWN{const}")
+
+        if name in ["AT_EXECFN", "AT_PLATFORM", "AT_BASE_PLATFORM"]:
+            try:
+                value = (
+                    pwndbg.dbg.selected_inferior()
+                    .create_value(value)
+                    .cast(pwndbg.aglib.typeinfo.pchar)
+                    .string()
+                )
+            except Exception:
+                value = "couldnt read AUXV!"
+
+        self[name] = value
+
+    def __getattr__(self, attr: str) -> int | str | None:
+        if attr in AT_CONSTANT_NAMES:
+            return self.get(attr)
+
+        raise AttributeError(f"{self.__class__.__name__!r} object has no attribute {attr!r}")
+
+    def __str__(self) -> str:
+        return str({k: v for k, v in self.items() if v is not None})
+
+
 @pwndbg.lib.cache.cache_until("objfile", "start")
 def get() -> AUXV:
     if not pwndbg.dbg.selected_inferior().is_linux() or pwndbg.aglib.qemu.is_qemu_kernel():
@@ -82,7 +115,7 @@ def procfs_auxv() -> AUXV | None:
     field_size = struct.calcsize(field_format)
 
     try:
-        data = pwndbg.aglib.file.get(f"/proc/{pwndbg.aglib.proc.tid}/auxv")
+        data = pwndbg.aglib.file.get(f"/proc/{pwndbg.aglib.proc.tid()}/auxv")
     except OSError:
         return None
 
@@ -107,7 +140,7 @@ def procfs_auxv() -> AUXV | None:
     return auxv
 
 
-def use_info_auxv() -> Optional[AUXV]:
+def use_info_auxv() -> AUXV | None:
     lines = None
     if pwndbg.dbg.is_gdblib_available():
         lines = pwndbg.gdblib.info.auxv().splitlines()
@@ -134,7 +167,7 @@ _warn_explore_once = True
 def explore_stack_auxv() -> AUXV | None:
     if auto_explore.value == "warn":
         print(
-            M.warn(
+            message.warn(
                 "Warning: All methods to detect AUXV have failed.\n"
                 "You can explore AUXV using stack exploration, but it may be very slow.\n"
                 "To explicitly explore, use the command: `auxv-explore`\n"
@@ -143,7 +176,7 @@ def explore_stack_auxv() -> AUXV | None:
             )
         )
         return None
-    elif auto_explore.value == "no":
+    if auto_explore.value == "no":
         return None
 
     return walk_stack2()

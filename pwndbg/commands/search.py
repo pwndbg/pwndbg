@@ -5,14 +5,13 @@ import binascii
 import codecs
 import os
 import struct
-from typing import Set
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.asm
-import pwndbg.aglib.disasm.disassembly
+import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.search
@@ -22,7 +21,7 @@ from pwndbg.commands import CommandCategory
 if pwndbg.dbg.is_gdblib_available():
     import gdb
 
-saved: Set[int] = set()
+saved: set[int] = set()
 
 
 def print_search_hit(address: int) -> None:
@@ -42,8 +41,8 @@ def print_search_hit(address: int) -> None:
 
     region = region.ljust(15)
 
-    region = M.get(address, region)
-    addr = M.get(address)
+    region = mem_color.get(address, region)
+    addr = mem_color.get(address)
     display = pwndbg.enhance.enhance(address)
     print(region, addr, display)
 
@@ -149,8 +148,7 @@ parser.add_argument(
     "--save",
     action="store_true",
     default=None,
-    help="Save results for further searches with --next. Default comes from config %r"
-    % auto_save.name,
+    help=f"Save results for further searches with --next. Default comes from config {auto_save.name!r}",
 )
 parser.add_argument(
     "--no-save", action="store_false", default=None, dest="save", help="Invert --save"
@@ -272,7 +270,7 @@ def search(
         mappings = [m for m in mappings if mapping_name in m.objfile]
 
     if not mappings:
-        print(message.error("Could not find mapping %r" % mapping_name))
+        print(message.error(f"Could not find mapping {mapping_name!r}"))
         return
 
     # Output appropriate messages based on the detected search type for better clarity
@@ -308,7 +306,7 @@ def search(
                     print_search_hit(addr)
                 i += 1
 
-        print("Search found %d items" % i)
+        print(f"Search found {i} items")
         saved = new_saved
         return
 
@@ -332,7 +330,7 @@ def search(
         if asmbp:
             if pwndbg.dbg.is_gdblib_available():
                 # set breakpoint on the instruction
-                gdb.Breakpoint("*%#x" % address, temporary=False)
+                gdb.Breakpoint(f"*{address:#x}", temporary=False)
             else:
                 print(
                     f"Breakpoints are not supported outside of GDB yet, would be set at {address:#x}"

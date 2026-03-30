@@ -138,18 +138,6 @@ Banner title surrounding char (right side).
 
 ----------
 
-## **bn-decomp-style**
-
-
-Decompilation highlight theme for Binary Ninja.
-
-
-
-**Default:** 'dark'  
-**Valid values:** 'dark', 'light'
-
-----------
-
 ## **chain-arrow-color**
 
 
@@ -884,6 +872,17 @@ Breakpoint marker for nearpc command.
 
 
 **Default:** 'b+'  
+
+----------
+
+## **nearpc-current-breakpoint-prefix**
+
+
+Marker for when current instruction is at a breakpoint.
+
+
+
+**Default:** 'b►'  
 
 ----------
 

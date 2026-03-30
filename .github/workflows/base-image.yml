@@ -1,0 +1,200 @@
+name: build base pwndbg image
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'uv.lock'
+      - 'Dockerfile.base-apt'
+      - '.github/workflows/base-image.yml'
+  pull_request:
+    paths:
+      - 'uv.lock'
+      - 'Dockerfile.base-apt'
+      - '.github/workflows/base-image.yml'
+
+concurrency:
+  # Pushes (dev): queue sequentially (prevent cache corruption)
+  # PRs: cancel in-progress runs (only test latest)
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  packages: write
+  actions: write
+
+jobs:
+  base-image:
+    strategy:
+      matrix:
+        platform_base:
+          - platform: linux/amd64
+            base_image: debian:13
+            tag_name: amd64
+            runner: ubuntu-latest
+
+          - platform: linux/arm/v7
+            base_image: debian:13
+            tag_name: armv7l
+            runner: ubuntu-latest
+
+          - platform: linux/arm64
+            base_image: debian:13
+            tag_name: arm64
+            runner: ubuntu-24.04-arm
+
+          - platform: linux/386
+            base_image: debian:13
+            tag_name: 386
+            runner: ubuntu-24.04-arm
+
+          - platform: linux/ppc64le
+            base_image: debian:13
+            tag_name: ppc64le
+            runner: ubuntu-24.04-arm
+
+          - platform: linux/riscv64
+            base_image: debian:13
+            tag_name: riscv64
+            runner: ubuntu-24.04-arm
+
+          - platform: linux/s390x
+            base_image: debian:13
+            tag_name: s390x
+            runner: ubuntu-24.04-arm
+
+          - platform: linux/loong64
+            base_image: ghcr.io/loong64/debian:trixie
+            tag_name: loong64
+            runner: ubuntu-24.04-arm
+
+    runs-on: ${{ matrix.platform_base.runner }}
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Login to GitHub Container Registry
+        if: github.ref == 'refs/heads/dev'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Restore Docker cache mounts
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            uv-${{ matrix.platform_base.tag_name }}
+            cargo-${{ matrix.platform_base.tag_name }}
+          key: buildkit-${{ matrix.platform_base.tag_name }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            buildkit-${{ matrix.platform_base.tag_name }}-
+
+      - name: Delete stale cache
+        if: steps.cache.outputs.cache-hit != 'true' && github.event_name != 'pull_request'
+        run: |
+          gh cache list \
+            --key "buildkit-${{ matrix.platform_base.tag_name }}-" \
+            --json key -q '.[].key' | while read -r key; do
+            echo "Deleting stale cache: $key"
+            gh cache delete "$key" || echo "::warning::Failed to delete stale cache: $key"
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Inject/extract cache mounts
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: reproducible-containers/buildkit-cache-dance@v3.3.2
+        with:
+          cache-map: |
+            {
+              "uv-${{ matrix.platform_base.tag_name }}": "/root/.cache/uv",
+              "cargo-${{ matrix.platform_base.tag_name }}": "/root/.cargo/registry"
+            }
+          builder: ${{ steps.buildx.outputs.name }}
+          skip-extraction: ${{ github.event_name == 'pull_request' }}
+
+      - name: Build Docker image
+        run: |
+          docker buildx build \
+            --progress=plain \
+            --platform ${{ matrix.platform_base.platform }} \
+            --build-arg image=${{ matrix.platform_base.base_image }} \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/base-apt:cache-${{ matrix.platform_base.tag_name }} \
+            -f ./Dockerfile.base-apt \
+            -t ghcr.io/pwndbg/base-apt:latest-${{ matrix.platform_base.tag_name }} \
+            .
+
+      - name: Push Docker image
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          docker buildx build \
+            --progress=plain \
+            --platform ${{ matrix.platform_base.platform }} \
+            --build-arg image=${{ matrix.platform_base.base_image }} \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/base-apt:cache-${{ matrix.platform_base.tag_name }} \
+            --cache-to type=registry,ref=ghcr.io/pwndbg/base-apt:cache-${{ matrix.platform_base.tag_name }},mode=max \
+            -f ./Dockerfile.base-apt \
+            -t ghcr.io/pwndbg/base-apt:latest-${{ matrix.platform_base.tag_name }} \
+            --push .
+
+  manifest-and-cleanup:
+    runs-on: ubuntu-24.04-arm
+    if: github.ref == 'refs/heads/dev'
+    needs: base-image
+
+    env:
+      IMAGE: ghcr.io/pwndbg/base-apt
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifest
+        run: |
+          docker buildx imagetools create -t $IMAGE:latest \
+            $IMAGE:latest-amd64 \
+            $IMAGE:latest-arm64 \
+            $IMAGE:latest-armv7l \
+            $IMAGE:latest-ppc64le \
+            $IMAGE:latest-s390x \
+            $IMAGE:latest-riscv64 \
+            $IMAGE:latest-386 \
+            $IMAGE:latest-loong64
+
+      - name: Delete latest-* tags
+        run: |
+          sudo apt install -y jq
+          for tag in latest-amd64 latest-arm64 latest-armv7l latest-ppc64le latest-s390x latest-riscv64 latest-386 latest-loong64; do
+            echo "Deleting $IMAGE:$tag"
+          
+            version_id=$(curl -s \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/orgs/pwndbg/packages/container/base-apt/versions \
+              | jq -r ".[] | select(.metadata.container.tags[]==\"$tag\") | .id")
+            
+            if [ -n "$version_id" ]; then
+              curl -s -X DELETE \
+                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                https://api.github.com/orgs/pwndbg/packages/container/base-apt/versions/$version_id
+              echo "Deleted version id $version_id"
+            else
+              echo "Tag $tag not found, skipping"
+            fi
+          done

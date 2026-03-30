@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Iterator
+from collections.abc import Iterator
 
 import pwndbg
 import pwndbg.aglib.memory
-import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
+import pwndbg.dbg_mod
 
 
 def container_of(ptr: int, typename: str, fieldname: str) -> pwndbg.dbg_mod.Value:

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import argparse
-from typing import Optional
-from typing import Tuple
 
+import pwndbg.aglib
 import pwndbg.aglib.asm
-import pwndbg.aglib.file
+import pwndbg.aglib.shellcode
+import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 
 # Taken from linux/arch/x86/include/asm/msr-index.h
@@ -26,7 +27,7 @@ X86_MSRS = {
 COMMON_MSRS = {"i386": X86_MSRS, "x86-64": X86_MSRS}
 
 
-def parse_msr(msr: str, arch: str) -> Optional[int]:
+def parse_msr(msr: str, arch: str) -> int | None:
     # first try to parse MSR name, then as int/hex
     if (val := COMMON_MSRS.get(arch, {}).get(msr.upper())) is not None:
         return val
@@ -38,7 +39,7 @@ def parse_msr(msr: str, arch: str) -> Optional[int]:
         return None
 
 
-def parse_range(msr_range: str, arch: str) -> Optional[Tuple[int, int]]:
+def parse_range(msr_range: str, arch: str) -> tuple[int, int] | None:
     bounds = msr_range.split("-")
     if len(bounds) != 2:
         return None
@@ -59,8 +60,8 @@ def x86_msr_read(msr: int) -> None:
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
         sc = pwndbg.aglib.asm.asm(f"mov ecx, {msr}; rdmsr")
         async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc):
-            edx = int(pwndbg.aglib.regs["edx"]) << 32
-            eax = int(pwndbg.aglib.regs["eax"])
+            edx = int(pwndbg.aglib.regs.read_reg("edx")) << 32
+            eax = int(pwndbg.aglib.regs.read_reg("eax"))
             ret = edx + eax
             print(f"{hex(msr)}:\t{hex(ret)}")
 
@@ -140,10 +141,10 @@ parser.add_argument(
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 def msr(
-    msr: Optional[str] = None,
-    write: Optional[int] = None,
+    msr: str | None = None,
+    write: int | None = None,
     list_msr=False,
-    msr_range: Optional[str] = None,
+    msr_range: str | None = None,
 ) -> None:
     arch = pwndbg.aglib.arch.name
 

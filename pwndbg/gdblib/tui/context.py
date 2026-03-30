@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Callable
-from typing import List
-from typing import Pattern
+from collections.abc import Callable
+from re import Pattern
 
 import gdb
 
@@ -15,24 +14,36 @@ from pwndbg.commands.context import contextoutput
 from pwndbg.commands.context import resetcontextoutput
 from pwndbg.gdblib import gdb_version
 
+tui_adjust_height = pwndbg.config.add_param(
+    "context-tui-adjust-height",
+    True,
+    "adjust height of context sections to fit the TUI",
+    help_docstring="""
+Adjust the height of context sections to fit the TUI window, ignoring section specific limits.
+This uses all vertical space available in the TUI windows if the context section supports it
+like the "disasm" or "stack" windows.
+""",
+)
+
 
 class ContextTUIWindow:
-    _tui_window: "gdb.TuiWindow"
+    _tui_window: gdb.TuiWindow
     _section: str
-    _lines: List[str]
-    _blank_line_lengths: List[int]
+    _lines: list[str]
+    _blank_line_lengths: list[int]
     _longest_line: int
     _before_prompt_listener: Callable[[None], object]
     _vscroll_start: int
     _hscroll_start: int
     _old_width: int
+    _old_height: int
     _ansi_escape_regex: Pattern[str]
     _enabled: bool
 
     _static_enabled: bool = True
-    _context_windows: List[ContextTUIWindow] = []
+    _context_windows: list[ContextTUIWindow] = []
 
-    def __init__(self, tui_window: "gdb.TuiWindow", section: str) -> None:
+    def __init__(self, tui_window: gdb.TuiWindow, section: str) -> None:
         self._tui_window = tui_window
         self._section = section
         self._tui_window.title = section
@@ -41,6 +52,7 @@ class ContextTUIWindow:
         self._longest_line = 0
         self._before_prompt_listener = self._before_prompt
         self._old_width = 0
+        self._old_height = 0
         self._vscroll_start = 0
         self._hscroll_start = 0
         self._ansi_escape_regex = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
@@ -117,18 +129,21 @@ class ContextTUIWindow:
 
     def _disable(self):
         self._old_width = 0
+        self._old_height = 0
         resetcontextoutput(self._section)
         self._enabled = False
 
     def _update(self):
-        if self._old_width != self._tui_window.width:
+        if self._old_width != self._tui_window.width or self._old_height != self._tui_window.height:
             self._old_width = self._tui_window.width
+            self._old_height = self._tui_window.height
             contextoutput(
                 self._section,
                 self._receive_context_output,
                 clearing=True,
                 banner="none",
                 width=self._old_width - 1,
+                height=self._old_height if tui_adjust_height else None,
             )
 
     def _receive_context_output(self, data: str):

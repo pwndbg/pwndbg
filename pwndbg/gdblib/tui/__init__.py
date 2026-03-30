@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.gdblib.tui.context
-import pwndbg.gdblib.tui.control
+from pwndbg.gdblib.tui import context as context
+from pwndbg.gdblib.tui import control as control
+
+# Run side-effects^^
 
 
 def setup() -> None:

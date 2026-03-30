@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
@@ -55,14 +56,14 @@ def setflag(flag: str, value: int) -> None:
                     print(f"Maximum value for flag is {max_val} (size={size})")
                     return
 
-                old_val = int(pwndbg.aglib.regs[flag_reg])
+                old_val = int(pwndbg.aglib.regs.read_reg(flag_reg))
                 mask = max_val << bit
                 bit_value = value << bit
 
                 cleared_val = old_val & ~mask
                 new_val = cleared_val | bit_value
 
-                setattr(pwndbg.aglib.regs, flag_reg, new_val)
+                pwndbg.aglib.regs.write_reg(flag_reg, new_val)
                 print(
                     f"Set flag {flag}={value} in flag register {flag_reg} (old val={old_val:#x}, new val={new_val:#x})"
                 )

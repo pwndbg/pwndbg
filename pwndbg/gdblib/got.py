@@ -12,14 +12,9 @@ injecting our own code into the program space to track this.
 
 from __future__ import annotations
 
-from typing import Dict
-from typing import List
-from typing import Set
-from typing import Tuple
-
 import gdb
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.dynamic
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
@@ -134,10 +129,10 @@ class TrapAllocator:
         """
         Reset the internal state of the allocator.
         """
-        self.blocks: List[int] = []
+        self.blocks: list[int] = []
         self.current_block_occupancy = 0
-        self.vacant_slots: List[int] = []
-        self.occupied_slots: Set[int] = set()
+        self.vacant_slots: list[int] = []
+        self.occupied_slots: set[int] = set()
 
     def alloc(self):
         """
@@ -231,7 +226,7 @@ TRAP_ALLOCATOR = TrapAllocator()
 GOT_TRACKING = False
 
 # Map describing all of the currently installed analysis watchpoints.
-INSTALLED_WATCHPOINTS: Dict[int, Tuple[Tracker, Patcher]] = {}
+INSTALLED_WATCHPOINTS: dict[int, tuple[Tracker, Patcher]] = {}
 
 
 class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
@@ -258,7 +253,7 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
         # tracker will use.
         objfile = self.tracker.link_map_entry.name()
         if objfile == b"":
-            objfile = pwndbg.aglib.proc.exe
+            objfile = pwndbg.aglib.proc.exe()
         self.tracker.obj_display_name = display_name(objfile, basename=True)
 
         self.tracker.sym_display_name = display_name(
@@ -306,7 +301,7 @@ class Tracker(pwndbg.gdblib.bpoint.Breakpoint):
     function together.
     """
 
-    hits: Dict[Tuple[int, ...], int] = {}
+    hits: dict[tuple[int, ...], int] = {}
     total_hits = 0
     trapped_address = 0
 
@@ -366,7 +361,7 @@ def _update_watchpoints() -> None:
     for obj in pwndbg.aglib.dynamic.link_map():
         name = obj.name()
         if name == b"":
-            name = pwndbg.aglib.proc.exe
+            name = pwndbg.aglib.proc.exe()
 
         try:
             dynamic = pwndbg.aglib.dynamic.DynamicSegment(obj.dynamic(), obj.load_bias())

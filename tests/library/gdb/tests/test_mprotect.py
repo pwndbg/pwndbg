@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.aglib.regs
+import pwndbg.aglib
 import pwndbg.aglib.vmmap
 
 from . import get_binary
 
-SMALL_BINARY = get_binary("crash_simple.out.hardcoded")
+SMALL_BINARY = get_binary("crash_simple.native.out")
 
 
 def test_mprotect_executes_properly(start_binary):
@@ -20,7 +20,7 @@ def test_mprotect_executes_properly(start_binary):
 
     # Check if we can use mprotect with address provided as value
     # and to set page permissions to RWX
-    gdb.execute("mprotect %d 4096 PROT_EXEC|PROT_READ|PROT_WRITE" % pc)
+    gdb.execute(f"mprotect {pc} 4096 PROT_EXEC|PROT_READ|PROT_WRITE")
     vm = pwndbg.aglib.vmmap.find(pc)
     assert vm.read and vm.write and vm.execute
 

@@ -4,7 +4,6 @@ import fnmatch
 import os.path
 import re
 from typing import Any
-from typing import Dict
 
 import pygments
 import pygments.formatters
@@ -13,6 +12,7 @@ import pygments.util
 from pwnlib.lexer import PwntoolsLexer
 
 import pwndbg
+import pwndbg.lib.cache
 from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.color import theme
@@ -26,7 +26,7 @@ style = theme.add_param(
 
 formatter = pygments.formatters.Terminal256Formatter(style=str(style))
 pwntools_lexer = PwntoolsLexer()
-lexer_cache: Dict[str, Any] = {}
+lexer_cache: dict[str, Any] = {}
 
 
 @pwndbg.config.trigger(style)
@@ -38,7 +38,7 @@ def check_style() -> None:
         # Reset the highlighted source cache
         from pwndbg.commands.context import get_highlight_source
 
-        get_highlight_source.cache.clear()
+        pwndbg.lib.cache.clear_function_cache(get_highlight_source)
     except pygments.util.ClassNotFound:
         print(
             message.warn(f"The pygment formatter style '{style}' is not found, restore to default")
@@ -70,8 +70,8 @@ def _pygments_get_lexer_for_filename(filename, code, **options):
     matched_lexer = ""
     fn = os.path.basename(filename)
     for name, _, filenames, _ in pygments.lexers.get_all_lexers(plugins=False):
-        for filename in filenames:
-            if _fn_matches(fn, filename):
+        for candidate_filename in filenames:
+            if _fn_matches(fn, candidate_filename):
                 if one_match:
                     # already seen one match, this is a second match
                     one_match = False
@@ -80,9 +80,8 @@ def _pygments_get_lexer_for_filename(filename, code, **options):
                 matched_lexer = name
     if one_match:
         return pygments.lexers.get_lexer_by_name(matched_lexer, **options)
-    else:
-        # either we can't find it or there are multiple matches to choose from
-        return pygments.lexers.guess_lexer_for_filename(filename, code, **options)
+    # either we can't find it or there are multiple matches to choose from
+    return pygments.lexers.guess_lexer_for_filename(filename, code, **options)
 
 
 def syntax_highlight(code: str, filename: str = ".asm") -> str:

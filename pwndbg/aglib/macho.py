@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import itertools
 import struct
-from typing import Callable
-from typing import Generator
+from collections.abc import Callable
+from collections.abc import Generator
 from typing import Generic
-from typing import Tuple
 from typing import TypeVar
 
 import pwndbg
 import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 
 
-def _uleb128(ptr: int) -> Tuple[int, int]:
+def _uleb128(ptr: int) -> tuple[int, int]:
     """
     Decode a ULEB128 value at the start of the given address, and return the
     decoded number, along with how many bytes the entire number takes.
@@ -46,7 +46,7 @@ class _RawTrie:
         acc: bytes,
         edgesel: Callable[[bytes, bytes], bool],
         nodesel: Callable[[bytes], bool],
-    ) -> Generator[Tuple[bytes, int, int]]:
+    ) -> Generator[tuple[bytes, int, int]]:
         """
         Walk the trie.
 
@@ -92,7 +92,7 @@ class _RawTrie:
 
             # The cursor is already at the next child.
 
-    def _get_raw(self, name: bytes) -> Tuple[bytes, int, int] | None:
+    def _get_raw(self, name: bytes) -> tuple[bytes, int, int] | None:
         """
         Get the data associated with the node of given name, if it exists.
         """
@@ -105,7 +105,7 @@ class _RawTrie:
 
         return next(self._walk(0, b"", edgesel, nodesel), None)
 
-    def _entries_raw(self) -> Generator[Tuple[bytes, int, int]]:
+    def _entries_raw(self) -> Generator[tuple[bytes, int, int]]:
         """
         List all the entries in the trie, along with their associated data.
         """
@@ -140,7 +140,7 @@ class Trie(_RawTrie, Generic[T]):
         _, ptr, size = self._get_raw(name)
         return self._ty(ptr, size)
 
-    def entries(self) -> Generator[Tuple[bytes, T]]:
+    def entries(self) -> Generator[tuple[bytes, T]]:
         """
         List all the entries in the trie, along with their associated data.
         """
@@ -499,24 +499,23 @@ class DyldSharedCache:
             # Use `sharedRegionSize` (+0xe8) as the size of the entire shared
             # region.
             return pwndbg.aglib.memory.u64(self.addr + 0xE8)
-        else:
-            # Find the smallest region that covers all the mappings as the size.
-            start = None
-            end = None
-            for mapping in self.mappings():
-                if start is None or start > mapping.addr:
-                    start = mapping.addr
+        # Find the smallest region that covers all the mappings as the size.
+        start = None
+        end = None
+        for mapping in self.mappings():
+            if start is None or start > mapping.addr:
+                start = mapping.addr
 
-                this_end = start + mapping.size
-                if end is None or end < this_end:
-                    end = this_end
+            this_end = start + mapping.size
+            if end is None or end < this_end:
+                end = this_end
 
-            # Technically possible, but more likely indicates that we messed up
-            # somewhere along the line when interpreting mapping information.
-            assert start is not None and end is not None, "No dyld shared cache mappings?"
-            assert end >= start
+        # Technically possible, but more likely indicates that we messed up
+        # somewhere along the line when interpreting mapping information.
+        assert start is not None and end is not None, "No dyld shared cache mappings?"
+        assert end >= start
 
-            return end - start
+        return end - start
 
     def _slide(self) -> int:
         "The slide value of the DyLD Shared Cache, in bytes."
@@ -530,9 +529,9 @@ class DyldSharedCache:
         # we're doing something wrong than have to track a random bug back to
         # this point.
         mapping_fileoff = pwndbg.aglib.memory.u64(mapping_ptr + 0x10)
-        assert (
-            mapping_fileoff == 0
-        ), "First mapping of the shared cache is not at the start of the shared cache"
+        assert mapping_fileoff == 0, (
+            "First mapping of the shared cache is not at the start of the shared cache"
+        )
 
         slide = self.base - mapping_base
         assert slide >= 0, "Slide value is negative, but we don't expect it to be"
@@ -565,7 +564,7 @@ class DyldSharedCache:
         )
 
     @property
-    def images(self) -> Generator[Tuple[bytes, int]]:
+    def images(self) -> Generator[tuple[bytes, int]]:
         # This is a little convoluted, but this function is quite hot and
         # calling the debugger can be quite slow, so pulling in the whole array
         # at once goes a really long way.
@@ -584,7 +583,7 @@ class DyldSharedCache:
             )
 
     @property
-    def images_sorted(self) -> Generator[Tuple[bytes, int]]:
+    def images_sorted(self) -> Generator[tuple[bytes, int]]:
         "Same as images, but guaranteed to be sorted by increasing base address"
         if self._images_sorted_by_address:
             # The images are naturally sorted by increasing base address.
@@ -626,9 +625,9 @@ class DyldSharedCache:
 
             # Technically possible, but we have *no* idea what to do if this
             # happens, and it's more likely that we got something wrong.
-            assert (
-                offset != 0
-            ), "Tried to query builtin selector identity, but have no Objective-C optimization header?"
+            assert offset != 0, (
+                "Tried to query builtin selector identity, but have no Objective-C optimization header?"
+            )
         else:
             raise NotImplementedError(
                 "Objective-C optimization queries are not yet supported for shared caches that have no objcOptsOffset value"
@@ -637,7 +636,10 @@ class DyldSharedCache:
         return DyldSharedCacheHashSet(ptr)
 
 
-@pwndbg.lib.cache.cache_until("exit")
+_global_new_variable_id = 0
+
+
+@pwndbg.lib.cache.cache_until("objfile")
 def shared_cache() -> DyldSharedCache | None:
     """
     Base address of the Darwin shared cache.
@@ -659,12 +661,22 @@ def shared_cache() -> DyldSharedCache | None:
     [1]: https://github.com/apple-oss-distributions/objc4/blob/f126469408dc82bd3f327217ae678fd0e6e3b37c/runtime/objc-opt.mm#L434
     [2]: https://github.com/apple-oss-distributions/dyld/blob/main/doc/dyld4.md#libdylddylib
     """
-    base = int(
-        pwndbg.dbg.selected_inferior().evaluate_expression(
-            "(const void*)_dyld_get_shared_cache_range()"
-        )
-    )
+    if pwndbg.aglib.symbol.lookup_symbol("_dyld_get_shared_cache_range") is None:
+        return None
 
+    # Due to bug: https://github.com/llvm/llvm-project/issues/84806#issuecomment-1995055683
+    # we have to create new variable on each call
+    global _global_new_variable_id
+    _global_new_variable_id += 1
+    var = f"$_pwndbg_internal_shared_cache_size{_global_new_variable_id}"
+
+    base = pwndbg.dbg.selected_inferior().evaluate_expression(
+        f"size_t {var} = 0; (const void*)_dyld_get_shared_cache_range(&{var})"
+    )
+    if base.is_optimized_out:
+        return None
+
+    base = int(base)
     if base == 0:
         return None
 

@@ -1,22 +1,26 @@
 from __future__ import annotations
 
 import bisect
-from typing import Tuple
+import os
+from pathlib import Path
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
+import pwndbg.aglib.macho
 import pwndbg.aglib.vmmap_custom
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
-from pwndbg.dbg import MemoryMap
+from pwndbg.dbg_mod import MemoryMap
 from pwndbg.lib.arch import Platform
+from pwndbg.lib.config import PARAM_BOOLEAN
 from pwndbg.lib.memory import Page
 
 pwndbg.config.add_param(
     "vmmap-prefer-relpaths",
     True,
     "show relative paths by default in vmmap",
-    param_class=pwndbg.lib.config.PARAM_BOOLEAN,
+    param_class=PARAM_BOOLEAN,
 )
 
 
@@ -39,6 +43,8 @@ def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
 
     images = list(shared_cache.images_sorted)
     images_base = [image[1] for image in images]
+
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
 
     for page in pages.ranges():
         if page.end < shared_cache_start or page.start >= shared_cache_end:
@@ -86,6 +92,7 @@ def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
                     end - curr_base,
                     page.flags,
                     curr_base - shared_cache_start,
+                    ptrsize,
                     objfile,
                     in_darwin_shared_cache=True,
                 )
@@ -102,7 +109,7 @@ def get_memory_map() -> MemoryMap:
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def get() -> tuple[pwndbg.lib.memory.Page, ...]:
     return tuple(get_memory_map().ranges())
 
 
@@ -137,7 +144,7 @@ def addr_region_start(address: int | pwndbg.dbg_mod.Value) -> int | None:
     if address < 0:
         return None
 
-    mappings = sorted(pwndbg.aglib.vmmap.get(), key=lambda p: p.vaddr)
+    mappings = sorted(get(), key=lambda p: p.vaddr)
     idx = -1
     for i in range(len(mappings)):
         if mappings[i].start <= address < mappings[i].end:
@@ -155,10 +162,43 @@ def addr_region_start(address: int | pwndbg.dbg_mod.Value) -> int | None:
         return explored_page.start
 
     # Look backwards from i to find all the mappings with the same name.
-    objname = mappings[i].objfile
-    while i > 0 and objname == mappings[i - 1].objfile:
-        i -= 1
+    objname = mappings[idx].objfile
+    while idx > 0 and objname == mappings[idx - 1].objfile:
+        idx -= 1
 
     # There might be other mappings with the name "objname" in the address space
     # but they are not contiguous with us, so we don't care.
-    return mappings[i].start
+    return mappings[idx].start
+
+
+def named_region_start(mapping_name: str, exact_match: bool = True) -> int | None:
+    """
+    Returns the lowest address which is mapped with `mapping_name`.
+
+    This works both for object file names and stuff like "[heap]", but note that not
+    all mappings with the same name are necessarily contiguous (especially if they
+    aren't backed by an object file).
+
+    Will not invoke vmmap_explore.
+
+    If exact_match is True looks for exact path match, otherwise will match
+    the os.path.basename()s.
+    """
+    mappings = sorted(get(), key=lambda p: p.vaddr)
+
+    if exact_match:
+        for mapping in mappings:
+            # Resolve relative files and symlinks even for exact matches.
+            # FIXME: This is a workaround for #3641 . Don't use Path()
+            # after that is fixed.
+            if Path(mapping.objfile).resolve() == Path(mapping_name).resolve():
+                return mapping.start
+
+        return None
+    # Note that os.path.basename("[heap]") == "[heap]".
+    mapping_basename = os.path.basename(mapping_name)
+    for mapping in mappings:
+        if os.path.basename(mapping.objfile) == mapping_basename:
+            return mapping.start
+
+    return None

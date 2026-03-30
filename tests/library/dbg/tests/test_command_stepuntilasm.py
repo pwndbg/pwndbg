@@ -5,7 +5,7 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-STEPUNTILASM_X64_BINARY = get_binary("stepuntilasm_x64.out")
+STEPUNTILASM_X64_BINARY = get_binary("stepuntilasm.x86-64.out")
 
 
 @pwndbg_test
@@ -19,7 +19,7 @@ async def test_command_untilasm_x64(ctrl: Controller) -> None:
 
 
 async def run_and_verify(ctrl: Controller, stop_label: str, asm: str) -> None:
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
     import pwndbg.aglib.symbol
 
     await ctrl.execute(f"stepuntilasm {asm}")

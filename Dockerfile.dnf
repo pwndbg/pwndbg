@@ -1,0 +1,58 @@
+# This dockerfile was created for development & testing purposes, for DNF-based distro.
+# images available:
+#   fedora43 | fedora42 | fedora41
+#
+# Run using prebuilt image (pulls image and bind-mounts working dir into /pwndbg):
+#   docker compose run --rm -v $(pwd):/pwndbg fedora43
+#
+# Update your prebuilt image:
+#   docker compose pull fedora43
+
+ARG image=fedora:43
+FROM $image
+
+WORKDIR /pwndbg
+
+ENV LANG=en_US.utf8
+ENV TZ=America/New_York
+ENV PWNDBG_VENV_PATH=/venv
+ENV UV_PROJECT_ENVIRONMENT=/venv
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    dnf -y install \
+        glibc-langpack-en \
+        glibc-locale-source \
+        vim-minimal \
+        ccache && \
+    localedef -i en_US -f UTF-8 en_US.UTF-8
+
+# Fix for BuildKit PAM error for fedora41 tests: https://github.com/docker/build-push-action/issues/1302
+RUN printf '#!/bin/sh\nexec "$@"' > /usr/local/bin/sudo && \
+    chmod +x /usr/local/bin/sudo
+
+# setup.sh needs scripts/common.sh
+COPY ./scripts/common.sh /pwndbg/scripts/
+
+COPY ./uv.lock /pwndbg/
+COPY ./pyproject.toml /pwndbg/
+
+# pyproject.toml requires these files, pip install would fail
+RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
+
+# RUN uv sync --all-groups --all-extras
+COPY ./setup.sh /pwndbg/
+RUN ./setup.sh
+
+# Comment these lines if you won't run the tests.
+COPY ./setup-dev.sh /pwndbg/
+RUN --mount=type=cache,id=ccache,target=/root/.ccache,sharing=locked \
+    CCACHE_DIR=/root/.ccache \
+    CC="ccache gcc" \
+    ./setup-dev.sh
+
+# Cleanup dummy files
+RUN rm README.md && rm -rf pwndbg
+
+COPY . /pwndbg/
+
+ENV PATH="${PWNDBG_VENV_PATH}/bin:${PATH}"

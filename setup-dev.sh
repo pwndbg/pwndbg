@@ -87,10 +87,10 @@ install_apt() {
         nasm \
         gcc \
         libc6-dev \
+        libc6-dbg \
         curl \
         wget \
         build-essential \
-        gdb \
         gdb-multiarch \
         parallel \
         qemu-system-x86 \
@@ -139,12 +139,10 @@ EOF
     sudo pacman -Syu --noconfirm || true
     sudo pacman -S --needed --noconfirm \
         nasm \
-        gcc \
         glibc-debug \
-        curl \
-        wget \
+        lib32-glibc \
         base-devel \
-        gdb \
+        wget \
         parallel \
         musl
 
@@ -157,18 +155,24 @@ install_dnf() {
     sudo dnf upgrade || true
     sudo dnf install -y \
         nasm \
-        gcc \
         curl \
         wget \
-        gdb \
+        musl-gcc \
         parallel \
+        qemu-system-x86 \
         qemu-system-arm \
         qemu-user
+
+    # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big
+    if uname -m | grep -q x86_64; then
+        sudo dnf -y install glibc.i686
+        sudo dnf -y debuginfo-install glibc.i686
+    fi
 
     command -v go &> /dev/null || sudo dnf install -y go
 
     if [[ "$1" != "" ]]; then
-        sudo dnf install shfmt
+        sudo dnf install -y shfmt
     fi
 }
 
@@ -191,7 +195,7 @@ install_jemalloc() {
             ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
             if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
                 echo "Jemalloc tarball exists but has incorrect checksum. Re-downloading..."
-                curl --location --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
+                curl --fail --location --retry 3 --retry-connrefused --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
                 ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
                 if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
                     echo "Jemalloc binary checksum mismatch after re-download."
@@ -204,7 +208,7 @@ install_jemalloc() {
             fi
         else
             echo "Downloading jemalloc..."
-            curl --location --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
+            curl --fail --location --retry 3 --retry-connrefused --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
             ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
             if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
                 echo "Jemalloc binary checksum mismatch"
@@ -245,7 +249,7 @@ configure_venv() {
 
 if osx; then
     echo "Not supported on macOS. Please use one of the alternative methods listed at:"
-    echo "https://pwndbg.re/pwndbg/dev/contributing/setup-pwndbg-dev/"
+    echo "https://pwndbg.re/dev/contributing/setup-pwndbg-dev/"
     exit 1
 fi
 

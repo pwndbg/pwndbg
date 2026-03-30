@@ -1,0 +1,66 @@
+# This dockerfile is used only for ./.github/workflows/base-image.yml
+
+ARG image=debian:latest
+FROM $image AS base
+
+WORKDIR /pwndbg
+
+ENV LANG=en_US.utf8
+ENV TZ=America/New_York
+ENV PWNDBG_VENV_PATH=/venv
+ENV UV_PROJECT_ENVIRONMENT=/venv
+ENV UV_LINK_MODE=copy
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        locales vim \
+        # pip/python dependencies
+        git python3 python3-dev python3-venv patch libncurses-dev libssl-dev libffi-dev pkg-config cmake build-essential curl \
+        # Pwndbg tests dependencies
+        make pkg-config gcc musl-tools golang libc6-dev libc6-dbg && \
+    localedef -i en_US -c -f UTF-8 en_US.UTF-8 && \
+    rm -rf /var/lib/apt/lists/*
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile=minimal -y && \
+    for bin in "$HOME"/.cargo/bin/*; do \
+      [ -x "$bin" ] && ln -sf "$bin" "/usr/local/bin/$(basename "$bin")"; \
+    done
+
+# TODO: jemalloc build
+
+# Pwndbg runtime dependencies
+ARG ZIG_VERSION=0.14.1
+RUN ARCH=$(uname -m) && \
+    case "$ARCH" in \
+        armv7l) ZIG_ARCH="armv7a";; \
+        ppc64le) ZIG_ARCH="powerpc64le";; \
+        i686) ZIG_ARCH="x86";; \
+        *) ZIG_ARCH="$ARCH";; \
+    esac && \
+    curl -L "https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz" -o /tmp/zig.tar.xz && \
+    tar -xf /tmp/zig.tar.xz -C /tmp && \
+    rm /tmp/zig.tar.xz && \
+    mkdir -p /opt/zig && \
+    mv /tmp/zig-* /opt/zig/ && \
+    ln -s /opt/zig/zig /usr/local/bin/zig
+
+# Installing uv
+RUN python3 -m venv /venv && \
+    . /venv/bin/activate && \
+    pip install uv==0.9.21 --extra-index-url https://mirrors.loong64.com/pypi/simple && \
+    rm -rf ~/.cache/
+
+WORKDIR /pwndbg
+
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    --mount=type=cache,target=/root/.cargo/registry,sharing=locked \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    . /venv/bin/activate && \
+    uv sync --locked --no-install-project --all-groups --all-extras
+
+ENV PATH="${PWNDBG_VENV_PATH}/bin:${PATH}"

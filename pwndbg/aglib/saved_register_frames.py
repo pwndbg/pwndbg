@@ -20,7 +20,7 @@ class SavedRegisterFrame:
     def __init__(self, register_offsets: dict[str, int]):
         self.offsets = register_offsets
 
-        self.frame_layout = sorted(((y, x) for (x, y) in register_offsets.items()))
+        self.frame_layout = sorted((y, x) for (x, y) in register_offsets.items())
 
     def read_saved_register(self, reg: str, sp: int = None) -> int | None:
         if sp is None:

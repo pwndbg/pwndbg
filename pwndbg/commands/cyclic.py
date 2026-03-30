@@ -3,15 +3,15 @@ from __future__ import annotations
 import argparse
 import signal
 import string
-from typing import Optional
 
 from pwnlib.util.cyclic import cyclic
 from pwnlib.util.cyclic import cyclic_find
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.commands
+import pwndbg.dbg_mod
 import pwndbg.lib.regs
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -24,7 +24,7 @@ class TimeoutException(Exception):
 
 
 def detect_register_patterns(alphabet, length, timeout) -> None:
-    if not pwndbg.aglib.proc.alive:
+    if not pwndbg.aglib.proc.alive():
         print(message.error("Error: Process is not running."))
         return
 
@@ -42,14 +42,14 @@ def detect_register_patterns(alphabet, length, timeout) -> None:
     all_register_names = register_set.all
 
     for reg_name in all_register_names:
-        value = pwndbg.aglib.regs[reg_name]
+        value = pwndbg.aglib.regs.read_reg(reg_name)
         if value is None:
             continue
 
         try:
             signal.alarm(timeout)
             value_bytes = value.to_bytes(ptr_size, endian)
-            offset = cyclic_find(value_bytes, alphabet=alphabet, n=length)
+            offset = cyclic_find(value_bytes[:length], alphabet=alphabet, n=length)
             if offset != -1:
                 found_patterns.append((reg_name, value, offset))
         except TimeoutException:
@@ -100,8 +100,9 @@ parser.add_argument(
     "-n",
     "--length",
     metavar="length",
+    default=4,
     type=int,
-    help="Size of the unique subsequences (defaults to the pointer size for the current arch)",
+    help="Size of the unique subsequences",
 )
 
 parser.add_argument(
@@ -148,13 +149,13 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, command_name="cyclic", category=CommandCategory.MISC)
-def cyclic_cmd(
-    alphabet, length: Optional[int], lookup, detect, count=100, filename="", timeout=2
-) -> None:
-    if length is None:
-        length = pwndbg.aglib.arch.ptrsize
-
+@pwndbg.commands.Command(
+    parser,
+    command_name="cyclic",
+    category=CommandCategory.MISC,
+    notes="If you want to write the cyclic pattern to memory, use the `spray` command!",
+)
+def cyclic_cmd(alphabet, length: int, lookup, detect, count=100, filename="", timeout=2) -> None:
     if detect:
         detect_register_patterns(alphabet, length, timeout)
         return
@@ -163,14 +164,19 @@ def cyclic_cmd(
         lookup = pwndbg.commands.fix(lookup, sloppy=True)
 
         if isinstance(lookup, (pwndbg.dbg_mod.Value, int)):
-            lookup = int(lookup).to_bytes(length, pwndbg.aglib.arch.endian)
+            try:
+                lookup = int(lookup).to_bytes(length, pwndbg.aglib.arch.endian)
+            except OverflowError:
+                lookup = int(lookup).to_bytes(pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.endian)
+                lookup = lookup[:length]
         elif isinstance(lookup, str):
             lookup = bytes(lookup, "utf-8")
+            lookup = lookup[:length]
 
         if len(lookup) != length:
             print(
                 message.error(
-                    f"Lookup pattern must be {length} bytes (use `-n <length>` to lookup pattern of different length)"
+                    f"Lookup pattern must be at least {length} bytes (use `-n <length>` to lookup pattern of different length)"
                 )
             )
             return

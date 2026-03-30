@@ -3,8 +3,8 @@
   inputs,
   python3 ? pkgs.python3,
   isDev ? false,
-  isLLDB ? false,
   isEditable ? false,
+  groups,
   ...
 }:
 let
@@ -22,6 +22,7 @@ let
 
   pkgsNeedSetuptools = [
     "capstone"
+    "capstone6pwndbg"
     "unicorn"
     "parso"
     "paramiko"
@@ -77,9 +78,21 @@ let
     "coverage"
     "mypy-extensions"
     "pytest"
-    "pytest-cov"
     "mypy"
     "vermin"
+    # decomp2dbg deps
+    "decomp2dbg"
+    "ghidra-bridge"
+    "jfx-bridge"
+    "tqdm"
+    "toml"
+    "libbs"
+    "networkx"
+    "jpype1"
+    "pyhidra"
+    "ply"
+    # end of decomp2dbg deps
+    "niche-elf"
   ];
   pkgsNeedFlitcore = [
     "typing-extensions"
@@ -97,12 +110,16 @@ let
     "plumbum"
     "rpyc"
     "iniconfig"
+    # decomp2dbg deps
+    "decomp2dbg"
+    "filelock"
+    "platformdirs"
+    # end of decomp2dbg deps
   ];
   pkgsNeedPoetry = [
     "pt"
     "rich"
     "sortedcontainers-stubs"
-    "isort"
   ];
 
   genPkgsNeeded =
@@ -133,30 +150,11 @@ let
     paramiko = dummy;
     pip = dummy;
     uv = dummy;
-    gdb-for-pwndbg = dummy;
-    lldb-for-pwndbg = dummy;
 
     # ziglang is only supported on few platforms
-    ziglang =
-      if
-        (
-          pkgs.stdenv.hostPlatform.isDarwin
-          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isx86)
-          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isAarch)
-          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isS390x)
-          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isRiscV64)
-          || (
-            pkgs.stdenv.hostPlatform.isLinux
-            && pkgs.stdenv.hostPlatform.isPower64
-            && pkgs.stdenv.hostPlatform.isLittleEndian
-          )
-        )
-      then
-        prev.ziglang.override {
-          sourcePreference = "wheel";
-        }
-      else
-        dummy;
+    ziglang = prev.ziglang.override {
+      sourcePreference = "wheel";
+    };
 
     psutil = pkgs.callPackage (
       {
@@ -171,7 +169,13 @@ let
           buildInputs = [ python3 ];
         }
         // lib.optionalAttrs stdenv.hostPlatform.isDarwin {
-          NIX_CFLAGS_COMPILE = "-DkIOMainPortDefault=0";
+          postPatch = ''
+            # stick to the old SDK name for now
+            # https://developer.apple.com/documentation/iokit/kiomasterportdefault/
+            # https://developer.apple.com/documentation/iokit/kiomainportdefault/
+            substituteInPlace psutil/arch/osx/cpu.c \
+              --replace-fail kIOMainPortDefault kIOMasterPortDefault
+          '';
         }
       )
     ) { };
@@ -182,6 +186,21 @@ let
         stdenv,
       }:
       prev.capstone.overrideAttrs (
+        old:
+        lib.optionalAttrs (isBuildSource old) {
+          nativeBuildInputs = old.nativeBuildInputs ++ [
+            cmake
+          ];
+        }
+      )
+    ) { };
+
+    capstone6pwndbg = pkgs.callPackage (
+      {
+        cmake,
+        stdenv,
+      }:
+      prev.capstone6pwndbg.overrideAttrs (
         old:
         lib.optionalAttrs (isBuildSource old) {
           nativeBuildInputs = old.nativeBuildInputs ++ [
@@ -216,33 +235,6 @@ let
           postPatch = lib.optionalString stdenv.hostPlatform.isDarwin ''
             substituteInPlace ./src/CMakeLists.txt \
                 --replace-fail 'set(CMAKE_C_COMPILER "/usr/bin/cc")' 'set(CMAKE_C_COMPILER "${stdenv.cc}/bin/${stdenv.cc.targetPrefix}cc")'
-          '';
-
-          # Remove this block after upgrading to unicorn 2.2.0
-          patches = lib.optionals stdenv.hostPlatform.isDarwin [
-            (fetchpatch {
-              url = "https://github.com/unicorn-engine/unicorn/commit/79f910ea73220f4f603b6050593af86483573908.patch";
-              hash = "sha256-AIMetsuYx1wz2KNtHcsyBfue+dBIDMVdqIiPaQ3xfgs=";
-              includes = [
-                "src/qemu/configure"
-                "src/qemu/include/tcg/tcg-apple-jit.h"
-              ];
-              stripLen = 1;
-              extraPrefix = "src/";
-            })
-          ];
-        }
-        // lib.optionalAttrs stdenv.hostPlatform.isLoongArch64 {
-          # Remove this block after upgrading to unicorn 2.2.0
-          src = fetchFromGitHub {
-            owner = "unicorn-engine";
-            repo = "unicorn";
-            rev = "e867b08c66544ddf8cd62c1e36e8ff35d32c3e77";
-            hash = "sha256-vov6io2+RY8CZAoF0S00J2trlEEQHeMxw4HV8gm2Q2Y=";
-          };
-          sourceRoot = "source/bindings/python";
-          preBuild = ''
-            chmod -R +w ../../../
           '';
         }
       )
@@ -292,6 +284,63 @@ let
           ++ lib.optionals isCross [
             python3
           ];
+      })
+    ) { };
+
+    jfx-bridge = pkgs.callPackage (
+      { stdenv }:
+      prev.jfx-bridge.overrideAttrs (old: {
+        postPatch = ''
+          substituteInPlace ./setup.py \
+            --replace-fail 'git describe --tags' 'echo ${old.version}'
+        '';
+      })
+    ) { };
+
+    jpype1 = pkgs.callPackage (
+      { python3 }:
+      prev.jpype1.overrideAttrs (old: {
+        buildInputs =
+          (old.buildInputs or [ ])
+          ++ lib.optionals isCross [
+            python3
+          ];
+      })
+    ) { };
+
+    ghidra-bridge = pkgs.callPackage (
+      { }:
+      prev.ghidra-bridge.overrideAttrs (old: {
+        postPatch = ''
+          substituteInPlace ./setup.py \
+            --replace-fail 'git describe --tags' 'echo ${old.version}'
+        '';
+      })
+    ) { };
+
+    gdb-for-pwndbg = pkgs.callPackage (
+      { python3, autoPatchelfHook }:
+      prev.gdb-for-pwndbg.overrideAttrs (old: {
+        nativeBuildInputs = builtins.filter (x: x != autoPatchelfHook) old.nativeBuildInputs;
+        postFixup = ''
+          for f in ${python3}/lib/libpython*; do
+            name=$(basename "$f")
+            ln -s "$f" "$out/lib/$name";
+          done
+        '';
+      })
+    ) { };
+
+    lldb-for-pwndbg = pkgs.callPackage (
+      { python3, autoPatchelfHook }:
+      prev.lldb-for-pwndbg.overrideAttrs (old: {
+        nativeBuildInputs = builtins.filter (x: x != autoPatchelfHook) old.nativeBuildInputs;
+        postFixup = ''
+          for f in ${python3}/lib/libpython*; do
+            name=$(basename "$f")
+            ln -s "$f" "$out/lib/$name";
+          done
+        '';
       })
     ) { };
   };
@@ -348,30 +397,29 @@ let
   pyenv = pythonSet.mkVirtualEnv "pwndbg-env" {
     pwndbg =
       [ ]
-      ++ lib.optionals isLLDB [
-        "lldb"
-      ]
       ++ lib.optionals isDev [
         "dev"
         "tests"
         # We don't need linters in "dev" build
         # "lint"
-      ];
+      ]
+      ++ groups;
   };
 
   pyenvEditable = editablePythonSet.mkVirtualEnv "pwndbg-editable-env" {
     pwndbg =
       [ ]
-      ++ lib.optionals isLLDB [
-        "lldb"
-      ]
-      ++ lib.optionals (!isLLDB) [
-        "gdb"
-      ]
       ++ lib.optionals isDev [
         "dev"
         "tests"
-      ];
+      ]
+      ++ groups;
   };
+
+  final = (if isEditable then pyenvEditable else pyenv).overrideAttrs (old: {
+    meta = {
+      python3 = python3;
+    };
+  });
 in
-if isEditable then pyenvEditable else pyenv
+final

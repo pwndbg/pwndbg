@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from ....host import Controller
 from . import pwndbg_test
 
-STACK_COMMANDS = [
+STACK_COMMANDS: list[tuple[str, list[str], str, str]] = [
     ("canary", [], "Stack", "Print out the current stack canary."),
     # The aliases 'do' and 'dow' were added to support the help consistency test.
     ("retaddr", [], "Stack", "Print out the stack addresses that contain return addresses."),
@@ -12,7 +13,7 @@ STACK_COMMANDS = [
 
 @pwndbg_test
 async def test_list_and_filter_commands_filter(_ctrl: Controller):
-    from pwndbg.commands.misc import list_and_filter_commands
+    from pwndbg.commands.pwndbg_ import list_and_filter_commands
 
     for cmd in STACK_COMMANDS:
         assert cmd in list_and_filter_commands("stack")
@@ -21,7 +22,7 @@ async def test_list_and_filter_commands_filter(_ctrl: Controller):
 @pwndbg_test
 async def test_list_and_filter_commands_full_list(_ctrl: Controller):
     import pwndbg.commands
-    from pwndbg.commands.misc import list_and_filter_commands
+    from pwndbg.commands.pwndbg_ import list_and_filter_commands
 
     all_commands = list_and_filter_commands("")
 

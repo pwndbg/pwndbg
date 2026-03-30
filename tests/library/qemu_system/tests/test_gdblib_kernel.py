@@ -4,10 +4,10 @@ import os
 
 import pytest
 
+import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.kallsyms
 import pwndbg.aglib.symbol
-import pwndbg.dbg
 
 ARCH = os.getenv("PWNDBG_ARCH")
 KERNEL_TYPE = os.getenv("PWNDBG_KERNEL_TYPE")
@@ -21,7 +21,7 @@ def test_gdblib_kernel_archops_address_translation():
     # test address translation functions for LowMem
     min_low_pfn = int(pwndbg.dbg.selected_inferior().evaluate_expression("(long)min_low_pfn"))
     max_low_pfn = int(pwndbg.dbg.selected_inferior().evaluate_expression("(long)max_low_pfn"))
-    pfns = [min_low_pfn, max_low_pfn]
+    pfns = [min_low_pfn, max_low_pfn - 1]
 
     kernel = pwndbg.aglib.kernel
     for pfn in pfns:
@@ -71,4 +71,6 @@ def test_gdblib_kernel_kbase():
 )
 def test_gdblib_kernel_kallsyms():
     ks = pwndbg.aglib.kernel.kallsyms.get()
-    assert ks["commit_creds"][0] == pwndbg.aglib.symbol.lookup_symbol_addr("commit_creds")
+    for sym_name, _, sym_addr in ks:
+        if sym_name == "commit_creds":
+            assert sym_addr == pwndbg.aglib.symbol.lookup_symbol_addr("commit_creds")

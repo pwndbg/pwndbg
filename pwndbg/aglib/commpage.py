@@ -4,11 +4,10 @@ import os
 import struct
 from typing import Any
 from typing import NamedTuple
-from typing import Tuple
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.commands
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.arch import Platform
@@ -178,7 +177,7 @@ _fields_x86 = (
 # fmt: on
 
 
-def _comm_fix_gaps(fields: Tuple[CommPageField, ...]) -> Tuple[CommPageField, ...]:
+def _comm_fix_gaps(fields: tuple[CommPageField, ...]) -> tuple[CommPageField, ...]:
     fixed_fields = []
     prev_endaddr = 0
     for comm in fields:
@@ -222,14 +221,14 @@ _comm_fields = {
 }
 
 
-def get_commpage_fields() -> Tuple[CommPageField, ...]:
+def get_commpage_fields() -> tuple[CommPageField, ...]:
     if pwndbg.aglib.arch.platform != Platform.DARWIN:
         return ()
     return _comm_fields.get(pwndbg.aglib.arch.name, ())
 
 
 @pwndbg.lib.cache.cache_until("start")
-def get_commpage_mappings() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def get_commpage_mappings() -> tuple[pwndbg.lib.memory.Page, ...]:
     if pwndbg.aglib.arch.platform != Platform.DARWIN:
         return ()
 
@@ -237,11 +236,15 @@ def get_commpage_mappings() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if start_rw is None or not pwndbg.aglib.memory.peek(start_rw):
         return ()
 
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
+
     start_ro = _comm_start_page_ro.get(pwndbg.aglib.arch.name, None)
     if start_ro is None or not pwndbg.aglib.memory.peek(start_ro):
-        return (pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, "[commpage]"),)
+        return (
+            pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, ptrsize, "[commpage]"),
+        )
 
     return (
-        pwndbg.lib.memory.Page(start_ro, _comm_max_size, ro_flags, 0, "[commpage]"),
-        pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, "[commpage]"),
+        pwndbg.lib.memory.Page(start_ro, _comm_max_size, ro_flags, 0, ptrsize, "[commpage]"),
+        pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, ptrsize, "[commpage]"),
     )

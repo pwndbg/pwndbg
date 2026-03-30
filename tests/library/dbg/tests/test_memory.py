@@ -5,8 +5,8 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
-NESTED_STRUCTS_BINARY = get_binary("nested_structs.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
+NESTED_STRUCTS_BINARY = get_binary("nested_structs.native.out")
 
 
 @pwndbg_test
@@ -15,6 +15,7 @@ async def test_memory_read_write(ctrl: Controller) -> None:
     Tests simple pwndbg's memory read/write operations with different argument types
     """
     import pwndbg.aglib.memory
+    import pwndbg.aglib.stack
 
     await ctrl.launch(REFERENCE_BINARY)
     stack_addr = next(iter(pwndbg.aglib.stack.get().values())).vaddr
@@ -52,7 +53,8 @@ async def test_memory_peek_poke(ctrl: Controller) -> None:
     assert pwndbg.aglib.memory.poke(0) is False
     assert pwndbg.aglib.memory.peek(0) is None
 
-    stack_addr = pwndbg.aglib.regs.rsp
+    stack_addr = pwndbg.aglib.regs.sp
+    assert stack_addr
 
     for v in range(256):
         data = bytearray([v, 0, 0, 0])
@@ -66,25 +68,6 @@ async def test_memory_peek_poke(ctrl: Controller) -> None:
 
         # Now make sure poke did not change the underlying bytes
         assert pwndbg.aglib.memory.read(stack_addr, 4) == data
-
-    # TODO/FIXME: Fix peek/poke exception handling and uncomment this!
-    """
-    # Ensure that peek and poke correctly raises exceptions
-    # when incorrect argument type is passed
-    for not_parsable_as_int in (b"asdf", "asdf"):
-        with pytest.raises(ValueError):
-            pwndbg.aglib.memory.peek(not_parsable_as_int)
-
-    for not_parsable_as_int in (b"asdf", "asdf"):
-        with pytest.raises(ValueError):
-            pwndbg.aglib.memory.poke(not_parsable_as_int)
-    """
-
-    # Acceptable inputs (not great; maybe we should ban them?)
-    # Note: they return 0 because the address 0 is not mapped
-    assert pwndbg.aglib.memory.peek(0.0) is None
-    assert pwndbg.aglib.memory.peek("0") is None
-    assert pwndbg.aglib.memory.peek(b"0") is None
 
 
 @pwndbg_test

@@ -5,6 +5,11 @@
 
 # Commands
 
+## Allocators
+
+-  [jemalloc](allocators/jemalloc.md) - Utility for inspecting the jemalloc allocator.
+-  [mallocng](allocators/mallocng.md) - Utility for inspecting the mallocng (musl) allocator.
+
 ## Breakpoint
 
 -  [break-if-not-taken](breakpoint/break-if-not-taken.md) - Breaks on a branch if it is not taken.
@@ -31,6 +36,10 @@
 
 -  [dev-dump-instruction](developer/dev-dump-instruction.md) - Dump internal PwndbgInstruction attributes.
 -  [log-level](developer/log-level.md) - Set the log level.
+-  [memoize](developer/memoize.md) - Toggles memoization (caching).
+-  [profiler](developer/profiler.md) - Utilities for profiling Pwndbg.
+-  [reinit-pwndbg](developer/reinit-pwndbg.md) - Makes Pwndbg reinitialize all state.
+-  [reload](developer/reload.md) - Reload Pwndbg.
 
 ## Disassemble
 
@@ -60,36 +69,32 @@
 ## Integrations
 
 -  [ai](integrations/ai.md) - Ask GPT-3 a question about the current debugging context.
--  [bn-sync](integrations/bn-sync.md) - Synchronize Binary Ninja's cursor with GDB.
 -  [decomp](integrations/decomp.md) - Use the current integration to decompile code near an address.
--  [j](integrations/j.md) - Synchronize IDA's cursor with GDB.
+-  [decompiler-integration](integrations/decompiler-integration.md) - Control Pwndbg decompiler integration.
 -  [r2](integrations/r2.md) - Launches radare2.
 -  [r2pipe](integrations/r2pipe.md) - Execute stateful radare2 commands through r2pipe.
 -  [rop](integrations/rop.md) - Dump ROP gadgets with Jon Salwan's ROPgadget tool.
 -  [ropper](integrations/ropper.md) - ROP gadget search with ropper.
 -  [rz](integrations/rz.md) - Launches rizin.
 -  [rzpipe](integrations/rzpipe.md) - Execute stateful rizin commands through rzpipe.
--  [save-ida](integrations/save-ida.md) - Save the ida database.
 
 ## Kernel
 
 -  [binder](kernel/binder.md) - Show Android Binder information
 -  [buddydump](kernel/buddydump.md) - Displays metadata and freelists of the buddy allocator.
 -  [kbase](kernel/kbase.md) - Finds the kernel virtual base address.
+-  [kbpf](kernel/kbpf.md) - Prints information about the linux kernel bpf progs and maps.
 -  [kchecksec](kernel/kchecksec.md) - Checks for kernel hardening configuration options.
 -  [kcmdline](kernel/kcmdline.md) - Return the kernel commandline (/proc/cmdline).
 -  [kconfig](kernel/kconfig.md) - Outputs the kernel config.
+-  [kcurrent](kernel/kcurrent.md) - Displays the current kernel task debugged by the debugger (gdb/lldb) if pid == None
+-  [kdmabuf](kernel/kdmabuf.md) - Prints DMA buf info
 -  [kdmesg](kernel/kdmesg.md) - Displays the kernel ring buffer (dmesg) contents.
+-  [kfile](kernel/kfile.md) - Displays information about fds accessible by a kernel task.
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
+-  [kmem-trace](kernel/kmem-trace.md) - Trace kernel memory (SLUB and buddy) allocations and frees.
 -  [kmod](kernel/kmod.md) - Displays the loaded Linux kernel modules.
--  [knft-dump](kernel/knft-dump.md) - Dump all nftables: tables, chains, rules, expressions
--  [knft-list-chains](kernel/knft-list-chains.md) - Dump netfilter chains form a specific table
--  [knft-list-exprs](kernel/knft-list-exprs.md) - Dump only expressions from specific rule
--  [knft-list-flowtables](kernel/knft-list-flowtables.md) - Dump netfilter flowtables from a specific table
--  [knft-list-objects](kernel/knft-list-objects.md) - Dump netfilter objects from a specific table
--  [knft-list-rules](kernel/knft-list-rules.md) - Dump netfilter rules form a specific chain
--  [knft-list-sets](kernel/knft-list-sets.md) - Dump netfilter sets from a specific table
--  [knft-list-tables](kernel/knft-list-tables.md) - Dump netfliter tables from a specific network namespace
+-  [knft](kernel/knft.md) - Utility for inspecting the kernel netfilter subsystem.
 -  [ksyscalls](kernel/ksyscalls.md) - Displays Linux syscall table, including names and addresses of syscalls.
 -  [ktask](kernel/ktask.md) - Displays information about kernel tasks.
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).
@@ -112,9 +117,10 @@
 -  [errno](linux_libc_elf/errno.md) - Converts errno (or argument) to its string representation.
 -  [got](linux_libc_elf/got.md) - Show the state of the Global Offset Table.
 -  [gotplt](linux_libc_elf/gotplt.md) - Prints any symbols found in the .got.plt section if it exists.
--  [libcinfo](linux_libc_elf/libcinfo.md) - Show libc version and link to its sources
+-  [libcinfo](linux_libc_elf/libcinfo.md) - Show various information about the currently used libc
 -  [linkmap](linux_libc_elf/linkmap.md) - Show the state of the Link Map
 -  [onegadget](linux_libc_elf/onegadget.md) - Find gadgets which single-handedly give code execution.
+-  [parse-seccomp](linux_libc_elf/parse-seccomp.md) - Parse a struct sock_fprog from memory and dump its filter
 -  [piebase](linux_libc_elf/piebase.md) - Calculate VA of RVA from PIE base.
 -  [plt](linux_libc_elf/plt.md) - Prints any symbols found in Procedure Linkage Table sections if any exist.
 -  [strings](linux_libc_elf/strings.md) - Extracts and displays ASCII strings from readable memory pages of the debugged process.
@@ -152,7 +158,7 @@
 -  [checksec](misc/checksec.md) - Prints out the binary security settings using `checksec`.
 -  [comm](misc/comm.md) - Put comments in assembly code.
 -  [cyclic](misc/cyclic.md) - Cyclic pattern creator/finder.
--  [cymbol](misc/cymbol.md) - Manage custom C structures in pwndbg. Supports project-specific auto-loading from .gdbinit.
+-  [cymbol](misc/cymbol.md) - Add custom C structures to the debugger.
 -  [down](misc/down.md) - Select and print stack frame called by this one.
 -  [dt](misc/dt.md) - Dump out information on a type (e.g. ucontext_t).
 -  [dumpargs](misc/dumpargs.md) - Prints determined arguments for call/syscall instruction.
@@ -183,11 +189,7 @@
 -  [config](pwndbg/config.md) - Shows Pwndbg-specific configuration.
 -  [configfile](pwndbg/configfile.md) - Generates a configuration file for the current Pwndbg options.
 -  [heap-config](pwndbg/heap-config.md) - Shows heap related configuration.
--  [memoize](pwndbg/memoize.md) - Toggles memoization (caching).
--  [profiler](pwndbg/profiler.md) - Utilities for profiling Pwndbg.
 -  [pwndbg](pwndbg/pwndbg.md) - Prints out a list of all Pwndbg commands.
--  [reinit-pwndbg](pwndbg/reinit-pwndbg.md) - Makes Pwndbg reinitialize all state.
--  [reload](pwndbg/reload.md) - Reload Pwndbg.
 -  [theme](pwndbg/theme.md) - Shows Pwndbg-specific theme configuration.
 -  [themefile](pwndbg/themefile.md) - Generates a configuration file for the current Pwndbg theme options.
 -  [version](pwndbg/version.md) - Displays Pwndbg and its important deps versions.
@@ -253,25 +255,6 @@
 -  [ln](windbg/ln.md) - List the symbols nearest to the provided value.
 -  [pc](windbg/pc.md) - WinDbg compatibility alias for 'nextcall' command.
 -  [peb](windbg/peb.md) - Not be windows.
-
-## jemalloc Heap
-
--  [jemalloc-extent-info](jemalloc_heap/jemalloc-extent-info.md) - Prints extent information for the given address
--  [jemalloc-find-extent](jemalloc_heap/jemalloc-find-extent.md) - Returns extent information for pointer address allocated by jemalloc
--  [jemalloc-heap](jemalloc_heap/jemalloc-heap.md) - Prints all extents information
-
-## musl
-
--  [mallocng-dump](musl/mallocng-dump.md) - Dump the mallocng heap.
--  [mallocng-explain](musl/mallocng-explain.md) - Gives a quick explanation of musl's mallocng allocator.
--  [mallocng-find](musl/mallocng-find.md) - Find slot which contains the given address.
--  [mallocng-group](musl/mallocng-group.md) - Print out information about a mallocng group at the given address.
--  [mallocng-malloc-context](musl/mallocng-malloc-context.md) - Print out the mallocng __malloc_context (ctx) object.
--  [mallocng-meta-area](musl/mallocng-meta-area.md) - Print out a mallocng meta_area object at the given address.
--  [mallocng-meta](musl/mallocng-meta.md) - Print out information about a mallocng group given the address of its meta.
--  [mallocng-slot-start](musl/mallocng-slot-start.md) - Dump information about a mallocng slot, given its start address.
--  [mallocng-slot-user](musl/mallocng-slot-user.md) - Dump information about a mallocng slot, given its user address.
--  [mallocng-visualize-slots](musl/mallocng-visualize-slots.md) - Visualize slots in a group.
 
 <!-- END OF AUTOGENERATED PART. Do not modify this line or the line below, they mark the end of the auto-generated part of the file. If you want to extend the documentation in a way which cannot easily be done by adding to the command help description, write below the following line. -->
 <!-- ------------\>8---- ----\>8---- ----\>8------------ -->

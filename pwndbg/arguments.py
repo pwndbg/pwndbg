@@ -8,31 +8,28 @@ registers and stack values.
 from __future__ import annotations
 
 import re
-from typing import List
-from typing import Tuple
 
-from capstone import CS_GRP_INT
+from capstone6pwndbg import CS_GRP_INT
 
-import pwndbg.aglib.arch
-import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.disasm.disassembly
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
+import pwndbg.aglib.objc
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 import pwndbg.chain
-import pwndbg.integration
+import pwndbg.dbg_mod
+import pwndbg.enhance
 import pwndbg.lib.abi
-import pwndbg.lib.funcparser
 import pwndbg.lib.functions
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N
+from pwndbg.lib.arch import Platform
+from pwndbg.lib.functions import Function
 from pwndbg.lib.functions import format_flags_argument
 
 
-def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
+def get(instruction: PwndbgInstruction) -> list[tuple[pwndbg.lib.functions.Argument, int]]:
     """
     Returns an array containing the arguments to the current function,
     if $pc is a function call or syscall instruction.
@@ -83,11 +80,24 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         name = name.replace("_chk", "")
         name = name.strip().lstrip("_")  # _malloc
 
-    func = pwndbg.lib.functions.functions.get(name, None)
+    func: Function | None = None
+    if pwndbg.aglib.arch.platform == Platform.DARWIN:
+        # Try to resolve an Objective-C method call.
+        #
+        # Checking this first keeps us from resolving these as simple calls to
+        # `objc_msgSend` and functions like it, which have definitions that are
+        # rather barren of semantics in comparison.
+        func = pwndbg.aglib.objc.try_resolve_call_at_current_pc(instruction)
 
+    if func is None:
+        # If more specific call information can't be determined, use the regular
+        # function resolution flow.
+        func = pwndbg.lib.functions.functions.get(name, None)
+
+    # FIXME(provider, integration): Add this feature back at some point
     # Try to grab the data out of IDA
-    if not func and target:
-        func = pwndbg.integration.provider.get_func_type(target)
+    # if not func and target:
+    #    func = pwndbg.dintegration.provider.get_func_type(target)
 
     if func:
         args = func.args
@@ -130,7 +140,7 @@ def argname(n: int, abi: pwndbg.lib.abi.ABI) -> str:
     if n < len(regs):
         return regs[n]
 
-    return "arg[%i]" % n
+    return f"arg[{n}]"
 
 
 def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
@@ -147,7 +157,7 @@ def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
     regs = abi.register_arguments
 
     if n < len(regs):
-        return getattr(pwndbg.aglib.regs, regs[n])
+        return pwndbg.aglib.regs.read_reg_uncached(regs[n])
 
     n -= len(regs)
 
@@ -188,7 +198,7 @@ FILE_DESCRIPTOR_ARG_NAMES = {
 }
 
 
-def format_args(instruction: PwndbgInstruction) -> List[str]:
+def format_args(instruction: PwndbgInstruction) -> list[str]:
     result = []
     for arg, value in get(instruction):
         code = arg.type != "char"
@@ -201,11 +211,12 @@ def format_args(instruction: PwndbgInstruction) -> List[str]:
         # Enhance args display
         if arg.name in FILE_DESCRIPTOR_ARG_NAMES and isinstance(value, int):
             # Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file.
-            pid = pwndbg.aglib.proc.pid
+            pid = pwndbg.aglib.proc.pid()
             if pid is not None:
-                path = pwndbg.aglib.file.readlink("/proc/%d/fd/%d" % (pid, value))
+                path = pwndbg.aglib.file.readlink(f"/proc/{pid}/fd/{value}")
                 if path:
                     pretty += f" ({path})"
 
-        result.append("%-10s %s" % (N.argument(arg.name) + ":", pretty))
+        result.append(f"{N.argument(arg.name) + ':':<10} {pretty}")
+
     return result

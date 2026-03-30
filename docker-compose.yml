@@ -1,7 +1,6 @@
 services:
   base: &base-spec
     build: .
-    platform: linux/amd64
     security_opt:
       - seccomp:unconfined
     cap_add:
@@ -13,14 +12,18 @@ services:
 
   ubuntu22.04:
     <<: *base-spec
+    image: ghcr.io/pwndbg/pwndbg:ubuntu22.04
+    pull_policy: missing
     build:
       context: .
       dockerfile: Dockerfile
       args:
         image: ubuntu:22.04
-  
+
   ubuntu24.04:
     <<: *base-spec
+    image: ghcr.io/pwndbg/pwndbg:ubuntu24.04
+    pull_policy: missing
     build:
       context: .
       dockerfile: Dockerfile
@@ -29,6 +32,8 @@ services:
 
   ubuntu24.04-mount:
     <<: *base-spec
+    image: ghcr.io/pwndbg/pwndbg:ubuntu24.04
+    pull_policy: missing
     build:
       context: .
       target: base
@@ -40,26 +45,50 @@ services:
 
   debian12:
     <<: *base-spec
+    image: ghcr.io/pwndbg/pwndbg:debian12
+    pull_policy: missing
     build:
       context: .
       dockerfile: Dockerfile
       args:
         image: debian:12
 
-  lldb:
-    <<: *base-spec
-    build:
-      context: .
-      dockerfile: Dockerfile.lldb
-      args:
-        image: debian:12
-    volumes:
-      - .:/pwndbg
-
   archlinux:
     <<: *base-spec
+    image: ghcr.io/pwndbg/pwndbg:archlinux
+    pull_policy: missing
     build:
       context: .
       dockerfile: Dockerfile.arch
       args:
         image: archlinux:latest
+
+  fedora41:
+    <<: *base-spec
+    image: ghcr.io/pwndbg/pwndbg:fedora41
+    pull_policy: missing
+    build:
+      context: .
+      dockerfile: Dockerfile.dnf
+      args:
+        image: fedora:41
+
+  fedora42:
+    <<: *base-spec
+    image: ghcr.io/pwndbg/pwndbg:fedora42
+    pull_policy: missing
+    build:
+      context: .
+      dockerfile: Dockerfile.dnf
+      args:
+        image: fedora:42
+
+  fedora43:
+    <<: *base-spec
+    image: ghcr.io/pwndbg/pwndbg:fedora43
+    pull_policy: missing
+    build:
+      context: .
+      dockerfile: Dockerfile.dnf
+      args:
+        image: fedora:43

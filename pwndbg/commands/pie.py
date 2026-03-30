@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.proc
 import pwndbg.aglib.vmmap
-import pwndbg.auxv
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -19,7 +19,7 @@ def translate_addr(offset, module):
     if not pages:
         print(
             "There are no memory pages in `vmmap` "
-            "for specified address=0x%x and module=%s" % (offset, module)
+            f"for specified address=0x{offset:x} and module={module}"
         )
         return
 
@@ -29,8 +29,8 @@ def translate_addr(offset, module):
 
     if not any(addr in p for p in pages):
         print(
-            "Offset 0x%x rebased to module %s as 0x%x is beyond module's "
-            "memory pages:" % (offset, module, addr)
+            f"Offset 0x{offset:x} rebased to module {module} as 0x{addr:x} is beyond module's "
+            "memory pages:"
         )
         for p in pages:
             print(p)
@@ -40,7 +40,7 @@ def translate_addr(offset, module):
 
 
 parser = argparse.ArgumentParser(description="Calculate VA of RVA from PIE base.")
-parser.add_argument("offset", nargs="?", default=0, help="Offset from PIE base.")
+parser.add_argument("offset", nargs="?", type=int, default=0, help="Offset from PIE base.")
 parser.add_argument(
     "module",
     type=str,
@@ -52,10 +52,10 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
-def piebase(offset=None, module=None) -> None:
+def piebase(offset: int = 0, module: str = "") -> None:
     offset = int(offset)
     if not module:
-        module = pwndbg.aglib.proc.exe
+        module = pwndbg.aglib.proc.exe()
 
     addr = translate_addr(offset, module)
 
@@ -68,7 +68,7 @@ def piebase(offset=None, module=None) -> None:
 if pwndbg.dbg.is_gdblib_available():
     parser = argparse.ArgumentParser()
     parser.description = "Break at RVA from PIE base."
-    parser.add_argument("offset", nargs="?", default=0, help="Offset to add.")
+    parser.add_argument("offset", nargs="?", type=int, default=0, help="Offset to add.")
     parser.add_argument(
         "module",
         type=str,
@@ -79,15 +79,15 @@ if pwndbg.dbg.is_gdblib_available():
 
     @pwndbg.commands.Command(parser, aliases=["brva"], category=CommandCategory.BREAKPOINT)
     @pwndbg.commands.OnlyWhenRunning
-    def breakrva(offset=0, module=None) -> None:
+    def breakrva(offset: int = 0, module: str = "") -> None:
         offset = int(offset)
         if not module:
-            module = pwndbg.aglib.proc.exe
+            module = pwndbg.aglib.proc.exe()
 
         addr = translate_addr(offset, module)
 
         if addr is not None:
-            spec = "*%#x" % (addr)
+            spec = f"*{addr:#x}"
             gdb.Breakpoint(spec)
         else:
             print(message.error("Could not determine rebased breakpoint address on current target"))

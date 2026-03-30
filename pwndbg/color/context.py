@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from pwndbg.color import theme
 from pwndbg.lib.regs import BitFlags
 
@@ -92,11 +90,11 @@ def format_flags(value: int | None, flags: BitFlags, last: int | None = None):
     if value is None:
         return "<unavailable>"
 
-    desc = flag_value("%#x" % value)
+    desc = flag_value(f"{value:#x}")
     if not flags:
         return desc
 
-    names: List[str] = []
+    names: list[str] = []
     for name, bit in flags.items():
         # If the size is not specified, assume it's 1
         if isinstance(bit, int):

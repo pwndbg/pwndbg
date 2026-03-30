@@ -1,12 +1,8 @@
 from __future__ import annotations
 
-from typing import Tuple
-
 import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
-import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 
 #########################################
 # structurs relevant to buddydump
@@ -15,12 +11,12 @@ import pwndbg.aglib.typeinfo
 MAX_ORDER = 11
 
 
-def find_zone_offsets() -> Tuple[int, int, int, int, int]:
+def find_zone_offsets() -> tuple[int, int, int, int, int]:
     pcp_off, name_off, freelist_off, pcp_pad, zone_sz = None, None, None, None, None
     node_data0 = pwndbg.aglib.kernel.node_data()
+    assert node_data0, "cannot find node_data"
     if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
-        node_data0 = node_data0.dereference()
-    node_data0 = int(node_data0)
+        node_data0 = pwndbg.aglib.memory.read_pointer_width(node_data0)
     ptr = node_data0
     for i in range(20):  # the pcp offset should exist in those range
         val = pwndbg.aglib.memory.u64(ptr)
@@ -40,12 +36,15 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
     for i in range(20):
         char_ptr = pwndbg.aglib.memory.u64(ptr)
         ptr += 8
-        if (
-            pwndbg.aglib.memory.string(char_ptr).decode()
-            in pwndbg.aglib.kernel.symbol.POSSIBLE_ZONE_NAMES
-        ):
-            name_off = i * 8 + pcp_off  # plus 1 to skip over previous
-            break
+        name_str = None
+        if pwndbg.aglib.memory.is_kernel(char_ptr):
+            try:
+                name_str = pwndbg.aglib.memory.string(char_ptr).decode()
+            except Exception:
+                continue
+            if name_str is not None and name_str in pwndbg.aglib.kernel.symbol.POSSIBLE_ZONE_NAMES:
+                name_off = i * 8 + pcp_off
+                break
     assert name_off, "can't find name offset"
     prev = pwndbg.aglib.memory.u64(ptr)
     ptr += 8
@@ -68,22 +67,17 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
             # we have found `zone_pgdat`
             zone_sz = ptr - pcp_off - node_data0
             break
-    assert (
-        zone_sz and zone_sz < 0x4000 and zone_sz & 0xF == 0
-    ), f"can't determine sizeof(struct zone) = {zone_sz}"  # just to make sure it is sane
+    assert zone_sz and zone_sz < 0x4000 and zone_sz & 0xF == 0, (
+        f"can't determine sizeof(struct zone) = {zone_sz}"
+    )  # just to make sure it is sane
     return pcp_off, name_off, freelist_off, pcp_pad, zone_sz
 
 
-def load_buddydump_typeinfo():
-    if pwndbg.aglib.typeinfo.lookup_types("struct pglist_data") is not None:
-        return
-    if pwndbg.aglib.kernel.symbol.kversion_cint() is None:
-        return
+@pwndbg.aglib.kernel.typeinfo_recovery("struct pglist_data", requires_kversion=True)
+def recover_buddydump_typeinfo() -> str:
     nmtypes = pwndbg.aglib.kernel.symbol.nmtypes()
     nzones = pwndbg.aglib.kernel.symbol.nzones()
-    nnodes = pwndbg.aglib.kernel.num_numa_nodes()
     npcplist = pwndbg.aglib.kernel.symbol.npcplist()
-    pwndbg.aglib.kernel.symbol.load_common_structs()
 
     result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     result += pwndbg.aglib.kernel.symbol.COMMON_TYPES
@@ -107,12 +101,7 @@ def load_buddydump_typeinfo():
         struct per_cpu_pages pcp;
     }};
 #endif
-/* custom type for page list data */
-#ifdef CONFIG_NUMA
-    typedef struct pglist_data *node_data_t[{nnodes}];
-#else
-    typedef struct pglist_data node_data_t;
-#endif
+    /* custom type for page list data */
     struct zone {{
         char _pad1[{pcp_off}];
 #if KVERSION < KERNEL_VERSION(5, 14, 0)
@@ -133,5 +122,4 @@ def load_buddydump_typeinfo():
         // ... the rest of the fields are not important
     }} pg_data_t;
     """
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "buddydump_structs", True)
+    return result

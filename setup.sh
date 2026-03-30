@@ -22,18 +22,13 @@ osx() {
 
 install_apt() {
     sudo apt-get update || true
-    sudo apt-get install -y git gdb gdbserver python3-dev python3-venv python3-setuptools libglib2.0-dev libc6-dbg curl
-
-    if uname -m | grep -q x86_64; then
-        sudo dpkg --add-architecture i386 || true
-        sudo apt-get update || true
-        sudo apt-get install -y libc6-dbg:i386 libgcc-s1:i386 || true
-    fi
+    sudo apt-get install -y git gdb gdbserver python3-dev python3-venv python3-setuptools
+    sudo apt-get install -y libc6-dbg
 }
 
 install_dnf() {
     sudo dnf update || true
-    sudo dnf -y install gdb gdb-gdbserver python-devel python3-devel glib2-devel make curl
+    sudo dnf -y install git gdb gdb-gdbserver python3-devel gcc g++ make patch ncurses-devel
     sudo dnf -y debuginfo-install glibc
 }
 
@@ -79,13 +74,7 @@ install_pacman() {
     if [[ "$answer" == "y" ]]; then
         sudo pacman -Syu || true
     fi
-    sudo pacman -S --noconfirm --needed git gdb python which debuginfod curl
-    if [ -z "$UPDATE_MODE" ]; then
-        if ! grep -qs "^set debuginfod enabled on" ~/.gdbinit; then
-            echo "set debuginfod enabled on" >> ~/.gdbinit
-            echo "[*] Added 'set debuginfod enabled on' to ~/.gdbinit"
-        fi
-    fi
+    sudo pacman -S --noconfirm --needed git gdb python which debuginfod curl gcc make patch
 }
 
 install_freebsd() {
@@ -122,7 +111,7 @@ PYTHON=''
 
 if osx; then
     echo "Not supported on macOS. Please use one of the alternative methods listed at:"
-    echo "https://pwndbg.re/pwndbg/dev/contributing/setup-pwndbg-dev/"
+    echo "https://pwndbg.re/dev/contributing/setup-pwndbg-dev/"
     exit 1
 fi
 
@@ -219,8 +208,10 @@ source ${PWNDBG_VENV_PATH}/bin/activate
 pip install uv
 
 # Install dependencies
+# No need to install vendored GDB / LLDB since they won't be used
+# with this setup.
 echo "Installing dependencies.."
-uv sync --extra gdb --extra lldb --quiet
+uv sync
 
 if [ -z "$UPDATE_MODE" ]; then
     if grep -qs '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
@@ -230,6 +221,7 @@ if [ -z "$UPDATE_MODE" ]; then
         echo "source $PWD/gdbinit.py" >> ~/.gdbinit
         echo "[*] Added 'source $PWD/gdbinit.py' to ~/.gdbinit so that Pwndbg will be loaded on every launch of GDB."
     fi
-    echo "Please set the PWNDBG_NO_AUTOUPDATE environment variable to any value"
-    echo "to disable the automatic updating of dependencies when Pwndbg is loaded."
 fi
+
+echo "Set the PWNDBG_NO_AUTOUPDATE environment variable to any value"
+echo "to disable the automatic updating of dependencies when Pwndbg is loaded."

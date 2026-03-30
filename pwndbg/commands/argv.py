@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.argv
-import pwndbg.aglib.typeinfo
 import pwndbg.commands
 import pwndbg.commands.telescope
 from pwndbg.commands import CommandCategory
