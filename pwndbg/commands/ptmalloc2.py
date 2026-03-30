@@ -22,7 +22,7 @@ import pwndbg.lib.memory
 import pwndbg.libc
 import pwndbg.libc.glibc
 from pwndbg.aglib.heap import heap_chain_limit
-from pwndbg.aglib.heap.ptmalloc import Arena
+from pwndbg.aglib.heap.ptmalloc import Arena, BinVariant
 from pwndbg.aglib.heap.ptmalloc import Bins
 from pwndbg.aglib.heap.ptmalloc import BinType
 from pwndbg.aglib.heap.ptmalloc import Chunk
@@ -113,6 +113,8 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
                     size += hex(end_size)
                 else:
                     size += "\u221e"  # Unicode "infinity"
+            elif bins_type is BinType.TCACHE and b.variant is BinVariant.TCACHE_LARGE:
+                size = f'{size >> 1:#x}-{size:#x}'
             else:
                 size = hex(size)
 
@@ -558,9 +560,14 @@ def malloc_chunk(
             bins_list = [x for x in bins_list if x is not None]
             no_match = True
             for bins in bins_list:
-                if bins.contains_chunk(chunk.real_size, chunk.address):
+                b = bins.contains_chunk(chunk.real_size, chunk.address)
+                if b:
                     no_match = False
-                    headers_to_print.append(message.on(f"Free chunk ({bins.bin_type})"))
+                    if b.variant is not BinVariant.PLAIN:
+                        msg = f"Free chunk ({bins.bin_type} {b.variant})"
+                    else:
+                        msg = f"Free chunk ({bins.bin_type})"
+                    headers_to_print.append(message.on(msg))
                     if not verbose:
                         fields_to_print.update(bins.bin_type.valid_fields())
             if no_match:
