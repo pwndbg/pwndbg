@@ -1,10 +1,10 @@
 from ctypes import *
 from typing import TYPE_CHECKING, Optional
 
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughosttype import DebugHostType
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.keystore import KeyStore
-from pwndbg.dbg.dbgeng.wrapper.constants import E_BOUNDS
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughosttype import DebugHostType
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.keystore import KeyStore
+from pwndbg.dbg_mod.dbgeng.wrapper.constants import E_BOUNDS
 
 if TYPE_CHECKING:
     from ctypes import _Pointer

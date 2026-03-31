@@ -4,9 +4,9 @@ import ctypes
 import io
 import sys
 
-from pwndbg.dbg.dbgeng.wrapper.dbgeng import DebugCreate
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel import DbgModel
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel import HostDataModelAccess
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgeng import DebugCreate
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel import DbgModel
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel import HostDataModelAccess
 
 
 def main():
@@ -28,7 +28,7 @@ def main():
 
     # initialize pwndbg
     import pwndbg
-    import pwndbg.dbg.dbgeng
+    import pwndbg.dbg_mod.dbgeng
     pwndbg.dbg_mod.dbgeng.dbgclient = dbgclient
     pwndbg.dbg_mod.dbgeng.dbgcontrol = dbgcontrol
     pwndbg.dbg_mod.dbgeng.dbgsysobjects = dbgsysobjects

@@ -8,10 +8,10 @@ from comtypes import COMError
 from comtypes import hresult
 import comtypes.gen.DbgMod as DbgModel
 
-from pwndbg.dbg.dbgeng.wrapper.constants import E_BOUNDS
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostcontext import USE_CURRENT_HOST_CONTEXT
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostsymbol import DebugHostSymbol
+from pwndbg.dbg_mod.dbgeng.wrapper.constants import E_BOUNDS
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughostcontext import USE_CURRENT_HOST_CONTEXT
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughostsymbol import DebugHostSymbol
 
 
 class DebugHostSymbolEnumerator:

@@ -1,7 +1,7 @@
 from ctypes import *
 from typing import TYPE_CHECKING
 
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.modelobject import ModelObject
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.modelobject import ModelObject
 
 if TYPE_CHECKING:
     from ctypes import _Pointer

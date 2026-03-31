@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 from comtypes import BSTR
 import comtypes.gen.DbgMod as DbgModel
 
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughosttype import DebugHostType
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughosttype import DebugHostType
 
 
 

@@ -6,8 +6,8 @@ if TYPE_CHECKING:
 
 import comtypes.gen.DbgMod as DbgModel
 
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.datamodelmanager import DataModelManager
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughost import DebugHost
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.datamodelmanager import DataModelManager
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughost import DebugHost
 
 
 class HostDataModelAccess:

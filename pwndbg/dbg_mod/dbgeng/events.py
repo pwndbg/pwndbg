@@ -3,8 +3,8 @@ from typing import Callable, Dict, List, TypeVar
 from comtypes import COMObject
 from comtypes.hresult import S_OK, E_NOINTERFACE
 
-from pwndbg.dbg import EventType
-from pwndbg.dbg.dbgeng.wrapper.dbgeng import DbgEng as COM_DbgEng
+from pwndbg.dbg_mod import EventType, EventHandlerPriority
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgeng import DbgEng as COM_DbgEng
 
 T = TypeVar("T")
 
@@ -13,7 +13,7 @@ class EventCallback(COMObject):
     _com_interfaces_ = [COM_DbgEng.IDebugEventCallbacks]
 
     # Event handlers and the list of suspended events are maintained here
-    event_handlers: Dict[EventType, List[Callable[..., T]]]
+    event_handlers: Dict[EventType, Dict[EventHandlerPriority, List[Callable[..., T]]]]
     suspended_events: set[EventType]
 
     def __init__(self):
@@ -21,16 +21,20 @@ class EventCallback(COMObject):
         self.event_handlers = {}
         self.suspended_events = set()
 
-    def _register_event(self, event: EventType, handler: Callable[..., T]) -> None:
+    def _register_event(self, event: EventType, priority: EventHandlerPriority, handler: Callable[..., T]) -> None:
         if event not in self.event_handlers:
-            self.event_handlers[event] = []
+            self.event_handlers[event] = {}
+        if priority not in self.event_handlers[event]:
+            self.event_handlers[event][priority] = []
 
-        self.event_handlers[event].append(handler)
+        self.event_handlers[event][priority].append(handler)
     
     def _trigger_event(self, event: EventType):
         if event in self.event_handlers and event not in self.suspended_events and EventType.SUSPEND_ALL not in self.suspended_events:
-            for handler in self.event_handlers[event]:
-                handler()
+            for priority in EventHandlerPriority:
+                if priority in self.event_handlers[event]:
+                    for handler in self.event_handlers[event][priority]:
+                        handler()
 
     def IUnknown_QueryInterface(self, this, riid, ppvObject):
         return E_NOINTERFACE

@@ -6,10 +6,10 @@ if TYPE_CHECKING:
 
 import comtypes.gen.DbgMod as DbgModel
 
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostsymbols import DebugHostSymbols
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostevaluator import DebugHostEvaluator
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostmemory import DebugHostMemory
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughostsymbols import DebugHostSymbols
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughostevaluator import DebugHostEvaluator
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughostmemory import DebugHostMemory
 
 
 class DebugHost:

@@ -3,23 +3,27 @@ from __future__ import annotations
 import contextlib
 from comtypes import COMError
 from comtypes.automation import VT_I1, VT_UI1, VT_I2, VT_UI2, VT_I4, VT_UI4, VT_I8, VT_UI8, VT_INT, VT_UINT
+import ctypes
 import os
 import shlex
 from typing import Any, Callable, Iterator, List, Literal, Sequence, Tuple, TypeVar
 from typing_extensions import override
 
 import pwndbg
-from pwndbg.aglib import load_aglib
-from pwndbg.dbg.dbgeng.events import EventCallback
-from pwndbg.dbg.dbgeng.wrapper.dbgeng import DebugSystemObjects, DebugClient, DebugControl, DebugRegisters, \
+import pwndbg.dbg_mod
+from pwndbg.dbg_mod import EventHandlerPriority
+from pwndbg.dbg_mod import EventType
+from pwndbg.dbg_mod.dbgeng.events import EventCallback
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgeng import DebugSystemObjects, DebugClient, DebugControl, DebugRegisters, \
     DebugAdvanced, DebugSymbols, DebugDataSpaces
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel import DebugHost, HostDataModelAccess, DataModelManager, DebugHostSymbols, \
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel import DebugHost, HostDataModelAccess, DataModelManager, DebugHostSymbols, \
     DebugHostType, ModelObject, DebugHostEvaluator, DebugHostMemory
-from pwndbg.dbg.dbgeng.wrapper.constants import *
-from pwndbg.dbg.dbgeng.wrapper.dbgeng import DbgEng as COM_DbgEng
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel import DbgModel
+from pwndbg.dbg_mod.dbgeng.wrapper.constants import *
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgeng import DbgEng as COM_DbgEng
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel import DbgModel
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
+import pwndbg.lib.memory
 import pwndbg.aglib.typeinfo as typeinfo
 
 T = TypeVar("T")
@@ -39,6 +43,10 @@ debughost: DebugHost
 debughostsymbols: DebugHostSymbols
 debughostevaluator: DebugHostEvaluator
 debughostmemory: DebugHostMemory
+
+
+def _get_frame_stack_variables(frame: ModelObject) -> tuple[tuple[int, int, str], ...]:
+    return ()
 
 
 class CommandDispatcher:
@@ -117,11 +125,29 @@ class DbgEngFrame(pwndbg.dbg_mod.Frame):
         return None
 
     @override
+    @pwndbg.lib.cache.cache_until("forever")
+    def stack_variables(self) -> tuple[tuple[int, int, str], ...]:
+        return _get_frame_stack_variables(self.inner)
+
+    @override
     def __eq__(self, rhs: object) -> bool:
         assert isinstance(rhs, DbgEngFrame)
         rhs: DbgEngFrame = rhs
 
         return self.inner.GetContext().IsEqualTo(rhs.inner.GetContext())
+
+    def idx(self) -> int:
+        attributes, _ = self.inner.GetKeyValue("Attributes")
+        value, _ = attributes.GetKeyValue("FrameNumber")
+        return int(DbgEngValue(value))
+
+    @override
+    def __hash__(self) -> int:
+        # For hashing purpose, I believe that it's sufficient to just
+        # use the value of the IModelObject* pointer
+        address = ctypes.cast(self.inner.inner, ctypes.c_void_p).value
+        assert address is not None
+        return address
 
 
 class DbgEngThread(pwndbg.dbg_mod.Thread):
@@ -134,8 +160,9 @@ class DbgEngThread(pwndbg.dbg_mod.Thread):
     @contextlib.contextmanager
     def bottom_frame(self) -> Iterator[pwndbg.dbg_mod.Frame]:
         stack, _ = self.inner.GetKeyValue("Stack")
-        concept, _ = stack.IterableConcept()
-        iterator = concept.GetIterator(stack)
+        frames, _ = stack.GetKeyValue("Frames")
+        concept, _ = frames.IterableConcept()
+        iterator = concept.GetIterator(frames)
         item = iterator.GetNext()
         if item is not None:
             yield DbgEngFrame(self, item)
@@ -235,10 +262,11 @@ class DbgEngProcess(pwndbg.dbg_mod.Process):
                 flags |= os.X_OK
 
             yield pwndbg.lib.memory.Page(
-                info.BaseAddress,
-                info.RegionSize,
-                flags,
-                info.AllocationBase,
+                start=info.BaseAddress,
+                size=info.RegionSize,
+                flags=flags,
+                offset=info.AllocationBase,
+                arch_ptrsize=pwndbg.aglib.arch.ptrsize,
             )
 
     @override
@@ -417,6 +445,7 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
         dbgclient.SetEventCallbacks(self.event_callback)
 
         import pwndbg
+        from pwndbg.aglib import load_aglib
         from pwndbg.commands import load_commands
 
         load_aglib()
@@ -425,7 +454,7 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
         load_commands()
 
         # Register hooks
-        import pwndbg.dbg.dbgeng.hooks
+        import pwndbg.dbg_mod.dbgeng.hooks
 
         # TODO: In WinDbg, normally the extension is loaded after the target is attached.
         # Therefore the START event is triggered manually here.
@@ -465,14 +494,17 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
         command_name: str,
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
+        subcommand_names: list[str] | None = None,
     ) -> pwndbg.dbg_mod.CommandHandle:
         self.command_dispatcher.register(command_name, handler)
         return DbgEngCommandHandle()
 
     @override
-    def event_handler(self, ty: pwndbg.dbg_mod.EventType) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    def event_handler(
+        self, event_type: EventType, priority: EventHandlerPriority = EventHandlerPriority.STANDARD
+    ) -> Callable[[Callable[..., None]], Callable[..., None]]:
         def decorator(fn: Callable[..., T]) -> Callable[..., T]:
-            self.event_callback._register_event(ty, fn)
+            self.event_callback._register_event(event_type, priority, fn)
             return fn
         return decorator
 

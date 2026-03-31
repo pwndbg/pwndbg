@@ -6,7 +6,7 @@ if TYPE_CHECKING:
 
 import comtypes.gen.DbgMod as DbgModel
 
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext
 
 
 class DebugHostMemory:

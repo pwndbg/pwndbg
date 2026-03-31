@@ -6,7 +6,7 @@ if TYPE_CHECKING:
 
 import comtypes.gen.DbgMod as DbgModel
 
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostmodule import DebugHostModule
+from pwndbg.dbg_mod.dbgeng.wrapper.dbgmodel.debughostmodule import DebugHostModule
 
 
 class DebugHostSymbol:
