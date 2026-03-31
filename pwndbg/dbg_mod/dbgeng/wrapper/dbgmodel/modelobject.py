@@ -56,16 +56,39 @@ class IterableConcept:
         return ModelIterator(iterator)
 
 
+class IndexableConcept:
+    def __init__(self, inner: "_Pointer[DbgModel.IIndexableConcept]"):
+        self.inner = inner
+
+    def GetAt(self, context: "ModelObject", indexers: list["ModelObject"]) -> Optional[tuple["ModelObject", KeyStore]]:
+        object = POINTER(DbgModel.IModelObject)()
+        meta = POINTER(DbgModel.IKeyStore)()
+        indexer_arr = (POINTER(DbgModel.IModelObject) * len(indexers))(*map(lambda o: o.inner, indexers))
+        try:
+            self.inner.GetAt(context.inner, len(indexers), indexer_arr, byref(object), byref(meta))
+            return ModelObject(object), KeyStore(meta)
+        except COMError as e:
+            if e.hresult == E_BOUNDS:
+                return None
+            raise e
+
+
 class ModelObject:
     def __init__(self, inner: "_Pointer[DbgModel.IModelObject]"):
         self.inner = inner
-    
+
+    def IndexableConcept(self) -> tuple[IndexableConcept, KeyStore]:
+        concept = POINTER(DbgModel.IIndexableConcept)()
+        meta = POINTER(DbgModel.IKeyStore)()
+        self.inner.GetConcept(byref(DbgModel.IIndexableConcept._iid_), byref(concept), byref(meta))
+        return IndexableConcept(concept), KeyStore(meta)
+
     def IterableConcept(self) -> tuple[IterableConcept, KeyStore]:
         concept = POINTER(DbgModel.IIterableConcept)()
         meta = POINTER(DbgModel.IKeyStore)()
         self.inner.GetConcept(byref(DbgModel.IIterableConcept._iid_), byref(concept), byref(meta))
         return IterableConcept(concept), KeyStore(meta)
-    
+
     def GetTypeInfo(self) -> Optional[DebugHostType]:
         type_info = POINTER(DbgModel.IDebugHostType)()
         self.inner.GetTypeInfo(byref(type_info))

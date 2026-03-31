@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 from comtypes import COMError
-from comtypes.automation import VT_I1, VT_UI1, VT_I2, VT_UI2, VT_I4, VT_UI4, VT_I8, VT_UI8, VT_INT, VT_UINT
+from comtypes.automation import VARIANT, VT_I1, VT_UI1, VT_I2, VT_UI2, VT_I4, VT_UI4, VT_I8, VT_UI8, VT_INT, VT_UINT
 import ctypes
 import os
 import shlex
@@ -111,12 +111,15 @@ class DbgEngFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
-        # TODO: implement this
-        return None
+        index = self.idx() + 1
+        return self.thread.get_nth_frame(index)
 
     @override
     def child(self) -> pwndbg.dbg_mod.Frame | None:
-        # TODO: implement this
+        index = self.idx() - 1
+        if index >= 0:
+            return self.thread.get_nth_frame(index)
+
         return None
 
     @override
@@ -134,8 +137,9 @@ class DbgEngFrame(pwndbg.dbg_mod.Frame):
         assert isinstance(rhs, DbgEngFrame)
         rhs: DbgEngFrame = rhs
 
-        return self.inner.GetContext().IsEqualTo(rhs.inner.GetContext())
+        return self.inner.GetContext().IsEqualTo(rhs.inner.GetContext()) and self.idx() == rhs.idx()
 
+    @override
     def idx(self) -> int:
         attributes, _ = self.inner.GetKeyValue("Attributes")
         value, _ = attributes.GetKeyValue("FrameNumber")
@@ -155,6 +159,19 @@ class DbgEngThread(pwndbg.dbg_mod.Thread):
 
     def __init__(self, inner: ModelObject):
         self.inner = inner
+
+    def get_nth_frame(self, idx: int) -> pwndbg.dbg_mod.Frame | None:
+        stack, _ = self.inner.GetKeyValue("Stack")
+        frames, _ = stack.GetKeyValue("Frames")
+        concept, _ = frames.IndexableConcept()
+
+        variant = VARIANT(idx)
+        idx_obj = datamodelmanager.CreateIntrinsicObject(DbgModel.ObjectIntrinsic, variant)
+        result = concept.GetAt(frames, [idx_obj])
+        if result is None:
+            return None
+        frame, _ = result
+        return DbgEngFrame(self, frame)
 
     @override
     @contextlib.contextmanager
