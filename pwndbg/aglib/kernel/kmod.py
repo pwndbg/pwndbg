@@ -219,7 +219,7 @@ def all_modules_kallsyms() -> list[tuple[str, int, str]]:
     result = []
     if pwndbg.aglib.typeinfo.load("struct module") is not None:
         for module in module_list_with_typeinfo():
-            if module.type.has_field("kallsyms"):
+            if module.dereference().type.has_field("kallsyms"):
                 kallsyms = int(module["kallsyms"])
                 result += parse_module_kallsyms(kallsyms)
         return result
