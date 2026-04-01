@@ -25,7 +25,7 @@ jobs:
       code: ${{ steps.filter.outputs.code }}
     steps:
       - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@668c092af3649c4b664c54e4b704aa46782f6f7c # master (unreleased, for predicate-quantifier)
+      - uses: dorny/paths-filter@61f87a10cd2c304679af17bb73ef192addf33c1c # master (unreleased, for predicate-quantifier)
         id: filter
         with:
           predicate-quantifier: 'every'
@@ -74,11 +74,11 @@ jobs:
 
       - name: Set up Docker Buildx
         if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
         if: github.event_name == 'push'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -172,11 +172,11 @@ jobs:
 
       - name: Set up Docker Buildx
         if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
         if: github.event_name == 'push'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -240,10 +240,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
