@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import gdb
 
 import pwndbg
@@ -99,6 +101,29 @@ def on_exit() -> None:
 
 import pwndbg.lib.cache
 from pwndbg.lib.cache import CacheUntilEvent
+
+
+def _on_inferior_call_post(event: Any) -> None:
+    """Clear stop-caches after GDB completes an inferior function call.
+
+    GDB does not fire ``gdb.events.stop`` for inferior function calls (e.g.
+    ``call malloc(0x20)`` from the GDB prompt or ``gdb.execute('call ...')``
+    from Python).  This means caches keyed on "stop" — most importantly vmmap —
+    become stale when the inferior's memory layout changes during such calls
+    (e.g. ``brk`` expanding the heap).
+
+    By listening on ``gdb.events.inferior_call`` we can transparently invalidate
+    these caches so that subsequent reads see up-to-date state.
+    """
+    if type(event).__name__ == "InferiorCallPostEvent":
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
+
+
+# gdb.events.inferior_call was added in GDB 13.  On older versions we simply
+# skip — the worst case is the pre-existing stale-cache behaviour.
+if hasattr(gdb.events, "inferior_call"):
+    gdb.events.inferior_call.connect(_on_inferior_call_post)
+
 
 pwndbg.lib.cache.connect_clear_caching_events(
     {

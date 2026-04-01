@@ -386,7 +386,7 @@ def test_mips32_load_instructions(qemu_assembly_run, arch):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / mips / set emulate on ]───────────────────────\n"
-        " ► 0x20188 <loads>       lw     $t1, 0($s0)     T1, [value1] => 0xffffffff\n"
+        "b► 0x20188 <loads>       lw     $t1, 0($s0)     T1, [value1] => 0xffffffff\n"
         "   0x2018c <loads+4>     lhu    $t2, 0($s1)     T2, [value2] => 0xffff\n"
         "   0x20190 <loads+8>     lbu    $t3, 0($s2)     T3, [value3] => 0xff\n"
         "   0x20194 <loads+12>    lw     $t4, 0($s0)     T4, [value1] => 0xffffffff\n"

@@ -44,7 +44,7 @@ lldb = [
     # Optional? for better LLDB REPL behaviour on python builds that use libeedit.
     'gnureadline>=8.2.13,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
-    "lldb-for-pwndbg==21.1.7.post1",
+    "lldb-for-pwndbg==22.1.0.post2",
 ]
 gdb = [
     "gdb-for-pwndbg==17.1.0.post2",
@@ -254,6 +254,10 @@ module = ["pwndbg.aglib.disasm.*"]
 disable_error_code = ["index", "name-defined", "attr-defined"]
 
 [[tool.mypy.overrides]]
+module = ["tests.*"]
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
 module = [
     "capstone6pwndbg.*",
     "unicorn.*",
@@ -271,6 +275,13 @@ module = [
     "mdutils.*"
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pwndbg.lib.got",
+    "pwndbg.commands.got",
+]
+disable_error_code = ["no-untyped-call"]
 
 [tool.coverage.run]
 branch = true
