@@ -324,6 +324,7 @@ class CommandObj:
                 parser.prog.replace("pwndbg-lldb", "")
                 .replace("launch_guest.py", "")
                 .replace("python3 -m tests.host.lldb.launch_guest", "")
+                .replace("dbgenginit.py", "")
             )
             # A level one subcommand will have parser.prog == " install"
             # while a level two subcommand will have parser.prog == "install ida".

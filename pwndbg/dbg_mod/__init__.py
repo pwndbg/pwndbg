@@ -80,6 +80,7 @@ class DisassembledInstruction(TypedDict):
 class DebuggerType(Enum):
     GDB = 1
     LLDB = 2
+    DbgEng = 3
 
 
 class StopPoint:

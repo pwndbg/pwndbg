@@ -82,7 +82,7 @@ def update() -> None:
     module.int8 = lookup_types("char", "i8", "int8")
     module.int16 = lookup_types("short", "short int", "i16", "int16")
     module.int32 = lookup_types("int", "i32", "int32")
-    module.int64 = lookup_types("long long", "long long int", "long", "i64", "int64")
+    module.int64 = lookup_types("long long", "long long int", "int64", "long", "i64")
     module.signed = {1: module.int8, 2: module.int16, 4: module.int32, 8: module.int64}
 
     module.pvoid = void.pointer()

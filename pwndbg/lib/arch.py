@@ -41,6 +41,8 @@ PWNDBG_SUPPORTED_ARCHITECTURES_TYPE = Literal[
     "powerpc",
     "loongarch64",
     "s390x",
+    "ia64", # Itanium
+    "ebc",  # EFI byte code, supported by DbgEng
 ]
 
 PWNDBG_SUPPORTED_ARCHITECTURES: list[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE] = list(
@@ -62,6 +64,7 @@ PWNLIB_ARCH_MAPPINGS = {
     "sparc": "sparc",
     "loongarch64": "none",
     "s390x": "s390",  # FIXME: I believe this should be s390x, but that's not supported
+    "ia64": "none", # FIXME: I'm not sure if pwntools supports Itanium
 }
 
 
@@ -69,7 +72,7 @@ PWNLIB_ARCH_MAPPINGS = {
 class Platform(Enum):
     LINUX = (auto(),)
     DARWIN = (auto(),)
-    # WINDOWS = auto(),
+    WINDOWS = (auto(),)
     # ANDROID = auto(),
     # OPENBSD = auto(),
     # FREEBSD = auto(),
