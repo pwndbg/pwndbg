@@ -26,7 +26,10 @@ from capstone6pwndbg import CS_MODE_MIPS32
 from capstone6pwndbg import CS_MODE_MIPS64
 from capstone6pwndbg import CS_MODE_RISCV32
 from capstone6pwndbg import CS_MODE_RISCV64
-from capstone6pwndbg import CS_MODE_RISCVC
+try:
+    from capstone6pwndbg import CS_MODE_RISCVC
+except ImportError:
+    from capstone6pwndbg import CS_MODE_RISCV_C as CS_MODE_RISCVC
 from capstone6pwndbg import CS_MODE_THUMB
 from capstone6pwndbg import CS_MODE_V9
 from typing_extensions import override
