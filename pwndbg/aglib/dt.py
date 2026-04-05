@@ -75,7 +75,7 @@ def _append_field_lines(
                     elif not is_nested_aggregate:
                         extra = nested_obj.value_to_human_readable()
             except pwndbg.dbg_mod.Error as e:
-                rv.append(f"{e}\nIs the provided address near a page boundry?")
+                rv.append(f"{e}\nIs the provided address near a page boundary?")
                 return
 
         if is_nested_aggregate:
