@@ -29,8 +29,7 @@ from pwndbg.aglib.heap.ptmalloc import Chunk
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import Heap
-from pwndbg.color import generateColorFunction
-from pwndbg.color import message
+from pwndbg.color import generateColorFunction, message, ljust_colored
 from pwndbg.commands import CommandCategory
 
 
@@ -118,17 +117,18 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
             else:
                 size = hex(size)
 
+        line = message.hint(size)
         if is_chain_corrupted:
-            line = message.hint(size) + message.error(" [corrupted]") + "\n"
+            line += message.error(" [corrupted]") + "\n"
             line += message.hint("FD: ") + formatted_chain + "\n"
             line += message.hint("BK: ") + pwndbg.chain.format(
                 chain_bk[0], offset=allocator.chunk_key_offset("bk")
             )
         else:
             if count is not None:
-                line = (message.hint(size) + message.hint(f" [{count:3d}]") + ": ").ljust(13)
+                line = ljust_colored(line + message.hint(f" [{count:3d}]") + ": ", 13)
             else:
-                line = (message.hint(size) + ": ").ljust(13)
+                line = ljust_colored(line + ": ", 13)
             line += formatted_chain
 
         result.append(line)
