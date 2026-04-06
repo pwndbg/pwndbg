@@ -112,15 +112,6 @@ class Bin:
     def __contains__(self, chunk: int) -> bool:
         return chunk in self.fd_chain
 
-    @staticmethod
-    def size_to_display_name(size: int | str) -> str:
-        if isinstance(size, str) and size == "all":
-            return size
-
-        assert isinstance(size, int)
-
-        return hex(size)
-
 
 class Bins:
     def __init__(self, bin_type: BinType) -> None:
@@ -1231,20 +1222,6 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     def get_region(self, addr: int | pwndbg.dbg_mod.Value | None) -> pwndbg.lib.memory.Page | None:
         """Find the memory map containing 'addr'."""
         return copy.deepcopy(pwndbg.aglib.vmmap.find(addr))
-
-    # TODO: get_bins is unused?
-    def get_bins(self, bin_type: BinType, addr: int | None = None) -> Bins | None:
-        if bin_type == BinType.TCACHE:
-            return self.tcachebins(addr)
-        if bin_type == BinType.FAST:
-            return self.fastbins(addr)
-        if bin_type == BinType.UNSORTED:
-            return self.unsortedbin(addr)
-        if bin_type == BinType.SMALL:
-            return self.smallbins(addr)
-        if bin_type == BinType.LARGE:
-            return self.largebins(addr)
-        return None
 
     def fastbin_index(self, size: int) -> int:
         if pwndbg.aglib.arch.ptrsize == 8:
