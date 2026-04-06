@@ -90,8 +90,8 @@ class BinType(str, Enum):
 
 
 class BinVariant(str, Enum):
-    PLAIN = ''
-    TCACHE_LARGE = 'large'
+    PLAIN = ""
+    TCACHE_LARGE = "large"
 
 
 class Bin:
@@ -153,8 +153,10 @@ class Bins:
             # TODO: Can we use chunk_key_offset?
             chunk += ptr_size * 2
 
+            # fmt: off
             if size > pwndbg.aglib.heap.structs.MAX_TCACHE_SMALL_SIZE \
                 and pwndbg.libc.version() >= (2, 42):
+            # fmt: on
                 # we need to enlarge it to match large tcache size
                 size = 1 << size.bit_length()
 
@@ -1243,7 +1245,9 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     def tcachebins(self, tcache_addr: int | None = None) -> Bins | None:
         """Returns: tuple(chain, count) or None"""
         # Delay import so that libc can be loaded
-        from pwndbg.aglib.heap.structs import MAX_TCACHE_SMALL_SIZE, TCACHE_SMALL_BINS
+        from pwndbg.aglib.heap.structs import MAX_TCACHE_SMALL_SIZE
+        from pwndbg.aglib.heap.structs import TCACHE_SMALL_BINS
+
         TCACHE_LARGE_START_SIZE = 1 << (MAX_TCACHE_SMALL_SIZE.bit_length() - 1)
 
         tcache = self.get_tcache(tcache_addr)

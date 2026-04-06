@@ -22,14 +22,17 @@ import pwndbg.lib.memory
 import pwndbg.libc
 import pwndbg.libc.glibc
 from pwndbg.aglib.heap import heap_chain_limit
-from pwndbg.aglib.heap.ptmalloc import Arena, BinVariant
+from pwndbg.aglib.heap.ptmalloc import Arena
 from pwndbg.aglib.heap.ptmalloc import Bins
 from pwndbg.aglib.heap.ptmalloc import BinType
+from pwndbg.aglib.heap.ptmalloc import BinVariant
 from pwndbg.aglib.heap.ptmalloc import Chunk
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import Heap
-from pwndbg.color import generateColorFunction, message, ljust_colored
+from pwndbg.color import generateColorFunction
+from pwndbg.color import ljust_colored
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
@@ -113,7 +116,7 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
                 else:
                     size += "\u221e"  # Unicode "infinity"
             elif bins_type == BinType.TCACHE and b.variant is BinVariant.TCACHE_LARGE:
-                size = f'{size >> 1:#x}-{size:#x}'
+                size = f"{size >> 1:#x}-{size:#x}"
             else:
                 size = hex(size)
 
