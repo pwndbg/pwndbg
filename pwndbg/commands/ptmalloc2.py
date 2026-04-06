@@ -113,7 +113,7 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
                     size += hex(end_size)
                 else:
                     size += "\u221e"  # Unicode "infinity"
-            elif bins_type is BinType.TCACHE and b.variant is BinVariant.TCACHE_LARGE:
+            elif bins_type == BinType.TCACHE and b.variant is BinVariant.TCACHE_LARGE:
                 size = f'{size >> 1:#x}-{size:#x}'
             else:
                 size = hex(size)

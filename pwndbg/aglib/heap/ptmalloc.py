@@ -1265,7 +1265,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
     def tcachebins(self, tcache_addr: int | None = None) -> Bins | None:
         """Returns: tuple(chain, count) or None"""
-        # Delay import so that libc can be load
+        # Delay import so that libc can be loaded
         from pwndbg.aglib.heap.structs import MAX_TCACHE_SMALL_SIZE, TCACHE_SMALL_BINS
         TCACHE_LARGE_START_SIZE = 1 << (MAX_TCACHE_SMALL_SIZE.bit_length() - 1)
 
@@ -1323,11 +1323,12 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
                 safe_linking=safe_lnk,
             )
 
-            variant = BinVariant.PLAIN
             if i >= TCACHE_SMALL_BINS and pwndbg.libc.version() >= (2, 42):
                 variant = BinVariant.TCACHE_LARGE
                 # we need this hack to avoid confliction with 0x400 small tcache
                 size <<= 1
+            else:
+                variant = BinVariant.PLAIN
             result.bins[size] = Bin(chain, count=count, variant=variant)
         return result
 
