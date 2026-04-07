@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import importlib
-import os
 import sys
 import types
 from collections import OrderedDict
@@ -1254,20 +1253,6 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
         if tcache is None:
             return None
-
-        # this will break expected output during tests, so we skip it
-        if (
-            pwndbg.libc.version() >= (2, 42)
-            and not hasattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued")
-            and os.environ.get("PWNDBG_IN_TEST") is None
-        ):
-            print(
-                message.warn(
-                    "Support for tcache large bins (a GLIBC 2.42 addition) has not been fully implemented. "
-                    "PR contributions are highly appreciated!"
-                )
-            )
-            setattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued", True)
 
         # counts was renamed to num_slots in newer version of GLIBC 2.42
         try:
