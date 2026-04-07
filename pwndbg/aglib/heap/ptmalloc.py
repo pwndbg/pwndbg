@@ -154,7 +154,7 @@ class Bins:
             chunk += ptr_size * 2
 
             # fmt: off
-            if size > pwndbg.aglib.heap.structs.MAX_TCACHE_SMALL_SIZE \
+            if size > pwndbg.aglib.heap.structs.DEFAULT_MP_.tcache_max_bytes.value \
                 and pwndbg.libc.version() >= (2, 42):
             # fmt: on
                 # we need to enlarge it to match large tcache size
@@ -1245,10 +1245,10 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     def tcachebins(self, tcache_addr: int | None = None) -> Bins | None:
         """Returns: tuple(chain, count) or None"""
         # Delay import so that libc can be loaded
-        from pwndbg.aglib.heap.structs import MAX_TCACHE_SMALL_SIZE
+        from pwndbg.aglib.heap.structs import DEFAULT_MP_
         from pwndbg.aglib.heap.structs import TCACHE_SMALL_BINS
 
-        TCACHE_LARGE_START_SIZE = 1 << (MAX_TCACHE_SMALL_SIZE.bit_length() - 1)
+        TCACHE_LARGE_START_SIZE = 1 << (DEFAULT_MP_.tcache_max_bytes.value.bit_length() - 1)
 
         tcache = self.get_tcache(tcache_addr)
 
