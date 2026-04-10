@@ -51,6 +51,7 @@ gdb = [
 ]
 
 [dependency-groups]
+build = ["hatchling", "editables"]
 dev = [
     "sortedcontainers-stubs>=2.4.3,<3",
     "types-pygments>=2.19.0.20250809,<3",
@@ -136,6 +137,7 @@ select = [
 
 [tool.uv]
 default-groups = []
+no-build-isolation-package = ["pwndbg"]
 
 [tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = [

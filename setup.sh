@@ -211,6 +211,7 @@ pip install uv
 # No need to install vendored GDB / LLDB since they won't be used
 # with this setup.
 echo "Installing dependencies.."
+uv sync --no-install-project --group build
 uv sync
 
 if [ -z "$UPDATE_MODE" ]; then
