@@ -1729,7 +1729,6 @@ class GDB(pwndbg.dbg_mod.Debugger):
         set step-mode on
         set print pretty on
         set output-radix 16
-        set debuginfod enabled on
         handle SIGALRM nostop print nopass
         handle SIGBUS  stop   print nopass
         handle SIGPIPE nostop print nopass
@@ -1738,6 +1737,12 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         for line in pre_commands.strip().splitlines():
             gdb.execute(line)
+
+        # debuginfod may not be compiled in (e.g. bare-metal cross GDB)
+        try:
+            gdb.execute("set debuginfod enabled on")
+        except gdb.error:
+            pass
 
         # This may throw an exception, see pwndbg/pwndbg#27
         try:
