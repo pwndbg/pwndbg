@@ -624,7 +624,8 @@ def _inner_decode_runtime_type(
         addr,
         size=size,
         align=align,
-        direct_iface=(kind_raw & (1 << 5)) != 0,
+        # go 1.26 move direct/indirect flag from Kind to TFlag
+        direct_iface=((kind_raw & (1 << 5)) | tflag & (1 << 5)) != 0,
     )
     cache[addr] = (meta, BackrefType(meta, addr))
     simple_name = kind.get_simple_name()
