@@ -28,6 +28,7 @@ def extract_chunk_addrs(output: str) -> list[int]:
 
 def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, Any]:
     import pwndbg.aglib.heap
+    import pwndbg.libc
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
@@ -80,7 +81,7 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
     )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["fast"] = [
-        "Free chunk (fastbins) | PREV_INUSE",
+        f"Free chunk ({'fastbins' if pwndbg.libc.version() < (2, 43) else 'tcachebins'}) | PREV_INUSE",
         f"Addr: {int(chunks['fast'].address):#x}",
         f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['fast']['fd']):02x}",
@@ -642,6 +643,7 @@ async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
+    import pwndbg.libc
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     # TODO: Support other architectures or different libc versions
@@ -652,8 +654,12 @@ async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     await ctrl.execute("set resolve-heap-via-heuristic force")
+
     break_at_sym("break_here")
     await ctrl.cont()
+
+    if pwndbg.libc.version() >= (2, 43):
+        pytest.skip("Fastbin is removed after glibc 2.43")
 
     # Use the debug symbol to find the address of `global_max_fast`
     global_max_fast_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(

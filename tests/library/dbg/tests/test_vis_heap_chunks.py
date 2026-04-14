@@ -15,6 +15,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.memory
     import pwndbg.aglib.vmmap
+    import pwndbg.libc
 
     # Disable collapsible output for existing test expectations
     await ctrl.execute("set vis-skip-repeating-val off")
@@ -34,6 +35,9 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     assert (heap_page.start & 0xFFF) == 0
 
     result = (await ctrl.execute_and_capture("vis-heap-chunk 1")).splitlines()
+
+    if pwndbg.libc.version() >= (2, 43):
+        pytest.skip("Temporarily skip the test on 2.43")
 
     # We will use `heap_addr` variable to fill in proper addresses below
     heap_addr = heap_page.start

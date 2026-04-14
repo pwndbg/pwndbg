@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from ....host import Controller
 from . import get_binary
 from . import launch_to
@@ -18,13 +20,18 @@ async def test_heap_bins(ctrl: Controller) -> None:
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
     import pwndbg.aglib.vmmap
+    import pwndbg.libc
     from pwndbg.aglib.heap.ptmalloc import BinType
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     await ctrl.launch(BINARY)
+
     await ctrl.execute("set context-output /dev/null")
     await ctrl.execute("b breakpoint")
     await ctrl.cont()
+
+    if pwndbg.libc.version() >= (2, 43):
+        pytest.skip("fastbin is removed after glibc 2.43")
 
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
