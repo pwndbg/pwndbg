@@ -99,7 +99,7 @@ jobs:
 
       - name: Run Tests (GDB, DBG-GDB, DBG-LLDB in parallel) on ${{ matrix.image }}
         run: |
-          docker compose run -T --rm --pull never -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
+          docker compose run -T --rm --pull missing -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
             set -euo pipefail
             # Needed to prevent race conditions - prebuild binaries and create libpython symlink
             make -C /pwndbg/tests/binaries/host -j4 all
@@ -197,7 +197,7 @@ jobs:
 
       - name: Run Tests (Cross, DBG-GDB, DBG-LLDB in parallel) on ${{ matrix.image }}
         run: |
-          docker compose run -T --rm --pull never -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
+          docker compose run -T --rm --pull missing -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
             set -euo pipefail
             # Needed to prevent race conditions - prebuild binaries
             make -C /pwndbg/tests/binaries/host -j4 all
