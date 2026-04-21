@@ -124,21 +124,20 @@ def static_str_arr(name: str) -> list[str]:
 
 
 def check_find(counter: int, physmap_addr: int, pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
-    if counter < MAX_PG_FREE_LIST_STR_RESULT_CNT and pba.find is None:
-        return True
     if pba.find is None:
+        if counter < MAX_PG_FREE_LIST_STR_RESULT_CNT:
+            return True
         return False
-    start = physmap_addr
     end = physmap_addr + pwndbg.aglib.kernel.page_size() * (1 << cbp.order)
-    return pba.find >= start and pba.find < end
+    return pba.find >= physmap_addr and pba.find < end
 
 
 def traverse_pglist(
     pba: ParsedBuddyArgs, cbp: CurrentBuddyParams
-) -> tuple[list[tuple[int, str]] | None, int, list[str] | None]:
+) -> tuple[list[tuple[int, str]], int, list[str]]:
     freelist = cbp.freelist
     if freelist is None or int(freelist["next"]) == 0:
-        return None, 0, None
+        return [], 0, []
     indent = cbp.indent
     seen_pages = set()
     results = []
@@ -156,6 +155,8 @@ def traverse_pglist(
                 )
             )
             cbp.found = True
+            if pba.find is not None:
+                return results, 1, []  # explicitly only return the target and nothing else
         if counter == MAX_PG_FREE_LIST_STR_RESULT_CNT:
             msgs.append(f"{indent.prefix('... (truncated)')}")
             msgs.append(
@@ -189,7 +190,7 @@ def print_pglist(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
         log.warning(f"The number ({len(sections)}) of sections is not 2!")
         return
     results, counter, msgs = traverse_pglist(pba, cbp)
-    if not results or len(results) == 0 or counter == 0:
+    if not results or counter == 0:
         return
     print_section(sections[0], indent)
     sections[0] = NONE_TUPLE  # so that the header info is not reprinted
@@ -206,10 +207,9 @@ def print_pglist(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
                 with indent:
                     for i, result in results:
                         indent.print(indent.prefix(f"[0x{i:02x}] ") + result)
-                    if msgs is not None:
-                        for msg in msgs:
-                            indent.print(msg)
-                        print()
+                    for msg in msgs:
+                        indent.print(msg)
+                    indent.print()
 
 
 def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):

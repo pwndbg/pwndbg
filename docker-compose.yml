@@ -13,7 +13,7 @@ services:
   ubuntu22.04:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:ubuntu22.04
-    pull_policy: missing
+    pull_policy: always
     build:
       context: .
       dockerfile: Dockerfile
@@ -23,7 +23,7 @@ services:
   ubuntu24.04:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:ubuntu24.04
-    pull_policy: missing
+    pull_policy: always
     build:
       context: .
       dockerfile: Dockerfile
@@ -33,7 +33,7 @@ services:
   ubuntu24.04-mount:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:ubuntu24.04
-    pull_policy: missing
+    pull_policy: always
     build:
       context: .
       target: base
@@ -46,7 +46,7 @@ services:
   debian12:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:debian12
-    pull_policy: missing
+    pull_policy: always
     build:
       context: .
       dockerfile: Dockerfile
@@ -56,7 +56,7 @@ services:
   archlinux:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:archlinux
-    pull_policy: missing
+    pull_policy: always
     build:
       context: .
       dockerfile: Dockerfile.arch
@@ -66,7 +66,7 @@ services:
   fedora41:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:fedora41
-    pull_policy: missing
+    pull_policy: always
     build:
       context: .
       dockerfile: Dockerfile.dnf
@@ -76,7 +76,7 @@ services:
   fedora42:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:fedora42
-    pull_policy: missing
+    pull_policy: always
     build:
       context: .
       dockerfile: Dockerfile.dnf
@@ -86,7 +86,7 @@ services:
   fedora43:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:fedora43
-    pull_policy: missing
+    pull_policy: always
     build:
       context: .
       dockerfile: Dockerfile.dnf

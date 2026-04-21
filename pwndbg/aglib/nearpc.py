@@ -422,6 +422,7 @@ def nearpc(
     use_cache=False,
     linear=False,
     branch_visualization=False,
+    address_to_highlight: int | None = None,
     end_address: int | None = None,
 ) -> list[str]:
     """
@@ -429,6 +430,9 @@ def nearpc(
 
     The `linear` argument specifies if we should disassemble linearly in memory, or take jumps into account
     """
+    assert address_to_highlight is None or linear, (
+        "Only pc can be highlighted if linear=False"  # because we need pc_index to display emulated loops correctly
+    )
 
     # Repeating nearpc (pressing enter) makes it show next addresses
     # (writing nearpc explicitly again will reset its state)
@@ -446,6 +450,9 @@ def nearpc(
         pc = pwndbg.aglib.regs.pc
 
     pc = int(pc)
+
+    if address_to_highlight is None:
+        address_to_highlight = pc
 
     # Check whether we can even read this address
     if not pwndbg.aglib.memory.peek(pc):
@@ -539,13 +546,17 @@ def nearpc(
     for i, (address_str, symbol, instruction, asm) in enumerate(
         zip(addresses, symbols, instructions, assembly_strings)
     ):
-        # Show a prefix for the instruction that the program counter points to. Don't show it while in repeat-mode
+        # Show a prefix for the instruction at `address_to_highlight`. Don't show it while in repeat-mode
         # or when showing current instruction for the second time
-        show_pc_prefix = instruction.address == pc and not repeat and i == index_of_pc
+        highlight_line = (
+            instruction.address == address_to_highlight
+            and not repeat
+            and (linear or i == index_of_pc)
+        )
         instruction_has_breakpoint = instruction.address in breakpoint_locations
 
         is_non_pc_breakpoint = False
-        if show_pc_prefix:
+        if highlight_line:
             if instruction_has_breakpoint:
                 prefix = current_insn_breakpoint_prefix
             else:
@@ -566,93 +577,15 @@ def nearpc(
         # symbol is fetched from gdb and it can be e.g. '<main+8>'
         # In case there are duplicate instances of an instruction (tight loop),
         # ones that the instruction pointer is not at stick out a little, to indicate the repetition
-        elif not pwndbg.config.highlight_pc or instruction.address != pc or repeat:
+        elif not highlight_line:
             address_str = c.address(address_str)
             symbol = c.symbol(symbol)
-        elif pwndbg.config.highlight_pc and i == index_of_pc:
+        else:
             # If this instruction is the one the PC is at.
             # In case of tight loops, with emulation we may display the same instruction multiple times.
             # Only highlight current instance, not past or future times.
             address_str = ctx_color.highlight(address_str)
             symbol = ctx_color.highlight(symbol)
-
-        # If this instruction performs a memory access operation, we should tell
-        # the user anything we can figure out about the memory it's trying to
-        # access.
-        # mem_access = ""
-        if instruction.address == pc and False:
-            accesses = []
-            for operand in instruction.operands:
-                if operand.type != CS_OP_MEM:
-                    continue
-                address = operand.mem.disp
-
-                base = operand.mem.base
-                if base > 0:
-                    address += pwndbg.aglib.regs.read_reg(instruction.reg_name(base))
-
-                vmmap = pwndbg.aglib.vmmap.get()
-                page = next((page for page in vmmap if address in page), None)
-                if page is None:
-                    # This is definetly invalid. Don't even bother checking
-                    # any other conditions.
-                    accesses.append(f"[X] {address:#x}")
-                    continue
-
-                if operand.access == CS_AC_READ and not page.read:
-                    # Tried to read from a page we can't read.
-                    accesses.append(f"[X] {address:#x}")
-                    continue
-                if operand.access == CS_AC_WRITE and not page.write:
-                    # Tried to write to a page we can't write.
-                    accesses.append(f"[X] {address:#x}")
-                    continue
-
-                # At this point, we know the operation is legal, but we don't
-                # know where it's going yet. It could be going to either memory
-                # managed by libc or memory managed by the program itself.
-
-                if not pwndbg.aglib.heap.current.is_initialized():
-                    # The libc heap hasn't been initialized yet. There's not a
-                    # lot that we can say beyond this point.
-                    continue
-                allocator = pwndbg.aglib.heap.current
-
-                heap = pwndbg.aglib.heap.ptmalloc.Heap(address)
-                chunk = None
-                for ch in heap:
-                    # Find the chunk in this heap the corresponds to the address
-                    # we're trying to access.
-                    offset = address - ch.address
-                    if offset >= 0 and offset < ch.real_size:
-                        chunk = ch
-                        break
-                if chunk is None:
-                    # The memory for this chunk is not managed by libc. We can't
-                    # reason about it.
-                    accesses.append(f"[?] {address:#x}")
-                    continue
-
-                # Scavenge through all of the bins in the current allocator.
-                # Bins track free chunks, so, whether or not we can find the
-                # chunk we're trying to access in a bin will tells us whether
-                # this access is a UAF.
-                bins_list = [
-                    allocator.fastbins(chunk.arena.address),
-                    allocator.smallbins(chunk.arena.address),
-                    allocator.largebins(chunk.arena.address),
-                    allocator.unsortedbin(chunk.arena.address),
-                ]
-                if allocator.has_tcache():
-                    bins_list.append(allocator.tcachebins(None))
-
-                bins_list = [x for x in bins_list if x is not None]
-                for bins in bins_list:
-                    if bins.contains_chunk(chunk.real_size, chunk.address):
-                        # This chunk is free. This is a UAF.
-                        accesses.append(f"[UAF] {address:#x}")
-                        continue
-            # mem_access = " ".join(accesses)
 
         opcodes = ""
         if show_opcode_bytes > 0:
@@ -669,7 +602,7 @@ def nearpc(
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))
             opcodes = opcodes.ljust(align)
-            if pwndbg.config.highlight_pc and i == index_of_pc:
+            if highlight_line:
                 opcodes = ctx_color.highlight(opcodes)
 
         if branch_visualization:
