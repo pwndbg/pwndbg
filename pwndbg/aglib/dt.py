@@ -25,6 +25,90 @@ def _field_to_human(
     return t.name_to_human_readable
 
 
+def _append_field_lines(
+    rv: list[str],
+    t: pwndbg.dbg_mod.Type,
+    obj: pwndbg.dbg_mod.Value | None,
+    *,
+    base_offset: int,
+    base_address: int | None,
+    indent: str,
+) -> None:
+    for field in t.fields():
+        field_name = field.name
+        field_label = field_name if field_name is not None else "<anonymous>"
+
+        # Offset into the top-level structure.
+        offset = field.bitpos // 8
+        absolute_offset = base_offset + offset
+        bitpos = field.bitpos % 8
+        ftype = field.type.strip_typedefs()
+        extra = _field_to_human(field)
+        is_nested_aggregate = ftype.code in (
+            pwndbg.dbg_mod.TypeCode.STRUCT,
+            pwndbg.dbg_mod.TypeCode.UNION,
+        )
+        nested_obj: pwndbg.dbg_mod.Value | None = None
+
+        if obj and obj.type.strip_typedefs().code in (
+            pwndbg.dbg_mod.TypeCode.STRUCT,
+            pwndbg.dbg_mod.TypeCode.UNION,
+        ):
+            try:
+                if field_name is not None:
+                    nested_obj = obj[field_name]
+
+                if nested_obj is not None:
+                    if ftype.code == pwndbg.dbg_mod.TypeCode.INT:
+                        extra = hex(int(nested_obj))
+                    elif (
+                        ftype.code
+                        in (pwndbg.dbg_mod.TypeCode.POINTER, pwndbg.dbg_mod.TypeCode.ARRAY)
+                        and ftype.target() == pwndbg.aglib.typeinfo.uchar
+                    ):
+                        # Flexible array members have size 0, skip reading memory for them.
+                        if ftype.sizeof == 0:
+                            extra = "[]"
+                        else:
+                            data = pwndbg.aglib.memory.read(int(nested_obj.address), ftype.sizeof)
+                            extra = " ".join(f"{b:02x}" for b in data)
+                    elif not is_nested_aggregate:
+                        extra = nested_obj.value_to_human_readable()
+            except pwndbg.dbg_mod.Error:
+                raise
+
+        if is_nested_aggregate:
+            extra = f"{extra} {{"
+
+        # Adjust trailing lines in 'extra' to line up.
+        extra_lines: list[str] = []
+        for i, line in enumerate(str(extra).splitlines()):
+            if i == 0:
+                extra_lines.append(line)
+            else:
+                extra_lines.append((len(indent) + 31) * " " + line)
+        extra = "\n".join(extra_lines)
+
+        bitpos_str = "" if not bitpos else (f".{bitpos}")
+
+        if base_address is not None:
+            line = f"{indent}0x{base_address + absolute_offset:016x} +0x{absolute_offset:04x}{bitpos_str} {field_label:<20} : {extra}"
+        else:
+            line = f"{indent}+0x{absolute_offset:04x}{bitpos_str} {field_label:<20} : {extra}"
+        rv.append(line)
+
+        if is_nested_aggregate:
+            _append_field_lines(
+                rv,
+                ftype,
+                nested_obj,
+                base_offset=absolute_offset,
+                base_address=base_address,
+                indent=indent + "    ",
+            )
+            rv.append(f"{indent}}}")
+
+
 def dt(
     name: str = "",
     addr: int | pwndbg.dbg_mod.Value | None = None,
@@ -69,55 +153,13 @@ def dt(
         header = f"{header} @ {hex(int(obj.address))}"
     rv.append(header)
 
-    iter_fields = [(field.name, field) for field in t.fields()]
-
-    for field_name, field in iter_fields:
-        # Offset into the parent structure
-        offset = field.bitpos // 8
-        bitpos = field.bitpos % 8
-        ftype = field.type.strip_typedefs()
-        extra = _field_to_human(field)
-
-        if obj and obj.type.strip_typedefs().code in (
-            pwndbg.dbg_mod.TypeCode.STRUCT,
-            pwndbg.dbg_mod.TypeCode.UNION,
-        ):
-            try:
-                obj_value = obj[field_name]
-                if ftype.code == pwndbg.dbg_mod.TypeCode.INT:
-                    extra = hex(int(obj_value))
-                elif (
-                    ftype.code in (pwndbg.dbg_mod.TypeCode.POINTER, pwndbg.dbg_mod.TypeCode.ARRAY)
-                    and ftype.target() == pwndbg.aglib.typeinfo.uchar
-                ):
-                    # Flexible array members have size 0, skip reading memory for them
-                    if ftype.sizeof == 0:
-                        extra = "[]"
-                    else:
-                        data = pwndbg.aglib.memory.read(int(obj_value.address), ftype.sizeof)
-                        extra = " ".join(f"{b:02x}" for b in data)
-                else:
-                    extra = obj_value.value_to_human_readable()
-            except pwndbg.dbg_mod.Error as e:
-                return f"{e}\nIs the provided address near a page boundry?"
-
-        # Adjust trailing lines in 'extra' to line up
-        # This is necessary when there are nested structures.
-        # Ideally we'd expand recursively if the type is complex.
-        extra_lines: list[str] = []
-        for i, line in enumerate(str(extra).splitlines()):
-            if i == 0:
-                extra_lines.append(line)
-            else:
-                extra_lines.append(35 * " " + line)
-        extra = "\n".join(extra_lines)
-
-        bitpos_str = "" if not bitpos else (f".{bitpos}")
-
-        if obj:
-            line = f"    0x{int(obj.address) + offset:016x} +0x{offset:04x}{bitpos_str} {field_name:<20} : {extra}"
-        else:
-            line = f"    +0x{offset:04x}{bitpos_str} {field_name:<20} : {extra}"
-        rv.append(line)
+    _append_field_lines(
+        rv,
+        t,
+        obj,
+        base_offset=0,
+        base_address=int(obj.address) if obj else None,
+        indent="    ",
+    )
 
     return "\n".join(rv)

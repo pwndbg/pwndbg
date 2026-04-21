@@ -146,7 +146,7 @@
 -  [search](memory/search.md) - Search memory for byte sequences, strings, pointers, and integer values.
 -  [telescope](memory/telescope.md) - Recursively dereferences pointers starting at the specified address.
 -  [vmmap-add](memory/vmmap-add.md) - Add virtual memory map page.
--  [vmmap-clear](memory/vmmap-clear.md) - Clear the vmmap cache.
+-  [vmmap-clear](memory/vmmap-clear.md) - Clear custom vmmap entries added by vmmap_add and vmmap_explore and reset caches.
 -  [vmmap-explore](memory/vmmap-explore.md) - Explore a page, trying to guess permissions.
 -  [vmmap](memory/vmmap.md) - Print virtual memory map pages.
 -  [xinfo](memory/xinfo.md) - Shows offsets of the specified address from various useful locations.

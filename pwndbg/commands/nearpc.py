@@ -131,12 +131,12 @@ def nearpc(
 
         boundaries = pwndbg.aglib.symbol.resolve_function_boundaries(function)
         if boundaries is None:
-            print(f"Error: function boundaries of '{function}' could not be found")
+            print(f"Error: function boundaries of '{hex(function)}' could not be found")
             return
         pc, end_address = boundaries
 
         if end_address < pc:
-            print(f"Error: function boundaries  of '{function}' could not be found")
+            print(f"Error: function boundaries  of '{hex(function)}' could not be found")
             return
 
         if end_address - pc > 0x1000:
