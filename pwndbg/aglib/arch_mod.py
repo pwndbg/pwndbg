@@ -386,6 +386,18 @@ class S390xArch(PwndbgArchitecture):
         return (CS_ARCH_SYSTEMZ, 0)
 
 
+class HexagonArch(PwndbgArchitecture):
+    max_instruction_size = 16
+    instruction_alignment = 4
+
+    def __init__(self) -> None:
+        super().__init__("hexagon")
+
+    @override
+    def get_capstone_constants(self, address: int) -> tuple[int, int] | None:
+        return None
+
+
 # Register the architecture classes
 all_arches = [
     AMD64Arch(),
@@ -401,6 +413,7 @@ all_arches = [
     MipsArch(),
     Loongarch64Arch(),
     S390xArch(),
+    HexagonArch(),
 ]
 
 for arch in all_arches:
@@ -423,6 +436,7 @@ def update() -> None:
     # Will be None the first time around.
     if pwndbg.aglib.arch is None or a.name != pwndbg.aglib.arch.name:
         pwndbg_arch = get_pwndbg_architecture(a.name)
+
         if pwndbg_arch is None:
             raise pwndbg.dbg_mod.Error(
                 f"Unsupported architecture: {a.name}. "

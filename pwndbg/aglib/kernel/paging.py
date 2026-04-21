@@ -124,7 +124,7 @@ class PageTableScan:
         # TODO: prev is used to avoid clustering the vmmap output with espfix ranges (happens for x86-64)
         # consecutive identical pt entries will be clapsed into one. None means not x86-64
         # I believe this is what gdb-pt-dump does as this gives identical output
-        prev = 0 if self.arch == "x86-64" else None
+        prev = 0 if self.arch == "x86-64" and level != 1 else None
         for entry in entries:
             if prev and prev == entry:
                 # be aware to not use continue
@@ -667,7 +667,11 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def kbase(self) -> int | None:
-        return self._kbase(pwndbg.aglib.regs.read_reg("vbar"))
+        vbar_reg = pwndbg.aglib.regs.read_reg("vbar")
+        if vbar_reg is None:
+            vbar_reg = pwndbg.aglib.regs.read_reg("vbar_el1")
+
+        return self._kbase(vbar_reg)
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
