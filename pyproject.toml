@@ -278,7 +278,7 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = [
-    "pwndbg.wrappers.readelf",
+    "pwndbg.lib.got",
     "pwndbg.commands.got",
 ]
 disable_error_code = ["no-untyped-call"]
