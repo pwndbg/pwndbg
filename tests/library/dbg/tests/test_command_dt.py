@@ -11,6 +11,7 @@ from . import pwndbg_test
 
 HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 DT_RECURSIVE_OFFSETS = get_binary("dt_recursive_offsets.native.out")
+DT_BITFIELDS = get_binary("dt_bitfields.native.out")
 
 
 @pwndbg_test
@@ -72,3 +73,21 @@ async def test_command_dt_recursively_prints_nested_offsets(ctrl: Controller) ->
     assert re.search(r"\+0x0004 a\s+: 0x22", out)
     assert re.search(r"\+0x0008 b\s+: 0x33", out)
     assert re.search(r"\+0x000c y\s+: 0x44", out)
+
+
+@pwndbg_test
+async def test_command_dt_bitfield_alignment(ctrl: Controller) -> None:
+    await launch_to(ctrl, DT_BITFIELDS, "break_here")
+
+    global_bf = await ctrl.execute_and_capture("print &global_bf")
+    match = re.search(r"0x[0-9a-f]+", global_bf)
+    assert match is not None
+    global_bf_addr = match.group(0)
+
+    out = await ctrl.execute_and_capture(f'dt "struct dt3076_bitfields" {global_bf_addr}')
+
+    # All ": " separators should be at the same column (bitfields don't break alignment)
+    lines = [line for line in out.splitlines() if " : " in line]
+    assert len(lines) >= 4
+    colon_positions = [line.index(" : ") for line in lines]
+    assert len(set(colon_positions)) == 1, f"Misaligned colons in:\n{out}"
