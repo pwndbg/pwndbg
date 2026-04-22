@@ -59,7 +59,18 @@ class RegisterManager:
 
         return None
 
-    def read_reg_uncached_in_frame(self, reg: str, frame: pwndbg.dbg_mod.Frame) -> int | None:
+    def read_reg_uncached_in_frame(
+        self, reg: str, frame: pwndbg.dbg_mod.Frame, *aliases: str
+    ) -> int | None:
+        for name in (reg, *aliases):
+            value = self._read_single_reg_uncached_in_frame(name, frame)
+            if value is not None:
+                return value
+        return None
+
+    def _read_single_reg_uncached_in_frame(
+        self, reg: str, frame: pwndbg.dbg_mod.Frame
+    ) -> int | None:
         reg = reg.lstrip("$")
         try:
             value = self.get_register(reg, frame)
@@ -85,23 +96,36 @@ class RegisterManager:
         except (ValueError, pwndbg.dbg_mod.Error):
             return None
 
-    def read_reg_uncached(self, reg: str) -> int | None:
+    def read_reg_uncached(self, reg: str, *aliases: str) -> int | None:
         frame = pwndbg.dbg.selected_frame()
         if frame is None:
             return None
-        return self.read_reg_uncached_in_frame(reg, frame)
+        return self.read_reg_uncached_in_frame(reg, frame, *aliases)
 
-    @pwndbg.lib.cache.cache_until("stop")
-    def read_reg_in_frame(self, reg: str, frame: pwndbg.dbg_mod.Frame) -> int | None:
+    def read_reg_in_frame(self, reg: str, frame: pwndbg.dbg_mod.Frame, *aliases: str) -> int | None:
         """
         Same as read_reg() except for the provided frame, rather than the currently
         selected frame.
         """
-        return self.read_reg_uncached_in_frame(reg, frame)
+        for name in (reg, *aliases):
+            value = self._read_single_reg_in_frame(name, frame)
+            if value is not None:
+                return value
+        return None
 
-    def read_reg(self, reg: str) -> int | None:
+    @pwndbg.lib.cache.cache_until("stop")
+    def _read_single_reg_in_frame(self, reg: str, frame: pwndbg.dbg_mod.Frame) -> int | None:
+        return self._read_single_reg_uncached_in_frame(reg, frame)
+
+    def read_reg(self, reg: str, *aliases: str) -> int | None:
         """
         Query the underlying debugger for the value of a register.
+
+        If `aliases` are provided, each is tried in turn after `reg` until one
+        returns a non-None value. This is useful for architectural registers
+        whose exposed names differ across debugger backends, runtime
+        environments, or toolchain versions (for example, `vbar` vs
+        `vbar_el1` on AArch64).
 
         Note that in some rare cases, debuggers won't directly expose the values of some special model specific registers.
         Although we can sometimes determine these by other indirect means, this function does not run any extra logic to handle these special cases.
@@ -116,7 +140,7 @@ class RegisterManager:
         frame = pwndbg.dbg.selected_frame()
         if frame is None:
             return None
-        return self.read_reg_in_frame(reg, frame)
+        return self.read_reg_in_frame(reg, frame, *aliases)
 
     def write_reg(self, reg: str, value: int) -> None:
         if not pwndbg.dbg.selected_frame().reg_write(reg, value):

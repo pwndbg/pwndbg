@@ -549,11 +549,7 @@ class Aarch64Ops(ArchOps):
 
     @staticmethod
     def paging_enabled() -> bool:
-        sctlr_reg = pwndbg.aglib.regs.read_reg("SCTLR")
-        if sctlr_reg is None:
-            sctlr_reg = pwndbg.aglib.regs.read_reg("SCTLR_EL1")
-
-        return int(sctlr_reg) & BIT(0) != 0
+        return int(pwndbg.aglib.regs.read_reg("SCTLR", "SCTLR_EL1")) & BIT(0) != 0
 
 
 @pwndbg.lib.cache.cache_until("start")
