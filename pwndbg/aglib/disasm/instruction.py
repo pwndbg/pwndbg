@@ -60,6 +60,7 @@ from capstone6pwndbg.x86 import X86_INS_RET
 from capstone6pwndbg.x86 import X86Op
 from typing_extensions import override
 
+import pwndbg
 from pwndbg.dbg_mod import DisassembledInstruction
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally
@@ -710,7 +711,7 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.address = address
         self.size = ins["length"]
 
-        self.mnemonic = asm[0].strip()
+        self.mnemonic = asm[0].strip() if len(asm) > 0 else ""
         self.op_str = asm[1].strip() if len(asm) > 1 else ""
         self.groups = set()
 

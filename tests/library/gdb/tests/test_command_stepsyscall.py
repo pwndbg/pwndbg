@@ -14,7 +14,11 @@ def test_command_stepsyscall(start_binary):
 
     # Test that the logic correctly handles multiple consecutive jumps
     gdb.execute("stepsyscall")
-    address = int(gdb.parse_and_eval("&syscall_write_label"))
+    address = int(gdb.parse_and_eval("&syscall_write_stdout_label"))
+    assert pwndbg.aglib.regs.pc == address
+
+    gdb.execute("stepsyscall")
+    address = int(gdb.parse_and_eval("&syscall_write_stderr_label"))
     assert pwndbg.aglib.regs.pc == address
 
     gdb.execute("stepsyscall")

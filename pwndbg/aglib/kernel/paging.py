@@ -667,7 +667,11 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def kbase(self) -> int | None:
-        return self._kbase(pwndbg.aglib.regs.read_reg("vbar"))
+        vbar_reg = pwndbg.aglib.regs.read_reg("vbar")
+        if vbar_reg is None:
+            vbar_reg = pwndbg.aglib.regs.read_reg("vbar_el1")
+
+        return self._kbase(vbar_reg)
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
