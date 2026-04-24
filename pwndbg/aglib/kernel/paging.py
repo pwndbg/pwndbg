@@ -667,7 +667,10 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def kbase(self) -> int | None:
-        return self._kbase(pwndbg.aglib.regs.read_reg("vbar", "vbar_el1"))
+        # AArch64 vector base: QEMU >= ~8.x exposes it as `vbar_el1`; older
+        # QEMU releases (and some non-EL1 contexts) expose it as the generic
+        # `vbar`. See #3869 / #3875.
+        return self._kbase(pwndbg.aglib.regs.read_reg("vbar_el1", "vbar"))
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
