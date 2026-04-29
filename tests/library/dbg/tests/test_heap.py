@@ -180,6 +180,9 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
     import pwndbg.dbg_mod
+    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     chunks = {}
     results = {}
@@ -233,7 +236,8 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
     expected = generate_expected_malloc_chunk_output(chunks)
     expected["allocated"][0] += " | NON_MAIN_ARENA"
     expected["tcache"][0] += " | NON_MAIN_ARENA"
-    expected["fast"][0] += " | NON_MAIN_ARENA"
+    if "fast" in expected:
+        expected["fast"][0] += " | NON_MAIN_ARENA"
 
     for name in chunk_types:
         assert results[name] == expected[name]
@@ -251,7 +255,6 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
 async def test_malloc_chunk_command(ctrl: Controller) -> None:
     import pwndbg.aglib
     import pwndbg.libc
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
     if pwndbg.aglib.arch.name != "x86-64":
@@ -259,8 +262,6 @@ async def test_malloc_chunk_command(ctrl: Controller) -> None:
 
     if pwndbg.libc.version() >= (2, 43):
         pytest.skip("Skip on glibc 2.43")
-
-    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     await resolve_malloc_chunks(
         ctrl,
@@ -273,7 +274,6 @@ async def test_malloc_chunk_command(ctrl: Controller) -> None:
 async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
     import pwndbg.aglib
     import pwndbg.libc
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     await ctrl.launch(HEAP_MALLOC_CHUNK)
     if pwndbg.aglib.arch.name != "x86-64":
@@ -281,8 +281,6 @@ async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
 
     if pwndbg.libc.version() >= (2, 43):
         pytest.skip("Skip on glibc 2.43")
-
-    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
@@ -299,16 +297,16 @@ async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
 async def test_malloc_chunk_2_43(ctrl: Controller) -> None:
     import pwndbg.aglib
     import pwndbg.libc
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
-    await launch_to(ctrl, HEAP_GLIBC2_43, "break_here")
+    await ctrl.launch(HEAP_GLIBC2_43, env={"GLIBC_TUNABLES": "glibc.malloc.tcache_max=0x1000"})
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
     if pwndbg.libc.version() < (2, 43):
         pytest.skip("Skip under glibc 2.43")
 
-    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+    break_at_sym("break_here")
+    await ctrl.cont()
 
     await resolve_malloc_chunks(
         ctrl,
@@ -321,9 +319,8 @@ async def test_malloc_chunk_2_43(ctrl: Controller) -> None:
 async def test_malloc_chunk_2_43_heuristic(ctrl: Controller) -> None:
     import pwndbg.aglib
     import pwndbg.libc
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
-    await launch_to(ctrl, HEAP_GLIBC2_43, "break_here")
+    await ctrl.launch(HEAP_GLIBC2_43, env={"GLIBC_TUNABLES": "glibc.malloc.tcache_max=0x1000"})
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
@@ -333,8 +330,6 @@ async def test_malloc_chunk_2_43_heuristic(ctrl: Controller) -> None:
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
-
-    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     await resolve_malloc_chunks(
         ctrl,
