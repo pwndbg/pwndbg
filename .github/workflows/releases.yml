@@ -109,7 +109,7 @@ jobs:
           pwndbg-gdb-portable-tarball,
         ]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 120
     permissions:
       contents: write  # IMPORTANT: this permission is mandatory for github-release upload
     steps:
