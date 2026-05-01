@@ -6,10 +6,12 @@ import string
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
+import pwndbg.aglib.remote
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.lib.cache
 import pwndbg.lib.net
+import pwndbg.lib.sock_diag
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -95,6 +97,41 @@ def unix(tid: int):
 def netlink(tid: int):
     data = pwndbg.aglib.file.get(f"/proc/{tid}/net/netlink").decode()
     return pwndbg.lib.net.netlink(data)
+
+
+def _augment_unix_peers(connections: list[pwndbg.lib.net.inode]) -> None:
+    """Attach peer-process info to UnixSocket entries when running locally.
+
+    SOCK_DIAG and /proc/*/fd are kernel-local: for any non-local target the
+    answers would describe the wrong machine, so we silently skip.
+    """
+    unix_socks = [c for c in connections if isinstance(c, pwndbg.lib.net.UnixSocket)]
+    if not unix_socks:
+        return
+    if pwndbg.aglib.remote.is_remote():
+        return
+
+    peers = pwndbg.lib.sock_diag.get_unix_peers()
+    if not peers:
+        return
+
+    peer_inodes: set[int] = set()
+    for u in unix_socks:
+        peer = peers.get(u.inode) if u.inode is not None else None
+        if peer:
+            u.peer_inode = peer
+            peer_inodes.add(peer)
+
+    if not peer_inodes:
+        return
+
+    owners = pwndbg.lib.sock_diag.find_socket_inode_owners(peer_inodes)
+    for u in unix_socks:
+        if u.peer_inode and u.peer_inode in owners:
+            pid, fd, comm = owners[u.peer_inode]
+            u.peer_pid = pid
+            u.peer_fd = fd
+            u.peer_comm = comm or None
 
 
 class Process:
@@ -223,6 +260,7 @@ class Process:
                         x.fd = fd
                         result.append(x)
 
+        _augment_unix_peers(result)
         return tuple(result)
 
 

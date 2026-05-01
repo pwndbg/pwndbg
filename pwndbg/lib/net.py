@@ -56,9 +56,28 @@ class Connection(inode):
 
 class UnixSocket(inode):
     path = "(anonymous)"
+    peer_inode: int | None = None
+    peer_pid: int | None = None
+    peer_fd: int | None = None
+    peer_comm: str | None = None
 
     def __str__(self) -> str:
-        return f"unix {self.path!r}"
+        s = f"unix {self.path!r}"
+        parts: list[str] = []
+        if self.inode is not None:
+            parts.append(f"inode={self.inode}")
+        if self.peer_pid is not None:
+            owner = f"pid={self.peer_pid}"
+            if self.peer_comm:
+                owner += f" '{self.peer_comm}'"
+            if self.peer_fd is not None:
+                owner += f" fd={self.peer_fd}"
+            parts.append(f"peer {owner}")
+        elif self.peer_inode:
+            parts.append(f"peer_inode={self.peer_inode}")
+        if parts:
+            s += " (" + ", ".join(parts) + ")"
+        return s
 
     def __repr__(self) -> str:
         return f"UnixSocket({self})"

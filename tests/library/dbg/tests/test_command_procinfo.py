@@ -13,6 +13,7 @@ from . import pwndbg_test
 
 REFERENCE_BINARY_NET = get_binary("reference-binary-net.native.out")
 REFERENCE_BINARY_NETLINK = get_binary("reference-binary-netlink.native.out")
+REFERENCE_BINARY_SOCKETPAIR = get_binary("reference-binary-socketpair.native.out")
 
 
 class TCPServerThread(threading.Thread):
@@ -90,3 +91,30 @@ async def test_command_procinfo_netlink(ctrl: Controller) -> None:
     assert "RTMGRP_IPV4_IFADDR" in result
     assert "inode=" in result
     assert "portid=" in result
+
+
+@pwndbg_test
+async def test_command_procinfo_unix_socketpair_peer(ctrl: Controller) -> None:
+    import pwndbg.aglib.proc
+
+    await ctrl.launch(REFERENCE_BINARY_SOCKETPAIR)
+
+    break_at_sym("break_here")
+    await ctrl.cont()
+
+    pid = pwndbg.aglib.proc.pid()
+    result = await ctrl.execute_and_capture("procinfo")
+
+    # The reference binary creates a unix SOCK_STREAM socketpair, so we expect
+    # two anonymous unix sockets in the FD list, each carrying peer info that
+    # points back to the same process. SOCK_DIAG is local-only; this test
+    # exercises the local code path on the test machine's kernel.
+    anon_lines = [
+        line for line in result.splitlines() if "unix '(anonymous)'" in line and "peer" in line
+    ]
+    assert len(anon_lines) == 2, f"expected 2 unix peer lines, got: {anon_lines}"
+
+    for line in anon_lines:
+        assert f"pid={pid}" in line
+        assert "fd=" in line
+        assert "inode=" in line
