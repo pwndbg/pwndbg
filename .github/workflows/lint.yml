@@ -15,7 +15,7 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
-      - uses: dorny/paths-filter@61f87a10cd2c304679af17bb73ef192addf33c1c # master (unreleased, for predicate-quantifier)
+      - uses: dorny/paths-filter@f3ceefdc7ef57bc2d8560787d4b6c33e44044cec # master (unreleased, for predicate-quantifier)
         id: filter
         with:
           predicate-quantifier: 'every'
