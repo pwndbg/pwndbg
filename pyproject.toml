@@ -62,7 +62,7 @@ dev = [
 lint = [
     "mypy>=1.18.2,<2",
     "ruff==0.14.10",
-    "vermin>=1.6.0,<2",
+    "vermin>=1.8.0,<2",
 ]
 tests = [
     # Newer versions of pytest break CI on GitHub

@@ -1859,7 +1859,7 @@ lint = [
     { name = "mypy", specifier = ">=1.18.2,<2" },
     { name = "ruff", marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'", specifier = "==0.14.10" },
     { name = "ruff", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'", specifier = "==0.14.10", index = "https://mirrors.loong64.com/pypi/simple" },
-    { name = "vermin", specifier = ">=1.6.0,<2" },
+    { name = "vermin", specifier = ">=1.8.0,<2" },
 ]
 tests = [
     { name = "coverage", extras = ["toml"], specifier = ">=7.5.0,<8" },
