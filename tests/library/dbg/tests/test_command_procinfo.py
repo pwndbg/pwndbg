@@ -12,6 +12,7 @@ from . import get_binary
 from . import pwndbg_test
 
 REFERENCE_BINARY_NET = get_binary("reference-binary-net.native.out")
+REFERENCE_BINARY_NETLINK = get_binary("reference-binary-netlink.native.out")
 
 
 class TCPServerThread(threading.Thread):
@@ -70,3 +71,22 @@ async def test_command_procinfo_net(ctrl: Controller, ip_connect: str) -> None:
 
     # Close tcp server
     server.stop()
+
+
+@pwndbg_test
+async def test_command_procinfo_netlink(ctrl: Controller) -> None:
+    await ctrl.launch(REFERENCE_BINARY_NETLINK)
+
+    break_at_sym("break_here")
+    await ctrl.cont()
+
+    result = await ctrl.execute_and_capture("procinfo")
+
+    # The reference binary opens a NETLINK_ROUTE socket bound to
+    # RTMGRP_LINK | RTMGRP_IPV4_IFADDR. procinfo should decode the
+    # protocol family and the well-known group bits.
+    assert "socket:NETLINK_ROUTE" in result
+    assert "RTMGRP_LINK" in result
+    assert "RTMGRP_IPV4_IFADDR" in result
+    assert "inode=" in result
+    assert "portid=" in result
