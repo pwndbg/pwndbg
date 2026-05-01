@@ -25,7 +25,7 @@ dependencies = [
     # Optional? only for 'ai' commands
     "requests>=2.32.5,<3",
     # Optional? only for pretty print traceback
-    "rich>=14.1.0,<15",
+    "rich>=15.0.0,<16",
     # Optional? only for qemu-system vmmap
     "pt @ git+https://github.com/martinradev/gdb-pt-dump@50227bda0b6332e94027f811a15879588de6d5cb",
     # Optional? 'ziglang' must be optional, as it is not available on every platform.
