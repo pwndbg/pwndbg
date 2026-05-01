@@ -134,7 +134,7 @@ jobs:
           '
 
       - name: Push full image to registry
-        if: github.event_name == 'push'
+        if: ${{ !cancelled() && github.event_name == 'push' }}
         run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-amd64
 
   docker_aarch64:
@@ -231,7 +231,7 @@ jobs:
           '
 
       - name: Push full image to registry
-        if: github.event_name == 'push'
+        if: ${{ !cancelled() && github.event_name == 'push' }}
         run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-arm64
 
   create_manifest:
