@@ -14,6 +14,7 @@ from . import pwndbg_test
 REFERENCE_BINARY_NET = get_binary("reference-binary-net.native.out")
 REFERENCE_BINARY_NETLINK = get_binary("reference-binary-netlink.native.out")
 REFERENCE_BINARY_SOCKETPAIR = get_binary("reference-binary-socketpair.native.out")
+REFERENCE_BINARY_PIPE = get_binary("reference-binary-pipe.native.out")
 
 
 class TCPServerThread(threading.Thread):
@@ -118,3 +119,36 @@ async def test_command_procinfo_unix_socketpair_peer(ctrl: Controller) -> None:
         assert f"pid={pid}" in line
         assert "fd=" in line
         assert "inode=" in line
+
+
+@pwndbg_test
+async def test_command_procinfo_pipe(ctrl: Controller) -> None:
+    import pwndbg.aglib.proc
+
+    await ctrl.launch(REFERENCE_BINARY_PIPE)
+
+    break_at_sym("break_here")
+    await ctrl.cont()
+
+    pid = pwndbg.aglib.proc.pid()
+    result = await ctrl.execute_and_capture("procinfo")
+
+    # The binary calls pipe(2), which gives us one read end and one write
+    # end held by the same process. procinfo should label them as r/w and
+    # show the same-process peer linkage. We can't pin to specific FDs
+    # because the loader may shuffle them, so we look for the pair shape.
+    pipe_lines = [
+        line
+        for line in result.splitlines()
+        if line.lstrip().startswith("fd[") and "pipe:[" in line and "peers:" in line
+    ]
+    # The binary's own pipe(2) plus inherited stdio pipes from the test
+    # harness can produce >2 lines; require at least one read/write pair
+    # whose peer is in this process.
+    own_lines = [line for line in pipe_lines if f"pid={pid}" in line]
+    assert len(own_lines) >= 2, f"expected >=2 self-peering pipe lines, got: {pipe_lines}"
+
+    has_read = any(" (r," in line for line in own_lines)
+    has_write = any(" (w," in line for line in own_lines)
+    assert has_read, f"no read end found: {own_lines}"
+    assert has_write, f"no write end found: {own_lines}"
