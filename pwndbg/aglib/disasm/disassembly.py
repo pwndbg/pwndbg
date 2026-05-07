@@ -99,12 +99,6 @@ def clear_on_reg_mem_change() -> None:
     next_addresses_cache.clear()
 
 
-# Dict of Address -> previous instruction sequentially in memory
-# Some architectures don't have fixed-sized instructions, so this is used
-# to disassemble backwards linearly in memory for those cases
-linear_backward_cache: collections.defaultdict[int, int] = collections.defaultdict(lambda: None)
-
-
 # In order to track the sequence of instructions at runtime, we maintain a linked list, where each
 # entry points to the previous instruction that was executed.
 # This is populated speculatively using emulation.
@@ -128,6 +122,14 @@ class InstructionSequenceSavePointer:
     node: InstructionSequenceNode | None
 
 
+# Dict of Address -> previous instruction sequentially in memory
+# Some architectures don't have fixed-sized instructions, so this is used
+# to disassemble backwards linearly in memory for those cases
+linear_backward_address_cache: collections.defaultdict[int, int] = collections.defaultdict(
+    lambda: None
+)
+
+
 # Map addresses to their entry in the linked list.
 # While the emulation may encounter this address multiple times, this map only contains a mapping for the first
 # time the instruction is executed.
@@ -136,11 +138,12 @@ instruction_sequence_linked_list_map: collections.defaultdict[
 ] = collections.defaultdict(lambda: None)
 
 
-# In case the linked list method fails (we cannot be 100% certain of instruction order),
-# it is still nice to be able to display instructions behind the instruction pointer.
 # This tracks the order of instructions based on the last time we disassembled them.
+# It is only used in a specific case: if the linked list method fails (we cannot be 100% certain of instruction order),
+# it is still nice to be able to display instructions behind the instruction pointer. For dynamic cases,
+# it's most likely that we arrived at a location the same way we previously arrived there, which this tracks.
 # Map of address to previous address
-fallback_backward_cache: collections.defaultdict[int, int | None] = collections.defaultdict(
+dynamic_backward_address_cache: collections.defaultdict[int, int | None] = collections.defaultdict(
     lambda: None
 )
 
@@ -176,13 +179,10 @@ def get_previous_instruction(
     Retrieve the instruction prior to the instruction at `address`.
     """
     if linear:
-        prev_address = linear_backward_cache[address]
-
-        if prev_address is None:
-            prev_address = get_previous_address_heuristic(address)
+        prev_address = get_previous_address_with_heuristic(address)
 
         return (
-            one(prev_address, from_cache=use_cache, put_backward_cache=False, linear=linear)
+            one(prev_address, from_cache=use_cache, put_linear_backward_cache=False, linear=linear)
             if prev_address
             else None
         )
@@ -195,91 +195,125 @@ def get_previous_instruction(
         if prev_node is not None:
             return prev_node.instruction
 
-    prev_address = fallback_backward_cache[address]
+    prev_address = dynamic_backward_address_cache[address]
 
     if prev_address is None:
-        prev_address = get_previous_address_heuristic(address)
+        prev_address = get_previous_address_with_heuristic(address)
 
     return (
-        one(prev_address, from_cache=use_cache, put_backward_cache=False) if prev_address else None
+        one(
+            prev_address,
+            from_cache=use_cache,
+            put_linear_backward_cache=False,
+            put_dynamic_backward_cache=False,
+        )
+        if prev_address
+        else None
     )
 
 
-def get_previous_address_heuristic(current_instruction_address: int) -> int:
+# If we start disassembling at a given address (which may be in the middle of a instruction),
+# how many instructions will it take for the instruction sequence to align with true instruction boundaries?
+# This is a highly conservative to avoid incorrect disassembly in the view.
+HEURISTIC_INSTRUCTION_ALIGN_COUNT = 10
+
+
+def get_previous_address_with_heuristic(current_address: int) -> int:
     """
     Return the address at which the previous instruction starts.
 
-    On variable width instructions sets like x86, disassembling backwards requires some hueristics, since instructions are
+    On variable width instructions sets like x86, disassembling backwards requires some heuristics, since instructions are
     not self-synchronizing.
 
     However, in practice, long sequences of instructions are self-aligning. If we start disassembling many bytes into the past,
     we can have confidence that the instruction sequence will align with the true instruction boundaries eventually.
 
-    While doing this, we populate the `linear_backward_cache` to avoid calling this function too many times.
+    While doing this, we populate the `linear_backward_address_cache` to avoid calling this function too many times.
     """
 
+    if (prev_address := linear_backward_address_cache[current_address]) is not None:
+        return prev_address
+
     if pwndbg.aglib.arch.constant_instruction_size:
-        return current_instruction_address - pwndbg.aglib.arch.max_instruction_size
+        return current_address - pwndbg.aglib.arch.max_instruction_size
 
     max_instruction_size = pwndbg.aglib.arch.max_instruction_size
 
-    # Start disassembling 30 instructions worth of byte behind the PC, assuming the worst case that all instructions are max width.
-    # However, we will have confidence that the last 20 instructions are aligned correctly.
+    # Start disassembling 20 instructions worth of byte behind the PC, assuming the worst case that all instructions are max width.
+    # However, we will have confidence that the last 10 instructions are aligned correctly.
     # This is highly conservative to give high confidence that instruction boundaries have aligned.
-    HUERISTIC_INSTRUCTION_COUNT = 30
-    CONFIDENCE_INSTRUCTION_COUNT = 20
+    HEURISTIC_START_N_INSTRUCTION_IN_PAST = 20
+    CONFIDENCE_INSTRUCTION_COUNT = (
+        HEURISTIC_START_N_INSTRUCTION_IN_PAST - HEURISTIC_INSTRUCTION_ALIGN_COUNT
+    )
 
-    START_BYTE_OFFSET = max_instruction_size * HUERISTIC_INSTRUCTION_COUNT
+    START_BYTE_OFFSET = max_instruction_size * HEURISTIC_START_N_INSTRUCTION_IN_PAST
 
-    # At what offset behind the PC do we no longer want to try to start disassembling from?
-    LAST_SAFE_ADDRESS_OFFSET = max_instruction_size * CONFIDENCE_INSTRUCTION_COUNT
+    # Start disassembling here
+    heuristic_start_address = current_address - START_BYTE_OFFSET
 
-    cs_info = pwndbg.aglib.arch.get_capstone_constants(current_instruction_address)
-    if cs_info is None:
-        # This means capstone disassembler is not supported
-        return None
-
-    md = get_disassembler(cs_info)
-
+    byte_sequence: bytearray = None
+    # Extract the maximal viable byte sequence that we will disassemble within
     for guess_disassembly_address in range(
-        current_instruction_address - START_BYTE_OFFSET,
-        current_instruction_address - LAST_SAFE_ADDRESS_OFFSET,
+        heuristic_start_address,
+        current_address,
     ):
-        # If we encounter errors while disassembling, this loop allows us to move
-        # forward one byte and try again
-
         # Make sure we are in an executable page
         page = pwndbg.aglib.vmmap.find(guess_disassembly_address)
         if page is None or not page.execute:
             continue
 
         try:
-            data = pwndbg.aglib.memory.read(
-                guess_disassembly_address, current_instruction_address - guess_disassembly_address
+            byte_sequence = pwndbg.aglib.memory.read(
+                guess_disassembly_address, current_address - guess_disassembly_address
             )
-
-            capstone_instructions = list(md.disasm(bytes(data), guess_disassembly_address))
-
-            # Capstone returns empty list or truncated list when it fails to disassemble an instruction
-            # In this case, just move up one byte until it doesn't fail
-            if len(capstone_instructions) < CONFIDENCE_INSTRUCTION_COUNT:
-                continue
-
-            instructions = capstone_instructions[-CONFIDENCE_INSTRUCTION_COUNT:]
-
-            if instructions[-1].address + instructions[-1].size != current_instruction_address:
-                # In the unlikely case that these instruction don't lead to the current one, keep trying
-                continue
-
-            # Setup cache values
-            for insn in instructions:
-                linear_backward_cache[insn.address + insn.size] = insn.address
-
-            return instructions[-1].address
-
+            heuristic_start_address = guess_disassembly_address
+            break
         except pwndbg.dbg_mod.Error:
             # The memory read might fail (reading around address space boundary, for example)
             continue
+
+    # Unable to read bytes
+    if byte_sequence is None:
+        return None
+
+    cs_info = pwndbg.aglib.arch.get_capstone_constants(current_address)
+    if cs_info is None:
+        # This means capstone disassembler is not supported
+        return None
+
+    md = get_disassembler(cs_info)
+
+    # In most cases, this loop will run at most `max_instruction_size` times.
+    # However, in case the bytes have inline data that cause disassembly failure, this will
+    # continue loop until it moves past those bytes
+    for offset, guess_disassembly_address in enumerate(
+        range(
+            heuristic_start_address,
+            current_address,
+        )
+    ):
+        # If we encounter errors while disassembling, this loop allows us to move
+        # forward one byte and try again
+        capstone_instructions = list(md.disasm(byte_sequence[offset:], guess_disassembly_address))
+
+        # Capstone returns empty list or truncated list when it fails to disassemble an instruction
+        # In this case, just move up one byte until it doesn't fail
+        if len(capstone_instructions) < HEURISTIC_START_N_INSTRUCTION_IN_PAST:
+            continue
+
+        instructions = capstone_instructions[-CONFIDENCE_INSTRUCTION_COUNT:]
+
+        if instructions[-1].address + instructions[-1].size != current_address:
+            # This case is very likely if `current_address` is not at a real instruction boundary
+            # If this is the case, the disassembled instructions will never lead to the current instruction
+            continue
+
+        # Setup cache values
+        for insn in instructions:
+            linear_backward_address_cache[insn.address + insn.size] = insn.address
+
+        return instructions[-1].address
 
     return None
 
@@ -311,7 +345,8 @@ def one(
     assistant: DisassemblyAssistant | None = None,
     from_cache: bool = False,
     put_cache: bool = False,
-    put_backward_cache: bool = True,
+    put_linear_backward_cache: bool = True,
+    put_dynamic_backward_cache: bool = True,
     linear: bool = False,
 ) -> PwndbgInstruction | None:
     """
@@ -335,11 +370,11 @@ def one(
         if put_cache:
             computed_instruction_cache[address] = insn
 
-        if put_backward_cache:
-            linear_backward_cache[insn.address + insn.size] = insn.address
+        if put_linear_backward_cache:
+            linear_backward_address_cache[insn.address + insn.size] = insn.address
 
-            if not linear:
-                fallback_backward_cache[insn.next] = insn.address
+        if put_dynamic_backward_cache and not linear:
+            dynamic_backward_address_cache[insn.next] = insn.address
         return insn
 
     return None
@@ -570,7 +605,14 @@ def near(
                 assistant.manual_register_values.write_register(reg, reg_value)
 
     # Start at the current instruction using emulation if available.
-    current = one(address, emu, put_cache=True, assistant=assistant, linear=linear)
+    current = one(
+        address,
+        emu,
+        put_cache=True,
+        put_linear_backward_cache=False,
+        assistant=assistant,
+        linear=linear,
+    )
 
     if DEBUG_ENHANCEMENT:
         if emu and not emu.last_step_succeeded:
@@ -680,7 +722,13 @@ def near(
                 # Therefore, we must disassemble the delay slot instructions here as the normal codeflow will not reach them.
 
                 delay_slot_address = insn.address + insn.size
-                split_insn = one(delay_slot_address, None, put_cache=True, linear=linear)
+                split_insn = one(
+                    delay_slot_address,
+                    emu=None,
+                    put_linear_backward_cache=len(insns) >= HEURISTIC_INSTRUCTION_ALIGN_COUNT,
+                    put_cache=True,
+                    linear=linear,
+                )
 
                 # There might not be a valid instruction at the branch delay slot
                 if split_insn is None:
@@ -693,9 +741,11 @@ def near(
 
                 delay_slot_cache[split_insn.address] = insn
 
-                fallback_backward_cache[insn.next] = split_insn.address
-                fallback_backward_cache[split_insn.address + split_insn.size] = split_insn.address
-                fallback_backward_cache[split_insn.address] = insn.address
+                dynamic_backward_address_cache[insn.next] = split_insn.address
+                dynamic_backward_address_cache[split_insn.address + split_insn.size] = (
+                    split_insn.address
+                )
+                dynamic_backward_address_cache[split_insn.address] = insn.address
 
                 instruction_sequence_head = InstructionSequenceNode(
                     instruction_sequence_head, split_insn
@@ -732,7 +782,19 @@ def near(
         next_addresses_cache.add(target)
 
         # The emulator is stepped within this call
-        insn = one(target, emu, put_cache=True, assistant=assistant, linear=linear)
+        # Explanation for the `put_linear_backward_cache` logic:
+        #   We only want to record the sequence of instructions when we are confident that it's the correct sequence.
+        #   It is possible that we are disassembling from the middle of an instruction, if we are doing `nearpc guessed_address`
+        #   If we start caching the instruction sequence immediately, the cached instruction sequence would be incorrect,
+        #   causing later backwards disassembly (which pulls from the cache) to get incorrect addresses.
+        insn = one(
+            target,
+            emu,
+            put_cache=True,
+            put_linear_backward_cache=len(insns) >= HEURISTIC_INSTRUCTION_ALIGN_COUNT,
+            assistant=assistant,
+            linear=linear,
+        )
 
         if insn:
             # Add the instruction to the front of the linked list tracking the dynamic instruction sequence.
