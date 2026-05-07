@@ -1767,6 +1767,11 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         self._load_gdbinit()
 
+        # Set a variable, "$pwndbg_plugin_enabled", that a .gdbinit config can use to detect
+        # that pwndbg is enabled with `if ! $_isvoid($pwndbg_plugin_enabled)`
+        # This allows the .gdbinit to conditionally configure pwndbg settings
+        gdb.set_convenience_variable("pwndbg_plugin_enabled", True)
+
         # show_hint must be called after loading ~/.gdbinit, this order allow disabling show_hint
         prompt.show_hint()
 
