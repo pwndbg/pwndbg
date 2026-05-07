@@ -24,6 +24,7 @@ import pwndbg.aglib.disasm.riscv
 import pwndbg.aglib.disasm.sparc
 import pwndbg.aglib.disasm.x86
 import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
 import pwndbg.lib.config
@@ -176,19 +177,15 @@ def get_previous_instruction(
     """
     if linear:
         prev_address = linear_backward_cache[address]
-        result = (
+
+        if prev_address is None:
+            prev_address = get_previous_address_heuristic(address)
+
+        return (
             one(prev_address, from_cache=use_cache, put_backward_cache=False, linear=linear)
             if prev_address
             else None
         )
-        if result is None and pwndbg.aglib.arch.constant_instruction_size:
-            return one(
-                address - pwndbg.aglib.arch.max_instruction_size,
-                from_cache=use_cache,
-                put_backward_cache=False,
-                linear=linear,
-            )
-        return result
 
     sequence_node = get_instruction_sequence_node(address, saveptr)
 
@@ -199,9 +196,92 @@ def get_previous_instruction(
             return prev_node.instruction
 
     prev_address = fallback_backward_cache[address]
+
+    if prev_address is None:
+        prev_address = get_previous_address_heuristic(address)
+
     return (
         one(prev_address, from_cache=use_cache, put_backward_cache=False) if prev_address else None
     )
+
+
+def get_previous_address_heuristic(current_instruction_address: int) -> int:
+    """
+    Return the address at which the previous instruction starts.
+
+    On variable width instructions sets like x86, disassembling backwards requires some hueristics, since instructions are
+    not self-synchronizing.
+
+    However, in practice, long sequences of instructions are self-aligning. If we start disassembling many bytes into the past,
+    we can have confidence that the instruction sequence will align with the true instruction boundaries eventually.
+
+    While doing this, we populate the `linear_backward_cache` to avoid calling this function too many times.
+    """
+
+    if pwndbg.aglib.arch.constant_instruction_size:
+        return current_instruction_address - pwndbg.aglib.arch.max_instruction_size
+
+    max_instruction_size = pwndbg.aglib.arch.max_instruction_size
+
+    # Start disassembling 30 instructions worth of byte behind the PC, assuming the worst case that all instructions are max width.
+    # However, we will have confidence that the last 20 instructions are aligned correctly.
+    # This is highly conservative to give high confidence that instruction boundaries have aligned.
+    HUERISTIC_INSTRUCTION_COUNT = 30
+    CONFIDENCE_INSTRUCTION_COUNT = 20
+
+    START_BYTE_OFFSET = max_instruction_size * HUERISTIC_INSTRUCTION_COUNT
+
+    # At what offset behind the PC do we no longer want to try to start disassembling from?
+    LAST_SAFE_ADDRESS_OFFSET = max_instruction_size * CONFIDENCE_INSTRUCTION_COUNT
+
+    cs_info = pwndbg.aglib.arch.get_capstone_constants(current_instruction_address)
+    if cs_info is None:
+        # This means capstone disassembler is not supported
+        return None
+
+    md = get_disassembler(cs_info)
+
+    for guess_disassembly_address in range(
+        current_instruction_address - START_BYTE_OFFSET,
+        current_instruction_address - LAST_SAFE_ADDRESS_OFFSET,
+    ):
+        # If we encounter errors while disassembling, this loop allows us to move
+        # forward one byte and try again
+
+        # Make sure we are in an executable page
+        page = pwndbg.aglib.vmmap.find(guess_disassembly_address)
+        if page is None or not page.execute:
+            continue
+
+        try:
+            data = pwndbg.aglib.memory.read(
+                guess_disassembly_address, current_instruction_address - guess_disassembly_address
+            )
+
+            capstone_instructions = list(md.disasm(bytes(data), guess_disassembly_address))
+
+            # Capstone returns empty list or truncated list when it fails to disassemble an instruction
+            # In this case, just move up one byte until it doesn't fail
+            if len(capstone_instructions) < CONFIDENCE_INSTRUCTION_COUNT:
+                continue
+
+            instructions = capstone_instructions[-CONFIDENCE_INSTRUCTION_COUNT:]
+
+            if instructions[-1].address + instructions[-1].size != current_instruction_address:
+                # In the unlikely case that these instruction don't lead to the current one, keep trying
+                continue
+
+            # Setup cache values
+            for insn in instructions:
+                linear_backward_cache[insn.address + insn.size] = insn.address
+
+            return instructions[-1].address
+
+        except pwndbg.dbg_mod.Error:
+            # The memory read might fail (reading around address space boundary, for example)
+            continue
+
+    return None
 
 
 @pwndbg.lib.cache.cache_until("objfile")
