@@ -682,7 +682,10 @@ def nearpc(
         elif instruction.split == SplitType.BRANCH_NOT_TAKEN:
             if nearpc_branch_marker_contiguous:
                 if empty_line_branch_vis_string:
-                    result.append(gray(pwndbg.color.strip(empty_line_branch_vis_string)))
+                    if not linear and i <= index_of_last_linearly_disassembled_instruction:
+                        empty_line_branch_vis_string = gray(pwndbg.color.strip(empty_line_branch_vis_string))
+
+                    result.append(empty_line_branch_vis_string)
                 else:
                     result.append(f"{nearpc_branch_marker_contiguous}")
 
