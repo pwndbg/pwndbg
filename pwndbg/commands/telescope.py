@@ -100,14 +100,26 @@ parser.add_argument(
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def telescope(
-    address=None, count=telescope_lines, to_string=False, reverse=False, frame=False, inverse=False
+    address: int | None = None,
+    count: int = int(telescope_lines),
+    to_string: bool = False,
+    reverse: bool = False,
+    frame: bool = False,
+    inverse: bool = False,
+    repeat: bool = False,
 ):
     """
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
+
+    If either of `telescope.repeat` (set by the command invocation logic when the user
+    re-runs the command) or `repeat` (set only by functions which use `telescope()` like an
+    API (like `context`) (which they probably shouldn't)) is set, `telescope()` will continue
+    from the last printed address (see also #3900).
     """
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
-    if telescope.repeat:
+
+    if telescope.repeat or repeat:
         address = telescope.last_address + ptrsize
         telescope.offset += 1
     else:
@@ -312,9 +324,12 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def stack(count, offset, frame, inverse) -> None:
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
-    telescope.repeat = stack.repeat
     telescope(
-        address=pwndbg.aglib.regs.sp + offset * ptrsize, count=count, frame=frame, inverse=inverse
+        address=pwndbg.aglib.regs.sp + offset * ptrsize,
+        count=count,
+        frame=frame,
+        inverse=inverse,
+        repeat=stack.repeat,
     )
 
 
@@ -335,8 +350,12 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def stackf(count, offset) -> None:
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
-    telescope.repeat = stack.repeat
-    telescope(address=pwndbg.aglib.regs.sp + offset * ptrsize, count=count, frame=True)
+    telescope(
+        address=pwndbg.aglib.regs.sp + offset * ptrsize,
+        count=count,
+        frame=True,
+        repeat=stack.repeat,
+    )
 
 
 telescope.last_address = 0
