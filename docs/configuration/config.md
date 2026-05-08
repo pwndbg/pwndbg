@@ -993,6 +993,17 @@ Number of lines to printed by the telescope command.
 
 ----------
 
+## **telescope-pad-leading-zeroes**
+
+
+Align all integers to pointer-width by front-padding them with zeroes.
+
+
+
+**Default:** off  
+
+----------
+
 ## **telescope-skip-repeating-val**
 
 

@@ -98,10 +98,6 @@ config_contiguous = theme.add_param(
     "chain-contiguous-marker", "...", "contiguous marker of chain formatting"
 )
 
-config_full_values = pwndbg.config.add_param(
-    "chain-full-values", False, "show the full word instead of trimming the leading zeroes"
-)
-
 
 def format(
     value: int | list[int] | None,
@@ -112,6 +108,7 @@ def format(
     hard_end: int = 0,
     safe_linking: bool = False,
     enhance_string_len: int | None = None,
+    respect_ptrwidth: bool = False,
 ) -> str:
     """
     Recursively dereferences an address into string representation, or convert the list representation
@@ -149,9 +146,7 @@ def format(
 
     # Colorize the chain
     rest = [
-        mem_color.get_address_and_symbol(
-            addr, stack_vars, respect_ptrwidth=bool(config_full_values)
-        )
+        mem_color.get_address_and_symbol(addr, stack_vars, respect_ptrwidth=bool(respect_ptrwidth))
         if addr >= 0
         else ""
         for addr in chain
@@ -179,7 +174,7 @@ def format(
             code=code,
             attempt_dereference=False,
             enhance_string_len=enhance_string_len,
-            respect_ptrwidth=bool(config_full_values),
+            respect_ptrwidth=bool(respect_ptrwidth),
         )
     # We want to enhance the last pointer value. If an offset was used
     # chain failed at that offset, so display that offset.
@@ -189,7 +184,7 @@ def format(
             code=code,
             safe_linking=safe_linking,
             enhance_string_len=enhance_string_len,
-            respect_ptrwidth=bool(config_full_values),
+            respect_ptrwidth=bool(respect_ptrwidth),
         )
 
     else:

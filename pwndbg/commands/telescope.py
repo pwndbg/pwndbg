@@ -34,6 +34,11 @@ skip_repeating_values_minimum = pwndbg.config.add_param(
     3,
     "minimum amount of repeated values before skipping lines",
 )
+pad_leading_zeroes = pwndbg.config.add_param(
+    "telescope-pad-leading-zeroes",
+    False,
+    "align all integers to pointer-width by front-padding them with zeroes",
+)
 print_framepointer_offset = pwndbg.config.add_param(
     "telescope-framepointer-offset",
     True,
@@ -251,7 +256,7 @@ def telescope(
         line = T.offset(f"{idx_offset:02x}{delimiter}{line_offset:04x}{separator}") + " ".join(
             (
                 regs_or_frame_offset(addr, bp, regs, longest_regs),
-                pwndbg.chain.format(addr),
+                pwndbg.chain.format(addr, respect_ptrwidth=bool(pad_leading_zeroes)),
             )
         )
 
