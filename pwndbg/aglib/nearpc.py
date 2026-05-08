@@ -21,6 +21,7 @@ from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import blue
+from pwndbg.color import gray
 from pwndbg.color import green
 from pwndbg.color import light_gray
 from pwndbg.color import light_green
@@ -477,16 +478,18 @@ def nearpc(
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
 
-    instructions, index_of_pc = pwndbg.aglib.disasm.disassembly.near(
-        pc,
-        forward_count=lines,
-        backward_count=back_lines,
-        total_count=total_lines,
-        emulate=emulate,
-        show_prev_insns=not repeat,
-        use_cache=use_cache,
-        linear=linear,
-        end_address=end_address,
+    instructions, index_of_pc, index_of_last_linearly_disassembled_instruction = (
+        pwndbg.aglib.disasm.disassembly.near(
+            pc,
+            forward_count=lines,
+            backward_count=back_lines,
+            total_count=total_lines,
+            emulate=emulate,
+            show_prev_insns=not repeat,
+            use_cache=use_cache,
+            linear=linear,
+            end_address=end_address,
+        )
     )
 
     # If doing branch visualization, preprocess some datastructures
@@ -658,6 +661,9 @@ def nearpc(
                     hex(instruction.address)
                 ]
             )
+
+        if i <= index_of_last_linearly_disassembled_instruction:
+            line = gray(pwndbg.color.strip(line))
 
         result.append(line)
 

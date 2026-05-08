@@ -174,33 +174,51 @@ def get_instruction_sequence_node(
 
 def get_previous_instruction(
     address: int, use_cache: bool, linear: bool, saveptr: InstructionSequenceSavePointer
-) -> PwndbgInstruction | None:
+) -> tuple[PwndbgInstruction, bool] | None:
     """
     Retrieve the instruction prior to the instruction at `address`.
+
+    Also, indicates whether the instruction was pulled linearly from memory, rather than using emulated flow.
+
+    Returns:
+        Tuple[PwndbgInstruction, is_linear]
     """
     if linear:
-        prev_address = get_previous_address_with_heuristic(address)
+        prev_address = get_previous_linear_address_with_heuristic(address)
 
-        return (
+        insn = (
             one(prev_address, from_cache=use_cache, put_linear_backward_cache=False, linear=linear)
             if prev_address
             else None
         )
 
+        return (insn, True) if insn is not None else None
+
+    # Fetch instruction assuming dynamic flow
     sequence_node = get_instruction_sequence_node(address, saveptr)
 
     if sequence_node is not None:
         prev_node = sequence_node.previous
         saveptr.node = prev_node
         if prev_node is not None:
-            return prev_node.instruction
+            return (prev_node.instruction, False)
 
     prev_address = dynamic_backward_address_cache[address]
 
-    if prev_address is None:
-        prev_address = get_previous_address_with_heuristic(address)
+    if prev_address is not None:
+        insn = one(
+            prev_address,
+            from_cache=use_cache,
+            put_linear_backward_cache=False,
+            put_dynamic_backward_cache=False,
+        )
 
-    return (
+        return (insn, False) if insn is not None else None
+
+    # Finally, fall back to getting linearly from memory
+    prev_address = get_previous_linear_address_with_heuristic(address)
+
+    insn = (
         one(
             prev_address,
             from_cache=use_cache,
@@ -211,6 +229,8 @@ def get_previous_instruction(
         else None
     )
 
+    return (insn, True) if insn is not None else None
+
 
 # If we start disassembling at a given address (which may be in the middle of a instruction),
 # how many instructions will it take for the instruction sequence to align with true instruction boundaries?
@@ -218,7 +238,7 @@ def get_previous_instruction(
 HEURISTIC_INSTRUCTION_ALIGN_COUNT = 10
 
 
-def get_previous_address_with_heuristic(current_address: int) -> int:
+def get_previous_linear_address_with_heuristic(current_address: int) -> int:
     """
     Return the address at which the previous instruction starts.
 
@@ -228,7 +248,7 @@ def get_previous_address_with_heuristic(current_address: int) -> int:
     However, in practice, long sequences of instructions are self-aligning. If we start disassembling many bytes into the past,
     we can have confidence that the instruction sequence will align with the true instruction boundaries eventually.
 
-    While doing this, we populate the `linear_backward_address_cache` to avoid calling this function too many times.
+    While doing this, we populate the `linear_backward_address_cache` to avoid disassembling the same memory again and again.
     """
 
     if (prev_address := linear_backward_address_cache[current_address]) is not None:
@@ -556,7 +576,7 @@ def near(
     show_prev_insns=True,
     use_cache=False,
     linear=False,
-) -> tuple[list[PwndbgInstruction], int]:
+) -> tuple[list[PwndbgInstruction], int, int]:
     """
     Disassembles instructions near given `address`. Passing `emulate` makes use of
     unicorn engine to emulate instructions to predict branches that will be taken.
@@ -574,6 +594,9 @@ def near(
             If this is set, `forward_count` is ignored.
         end_address:
             determines the maximum address (non-inclusive) that can be disassembled.
+
+    Returns:
+        Tuple[list of disassembled instructions, index of instruction at `address`, index of last instruction disassembled linearly]
     """
 
     pc = pwndbg.aglib.regs.pc
@@ -592,7 +615,7 @@ def near(
         except pwndbg.dbg_mod.Error as e:
             match = re.search(r"Memory at address (\w+) unavailable\.", str(e))
             if match:
-                return ([], -1)
+                return ([], -1, -1)
             raise
 
     # By using the same assistant for all the instructions disassembled in this pass, we can track and share information across the instructions
@@ -619,7 +642,7 @@ def near(
             print("Emulator failed at first step")
 
     if current is None:
-        return ([], -1)
+        return ([], -1, -1)
 
     # A linked list that contains the order of instructions that emulation
     # determines will run upon uses of the "nexti" command.
@@ -638,20 +661,29 @@ def near(
     if DEBUG_ENHANCEMENT:
         print(f"CACHE START -------------------, {current.address}")
 
+    # Keep track of which of the previous instructions were disassembly linearly so we can display them as gray while emulating
+    # The assumption is that the instruction list will start with the linear instructions, and then transition to the emulated one
+    index_of_last_linearly_disassembled_instruction = -1
+
     if show_prev_insns:
         saveptr = InstructionSequenceSavePointer(None)
 
-        insn = get_previous_instruction(
+        prev_instruction_fetch = get_previous_instruction(
             current.address, use_cache=use_cache, linear=linear, saveptr=saveptr
         )
-        while insn is not None and len(insns) < backward_count:
+        while prev_instruction_fetch is not None and len(insns) < backward_count:
+            insn, was_linear = prev_instruction_fetch
+
+            if was_linear:
+                index_of_last_linearly_disassembled_instruction += 1
+
             if DEBUG_ENHANCEMENT:
                 print(f"Got instruction from cache, addr={insn.address:#x}")
             if insn.jump_like and insn.split == SplitType.NO_SPLIT and not insn.causes_branch_delay:
                 insn.split = SplitType.BRANCH_NOT_TAKEN
             insns.append(insn)
 
-            insn = get_previous_instruction(
+            prev_instruction_fetch = get_previous_instruction(
                 insn.address, use_cache=use_cache, linear=linear, saveptr=saveptr
             )
         insns.reverse()
@@ -817,7 +849,7 @@ def near(
     while insns and len(insns) > 2 and insns[-3].address == insns[-2].address == insns[-1].address:
         del insns[-1]
 
-    return (insns, index_of_current_instruction)
+    return (insns, index_of_current_instruction, index_of_last_linearly_disassembled_instruction)
 
 
 ALL_DISASSEMBLY_ASSISTANTS: dict[
