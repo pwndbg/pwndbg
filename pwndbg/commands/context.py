@@ -452,7 +452,7 @@ def history_handle_unchanged_contents() -> None:
     for section_name, history in context_history.items():
         # Duplicate the last entry if it is the same as the previous one
         # and wasn't added when the history was updated
-        if len(history) == longest_history - 1:
+        if len(history) == longest_history - 1 and history:
             context_history[section_name].append(history[-1])
         # Prepend empty entries to the history to make all sections have the same length
         elif len(history) < longest_history - 1:
