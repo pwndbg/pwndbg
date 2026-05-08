@@ -98,10 +98,14 @@ config_contiguous = theme.add_param(
     "chain-contiguous-marker", "...", "contiguous marker of chain formatting"
 )
 
+config_full_values = pwndbg.config.add_param(
+    "chain-full-values", False, "show the full word instead of trimming the leading zeroes"
+)
+
 
 def format(
     value: int | list[int] | None,
-    limit: int = LIMIT,
+    limit: int = int(LIMIT),
     code: bool = True,
     offset: int = 0,
     hard_stop: int | None = None,
@@ -145,7 +149,12 @@ def format(
 
     # Colorize the chain
     rest = [
-        mem_color.get_address_and_symbol(addr, stack_vars) if addr >= 0 else "" for addr in chain
+        mem_color.get_address_and_symbol(
+            addr, stack_vars, respect_ptrwidth=bool(config_full_values)
+        )
+        if addr >= 0
+        else ""
+        for addr in chain
     ]
 
     # If the dereference limit is zero, skip any enhancements.
@@ -170,6 +179,7 @@ def format(
             code=code,
             attempt_dereference=False,
             enhance_string_len=enhance_string_len,
+            respect_ptrwidth=bool(config_full_values),
         )
     # We want to enhance the last pointer value. If an offset was used
     # chain failed at that offset, so display that offset.
@@ -179,6 +189,7 @@ def format(
             code=code,
             safe_linking=safe_linking,
             enhance_string_len=enhance_string_len,
+            respect_ptrwidth=bool(config_full_values),
         )
 
     else:
