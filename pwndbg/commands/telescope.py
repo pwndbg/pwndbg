@@ -354,7 +354,6 @@ def stackf(count, offset) -> None:
         address=pwndbg.aglib.regs.sp + offset * ptrsize,
         count=count,
         frame=True,
-        repeat=stack.repeat,
     )
 
 
