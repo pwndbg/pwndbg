@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from capstone6pwndbg import *  # noqa: F403
@@ -112,6 +113,22 @@ RISCV_EMULATED_ANNOTATIONS = {
     RISCV_INS_SLTIU,
 }
 
+# Input is a list of unsigned operands
+CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
+    RISCV_INS_BEQ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+    == bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
+    RISCV_INS_BNE: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+    != bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
+    RISCV_INS_BLT: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+    < bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
+    RISCV_INS_BGE: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+    >= bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
+    RISCV_INS_BLTU: lambda ops: ops[0] < ops[1],
+    RISCV_INS_BGEU: lambda ops: ops[0] >= ops[1],
+    RISCV_INS_C_BEQZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) == 0,
+    RISCV_INS_C_BNEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) != 0,
+}
+
 
 class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
@@ -198,39 +215,6 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 ),
             )
 
-    def _is_condition_taken(
-        self, instruction: PwndbgInstruction, emu: Emulator | None
-    ) -> InstructionCondition:
-        # B-type instructions have two source registers that are compared
-        src1_unsigned = instruction.op_find(CS_OP_REG, 1).before_value
-        # compressed instructions c.beqz and c.bnez only use one register operand.
-        if instruction.op_count(CS_OP_REG) > 1:
-            src2_unsigned = instruction.op_find(CS_OP_REG, 2).before_value
-        else:
-            src2_unsigned = 0
-
-        if src1_unsigned is None or src2_unsigned is None:
-            return InstructionCondition.UNDETERMINED
-
-        src1_signed = bit_math.to_signed(src1_unsigned, pwndbg.aglib.arch.ptrbits)
-        src2_signed = bit_math.to_signed(src2_unsigned, pwndbg.aglib.arch.ptrbits)
-
-        condition = {
-            RISCV_INS_BEQ: src1_signed == src2_signed,
-            RISCV_INS_BNE: src1_signed != src2_signed,
-            RISCV_INS_BLT: src1_signed < src2_signed,
-            RISCV_INS_BGE: src1_signed >= src2_signed,
-            RISCV_INS_BLTU: src1_unsigned < src2_unsigned,
-            RISCV_INS_BGEU: src1_unsigned >= src2_unsigned,
-            RISCV_INS_C_BEQZ: src1_signed == 0,
-            RISCV_INS_C_BNEZ: src1_signed != 0,
-        }.get(instruction.id, None)
-
-        if condition is None:
-            return InstructionCondition.UNDETERMINED
-
-        return InstructionCondition.TRUE if bool(condition) else InstructionCondition.FALSE
-
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         """
@@ -238,13 +222,31 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         """
         # JAL / JALR is unconditional
         if RISCV_GRP_CALL in instruction.groups:
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNCONDITIONAL
+
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.id, None)
 
         # Determine if the conditional jump is taken
-        if RISCV_GRP_BRANCH_RELATIVE in instruction.groups:
-            return self._is_condition_taken(instruction, emu)
+        if condition_resolver is None:
+            return InstructionCondition.UNCONDITIONAL
 
-        return InstructionCondition.UNDETERMINED
+        # B-type instructions have two source registers that are compared
+        src1_unsigned = instruction.op_find(CS_OP_REG, 1).before_value
+
+        # compressed instructions c.beqz and c.bnez only use one register operand.
+        if instruction.op_count(CS_OP_REG) > 1:
+            src2_unsigned = instruction.op_find(CS_OP_REG, 2).before_value
+        else:
+            src2_unsigned = 0
+
+        if src1_unsigned is None or src2_unsigned is None:
+            return InstructionCondition.UNDETERMINED_CONDITIONAL
+
+        resolved_operands: list[int] = [src1_unsigned, src2_unsigned]
+
+        condition = condition_resolver(resolved_operands)
+
+        return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):

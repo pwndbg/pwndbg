@@ -140,8 +140,10 @@ class InstructionCondition(Enum):
     TRUE = 1
     # Conditional instruction, but action is not taken
     FALSE = 2
-    # Unconditional instructions (most instructions), or we cannot reason about the instruction
-    UNDETERMINED = 3
+    # Conditional instruction, but we cannot reason about if the condition is true or not
+    UNDETERMINED_CONDITIONAL = 3
+    # Unconditional instructions (most instructions). This is the default
+    UNCONDITIONAL = 4
 
 
 def boolean_to_instruction_condition(condition: bool) -> InstructionCondition:
@@ -326,14 +328,16 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Whether the target is a constant expression
         """
 
-        self.condition: InstructionCondition = InstructionCondition.UNDETERMINED
+        self.condition: InstructionCondition = InstructionCondition.UNCONDITIONAL
         """
         Does the condition that the instruction checks for pass?
 
         For example, "JNE" jumps if Zero Flag is 0, else it does nothing. "CMOVA" conditionally performs a move depending on a flag.
         See 'condition' function in pwndbg.aglib.disasm.x86 for example on setting this.
 
-        UNDETERMINED if we cannot reason about the condition, or if the instruction always executes unconditionally (most instructions).
+        UNCONDITIONAL if it's an unconditional instruction.
+
+        UNDETERMINED_CONDITIONAL if we cannot reason about the condition.
 
         TRUE if the instruction has a conditional action, and we determine it is taken.
 
@@ -508,7 +512,10 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         """
         return self.has_jump_target and (
             (self.is_unconditional_jump)
-            or (self.is_conditional_jump and self.condition != InstructionCondition.UNDETERMINED)
+            or (
+                self.is_conditional_jump
+                and self.condition != InstructionCondition.UNDETERMINED_CONDITIONAL
+            )
         )
 
     @property
@@ -731,7 +738,7 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.target_string = None
         self.target_const = None
 
-        self.condition = InstructionCondition.UNDETERMINED
+        self.condition = InstructionCondition.UNCONDITIONAL
 
         self.declare_is_unconditional_jump = False
         self.force_unconditional_jump_target = False

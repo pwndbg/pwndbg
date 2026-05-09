@@ -91,21 +91,21 @@ class SparcDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 # This indicates it is an unconditional branch
                 if cc == SPARC_CC_ICC_A:
                     instruction.declare_is_unconditional_jump = True
-                    return InstructionCondition.UNDETERMINED
+                    return InstructionCondition.UNCONDITIONAL
 
                 ccr = self._read_register_name(instruction, "ccr", emu)
 
                 if ccr is None:
-                    return InstructionCondition.UNDETERMINED
+                    return InstructionCondition.UNDETERMINED_CONDITIONAL
 
                 conditional = ICC_CONDITION_RESOLVERS.get(cc, lambda *a: None)(ccr)
 
                 if conditional is None:
-                    return InstructionCondition.UNDETERMINED
+                    return InstructionCondition.UNDETERMINED_CONDITIONAL
 
                 return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
-        return InstructionCondition.UNDETERMINED
+        return InstructionCondition.UNCONDITIONAL
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):

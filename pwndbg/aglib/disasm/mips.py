@@ -247,8 +247,12 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        if len(instruction.operands) == 0:
-            return InstructionCondition.UNDETERMINED
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.id, None)
+
+        if condition_resolver is None:
+            return InstructionCondition.UNCONDITIONAL
+
+        # Otherwise, we assume this is a conditional instruction
 
         # Not using list comprehension because they run in a separate scope in which super() does not exist
         resolved_operands: list[int] = []
@@ -261,12 +265,9 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if any(value is None for value in resolved_operands[:-1]):
             # Note the [:-1]. MIPS jump instructions have the target as the last operand
             # https://www.doc.ic.ac.uk/lab/secondyear/spim/node16.html
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNDETERMINED_CONDITIONAL
 
-        conditional = CONDITION_RESOLVERS.get(instruction.id, lambda *a: None)(resolved_operands)
-
-        if conditional is None:
-            return InstructionCondition.UNDETERMINED
+        conditional = condition_resolver(resolved_operands)
 
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 

@@ -11,6 +11,7 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color import theme
+from pwndbg.color import gray
 from pwndbg.color.message import off
 from pwndbg.color.message import on
 
@@ -49,6 +50,8 @@ def one_instruction(ins: PwndbgInstruction) -> str:
         asm = on(f"{config_branch_on} ") + asm
     elif ins.condition == InstructionCondition.FALSE:
         asm = off(f"{config_branch_off} ") + asm
+    elif ins.condition == InstructionCondition.UNDETERMINED_CONDITIONAL:
+        asm = gray("? ") + asm
     else:
         asm = f"  {asm}"
 

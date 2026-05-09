@@ -122,6 +122,40 @@ ARM_CAN_WRITE_TO_PC_INSTRUCTIONS = {
 }
 
 
+def N_BIT(flags: int) -> bool:
+    return bool((flags >> 31) & 1)
+
+
+def Z_BIT(flags: int) -> bool:
+    return bool((flags >> 30) & 1)
+
+
+def C_BIT(flags: int) -> bool:
+    return bool((flags >> 29) & 1)
+
+
+def V_BIT(flags: int) -> bool:
+    return bool((flags >> 28) & 1)
+
+
+CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
+    ARM_CC_EQ: lambda flags: Z_BIT(flags),
+    ARM_CC_NE: lambda flags: not Z_BIT(flags),
+    ARM_CC_HS: lambda flags: C_BIT(flags),
+    ARM_CC_LO: lambda flags: not C_BIT(flags),
+    ARM_CC_MI: lambda flags: N_BIT(flags),
+    ARM_CC_PL: lambda flags: not N_BIT(flags),
+    ARM_CC_VS: lambda flags: V_BIT(flags),
+    ARM_CC_VC: lambda flags: not V_BIT(flags),
+    ARM_CC_HI: lambda flags: C_BIT(flags) and not Z_BIT(flags),
+    ARM_CC_LS: lambda flags: Z_BIT(flags) or not C_BIT(flags),
+    ARM_CC_GE: lambda flags: N_BIT(flags) == V_BIT(flags),
+    ARM_CC_LT: lambda flags: N_BIT(flags) != V_BIT(flags),
+    ARM_CC_GT: lambda flags: not Z_BIT(flags) and (N_BIT(flags) == V_BIT(flags)),
+    ARM_CC_LE: lambda flags: Z_BIT(flags) or (N_BIT(flags) != V_BIT(flags)),
+}
+
+
 def itstate_from_cpsr(cpsr_value: int) -> int:
     """
     ITSTATE == If-Then execution state bits for the Thumb IT instruction
@@ -255,44 +289,26 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 # However, in Pwndbg code, unless stated otherwise, jumps are assumed to be conditional, so we set this attribute
                 # to indicate that this is an unconditional branch.
                 instruction.declare_is_unconditional_jump = True
+                return InstructionCondition.UNCONDITIONAL
 
         # These condition codes indicate unconditionally/condition is not relevant
         if instruction.cs_insn.cc in (ARM_CC_AL, ARMCC_UNDEF):
             if instruction.id in (ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ):
                 instruction.declare_is_unconditional_jump = True
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNCONDITIONAL
+
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.cs_insn.cc, None)
+        if condition_resolver is None:
+            return InstructionCondition.UNCONDITIONAL
 
         value = self._read_register_name(instruction, self.flags_reg, emu)
         if value is None:
             # We can't reason about the value of flags register
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNDETERMINED_CONDITIONAL
 
-        N = (value >> 31) & 1
-        Z = (value >> 30) & 1
-        C = (value >> 29) & 1
-        V = (value >> 28) & 1
+        cc = condition_resolver(value)
 
-        cc = {
-            ARM_CC_EQ: Z,
-            ARM_CC_NE: not Z,
-            ARM_CC_HS: C,
-            ARM_CC_LO: not C,
-            ARM_CC_MI: N,
-            ARM_CC_PL: not N,
-            ARM_CC_VS: V,
-            ARM_CC_VC: not V,
-            ARM_CC_HI: C and not Z,
-            ARM_CC_LS: Z or not C,
-            ARM_CC_GE: N == V,
-            ARM_CC_LT: N != V,
-            ARM_CC_GT: not Z and (N == V),
-            ARM_CC_LE: Z or (N != V),
-        }.get(instruction.cs_insn.cc, None)
-
-        if cc is None:
-            return InstructionCondition.UNDETERMINED
-
-        return InstructionCondition.TRUE if bool(cc) else InstructionCondition.FALSE
+        return InstructionCondition.TRUE if cc else InstructionCondition.FALSE
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
