@@ -47,7 +47,7 @@ def int_to_string(num: int, adhere_to_ptrwidth: int = -1) -> str:
     if adhere_to_ptrwidth != -1:
         nibble_num = adhere_to_ptrwidth * 2 // 8
         # assert (adhere_to_ptrwidth * 2) % 8 == 0
-        return f"{num:#0{nibble_num+2}x}"
+        return f"{num:#0{nibble_num + 2}x}"
     if max_decimal_number == -1:
         return f"{num}"
     if max_decimal_number == 0:
