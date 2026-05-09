@@ -8,10 +8,10 @@ from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
+from pwndbg.color import gray
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color import theme
-from pwndbg.color import gray
 from pwndbg.color.message import off
 from pwndbg.color.message import on
 
