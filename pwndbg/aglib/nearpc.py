@@ -518,7 +518,7 @@ def nearpc(
         symbols_max_length = max(map(len, symbols)) if symbols else 0
         addresses_max_length = max(map(len, addresses)) if addresses else 0
 
-    assembly_strings = pwndbg.color.disasm.instructions_and_padding(instructions)
+    assembly_strings = pwndbg.color.disasm.instructions_and_padding(instructions, linear=linear)
 
     breakpoint_locations = pwndbg.dbg.breakpoint_locations()
 
