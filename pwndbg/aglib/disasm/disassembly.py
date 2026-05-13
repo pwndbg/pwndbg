@@ -215,6 +215,7 @@ def get_disassembler(cs_info: tuple[int, int]) -> Cs:
         cs.syntax = CapstoneSyntax[flavor]
         if force_register_alias:
             cs.syntax |= CS_OPT_SYNTAX_CS_REG_ALIAS
+        cs.syntax |= CS_OPT_SYNTAX_NO_ALIAS_TEXT_COMPRESSED
     except CsError:
         pass
     cs.detail = True

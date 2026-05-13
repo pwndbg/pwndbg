@@ -36,7 +36,7 @@ from capstone6pwndbg.ppc import PPC_INS_B
 from capstone6pwndbg.ppc import PPC_INS_BA
 from capstone6pwndbg.ppc import PPC_INS_BL
 from capstone6pwndbg.ppc import PPC_INS_BLA
-from capstone6pwndbg.riscv import RISCV_INS_C_J
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_J, RISCV_INS_ALIAS_JAL, RISCV_INS_ALIAS_JALR, RISCV_INS_ALIAS_JR, RISCV_INS_ALIAS_RET, RISCV_INS_C_J
 from capstone6pwndbg.riscv import RISCV_INS_C_JAL
 from capstone6pwndbg.riscv import RISCV_INS_C_JALR
 from capstone6pwndbg.riscv import RISCV_INS_C_JR
@@ -89,12 +89,17 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
     },
     CS_ARCH_AARCH64: {AARCH64_INS_BL, AARCH64_INS_BLR, AARCH64_INS_BR},
     CS_ARCH_RISCV: {
-        RISCV_INS_JAL,
+        RISCV_INS_ALIAS_RET,
         RISCV_INS_JALR,
-        RISCV_INS_C_JAL,
+        RISCV_INS_ALIAS_JALR,
         RISCV_INS_C_JALR,
-        RISCV_INS_C_J,
         RISCV_INS_C_JR,
+        RISCV_INS_ALIAS_JR,
+        RISCV_INS_C_J,
+        RISCV_INS_ALIAS_J,
+        RISCV_INS_JAL,
+        RISCV_INS_ALIAS_JAL,
+        RISCV_INS_C_JAL,
     },
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
     CS_ARCH_SYSTEMZ: {
@@ -123,6 +128,11 @@ BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
     MIPS_INS_BLTZAL,
     MIPS_INS_JAL,
     MIPS_INS_JALR,
+}
+BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_RISCV] = {
+    RISCV_INS_JALR,
+    RISCV_INS_ALIAS_JALR,
+    RISCV_INS_C_JALR
 }
 
 # All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone
@@ -526,7 +536,10 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         return self.cs_insn.bytes
 
     def op_find(self, op_type: int, position: int) -> EnhancedOperand:
-        """Get the operand at position @position of all operands having the same type @op_type"""
+        """
+        Get the operand at position @position of all operands having the same type @op_type
+        The position is 1-indexed.
+        """
         cs_op = self.cs_insn.op_find(op_type, position)
         # Find the matching EnhancedOperand
         for x in self.operands:
@@ -550,6 +563,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch, None)})
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
+        Is alias: {self.cs_insn.is_alias}
         Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else "None"}
         Raw asm: f"{self.mnemonic:-<6} {self.op_str}"
         New asm: {self.asm_string}

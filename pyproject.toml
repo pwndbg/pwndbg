@@ -6,7 +6,7 @@ authors = [{ name = "Dominik 'disconnect3d' Czarnota", email = "dominik.b.czarno
 requires-python = ">=3.10, <4"
 readme = "README.md"
 dependencies = [
-    "capstone6pwndbg==6.0.0a6",
+    "capstone6pwndbg==6.0.0a9",
     "unicorn>=2.1.4,<3",
     "pwntools>=4.14.1,<5",
     "sortedcontainers>=2.4.0,<3",

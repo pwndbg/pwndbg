@@ -142,6 +142,8 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             RISCV_INS_C_MV: self._common_move_annotator,
             # C.LI
             RISCV_INS_C_LI: self._common_move_annotator,
+            RISCV_INS_LI: self._common_move_annotator,
+            RISCV_INS_ALIAS_LI: self._common_move_annotator,
             # LUI
             RISCV_INS_LUI: self._lui_annotator,
             RISCV_INS_C_LUI: self._lui_annotator,
@@ -254,17 +256,12 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         None if the next address is not dependent on instruction.
         """
         ptrmask = pwndbg.aglib.arch.ptrmask
-        # JAL is unconditional and independent of current register status
+
         if instruction.id in (RISCV_INS_JAL, RISCV_INS_C_JAL, RISCV_INS_C_J):
-            # But that doesn't apply to ARM anyways :)
-            return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
+            return instruction.op_find(CS_OP_IMM, 1).imm & ptrmask
 
-        # Determine target of branch - all of them are offset to address
-        if RISCV_GRP_BRANCH_RELATIVE in instruction.groups:
-            return (instruction.address + instruction.op_find(CS_OP_IMM, 1).imm) & ptrmask
-
-        # Determine the target address of the indirect jump
-        if instruction.id == RISCV_INS_JALR:
+        # Handle jumps with register target + immediate offset
+        if instruction.id in (RISCV_INS_JALR, RISCV_INS_ALIAS_JALR, RISCV_INS_ALIAS_JR, RISCV_INS_ALIAS_RET):
             # jalr can be represented in the following ways:
             # 1. jalr rd                // Jump to rd
             # 2. jalr rd, offset        // Jump to rd+offset
@@ -274,6 +271,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             # To find target, get the LAST register
             reg_op_count = instruction.op_count(CS_OP_REG)
 
+            # This handles the case when it disassembles to "ret"
             if reg_op_count == 0:
                 # ra is implied as link register
                 return self._read_register_name(instruction, "ra", emu)
@@ -291,6 +289,10 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             if (target := instruction.op_find(CS_OP_REG, 1).before_value) is None:
                 return None
             return target ^ (target & 1)
+
+        # Handle the rest of the jumps
+        if RISCV_GRP_BRANCH_RELATIVE in instruction.groups:
+            return instruction.op_find(CS_OP_IMM, 1).imm & ptrmask
 
         return super()._resolve_target(instruction, emu)
 
