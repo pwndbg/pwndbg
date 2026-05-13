@@ -261,7 +261,12 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             return instruction.op_find(CS_OP_IMM, 1).imm & ptrmask
 
         # Handle jumps with register target + immediate offset
-        if instruction.id in (RISCV_INS_JALR, RISCV_INS_ALIAS_JALR, RISCV_INS_ALIAS_JR, RISCV_INS_ALIAS_RET):
+        if instruction.id in (
+            RISCV_INS_JALR,
+            RISCV_INS_ALIAS_JALR,
+            RISCV_INS_ALIAS_JR,
+            RISCV_INS_ALIAS_RET,
+        ):
             # jalr can be represented in the following ways:
             # 1. jalr rd                // Jump to rd
             # 2. jalr rd, offset        // Jump to rd+offset

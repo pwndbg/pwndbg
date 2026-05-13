@@ -36,7 +36,12 @@ from capstone6pwndbg.ppc import PPC_INS_B
 from capstone6pwndbg.ppc import PPC_INS_BA
 from capstone6pwndbg.ppc import PPC_INS_BL
 from capstone6pwndbg.ppc import PPC_INS_BLA
-from capstone6pwndbg.riscv import RISCV_INS_ALIAS_J, RISCV_INS_ALIAS_JAL, RISCV_INS_ALIAS_JALR, RISCV_INS_ALIAS_JR, RISCV_INS_ALIAS_RET, RISCV_INS_C_J
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_J
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_JAL
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_JALR
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_JR
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_RET
+from capstone6pwndbg.riscv import RISCV_INS_C_J
 from capstone6pwndbg.riscv import RISCV_INS_C_JAL
 from capstone6pwndbg.riscv import RISCV_INS_C_JALR
 from capstone6pwndbg.riscv import RISCV_INS_C_JR
@@ -132,7 +137,7 @@ BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
 BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_RISCV] = {
     RISCV_INS_JALR,
     RISCV_INS_ALIAS_JALR,
-    RISCV_INS_C_JALR
+    RISCV_INS_C_JALR,
 }
 
 # All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone
