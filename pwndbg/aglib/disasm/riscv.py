@@ -222,10 +222,6 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         """
         Checks if the current instruction is a jump that is taken.
         """
-        # JAL / JALR is unconditional
-        if RISCV_GRP_CALL in instruction.groups:
-            return InstructionCondition.UNCONDITIONAL
-
         condition_resolver = CONDITION_RESOLVERS.get(instruction.id, None)
 
         # Determine if the conditional jump is taken
