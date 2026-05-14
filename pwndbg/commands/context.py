@@ -1361,8 +1361,12 @@ def context_disasm(
         iter(getattr(pwndbg.aglib.disasm.disassembly.get_disassembler, "cache").values()), None
     )
 
+    # Clear the caches when user changes disassembly syntax during session.
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
-    if cs is not None and cs.syntax != syntax:
+    if (
+        cs is not None
+        and (cs.syntax & pwndbg.aglib.disasm.disassembly.CAPSTONE_SYNTAX_OPTIONS_MASK) != syntax
+    ):
         pwndbg.lib.cache.clear_caches()
         pwndbg.aglib.disasm.disassembly.computed_instruction_cache.clear()
 

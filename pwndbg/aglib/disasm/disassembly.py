@@ -39,6 +39,8 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 CapstoneSyntax = {"intel": CS_OPT_SYNTAX_INTEL, "att": CS_OPT_SYNTAX_ATT}
 
+CAPSTONE_SYNTAX_OPTIONS_MASK = CS_OPT_SYNTAX_INTEL | CS_OPT_SYNTAX_ATT
+
 force_register_alias = pwndbg.config.add_param(
     "disasm-reg-alias",
     False,
