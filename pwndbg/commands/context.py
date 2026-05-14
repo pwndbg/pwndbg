@@ -452,7 +452,7 @@ def history_handle_unchanged_contents() -> None:
     for section_name, history in context_history.items():
         # Duplicate the last entry if it is the same as the previous one
         # and wasn't added when the history was updated
-        if len(history) == longest_history - 1:
+        if len(history) == longest_history - 1 and history:
             context_history[section_name].append(history[-1])
         # Prepend empty entries to the history to make all sections have the same length
         elif len(history) < longest_history - 1:
@@ -1361,8 +1361,12 @@ def context_disasm(
         iter(getattr(pwndbg.aglib.disasm.disassembly.get_disassembler, "cache").values()), None
     )
 
+    # Clear the caches when user changes disassembly syntax during session.
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
-    if cs is not None and cs.syntax != syntax:
+    if (
+        cs is not None
+        and (cs.syntax & pwndbg.aglib.disasm.disassembly.CAPSTONE_SYNTAX_OPTIONS_MASK) != syntax
+    ):
         pwndbg.lib.cache.clear_caches()
         pwndbg.aglib.disasm.disassembly.computed_instruction_cache.clear()
 

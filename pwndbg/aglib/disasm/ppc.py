@@ -94,23 +94,23 @@ class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        cr = self._read_register_name(instruction, "cr", emu)
-
-        if cr is None or self.saved_ctr is None:
-            # We can't reason about the value of cr register
-            return InstructionCondition.UNDETERMINED
-
         if instruction.id in POWERPC_CONDITIONAL_BRANCHES:
+            cr = self._read_register_name(instruction, "cr", emu)
+
+            if cr is None or self.saved_ctr is None:
+                # We can't reason about the value of cr register
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+
             is_taken = is_branch_taken(
                 cr, self.saved_ctr, instruction.cs_insn.bc.bi, instruction.cs_insn.bc.bo
             )
 
             if is_taken is None:
-                return InstructionCondition.UNDETERMINED
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
 
             return InstructionCondition.TRUE if is_taken else InstructionCondition.FALSE
 
-        return InstructionCondition.UNDETERMINED
+        return InstructionCondition.UNCONDITIONAL
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):

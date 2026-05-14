@@ -26,7 +26,7 @@ from capstone6pwndbg import CS_MODE_MIPS32
 from capstone6pwndbg import CS_MODE_MIPS64
 from capstone6pwndbg import CS_MODE_RISCV32
 from capstone6pwndbg import CS_MODE_RISCV64
-from capstone6pwndbg import CS_MODE_RISCVC
+from capstone6pwndbg import CS_MODE_RISCV_C
 from capstone6pwndbg import CS_MODE_THUMB
 from capstone6pwndbg import CS_MODE_V9
 from typing_extensions import override
@@ -326,7 +326,7 @@ class RISCV32Arch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        return (CS_ARCH_RISCV, CS_MODE_RISCV32 | CS_MODE_RISCVC)
+        return (CS_ARCH_RISCV, CS_MODE_RISCV32 | CS_MODE_RISCV_C)
 
 
 class RISCV64Arch(PwndbgArchitecture):
@@ -338,7 +338,7 @@ class RISCV64Arch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        return (CS_ARCH_RISCV, CS_MODE_RISCV64 | CS_MODE_RISCVC)
+        return (CS_ARCH_RISCV, CS_MODE_RISCV64 | CS_MODE_RISCV_C)
 
 
 class MipsArch(PwndbgArchitecture):

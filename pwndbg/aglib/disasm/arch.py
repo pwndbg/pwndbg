@@ -650,20 +650,22 @@ class DisassemblyAssistant:
         """
         Sets the `condition` of the instruction
 
-        If the instruction is always executed unconditionally, or we cannot reason about the instruction,
-        the value of the field is `InstructionCondition.UNDETERMINED`.
+        If the instruction is always executed unconditionally, the value is set to `InstructionCondition.UNCONDITIONAL`
+        This is the default value if not otherwise specified.
 
         If the instruction is executed conditionally, and we can be absolutely
         sure that it will be executed, the value of the field is `InstructionCondition.TRUE`.
 
-        In all other cases, it is set to `InstructionCondition.FALSE`.
+        If it's conditional, and the condition is false, it is set to `InstructionCondition.FALSE`.
+
+        If it's conditional but we cannot reason about if the condition is true, it is set to `InstructionCondition.UNDETERMINED_CONDITIONAL`.
         """
 
         instruction.condition = self._condition(instruction, emu)
 
     # Subclasses should override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        return InstructionCondition.UNDETERMINED
+        return InstructionCondition.UNCONDITIONAL
 
     def _enhance_next(
         self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
@@ -739,7 +741,7 @@ class DisassemblyAssistant:
         # in case we didn't manually determine the condition.
         if (
             jump_emu
-            and instruction.condition == InstructionCondition.UNDETERMINED
+            and instruction.condition == InstructionCondition.UNDETERMINED_CONDITIONAL
             and instruction.is_conditional_jump
         ):
             # At this point we know the emulator was used to determine

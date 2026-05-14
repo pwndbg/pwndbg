@@ -36,6 +36,63 @@ X86_MATH_INSTRUCTIONS = {
     X86_INS_OR: "|",
 }
 
+
+def CF_BIT(eflags: int) -> bool:
+    return bool(eflags & (1 << 0))
+
+
+def PF_BIT(eflags: int) -> bool:
+    return bool(eflags & (1 << 2))
+
+
+def ZF_BIT(eflags: int) -> bool:
+    return bool(eflags & (1 << 6))
+
+
+def SF_BIT(eflags: int) -> bool:
+    return bool(eflags & (1 << 7))
+
+
+def OF_BIT(eflags: int) -> bool:
+    return bool(eflags & (1 << 11))
+
+
+CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
+    X86_INS_CMOVA: lambda eflags: not (CF_BIT(eflags) or ZF_BIT(eflags)),
+    X86_INS_CMOVAE: lambda eflags: not CF_BIT(eflags),
+    X86_INS_CMOVB: lambda eflags: CF_BIT(eflags),
+    X86_INS_CMOVBE: lambda eflags: CF_BIT(eflags) or ZF_BIT(eflags),
+    X86_INS_CMOVE: lambda eflags: ZF_BIT(eflags),
+    X86_INS_CMOVG: lambda eflags: not ZF_BIT(eflags) and (SF_BIT(eflags) == OF_BIT(eflags)),
+    X86_INS_CMOVGE: lambda eflags: SF_BIT(eflags) == OF_BIT(eflags),
+    X86_INS_CMOVL: lambda eflags: SF_BIT(eflags) != OF_BIT(eflags),
+    X86_INS_CMOVLE: lambda eflags: ZF_BIT(eflags) or (SF_BIT(eflags) != OF_BIT(eflags)),
+    X86_INS_CMOVNE: lambda eflags: not ZF_BIT(eflags),
+    X86_INS_CMOVNO: lambda eflags: not OF_BIT(eflags),
+    X86_INS_CMOVNP: lambda eflags: not PF_BIT(eflags),
+    X86_INS_CMOVNS: lambda eflags: not SF_BIT(eflags),
+    X86_INS_CMOVO: lambda eflags: OF_BIT(eflags),
+    X86_INS_CMOVP: lambda eflags: PF_BIT(eflags),
+    X86_INS_CMOVS: lambda eflags: SF_BIT(eflags),
+    X86_INS_JA: lambda eflags: not (CF_BIT(eflags) or ZF_BIT(eflags)),
+    X86_INS_JAE: lambda eflags: not CF_BIT(eflags),
+    X86_INS_JB: lambda eflags: CF_BIT(eflags),
+    X86_INS_JBE: lambda eflags: CF_BIT(eflags) or ZF_BIT(eflags),
+    X86_INS_JE: lambda eflags: ZF_BIT(eflags),
+    X86_INS_JG: lambda eflags: not ZF_BIT(eflags) and (SF_BIT(eflags) == OF_BIT(eflags)),
+    X86_INS_JGE: lambda eflags: SF_BIT(eflags) == OF_BIT(eflags),
+    X86_INS_JL: lambda eflags: SF_BIT(eflags) != OF_BIT(eflags),
+    X86_INS_JLE: lambda eflags: ZF_BIT(eflags) or (SF_BIT(eflags) != OF_BIT(eflags)),
+    X86_INS_JNE: lambda eflags: not ZF_BIT(eflags),
+    X86_INS_JNO: lambda eflags: not OF_BIT(eflags),
+    X86_INS_JNP: lambda eflags: not PF_BIT(eflags),
+    X86_INS_JNS: lambda eflags: not SF_BIT(eflags),
+    X86_INS_JO: lambda eflags: OF_BIT(eflags),
+    X86_INS_JP: lambda eflags: PF_BIT(eflags),
+    X86_INS_JS: lambda eflags: SF_BIT(eflags),
+}
+
+
 # Capstone operand type for x86 is capstone.x86.X86Op
 # This type has a .size field, which indicates the operand read/write size in bytes
 # Ex: dword ptr [RDX] has size = 4
@@ -339,59 +396,20 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNCONDITIONAL
+
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.id, None)
+        if condition_resolver is None:
+            return InstructionCondition.UNCONDITIONAL
 
         efl = self._read_register_name(instruction, "eflags", emu)
         if efl is None:
             # We can't reason about the value of flags register
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNDETERMINED_CONDITIONAL
 
-        cf = efl & (1 << 0)
-        pf = efl & (1 << 2)
-        # af = efl & (1 << 4)
-        zf = efl & (1 << 6)
-        sf = efl & (1 << 7)
-        of = efl & (1 << 11)
+        conditional = condition_resolver(efl)
 
-        conditional = {
-            X86_INS_CMOVA: not (cf or zf),
-            X86_INS_CMOVAE: not cf,
-            X86_INS_CMOVB: cf,
-            X86_INS_CMOVBE: cf or zf,
-            X86_INS_CMOVE: zf,
-            X86_INS_CMOVG: not zf and (sf == of),
-            X86_INS_CMOVGE: sf == of,
-            X86_INS_CMOVL: sf != of,
-            X86_INS_CMOVLE: zf or (sf != of),
-            X86_INS_CMOVNE: not zf,
-            X86_INS_CMOVNO: not of,
-            X86_INS_CMOVNP: not pf,
-            X86_INS_CMOVNS: not sf,
-            X86_INS_CMOVO: of,
-            X86_INS_CMOVP: pf,
-            X86_INS_CMOVS: sf,
-            X86_INS_JA: not (cf or zf),
-            X86_INS_JAE: not cf,
-            X86_INS_JB: cf,
-            X86_INS_JBE: cf or zf,
-            X86_INS_JE: zf,
-            X86_INS_JG: not zf and (sf == of),
-            X86_INS_JGE: sf == of,
-            X86_INS_JL: sf != of,
-            X86_INS_JLE: zf or (sf != of),
-            X86_INS_JNE: not zf,
-            X86_INS_JNO: not of,
-            X86_INS_JNP: not pf,
-            X86_INS_JNS: not sf,
-            X86_INS_JO: of,
-            X86_INS_JP: pf,
-            X86_INS_JS: sf,
-        }.get(instruction.id, None)
-
-        if conditional is None:
-            return InstructionCondition.UNDETERMINED
-
-        return InstructionCondition.TRUE if bool(conditional) else InstructionCondition.FALSE
+        return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
     @override
     def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> tuple[str, str]:

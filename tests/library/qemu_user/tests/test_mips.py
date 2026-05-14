@@ -154,7 +154,7 @@ def test_mips32_bnez_instruction(qemu_assembly_run, arch):
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────────[ DISASM / mips / set emulate off ]───────────────────────\n"
         " ► 0x20150 <__start>       addiu  $t0, $zero, 0xa     T0 => 0x0 + 0xa\n"
-        "   0x20154 <__start+4>     bnez   $t0, end                    <end>\n"
+        "   0x20154 <__start+4>   ? bnez   $t0, end                    <end>\n"
         "   0x20158 <__start+8>     nop   \n"
         " \n"
         "   0x2015c <__start+12>    nop   \n"
