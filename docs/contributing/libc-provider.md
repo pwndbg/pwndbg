@@ -143,6 +143,11 @@ Compiling a libc, and compiling a program *with* a libc, can have its quirks. Wh
 
 If you are using [`clangd`](https://github.com/clangd/clangd) as your C/C++ Language Server Protocol (LSP) implementation, and are not using a full IDE, you likely want to generate a `compile_commands.json` file which will allow `clangd` to properly implement Go-To-Definition actions etc. You usually do this via [`bear`](https://github.com/rizsotto/Bear) i.e. you would run `bear -- make` instead of just `make`, which will create a `compile_commands.json` file in the current folder which `clangd` will consume automatically. An alternative to `bear` is [`compiledb`](https://github.com/nickdiego/compiledb). Sometimes one works better, sometimes the other, it's a bit of a gamble. Anyway, these tools are not necessary for a successful compilation, so if you see `compiledb whatever_actual_command` below, that means you can just as well run `whatever_actual_command`.
 
+If you successfully do a clean compile with `bear --`, and make some incremental change, don't use `bear -- ` again for the recompilation as it will overwrite your `compile_commands.json`.
+
+Sometimes when you compile a project, check out to a different version, and compile again, the artifacts from the previous build can mess you up. So if you're having issues with
+compilation, nuking the repo and re-pulling can save you (sometimes `make clean` is enough, sometimes it's not).
+
 ### glibc
 
 Mostly taken from this stackoverflow answer: https://stackoverflow.com/questions/10412684/how-to-compile-my-own-glibc-c-standard-library-from-source-and-use-it . Official instructions: https://sourceware.org/glibc/wiki/Testing/Builds .
@@ -154,10 +159,9 @@ mkdir -p build/install
 cd build
 export GLIBC_INSTALL="$(pwd)/install" && echo $GLIBC_INSTALL
 ../configure --prefix $GLIBC_INSTALL
-# hmm I can't get bear nor compiledb working atm.
-make -j $(nproc)
+bear -- make -j $(nproc)
 make install
-# cp compile_commands.json ../.
+cp compile_commands.json ../.
 ```
 The libc and ld are in `$GLIBC_INSTALL/lib/`.
 
