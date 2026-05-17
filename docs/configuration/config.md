@@ -1042,9 +1042,9 @@ Whether to skip repeating lines in vis command output.
 
 Cache the memory map for the whole run on slow targets (macOS).
 
-On macOS, fetching the process memory map via LLDB is slow (every region requires a Mach IPC round-trip). When this is on, the memory map is fetched once per launch/attach and reused across stops until the program exits, you re-launch/attach, or you run `vmmap --refresh`.
+On macOS, fetching the process memory map via LLDB is slow (every region requires a Mach IPC round-trip). When this is on, the memory map is fetched once per launch/attach and reused across stops until the program exits, you re-launch/attach, or you run `vmmap --refresh`. Has no effect when the debuggee target isn't Darwin.
 
-**Default:** on  
+**Default:** off  
 
 ----------
 
