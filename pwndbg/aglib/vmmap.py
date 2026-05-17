@@ -9,7 +9,6 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.macho
 import pwndbg.aglib.vmmap_custom
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
@@ -127,20 +126,26 @@ def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
 
 
 _persistent_memory_map: MemoryMap | None = None
-_persistent_notice_shown = False
-
-
-def _persistent_cache_enabled() -> bool:
-    # The slow-fetch problem is specific to LLDB on macOS. Gate on the
-    # debuggee platform so the cache only kicks in there.
-    return bool(vmmap_cache_param) and pwndbg.aglib.arch.platform == Platform.DARWIN
+_stops_since_fetch = 0
 
 
 def clear_persistent_cache() -> None:
     """Drop the persistent memory map cache (next read will re-fetch)."""
-    global _persistent_memory_map, _persistent_notice_shown
+    global _persistent_memory_map, _stops_since_fetch
     _persistent_memory_map = None
-    _persistent_notice_shown = False
+    _stops_since_fetch = 0
+
+
+def cache_status_text() -> str | None:
+    """
+    Short status string describing the persistent cache state, or None when
+    there's no cache to talk about. Used by the `vmmap` command and the
+    context legend to surface that the displayed map may be stale.
+    """
+    if _persistent_memory_map is None:
+        return None
+    plural = "" if _stops_since_fetch == 1 else "s"
+    return f"vmmap-cache: {_stops_since_fetch} stop{plural} (vmmap --refresh)"
 
 
 @pwndbg.dbg.event_handler(EventType.START)
@@ -149,19 +154,18 @@ def _clear_persistent_cache_on_lifecycle() -> None:
     clear_persistent_cache()
 
 
+@pwndbg.dbg.event_handler(EventType.STOP)
+def _bump_stops_since_fetch() -> None:
+    if _persistent_memory_map is not None:
+        global _stops_since_fetch
+        _stops_since_fetch += 1
+
+
 def get_memory_map() -> MemoryMap:
-    if _persistent_cache_enabled():
-        global _persistent_memory_map, _persistent_notice_shown
+    if bool(vmmap_cache_param):
+        global _persistent_memory_map
         if _persistent_memory_map is None:
             _persistent_memory_map = _refine_memory_map(pwndbg.dbg.selected_inferior().vmmap())
-            if not _persistent_notice_shown:
-                print(
-                    message.info(
-                        "vmmap cached for this run (macOS — fetching is slow). "
-                        "Run `vmmap --refresh` to re-fetch, or `set vmmap-cache off` to disable."
-                    )
-                )
-                _persistent_notice_shown = True
         return _persistent_memory_map
     return _stop_cached_memory_map()
 

@@ -239,6 +239,10 @@ def vmmap(
     vmmap = pwndbg.aglib.vmmap.get_memory_map()
     total_pages = vmmap.ranges()
 
+    cache_status = pwndbg.aglib.vmmap.cache_status_text()
+    if cache_status is not None:
+        print(f"[{cache_status}]")
+
     # Filtered memory pages, indicated by a backtrace arrow in results
     filtered_pages = []
 
