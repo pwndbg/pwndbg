@@ -198,6 +198,14 @@ parser.add_argument(
     action="store_true",
     help="Display unmapped memory gap information in the memory map.",
 )
+parser.add_argument(
+    "--refresh",
+    action="store_true",
+    help=(
+        "Drop the cached memory map (used on macOS) and re-fetch it. "
+        "See the `vmmap-cache` config option."
+    ),
+)
 
 
 @pwndbg.commands.Command(
@@ -213,6 +221,7 @@ def vmmap(
     context=None,
     gaps=False,
     expand_shared_cache=False,
+    refresh=False,
 ) -> None:
     lookaround_lines_limit = 64
 
@@ -222,6 +231,9 @@ def vmmap(
     else:
         lines_after = min(lookaround_lines_limit, lines_after)
         lines_before = min(lookaround_lines_limit, lines_before)
+
+    if refresh:
+        pwndbg.aglib.vmmap.clear_persistent_cache()
 
     # All displayed pages, including lines after and lines before
     vmmap = pwndbg.aglib.vmmap.get_memory_map()
