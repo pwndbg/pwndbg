@@ -116,7 +116,9 @@ def print_vmmap_gaps(pages: tuple[Page, ...]) -> None:
     """
     Indicates the size of adjacent memory regions and unmapped gaps between them in process memory
     """
-    print(f"LEGEND: {green('MAPPED')} | {cyan('GUARD')} | {red('GAP')}")
+    cache_status = pwndbg.aglib.vmmap.cache_status_text()
+    cache_suffix = message.hint(f" [{cache_status}]") if cache_status is not None else ""
+    print(f"LEGEND: {green('MAPPED')} | {cyan('GUARD')} | {red('GAP')}{cache_suffix}")
     print_vmmap_gaps_table_header()
 
     last_map = None  # The last mapped region we looked at
@@ -241,8 +243,7 @@ def vmmap(
     total_pages = vmmap.ranges()
 
     cache_status = pwndbg.aglib.vmmap.cache_status_text()
-    if cache_status is not None:
-        print(message.hint(f"[{cache_status}]"))
+    cache_suffix = message.hint(f" [{cache_status}]") if cache_status is not None else ""
 
     # Filtered memory pages, indicated by a backtrace arrow in results
     filtered_pages = []
@@ -293,7 +294,7 @@ def vmmap(
     empty_prefix = " " * len(prefix_str) if filtered_pages else None
     header_prefix = f"{empty_prefix} " if filtered_pages else ""
 
-    print(mem_color.legend())
+    print(mem_color.legend() + cache_suffix)
     print_vmmap_table_header(header_prefix)
 
     shared_cache_first = None

@@ -149,7 +149,7 @@ def cache_status_text() -> str | None:
     if _persistent_memory_map is None:
         return None
     plural = "" if _stops_since_fetch == 1 else "s"
-    return f"CACHED | {_stops_since_fetch} stop{plural} | vmmap --refresh"
+    return f"vmmap cached since {_stops_since_fetch} stop{plural} | see help set vmmap-cache"
 
 
 @pwndbg.dbg.event_handler(EventType.START)
