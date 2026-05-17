@@ -16,6 +16,7 @@ import pwndbg.aglib.file
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as mem_color
+import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
@@ -241,7 +242,7 @@ def vmmap(
 
     cache_status = pwndbg.aglib.vmmap.cache_status_text()
     if cache_status is not None:
-        print(f"[{cache_status}]")
+        print(message.hint(f"[{cache_status}]"))
 
     # Filtered memory pages, indicated by a backtrace arrow in results
     filtered_pages = []

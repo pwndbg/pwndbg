@@ -141,11 +141,15 @@ def cache_status_text() -> str | None:
     Short status string describing the persistent cache state, or None when
     there's no cache to talk about. Used by the `vmmap` command and the
     context legend to surface that the displayed map may be stale.
+
+    Callers should wrap the returned text in brackets and apply
+    `pwndbg.color.message.hint(...)` so it visually stands out from
+    surrounding text.
     """
     if _persistent_memory_map is None:
         return None
     plural = "" if _stops_since_fetch == 1 else "s"
-    return f"vmmap-cache: {_stops_since_fetch} stop{plural} (vmmap --refresh)"
+    return f"CACHED | {_stops_since_fetch} stop{plural} | vmmap --refresh"
 
 
 @pwndbg.dbg.event_handler(EventType.START)

@@ -32,6 +32,7 @@ import pwndbg.chain
 import pwndbg.color
 import pwndbg.color.context as ctx_color
 import pwndbg.color.memory as mem_color
+import pwndbg.color.message as message
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
@@ -44,7 +45,6 @@ import pwndbg.ui
 from pwndbg.aglib.arch_mod import get_thumb_mode_string
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
-from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import EventHandlerPriority
@@ -755,7 +755,7 @@ def context(
         args = config_context_sections.split()
 
     cache_status = pwndbg.aglib.vmmap.cache_status_text()
-    cache_suffix = f" [{cache_status}]" if cache_status is not None else ""
+    cache_suffix = message.hint(f" [{cache_status}]") if cache_status is not None else ""
 
     sections: list[tuple[str, Callable[..., list[str]] | None]] = []
     if args:
