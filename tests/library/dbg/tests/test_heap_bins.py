@@ -233,11 +233,13 @@ async def test_heap_bins_2_43(ctrl: Controller) -> None:
     allocator = pwndbg.aglib.heap.current
     assert allocator is not None
 
-    def verify_match(match: re.Match, bin_size: str, bin_count: int | None = None) -> None:
+    def verify_match(match: re.Match[str], bin_size: str, bin_count: int | None = None) -> None:
         groups = match.groups()
-        assert len(groups) == (1 if bin_count is None else 2)
+        assert len(groups) == 2
         assert groups[0] == bin_size
-        if bin_count is not None:
+        if bin_count is None:
+            assert groups[1] is None
+        else:
             assert int(groups[1]) == bin_count
 
     result = (await ctrl.execute_and_capture("tcachebins")).splitlines()[1:]

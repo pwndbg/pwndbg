@@ -236,6 +236,8 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
     expected = generate_expected_malloc_chunk_output(chunks)
     expected["allocated"][0] += " | NON_MAIN_ARENA"
     expected["tcache"][0] += " | NON_MAIN_ARENA"
+    if "tcache_large" in expected:
+        expected["tcache_large"][0] += " | NON_MAIN_ARENA"
     if "fast" in expected:
         expected["fast"][0] += " | NON_MAIN_ARENA"
 
@@ -279,12 +281,12 @@ async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
-    if pwndbg.libc.version() >= (2, 43):
-        pytest.skip("Test is not applicable above glibc 2.43")
-
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
+
+    if pwndbg.libc.version() >= (2, 43):
+        pytest.skip("Test is not applicable above glibc 2.43")
 
     await resolve_malloc_chunks(
         ctrl,
@@ -302,11 +304,11 @@ async def test_malloc_chunk_2_43(ctrl: Controller) -> None:
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
-    if pwndbg.libc.version() < (2, 43):
-        pytest.skip("Test is not applicable below glibc 2.43")
-
     break_at_sym("break_here")
     await ctrl.cont()
+
+    if pwndbg.libc.version() < (2, 43):
+        pytest.skip("Test is not applicable below glibc 2.43")
 
     await resolve_malloc_chunks(
         ctrl,
@@ -324,12 +326,12 @@ async def test_malloc_chunk_2_43_heuristic(ctrl: Controller) -> None:
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
-    if pwndbg.libc.version() < (2, 43):
-        pytest.skip("Test is not applicable below glibc 2.43")
-
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
+
+    if pwndbg.libc.version() < (2, 43):
+        pytest.skip("Test is not applicable below glibc 2.43")
 
     await resolve_malloc_chunks(
         ctrl,

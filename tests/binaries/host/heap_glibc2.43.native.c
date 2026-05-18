@@ -33,7 +33,7 @@ static void heap_layout(void) {
     free(tcache);
     tcache_chunk = mem2chunk(tcache);
 
-    void *small = malloc(0x100);
+    void *small = malloc(0x110);
     (void)malloc(1); // prevent from being merged by top chunk
     small_chunk = mem2chunk(small);
 
@@ -45,7 +45,7 @@ static void heap_layout(void) {
     (void)malloc(1);
     unsorted_chunk = mem2chunk(unsorted);
 
-    (void)realloc(small, 0x110);
+    (void)realloc(small, 0x120);
     (void)realloc(large, 0x510);
     void *allocated = realloc(unsorted, 0x610);
 
@@ -54,6 +54,7 @@ static void heap_layout(void) {
 
 void *thread_func(void *x) {
     malloc(0x20);  // trigger another arena allocation
+    break_here();
 
     heap_layout();
     break_here();
