@@ -261,7 +261,7 @@ async def test_malloc_chunk_command(ctrl: Controller) -> None:
         pytest.skip("TODO multiarch")
 
     if pwndbg.libc.version() >= (2, 43):
-        pytest.skip("Skip on glibc 2.43")
+        pytest.skip("Test is not applicable above glibc 2.43")
 
     await resolve_malloc_chunks(
         ctrl,
@@ -280,7 +280,7 @@ async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
         pytest.skip("TODO multiarch")
 
     if pwndbg.libc.version() >= (2, 43):
-        pytest.skip("Skip on glibc 2.43")
+        pytest.skip("Test is not applicable above glibc 2.43")
 
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
@@ -303,7 +303,7 @@ async def test_malloc_chunk_2_43(ctrl: Controller) -> None:
         pytest.skip("TODO multiarch")
 
     if pwndbg.libc.version() < (2, 43):
-        pytest.skip("Skip under glibc 2.43")
+        pytest.skip("Test is not applicable below glibc 2.43")
 
     break_at_sym("break_here")
     await ctrl.cont()
@@ -325,7 +325,7 @@ async def test_malloc_chunk_2_43_heuristic(ctrl: Controller) -> None:
         pytest.skip("TODO multiarch")
 
     if pwndbg.libc.version() < (2, 43):
-        pytest.skip("Skip under glibc 2.43")
+        pytest.skip("Test is not applicable below glibc 2.43")
 
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
