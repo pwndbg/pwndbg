@@ -348,9 +348,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
             instruction.groups.remove(CS_GRP_CALL)
 
     @override
-    def _condition(
-        self, instruction: PwndbgInstruction, emu: Emulator
-    ) -> InstructionCondition:
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         # In ARM64, only branches have the conditional code in the instruction,
         # as opposed to ARM32 which allows most instructions to be conditional
         if instruction.id == AARCH64_INS_B:
