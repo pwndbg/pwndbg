@@ -267,9 +267,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     @override
-    def _prepare(
-        self, instruction: PwndbgInstruction, emu: Emulator
-    ) -> None:
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
             instruction.groups.remove(CS_GRP_CALL)

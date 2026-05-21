@@ -342,9 +342,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
             instruction.annotation = register_assign(result_operand.str, telescope)
 
     @override
-    def _prepare(
-        self, instruction: PwndbgInstruction, emu: Emulator
-    ) -> None:
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
             instruction.groups.remove(CS_GRP_CALL)
