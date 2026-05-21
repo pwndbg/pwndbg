@@ -13,6 +13,7 @@ import pwndbg.dintegration
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.assistant import register_assign
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
+from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 
@@ -284,7 +285,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
     def _parse_memory(
         self,
         instruction: PwndbgInstruction,
-        op: pwndbg.aglib.disasm.assistant.EnhancedOperand,
+        op: EnhancedOperand,
         emu: Emulator,
     ) -> int | None:
         """

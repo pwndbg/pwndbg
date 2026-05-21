@@ -404,22 +404,20 @@ class DisassemblyAssistant:
 
     # Delegates to "read_register", which takes Capstone ID for register.
     def _parse_register(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
     ) -> int | None:
-        reg = operand.reg
+        reg = op.reg
         return self._read_register(instruction, reg, emu)
 
     # Determine memory address of operand (Ex: in x86, mov rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
     # Subclasses override for specific architectures
     def _parse_memory(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
     ) -> int | None:
         return None
 
-    def _parse_immediate(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
-    ):
-        return operand.imm
+    def _parse_immediate(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
+        return op.imm
 
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
