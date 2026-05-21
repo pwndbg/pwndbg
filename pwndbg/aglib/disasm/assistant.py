@@ -416,7 +416,9 @@ class DisassemblyAssistant:
     ) -> int | None:
         return None
 
-    def _parse_immediate(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
+    def _parse_immediate(
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+    ) -> int | None:
         return op.imm
 
     def _read_register(
@@ -434,7 +436,7 @@ class DisassemblyAssistant:
 
     # Read register by its name
     def _read_register_name(
-        self, instruction: PwndbgInstruction, regname: str, emu: Emulator
+        self, instruction: PwndbgInstruction, regname: str, emu: Emulator | None
     ) -> int | None:
         if emu:
             # Will read the value of register from the emulator

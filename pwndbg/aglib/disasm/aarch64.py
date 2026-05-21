@@ -478,7 +478,9 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
         return 32 if instruction.cs_insn.reg_name(op.reg)[0] == "w" else 64
 
     @override
-    def _parse_immediate(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
+    def _parse_immediate(
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+    ) -> int | None:
         """
         In AArch64, there can be an optional shift applied to constants, typically only a `LSL #12`
 

@@ -13,6 +13,7 @@ import pwndbg.color.memory as mem_color
 import pwndbg.dintegration
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.assistant import register_assign
+from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 
@@ -135,7 +136,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssista
         super().__init__(architecture)
         self.architecture = architecture
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # AUIPC
             RISCV_INS_AUIPC: self._auipc_annotator,
             # C.MV
