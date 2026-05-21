@@ -294,7 +294,7 @@ def load_common_structs_on_load_linux() -> None:
     if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.dbg.selected_inferior().is_linux():
         try:
             recover_page_typeinfo()
-        except TypeNotRecoveredError as e:
+        except (TypeNotRecoveredError, NotImplementedError) as e:
             # We are not going to print anything here, because the user may not
             # even end up using the type-dependant commands.
             # Other commands and typeinfo recoveries depend on this succeeding,
