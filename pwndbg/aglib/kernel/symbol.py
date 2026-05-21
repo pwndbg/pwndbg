@@ -299,7 +299,7 @@ def load_common_structs_on_load_linux() -> None:
             # even end up using the type-dependant commands.
             # Other commands and typeinfo recoveries depend on this succeeding,
             # so we save the actual failure reason to have something meaningful to
-            # show to the user.
+            # FIXME: NotImplementedError: Currently raised for non-linux OSes by stuff like `_paginginfo`. See #3911 .
             pwndbg.aglib.kernel.page_typeinfo_recovery_failure = e
 
 
