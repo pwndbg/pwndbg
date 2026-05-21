@@ -205,7 +205,7 @@ parser.add_argument(
     "--refresh",
     action="store_true",
     help=(
-        "Drop the cached memory map (used on macOS) and re-fetch it. "
+        "Drop the cached memory map (used by default on macOS) and re-fetch it. "
         "See the `vmmap-cache` config option."
     ),
 )
