@@ -268,7 +268,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
     @override
     def _prepare(
-        self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.assistant.Emulator
+        self, instruction: PwndbgInstruction, emu: Emulator
     ) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
