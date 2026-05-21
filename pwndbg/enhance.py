@@ -14,6 +14,7 @@ import string
 
 import pwndbg
 import pwndbg.aglib
+import pwndbg.aglib.disasm.assistant
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
@@ -96,7 +97,7 @@ def enhance(
     if exe:
         pwndbg_instr = pwndbg.aglib.disasm.disassembly.one_raw(value)
         if pwndbg_instr:
-            pwndbg.aglib.disasm.arch.basic_enhance(pwndbg_instr)
+            pwndbg.aglib.disasm.assistant.basic_enhance(pwndbg_instr)
             # For telescoping, we don't want the extra spaces between the mnemonic and operands
             # which are baked in during enhancement. This removes those spaces.
             instr = " ".join(pwndbg_instr.asm_string.split())

@@ -15,8 +15,8 @@ from capstone6pwndbg import *  # noqa: F403
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.disasm.aarch64
-import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.disasm.arm
+import pwndbg.aglib.disasm.assistant
 import pwndbg.aglib.disasm.loongarch64
 import pwndbg.aglib.disasm.mips
 import pwndbg.aglib.disasm.ppc
@@ -27,8 +27,8 @@ import pwndbg.aglib.memory
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
 import pwndbg.lib.config
-from pwndbg.aglib.disasm.arch import DEBUG_ENHANCEMENT
-from pwndbg.aglib.disasm.arch import DisassemblyAssistant
+from pwndbg.aglib.disasm.assistant import DEBUG_ENHANCEMENT
+from pwndbg.aglib.disasm.assistant import DisassemblyAssistant
 from pwndbg.aglib.disasm.instruction import ManualPwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstructionImpl
@@ -322,7 +322,7 @@ def get_one_instruction(
     if cs_info is None:
         instr = ManualPwndbgInstruction(address, padding)
         if enhance:
-            pwndbg.aglib.disasm.arch.basic_enhance(instr)
+            pwndbg.aglib.disasm.assistant.basic_enhance(instr)
         return instr
 
     md = get_disassembler(cs_info)

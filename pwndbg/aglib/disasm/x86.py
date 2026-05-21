@@ -8,14 +8,14 @@ from capstone6pwndbg.x86 import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.memory as mem_color
 import pwndbg.color.message as message
 import pwndbg.dintegration
-from pwndbg.aglib.disasm.arch import memory_or_register_assign
-from pwndbg.aglib.disasm.arch import register_assign
+from pwndbg.aglib.disasm.assistant import memory_or_register_assign
+from pwndbg.aglib.disasm.assistant import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -102,7 +102,7 @@ CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
 
 # This class handles enhancement for x86 and x86_64. This is because Capstone itself
 # represents both architectures using the same class
-class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     supports_manual_emulation = True
 
     def __init__(self, architecture) -> None:

@@ -7,11 +7,11 @@ from capstone6pwndbg import *  # noqa: F403
 from capstone6pwndbg.mips import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 import pwndbg.color.memory as mem_color
 import pwndbg.dintegration
 import pwndbg.lib.disasm.helpers as bit_math
-from pwndbg.aglib.disasm.arch import register_assign
+from pwndbg.aglib.disasm.assistant import register_assign
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -179,7 +179,7 @@ MIPS_BINARY_OPERATIONS = {
 
 
 # This class enhances 32-bit, 64-bit, and micro MIPS
-class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class MipsDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
@@ -284,7 +284,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def _parse_memory(
         self,
         instruction: PwndbgInstruction,
-        op: pwndbg.aglib.disasm.arch.EnhancedOperand,
+        op: pwndbg.aglib.disasm.assistant.EnhancedOperand,
         emu: Emulator,
     ) -> int | None:
         """

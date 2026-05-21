@@ -7,7 +7,7 @@ from capstone6pwndbg import *  # noqa: F403
 from capstone6pwndbg.loongarch import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -38,7 +38,7 @@ LOONGARCH_BINARY_OPERATIONS: dict[int, str] = {}
 
 
 # This class enhances 64-bit Loongarch
-class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 

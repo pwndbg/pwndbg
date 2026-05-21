@@ -8,9 +8,9 @@ from capstone6pwndbg.aarch64 import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 import pwndbg.lib.disasm.helpers as bit_math
-from pwndbg.aglib.disasm.arch import register_assign
+from pwndbg.aglib.disasm.assistant import register_assign
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -237,7 +237,7 @@ def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
 
 
-class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
@@ -343,7 +343,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
 
     @override
     def _prepare(
-        self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator
+        self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.assistant.Emulator
     ) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
@@ -352,7 +352,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
     @override
     def _condition(
         self, instruction: PwndbgInstruction, emu: Emulator
-    ) -> pwndbg.aglib.disasm.arch.InstructionCondition:
+    ) -> pwndbg.aglib.disasm.assistant.InstructionCondition:
         # In ARM64, only branches have the conditional code in the instruction,
         # as opposed to ARM32 which allows most instructions to be conditional
         if instruction.id == AARCH64_INS_B:

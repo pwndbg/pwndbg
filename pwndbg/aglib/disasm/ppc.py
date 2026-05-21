@@ -6,7 +6,7 @@ from capstone6pwndbg import *  # noqa: F403
 from capstone6pwndbg.ppc_const import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
@@ -73,7 +73,7 @@ def is_branch_taken(cr: int, ctr: int, bi: int, bo: int) -> bool | None:
     return None
 
 
-class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     saved_ctr: int | None = None
 
     def __init__(self, architecture) -> None:

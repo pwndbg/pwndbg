@@ -294,7 +294,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         # ***********
         # The following member variables are set during instruction enhancement
-        # in pwndbg.aglib.disasm.arch.py
+        # in pwndbg.aglib.disasm.assistant.py
         # ***********
 
         self.asm_string: str = (
@@ -621,7 +621,7 @@ class EnhancedOperand:
 
         # ***********
         # The following member variables are set during instruction enhancement
-        # in pwndbg.aglib.disasm.arch.py
+        # in pwndbg.aglib.disasm.assistant.py
         # ***********
 
         self.before_value: int | None = None

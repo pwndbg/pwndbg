@@ -5,7 +5,7 @@ from collections.abc import Callable
 from capstone6pwndbg.sparc import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -79,7 +79,7 @@ ICC_CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
 }
 
 
-class SparcDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class SparcDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         if instruction.id in SPARC_CONDITIONAL_BRANCHES:

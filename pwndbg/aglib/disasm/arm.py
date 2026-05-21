@@ -12,7 +12,7 @@ from pwnlib.util.misc import align_down
 from typing_extensions import override
 
 import pwndbg.aglib
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 import pwndbg.aglib.saved_register_frames
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
@@ -181,7 +181,7 @@ def itstate_from_cpsr(cpsr_value: int) -> int:
 
 
 # This class enhances both ARM A-profile and ARM M-profile (Cortex-M)
-class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     def __init__(self, architecture, flags_reg: Literal["cpsr", "xpsr"]) -> None:
         super().__init__(architecture)
 
@@ -268,7 +268,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _prepare(
-        self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator
+        self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.assistant.Emulator
     ) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
