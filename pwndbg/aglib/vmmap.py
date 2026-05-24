@@ -40,7 +40,10 @@ vmmap_cache_param = pwndbg.config.add_param(
         "region requires a Mach IPC round-trip). When this is on, the memory "
         "map is fetched once per launch/attach and reused across stops until "
         "the program exits, you re-launch/attach, or you run `vmmap --refresh`. "
-        "Has no effect when the debuggee target isn't Darwin."
+        "Defaults to on when running pwndbg-lldb on a macOS host, off everywhere "
+        "else; the option is still exposed on every (host, debugger) combo so "
+        "you can flip it on for unusual setups (e.g. remote-debugging a macOS "
+        "target from Linux)."
     ),
     param_class=PARAM_BOOLEAN,
 )
