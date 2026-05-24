@@ -14,6 +14,7 @@ import pwndbg.enhance
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
+from pwndbg.lib.memory import Page
 
 LIMIT = pwndbg.config.add_param(
     "dereference-limit", 5, "max number of pointers to dereference in a chain"
@@ -179,12 +180,29 @@ def format(
     # We want to enhance the last pointer value. If an offset was used
     # chain failed at that offset, so display that offset.
     elif len(chain) < limit + 1:
+        pointer_to_enhance = chain[-2] + offset
+
+        page = pwndbg.aglib.vmmap.find(pointer_to_enhance)
+
+        # Check if we dereferenced the last pointer, but it is not in the vmmap mappings
+        # If so, we have to create the page permissions
+        if not page:
+            mem_flags = pwndbg.aglib.vmmap_custom.get_memory_flags(pointer_to_enhance)
+            if mem_flags is not None:
+                # The page start/end are set because they are used in some edge case checks in the enhance function
+                start = pwndbg.lib.memory.page_align(pointer_to_enhance)
+                end = 1 << pwndbg.aglib.arch.ptrbits
+                page = Page(
+                    start, end, mem_flags, pointer_to_enhance - start, pwndbg.aglib.arch.ptrsize
+                )
+
         enhanced = pwndbg.enhance.enhance(
-            chain[-2] + offset,
+            pointer_to_enhance,
             code=code,
             safe_linking=safe_linking,
             enhance_string_len=enhance_string_len,
             respect_ptrwidth=bool(respect_ptrwidth),
+            page=page,
         )
 
     else:

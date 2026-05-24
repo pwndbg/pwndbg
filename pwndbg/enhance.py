@@ -24,6 +24,7 @@ import pwndbg.color.memory
 import pwndbg.dintegration
 import pwndbg.lib.pretty_print
 from pwndbg import color
+from pwndbg.lib.memory import Page
 
 
 def int_str(value: int, respect_ptrwidth: bool = False) -> str:
@@ -47,6 +48,7 @@ def enhance(
     attempt_dereference=True,
     enhance_string_len: int = None,
     respect_ptrwidth: bool = False,
+    page: Page = None,
 ) -> str:
     """
     Given the last pointer in a chain, attempt to characterize
@@ -66,10 +68,10 @@ def enhance(
     """
     value = int(value)
 
-    page = pwndbg.aglib.vmmap.find(value)
+    if not page:
+        page = pwndbg.aglib.vmmap.find(value)
 
-    # If it's not in a page we know about, try to dereference
-    # it anyway just to test.
+    # If it's not in a page we know about, see if we can try to dereference it anyways.
     can_read = True
     if not attempt_dereference or not page or None is pwndbg.aglib.memory.peek(value):
         can_read = False
