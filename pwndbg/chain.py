@@ -190,7 +190,7 @@ def format(
         # We know it's a valid pointer, because we dereferenced it.
         if not page:
             mem_flags = pwndbg.aglib.vmmap_custom.get_memory_flags(pointer_to_enhance)
-            if mem_flags is not None:
+            if mem_flags is None:
                 mem_flags = os.R_OK
             # The page start/end are set because they are used in some edge case checks in the enhance function
             start = pwndbg.lib.memory.page_align(pointer_to_enhance)
