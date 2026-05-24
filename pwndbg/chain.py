@@ -184,8 +184,8 @@ def format(
 
         page = pwndbg.aglib.vmmap.find(pointer_to_enhance)
 
-        # Check if we dereferenced the last pointer, but it is not in the vmmap mappings
-        # If so, we have to create the page permissions
+        # If the pointer is not in the vmmap mappings, we create page permissions for it.
+        # We know it's a valid pointer, because we dereferenced it.
         if not page:
             mem_flags = pwndbg.aglib.vmmap_custom.get_memory_flags(pointer_to_enhance)
             if mem_flags is not None:
