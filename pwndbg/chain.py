@@ -4,6 +4,8 @@ Dereference and format pointer chains.
 
 from __future__ import annotations
 
+import os
+
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
@@ -189,12 +191,13 @@ def format(
         if not page:
             mem_flags = pwndbg.aglib.vmmap_custom.get_memory_flags(pointer_to_enhance)
             if mem_flags is not None:
-                # The page start/end are set because they are used in some edge case checks in the enhance function
-                start = pwndbg.lib.memory.page_align(pointer_to_enhance)
-                end = 1 << pwndbg.aglib.arch.ptrbits
-                page = Page(
-                    start, end, mem_flags, pointer_to_enhance - start, pwndbg.aglib.arch.ptrsize
-                )
+                mem_flags = os.R_OK
+            # The page start/end are set because they are used in some edge case checks in the enhance function
+            start = pwndbg.lib.memory.page_align(pointer_to_enhance)
+            end = 1 << pwndbg.aglib.arch.ptrbits
+            page = Page(
+                start, end, mem_flags, pointer_to_enhance - start, pwndbg.aglib.arch.ptrsize
+            )
 
         enhanced = pwndbg.enhance.enhance(
             pointer_to_enhance,
