@@ -108,7 +108,7 @@ class Bin:
         self.is_corrupted = is_corrupted
         self.variant = variant
 
-    def __contains__(self, chunk: int) -> bool:
+    def contains_chunk(self, chunk: int) -> bool:
         return chunk in self.fd_chain
 
 
@@ -130,7 +130,7 @@ class Bins:
             # The unsorted bin only has one bin called 'all'
 
             # Handle this case here, so we don't assign a str to an int-type variable
-            if "all" in self.bins and chunk in self.bins["all"]:
+            if "all" in self.bins and self.bins["all"].contains_chunk(chunk):
                 return self.bins["all"]
             return None
         if self.bin_type == BinType.LARGE:
@@ -159,7 +159,7 @@ class Bins:
                 # we need to enlarge it to match large tcache size
                 size = 1 << size.bit_length()
 
-        if size in self.bins and chunk in self.bins[size]:
+        if size in self.bins and self.bins[size].contains_chunk(chunk):
             return self.bins[size]
 
         return None
@@ -1268,6 +1268,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""
             if idx >= TCACHE_SMALL_BINS and pwndbg.libc.version() >= (2, 42):
                 # reverse version of large_csize2tidx
+                # https://elixir.bootlin.com/glibc/glibc-2.43/source/malloc/malloc.c#L3003-L3010
                 return (TCACHE_LARGE_START_SIZE << (idx - TCACHE_SMALL_BINS)) - self.size_sz
             return idx * self.malloc_alignment + self.minsize - self.size_sz
 
