@@ -206,8 +206,10 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
     # The tcache chunks have two fields: next and key
     # We are fetching it from the glibc's TLS tcache variable :)
-    tcache_next = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[0]->next"))
-    tcache_key = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[0]->key"))
+    frame = pwndbg.dbg.selected_frame()
+    assert frame
+    tcache_next = int(frame.evaluate_expression("tcache->entries[0]->next"))
+    tcache_key  = int(frame.evaluate_expression("tcache->entries[0]->key"))
 
     tcache_hexdump = await hexdump_16B("tcache->entries[0]")
     freed_chunk = (
@@ -357,8 +359,10 @@ async def test_vis_heap_chunk_command_2_43(ctrl: Controller) -> None:
         heap_addr += offset
         return heap_addr
 
-    chunk1_next = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[65]->next"))
-    tcache_key = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[65]->key"))
+    frame = pwndbg.dbg.selected_frame()
+    assert frame
+    chunk1_next = int(frame.evaluate_expression("tcache->entries[65]->next"))
+    tcache_key  = int(frame.evaluate_expression("tcache->entries[65]->key"))
 
     def hexdump_line(qword1: int = 0, qword2: int = 0) -> str:
         from pwnlib.util.packing import p64
@@ -375,10 +379,12 @@ async def test_vis_heap_chunk_command_2_43(ctrl: Controller) -> None:
 
     result = (await ctrl.execute_and_capture("vis-heap-chunk")).splitlines()
 
-    tcache64 = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[64]"))
-    tcache65 = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[65]"))
+    frame = pwndbg.dbg.selected_frame()
+    assert frame
+    tcache64 = int(frame.evaluate_expression("tcache->entries[64]"))
+    tcache65 = int(frame.evaluate_expression("tcache->entries[65]"))
     top_size = pwndbg.aglib.memory.u64(
-        int(pwndbg.dbg.selected_frame().evaluate_expression("main_arena.top")) + 8
+        int(frame.evaluate_expression("main_arena.top")) + 8
     )
 
     def pack2x4(wordl1: int, wordl2: int, wordl3: int, wordl4: int) -> int:
