@@ -301,7 +301,7 @@ class DisassemblyAssistant:
         The goal of this function is to set the `annotation` field of the instruction,
         which is the string to be printed in a disasm view.
         """
-        return None
+        return
 
     def _enhance_operands(
         self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
@@ -622,12 +622,12 @@ class DisassemblyAssistant:
 
     def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if CS_GRP_INT not in instruction.groups:
-            return None
+            return
 
         syscall_arch, syscall_register = self._get_syscall_arch_info(instruction)
 
         if syscall_arch is None:
-            return None
+            return
 
         instruction.syscall = self._read_register_name(instruction, syscall_register, emu)
         if instruction.syscall is not None:

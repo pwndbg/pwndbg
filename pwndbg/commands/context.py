@@ -743,7 +743,7 @@ def context(
     # Allow to view history after the program has exited
     if not pwndbg.aglib.proc.alive() and (context_history_size <= 0 or not context_history):
         log.error("context: The program is not being run.")
-        return None
+        return
 
     if subcontext is None:
         subcontext = []

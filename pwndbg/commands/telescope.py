@@ -133,7 +133,7 @@ def telescope(
     address = address if address else pwndbg.aglib.regs.sp
     if address is None:
         print("Cannot display stack frame because stack pointer is unavailable")
-        return
+        return None
 
     address = int(address) & pwndbg.aglib.arch.ptrmask
     input_address = address
@@ -154,19 +154,19 @@ def telescope(
     if frame:
         if not pwndbg.aglib.regs.frame:
             print("The frame register is not defined for this architecture.")
-            return
+            return None
         sp = pwndbg.aglib.regs.sp
         bp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame)
         if sp > bp:
             print("Cannot display stack frame because base pointer is below stack pointer")
-            return
+            return None
 
         for page in pwndbg.aglib.vmmap.get():
             if sp in page and bp not in page:
                 print(
                     "Cannot display stack frame because base pointer is not on the same page with stack pointer"
                 )
-                return
+                return None
 
         address = sp
         count = int((bp - sp) / ptrsize) + 1

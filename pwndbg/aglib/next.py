@@ -187,7 +187,7 @@ async def break_next_call(ec: pwndbg.dbg_mod.ExecutionController, symbol_regex=N
     while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
         if pwndbg.aglib.proc.stopped_with_signal():
-            return
+            return None
 
         ins = await break_next_branch(ec)
 
@@ -214,7 +214,7 @@ async def break_next_ret(ec: pwndbg.dbg_mod.ExecutionController, address=None):
     while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
         if pwndbg.aglib.proc.stopped_with_signal():
-            return
+            return None
 
         ins = await break_next_branch(ec, address)
 

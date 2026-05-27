@@ -394,7 +394,7 @@ class PseudoEmulatedRegisterFile:
         # Definition of the register we are writing
         write_reg_def = self.register_set.reg_definitions.get(reg)
         if write_reg_def is None:
-            return None
+            return
 
         register_bit_offset = write_reg_def.offset * 8
         written_register_size = (
@@ -475,7 +475,7 @@ class PseudoEmulatedRegisterFile:
         # Definition of the register we are invalidating
         written_reg_def = self.register_set.reg_definitions.get(reg)
         if written_reg_def is None:
-            return None
+            return
 
         register_bit_offset = written_reg_def.offset * 8
         written_register_size = (

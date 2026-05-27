@@ -942,7 +942,7 @@ def find_fake_fast(
                     "No fake fast chunk candidates found; memory preceding target address is not readable"
                 )
             )
-            return None
+            return
 
     if align:
         search_start = pwndbg.lib.memory.align_up(search_start, size_sz)
@@ -954,7 +954,7 @@ def find_fake_fast(
                     "No fake fast chunk candidates found; alignment didn't leave enough space for a size field"
                 )
             )
-            return None
+            return
 
     print(
         message.notice(
