@@ -47,18 +47,30 @@ def test_command_killthreads_kills_specific_thread(start_binary):
     initial_thread_count = len(pwndbg.dbg.selected_inferior().threads())
     # check if thread with id 3 exists
     wait_until(
-        lambda: len(
-            [thread for thread in pwndbg.dbg.selected_inferior().threads() if thread.index() == 3]
+        lambda: (
+            len(
+                [
+                    thread
+                    for thread in pwndbg.dbg.selected_inferior().threads()
+                    if thread.index() == 3
+                ]
+            )
+            == 1
         )
-        == 1
     )
     gdb.execute("killthreads 3")
     # check if the thread was killed, and no other thread was killed
     wait_until(
-        lambda: len(
-            [thread for thread in pwndbg.dbg.selected_inferior().threads() if thread.index() == 3]
+        lambda: (
+            len(
+                [
+                    thread
+                    for thread in pwndbg.dbg.selected_inferior().threads()
+                    if thread.index() == 3
+                ]
+            )
+            == 0
         )
-        == 0
     )
     assert len(pwndbg.dbg.selected_inferior().threads()) == initial_thread_count - 1
 

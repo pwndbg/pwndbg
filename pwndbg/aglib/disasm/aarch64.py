@@ -154,7 +154,9 @@ AARCH64_EXTEND_MAP: dict[int, Callable[[int], int]] = {
     AARCH64_EXT_UXTB: lambda x: x & ((1 << 8) - 1),
     AARCH64_EXT_UXTH: lambda x: x & ((1 << 16) - 1),
     AARCH64_EXT_UXTW: lambda x: x & ((1 << 32) - 1),
-    AARCH64_EXT_UXTX: lambda x: x,  # UXTX has no effect. It extracts 64-bits from a 64-bit register.
+    AARCH64_EXT_UXTX: lambda x: (
+        x
+    ),  # UXTX has no effect. It extracts 64-bits from a 64-bit register.
     AARCH64_EXT_SXTB: lambda x: bit_math.to_signed(x, 8),
     AARCH64_EXT_SXTH: lambda x: bit_math.to_signed(x, 16),
     AARCH64_EXT_SXTW: lambda x: bit_math.to_signed(x, 32),

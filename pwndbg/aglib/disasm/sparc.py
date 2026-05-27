@@ -62,10 +62,12 @@ CCR_N_MASK = 1 << 3
 ICC_CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
     SPARC_CC_ICC_NE: lambda ccr: not (ccr & CCR_Z_MASK),
     SPARC_CC_ICC_E: lambda ccr: bool(ccr & CCR_Z_MASK),
-    SPARC_CC_ICC_G: lambda ccr: not ((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK))
-    and not (ccr & CCR_Z_MASK),
-    SPARC_CC_ICC_LE: lambda ccr: bool((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK))
-    or bool(ccr & CCR_Z_MASK),
+    SPARC_CC_ICC_G: lambda ccr: (
+        not ((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK)) and not (ccr & CCR_Z_MASK)
+    ),
+    SPARC_CC_ICC_LE: lambda ccr: (
+        bool((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK)) or bool(ccr & CCR_Z_MASK)
+    ),
     SPARC_CC_ICC_GE: lambda ccr: not ((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK)),
     SPARC_CC_ICC_L: lambda ccr: bool((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK)),
     SPARC_CC_ICC_GU: lambda ccr: not (ccr & CCR_Z_MASK) and not (ccr & CCR_C_MASK),

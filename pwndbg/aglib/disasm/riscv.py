@@ -116,14 +116,22 @@ RISCV_EMULATED_ANNOTATIONS = {
 
 # Input is a list of unsigned operands
 CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
-    RISCV_INS_BEQ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
-    == bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
-    RISCV_INS_BNE: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
-    != bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
-    RISCV_INS_BLT: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
-    < bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
-    RISCV_INS_BGE: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
-    >= bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
+    RISCV_INS_BEQ: lambda ops: (
+        bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+        == bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits)
+    ),
+    RISCV_INS_BNE: lambda ops: (
+        bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+        != bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits)
+    ),
+    RISCV_INS_BLT: lambda ops: (
+        bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+        < bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits)
+    ),
+    RISCV_INS_BGE: lambda ops: (
+        bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+        >= bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits)
+    ),
     RISCV_INS_BLTU: lambda ops: ops[0] < ops[1],
     RISCV_INS_BGEU: lambda ops: ops[0] >= ops[1],
     RISCV_INS_C_BEQZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) == 0,
