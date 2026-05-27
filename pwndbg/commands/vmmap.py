@@ -16,6 +16,7 @@ import pwndbg.aglib.file
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as mem_color
+import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
@@ -115,7 +116,9 @@ def print_vmmap_gaps(pages: tuple[Page, ...]) -> None:
     """
     Indicates the size of adjacent memory regions and unmapped gaps between them in process memory
     """
-    print(f"LEGEND: {green('MAPPED')} | {cyan('GUARD')} | {red('GAP')}")
+    cache_status = pwndbg.aglib.vmmap.cache_status_text()
+    cache_suffix = message.hint(f" [{cache_status}]") if cache_status is not None else ""
+    print(f"LEGEND: {green('MAPPED')} | {cyan('GUARD')} | {red('GAP')}{cache_suffix}")
     print_vmmap_gaps_table_header()
 
     last_map = None  # The last mapped region we looked at
@@ -198,6 +201,14 @@ parser.add_argument(
     action="store_true",
     help="Display unmapped memory gap information in the memory map.",
 )
+parser.add_argument(
+    "--refresh",
+    action="store_true",
+    help=(
+        "Drop the cached memory map (used by default on macOS) and re-fetch it. "
+        "See the `vmmap-cache` config option."
+    ),
+)
 
 
 @pwndbg.commands.Command(
@@ -213,6 +224,7 @@ def vmmap(
     context=None,
     gaps=False,
     expand_shared_cache=False,
+    refresh=False,
 ) -> None:
     lookaround_lines_limit = 64
 
@@ -223,9 +235,15 @@ def vmmap(
         lines_after = min(lookaround_lines_limit, lines_after)
         lines_before = min(lookaround_lines_limit, lines_before)
 
+    if refresh:
+        pwndbg.aglib.vmmap.clear_persistent_cache()
+
     # All displayed pages, including lines after and lines before
     vmmap = pwndbg.aglib.vmmap.get_memory_map()
     total_pages = vmmap.ranges()
+
+    cache_status = pwndbg.aglib.vmmap.cache_status_text()
+    cache_suffix = message.hint(f" [{cache_status}]") if cache_status is not None else ""
 
     # Filtered memory pages, indicated by a backtrace arrow in results
     filtered_pages = []
@@ -276,7 +294,7 @@ def vmmap(
     empty_prefix = " " * len(prefix_str) if filtered_pages else None
     header_prefix = f"{empty_prefix} " if filtered_pages else ""
 
-    print(mem_color.legend())
+    print(mem_color.legend() + cache_suffix)
     print_vmmap_table_header(header_prefix)
 
     shared_cache_first = None

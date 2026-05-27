@@ -34,7 +34,9 @@ def _append_field_lines(
     base_address: int | None,
     indent: str,
 ) -> None:
-    for field in t.fields():
+    fields = t.fields()
+    has_bitfields = any(f.bitpos % 8 != 0 for f in fields)
+    for field in fields:
         field_name = field.name
         field_label = field_name if field_name is not None else "<anonymous>"
 
@@ -82,14 +84,20 @@ def _append_field_lines(
 
         # Adjust trailing lines in 'extra' to line up.
         extra_lines: list[str] = []
+        extra_padding = len(indent) + 31 + (2 if has_bitfields else 0)
         for i, line in enumerate(str(extra).splitlines()):
             if i == 0:
                 extra_lines.append(line)
             else:
-                extra_lines.append((len(indent) + 31) * " " + line)
+                extra_lines.append(extra_padding * " " + line)
         extra = "\n".join(extra_lines)
 
-        bitpos_str = "" if not bitpos else (f".{bitpos}")
+        if bitpos:
+            bitpos_str = f".{bitpos}"
+        elif has_bitfields:
+            bitpos_str = "  "
+        else:
+            bitpos_str = ""
 
         if base_address is not None:
             line = f"{indent}0x{base_address + absolute_offset:016x} +0x{absolute_offset:04x}{bitpos_str} {field_label:<20} : {extra}"
