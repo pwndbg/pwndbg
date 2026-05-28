@@ -315,15 +315,16 @@ def search(
         saved = set()
 
     # Perform the search
-    i = 0
-    for address in pwndbg.search.search(
-        value,
-        mappings=mappings,
-        executable=executable,
-        writable=writable,
-        step=step,
-        aligned=aligned,
-        limit=limit,
+    for i, address in enumerate(
+        pwndbg.search.search(
+            value,
+            mappings=mappings,
+            executable=executable,
+            writable=writable,
+            step=step,
+            aligned=aligned,
+            limit=limit,
+        )
     ):
         if save:
             saved.add(address)
@@ -338,4 +339,3 @@ def search(
 
         if not trunc_out or i < 20:
             print_search_hit(address)
-        i += 1
