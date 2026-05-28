@@ -1383,7 +1383,7 @@ def context_disasm(
         lambda: pwndbg.aglib.nearpc.nearpc(
             back_lines=additional_disasm_lines // 2,
             total_lines=additional_disasm_lines + 1,
-            emulate=bool(not pwndbg.config.emulate == "off"),
+            emulate=bool(pwndbg.config.emulate != "off"),
             use_cache=True,
         )
     )

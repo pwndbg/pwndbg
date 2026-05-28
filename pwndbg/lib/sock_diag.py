@@ -118,7 +118,7 @@ def get_unix_peers() -> dict[int, int]:
                 if msg_len < _NLMSG_HDR_SIZE or offset + msg_len > len(data):
                     done = True
                     break
-                if msg_type == _NLMSG_DONE or msg_type == _NLMSG_ERROR:
+                if msg_type in (_NLMSG_DONE, _NLMSG_ERROR):
                     done = True
                     break
                 if msg_type == _SOCK_DIAG_BY_FAMILY:

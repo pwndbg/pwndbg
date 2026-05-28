@@ -2145,7 +2145,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.module = module
         self.debugger = debugger
 
-        self.debug = kwargs["debug"] if "debug" in kwargs else False
+        self.debug = kwargs.get("debug", False)
 
         from pwndbg.aglib import load_aglib
 

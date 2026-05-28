@@ -400,7 +400,7 @@ def one_with_config():
     """
     result = near(
         pwndbg.aglib.regs.pc,
-        emulate=bool(not pwndbg.config.emulate == "off"),
+        emulate=bool(pwndbg.config.emulate != "off"),
         show_prev_insns=False,
     )
     if result:

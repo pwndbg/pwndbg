@@ -306,7 +306,7 @@ class RegisterSet:
             self.gpr,
         ):
             if regname and regname not in seen_emulated_register:
-                emu_reg = UnicornRegisterWrite(regname, True if regname in flags else False)
+                emu_reg = UnicornRegisterWrite(regname, regname in flags)
                 self.emulated_regs_order.append(emu_reg)
                 seen_emulated_register.add(regname)
 

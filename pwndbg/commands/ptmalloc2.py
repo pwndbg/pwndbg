@@ -1354,7 +1354,7 @@ def bin_labels_mapping(collections: list[Bins | None]) -> dict[int, list[str]]:
             continue
         bins_type = bins.bin_type
 
-        for size in bins.bins.keys():
+        for size in bins.bins:
             b = bins.bins[size]
             if isinstance(size, int):
                 size = hex(size)
@@ -1497,7 +1497,7 @@ def try_free(addr: str | int) -> None:
     if (
         allocator.has_tcache()
         and allocator.tcache_entry is not None
-        and "key" in allocator.tcache_entry.keys()
+        and "key" in allocator.tcache_entry
     ):
         tc_idx = (chunk_size_unmasked - chunk_minsize + malloc_alignment - 1) // malloc_alignment
         if allocator.mp is not None and tc_idx < allocator.tcache_small_bins:
