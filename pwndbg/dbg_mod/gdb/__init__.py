@@ -1918,11 +1918,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         for line in command_list:
             line = line.strip()
             # Skip non-command entries
-            if (
-                not line
-                or line.startswith("Command class:")
-                or line.startswith("Unclassified commands")
-            ):
+            if not line or line.startswith(("Command class:", "Unclassified commands")):
                 continue
             command = line.split()[0]
             existing_commands.add(command)

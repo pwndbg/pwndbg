@@ -815,7 +815,7 @@ class BasicType(Type):
             closure_addr = load_uint(val)
             f = load_uint(pwndbg.aglib.memory.read(closure_addr, word))
             return fmt.fmt_debug(f"(closure @ {closure_addr}) ") + fmt.fmt_ptr(f)
-        if ty.startswith("int") or ty.startswith("uint"):
+        if ty.startswith(("int", "uint")):
             if ty.startswith("int"):
                 n = load_int(val)
             else:
