@@ -522,10 +522,7 @@ class Emulator:
             instr = None
 
         # If it's on the stack, don't display it as code in a chain.
-        if instr and "[stack" in page.objfile:
-            retval = [intval, szval]
-        # If it's RWX but a small value, don't display it as code in a chain.
-        elif instr and rwx and intval0 < 0x1000:
+        if instr and "[stack" in page.objfile or instr and rwx and intval0 < 0x1000:
             retval = [intval, szval]
         # If it's an instruction and *not* RWX, display it unconditionally
         elif instr and exe:
@@ -801,12 +798,7 @@ class Emulator:
 
     def until_jump_hook_code(self, _uc, address, instruction_size: int, _user_data) -> None:
         # We have not emulated any instructions yet.
-        if self._prev is None:
-            pass
-
-        # We have moved forward one linear instruction, no branch or the
-        # branch target was the next instruction.
-        elif self._prev + self._prev_size == address:
+        if self._prev is None or self._prev + self._prev_size == address:
             pass
 
         # We have branched!

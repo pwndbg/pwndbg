@@ -565,7 +565,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
             for reg_id, reg_value in self.register_writes.items()
         }
 
-        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch, None)})
+        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch)})
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
         Is alias: {self.cs_insn.is_alias}

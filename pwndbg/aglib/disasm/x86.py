@@ -398,7 +398,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
             return InstructionCondition.UNCONDITIONAL
 
-        condition_resolver = CONDITION_RESOLVERS.get(instruction.id, None)
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.id)
         if condition_resolver is None:
             return InstructionCondition.UNCONDITIONAL
 

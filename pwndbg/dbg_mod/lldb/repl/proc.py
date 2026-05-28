@@ -776,13 +776,13 @@ class ProcessDriver:
                             # [3]: https://discourse.llvm.org/t/sbthread-isstopped-always-returns-false-on-linux/36944/5
 
                             bpwp_id = None
-                            if thread.GetStopReason() == lldb.eStopReasonBreakpoint and isinstance(
-                                stop, lldb.SBBreakpoint
-                            ):
-                                bpwp_id = thread.GetStopReasonDataAtIndex(0)
-                            elif (
-                                thread.GetStopReason() == lldb.eStopReasonWatchpoint
-                                and isinstance(stop, lldb.SBWatchpoint)
+                            if (
+                                thread.GetStopReason() == lldb.eStopReasonBreakpoint
+                                and isinstance(stop, lldb.SBBreakpoint)
+                                or (
+                                    thread.GetStopReason() == lldb.eStopReasonWatchpoint
+                                    and isinstance(stop, lldb.SBWatchpoint)
+                                )
                             ):
                                 bpwp_id = thread.GetStopReasonDataAtIndex(0)
 

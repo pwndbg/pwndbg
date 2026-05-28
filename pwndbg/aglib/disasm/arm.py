@@ -295,7 +295,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
                 instruction.declare_is_unconditional_jump = True
             return InstructionCondition.UNCONDITIONAL
 
-        condition_resolver = CONDITION_RESOLVERS.get(instruction.cs_insn.cc, None)
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.cs_insn.cc)
         if condition_resolver is None:
             return InstructionCondition.UNCONDITIONAL
 

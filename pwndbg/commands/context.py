@@ -771,7 +771,7 @@ def context(
                 )
             )
 
-    sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
+    sections += [(arg, context_sections.get(arg[0])) for arg in args]
 
     result: defaultdict[OutputWrapper, list[str]] = defaultdict(list)
     result_settings: defaultdict[OutputWrapper, dict[str, Any]] = defaultdict(dict)

@@ -387,7 +387,7 @@ def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
     }
     perm = 0
     for flag in flags:
-        flag_val = page_flags.get(flag, None)
+        flag_val = page_flags.get(flag)
         if flag_val is None:
             print('Invalid page flag "%s"', flag)
             return

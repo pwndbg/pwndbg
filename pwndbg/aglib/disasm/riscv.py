@@ -231,7 +231,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssista
         """
         Checks if the current instruction is a jump that is taken.
         """
-        condition_resolver = CONDITION_RESOLVERS.get(instruction.id, None)
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.id)
 
         # Determine if the conditional jump is taken
         if condition_resolver is None:

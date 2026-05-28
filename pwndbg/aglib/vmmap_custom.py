@@ -135,10 +135,7 @@ def get_memory_flags(address_maybe: int) -> int | None:
     # 1. If it's in the same page as the instruction pointer, assume it's executable.
     # 2. If it's in the same page as the stack pointer, try to check the NX bit.
     # 3. Otherwise, just say it's not executable.
-    if address_maybe == pwndbg.lib.memory.page_align(pwndbg.aglib.regs.pc):
-        flags |= 1
-    # TODO: could maybe make this check look at the stacks in pwndbg.aglib.stack.get() but that might have issues
-    elif (
+    if address_maybe == pwndbg.lib.memory.page_align(pwndbg.aglib.regs.pc) or (
         address_maybe == pwndbg.lib.memory.page_align(pwndbg.aglib.regs.sp)
         and pwndbg.aglib.stack.is_executable()
     ):

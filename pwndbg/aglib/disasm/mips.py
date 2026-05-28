@@ -248,7 +248,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        condition_resolver = CONDITION_RESOLVERS.get(instruction.id, None)
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.id)
 
         if condition_resolver is None:
             return InstructionCondition.UNCONDITIONAL

@@ -1737,7 +1737,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
                     # LLDB lacks support for types in symbols
                     # So we have manually find types
-                    cast_type = variables_types.get((resolved_addr, sym_name), None)
+                    cast_type = variables_types.get((resolved_addr, sym_name))
                     if cast_type is not None:
                         # Detect if we have proper symbol by size, we can't do better here
                         if cast_type.sizeof != resolved_size:
@@ -1840,10 +1840,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
             if any(has_xpsr):
                 arch_name = "armcm"
-        elif arch_name == "arm64":
-            # Apple uses a different name for AArch64 than we do.
-            arch_name = "aarch64"
-        elif arch_name == "arm64e":
+        elif arch_name == "arm64" or arch_name == "arm64e":
             # Apple uses a different name for AArch64 than we do.
             arch_name = "aarch64"
         elif arch_name == "riscv32":
