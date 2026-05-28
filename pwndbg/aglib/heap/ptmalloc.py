@@ -1887,7 +1887,7 @@ class HeuristicHeap(
 
     def _get_heap_page(self) -> pwndbg.lib.memory.Page | None:
         """Get the [heap] memory page."""
-        return next((p for p in pwndbg.aglib.vmmap.get() if p.objfile == "[heap]"), None)
+        return next((p for p in pwndbg.aglib.vmmap.get() if p.is_heap), None)
 
     def _get_heap_range(self) -> pwndbg.lib.memory.Page | range:
         """Get the heap start & end"""

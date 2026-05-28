@@ -23,7 +23,6 @@ import pwndbg.chain
 import pwndbg.color.enhance as E
 import pwndbg.color.memory as mem_color
 import pwndbg.dbg_mod
-import pwndbg.dintegration
 import pwndbg.enhance
 import pwndbg.lib.memory
 import pwndbg.lib.regs
@@ -52,7 +51,7 @@ def parse_consts(u_consts) -> dict[str, int]:
 
 # Generate Map<Register name, unicorn constant>
 def create_reg_to_const_map(
-    base_consts: dict[str, int], additional_mapping: dict[str, int] = None
+    base_consts: dict[str, int], additional_mapping: dict[str, int] | None = None
 ) -> dict[str, int]:
     # base_consts is Map<"UC_*_REG_", constant>
     # additional mapping is the manually additions that add to the returned dict
@@ -281,12 +280,12 @@ class Emulator:
         self.valid = True
 
         # Jump tracking state
-        self._prev = None
-        self._prev_size = None
-        self._curr = None
+        self._prev: int | None = None
+        self._prev_size: int | None = None
+        self._curr: int | None = None
 
         # The address of the last successfully executed instruction using single_step
-        self.last_pc = None
+        self.last_pc: int | None = None
 
         # (address_successfully_executed, size_of_instruction)
         self.last_single_step_result = InstructionExecutedResult(None, None)
@@ -478,8 +477,9 @@ class Emulator:
 
         # For the purpose of following pointers, don't display
         # anything on the stack or heap as 'code'
-        if "[stack" in page.objfile or "[heap" in page.objfile:
-            rwx = exe = False
+        if page.is_stack or page.is_heap:
+            rwx = False
+            exe = False
 
         if exe:
             pwndbg_instr = pwndbg.aglib.disasm.disassembly.one_raw(value)
@@ -764,7 +764,7 @@ class Emulator:
         debug(DEBUG_MEM_READ, "uc.mem_read(*%r, **%r)", (a, kw))
         return self.uc.mem_read(*a, **kw)
 
-    def until_jump(self, pc: int = None):
+    def until_jump(self, pc: int | None = None) -> tuple[int, int]:
         """
         Emulates instructions starting at the specified address until the
         program counter is set to an address which does not linearly follow
@@ -800,25 +800,18 @@ class Emulator:
         return self._prev, self._curr
 
     def until_jump_hook_code(self, _uc, address, instruction_size: int, _user_data) -> None:
-        # We have not emulated any instructions yet.
-        if self._prev is None:
-            pass
-
-        # We have moved forward one linear instruction, no branch or the
-        # branch target was the next instruction.
-        elif self._prev + self._prev_size == address:
-            pass
+        # We have not emulated any instructions yet
+        # Or we have moved forward one linear instruction (no branching)
+        if (self._prev is None) or (self._prev + self._prev_size == address):
+            self._prev = address
+            self._prev_size = instruction_size
+            return
 
         # We have branched!
         # The previous instruction does not immediately precede this one.
-        else:
-            self._curr = address
-            debug(DEBUG_EXECUTING, "%#x %#X --> %#x", (self._prev, self._prev_size, self._curr))
-            self.emu_stop()
-            return
-
-        self._prev = address
-        self._prev_size = instruction_size
+        self._curr = address
+        debug(DEBUG_EXECUTING, "%#x %#X --> %#x", (self._prev, self._prev_size, self._curr))
+        self.emu_stop()
 
     def until_call(self, pc=None):
         addr, target = self.until_jump(pc)

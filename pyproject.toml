@@ -123,6 +123,7 @@ ignore = [
     "SIM105", # flake8-simplify suppressible-exception
     "SIM108", # flake8-simplify if-else-block-instead-of-if-exp
     "SIM110", # flake8-simplify reimplemented-builtin
+    "SIM114", # flake8-simplify if-with-same-arms
     "SIM115", # flake8-simplify open-file-with-context-handler
     "SIM117", # flake8-simplify multiple-with-statements
     "SIM300", # flake8-simplify yoda-coonditions

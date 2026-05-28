@@ -139,6 +139,10 @@ class Page:
         return self.objfile.startswith("[stack")
 
     @property
+    def is_heap(self) -> bool:
+        return self.objfile.startswith("[heap")
+
+    @property
     def is_memory_mapped_file(self) -> bool:
         """Whether this mapping is backed by a named file on disk.
 

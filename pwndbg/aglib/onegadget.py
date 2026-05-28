@@ -583,13 +583,11 @@ def check_gadget(
         output_msg += verbose_msg
     output_msg += tabulate(result_list, headers=["Result", "Constraint"], tablefmt="grid") + "\n"
 
-    if (
-        is_valid_gadget == SAT
-        or is_valid_gadget == UNSAT
-        and show_unsat
-        or is_valid_gadget == UNKNOWN
-        and not no_unknown
-    ):
+    if is_valid_gadget == SAT:
+        print(output_msg)
+    elif is_valid_gadget == UNSAT and show_unsat:
+        print(output_msg)
+    elif is_valid_gadget == UNKNOWN and not no_unknown:
         print(output_msg)
 
     return is_valid_gadget
