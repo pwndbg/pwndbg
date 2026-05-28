@@ -1497,7 +1497,7 @@ def try_free(addr: str | int) -> None:
     if (
         allocator.has_tcache()
         and allocator.tcache_entry is not None
-        and "key" in allocator.tcache_entry
+        and "key" in allocator.tcache_entry.keys()  # noqa: SIM118 (not a dict)
     ):
         tc_idx = (chunk_size_unmasked - chunk_minsize + malloc_alignment - 1) // malloc_alignment
         if allocator.mp is not None and tc_idx < allocator.tcache_small_bins:

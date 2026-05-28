@@ -1105,9 +1105,10 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         if not self.has_tcache():
             return None
         mp = self.mp
-        if "tcache_small_bins" in mp.type:
+        keys = mp.type.keys()
+        if "tcache_small_bins" in keys:
             return int(mp["tcache_small_bins"])
-        if "tcache_bins" in mp.type:
+        if "tcache_bins" in keys:
             return int(mp["tcache_bins"])
         return None
 
@@ -1199,7 +1200,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         val = self.malloc_chunk
         if val is None:
             return None
-        chunk_keys = [renames.get(key, key) for key in val]
+        chunk_keys = [renames.get(key, key) for key in val.keys()]  # noqa: SIM118 (not a dict)
         try:
             return chunk_keys.index(key) * pwndbg.aglib.arch.ptrsize
         except Exception:
@@ -1585,7 +1586,8 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
     def has_tcache(self) -> bool:
         # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
         return self.mp is not None and any(
-            x in self.mp.type for x in ["tcache_bins", "tcache_small_bins"]
+            x in self.mp.type.keys()  # noqa: SIM118 (mp is not a dict)
+            for x in ["tcache_bins", "tcache_small_bins"]
         )
 
     @property
