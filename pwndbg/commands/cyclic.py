@@ -20,8 +20,6 @@ from pwndbg.commands import CommandCategory
 class TimeoutException(Exception):
     """Custom exception for signal-based timeouts."""
 
-    pass
-
 
 def detect_register_patterns(alphabet, length, timeout) -> None:
     if not pwndbg.aglib.proc.alive():

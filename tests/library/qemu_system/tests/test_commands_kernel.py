@@ -254,7 +254,7 @@ def test_command_buddydump() -> None:
 
     # find the starting addresses of all entries within the freelists
     matches = get_buddy_freelist_elements(res)
-    for i in range(0, len(matches)):
+    for i in range(len(matches)):
         vaddr, page = matches[i]
         res = gdb.execute(f"bud -f {hex(vaddr + random.randint(0, 0x1000 - 1))}", to_string=True)
         _matches = get_buddy_freelist_elements(res)

@@ -437,7 +437,6 @@ class x86_64PagingInfo(ArchPagingInfo):
             )
         except Exception as e:
             print(e)
-            pass
         vmemmap, vmalloc = None, None
         if result is not None:
             vmemmap = pwndbg.aglib.memory.u64(result - 0x10)

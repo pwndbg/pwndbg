@@ -924,8 +924,6 @@ class YieldSingleStep:
     caught and hanlded by the event loop in the LLDB Pwndbg CLI.
     """
 
-    pass
-
 
 class LLDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     @override

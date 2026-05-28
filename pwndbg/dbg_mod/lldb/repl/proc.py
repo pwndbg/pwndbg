@@ -35,39 +35,32 @@ class EventHandler:
         """
         This function is called when a process is created or attached to.
         """
-        pass
 
     def suspended(self, cause: lldb.SBEvent):
         """
         This function is called when the execution of a process is suspended.
         """
-        pass
 
     def resumed(self):
         """
         This function is called when the execution of a process is resumed.
         """
-        pass
 
     def exited(self):
         """
         This function is called when a process terminates or is detached from.
         """
-        pass
 
     def modules_loaded(self):
         """
         This function is called when a new modules have been loaded.
         """
-        pass
 
 
 class _PollResult:
     """
     Base class for results of the run loop.
     """
-
-    pass
 
 
 class _PollResultTimedOut(_PollResult):
@@ -108,15 +101,11 @@ class LaunchResult:
     Base class for results of launch operations.
     """
 
-    pass
-
 
 class LaunchResultSuccess(LaunchResult):
     """
     Indicates that the process was fully launched or attached to.
     """
-
-    pass
 
 
 class LaunchResultEarlyExit(LaunchResult):
@@ -125,16 +114,12 @@ class LaunchResultEarlyExit(LaunchResult):
     exited immediately, with no stop events.
     """
 
-    pass
-
 
 class LaunchResultConnected(LaunchResult):
     """
     Indicates that there has been a successful connection to a remote
     debugserver, but that no process is being debugged yet.
     """
-
-    pass
 
 
 class LaunchResultError(LaunchResult):

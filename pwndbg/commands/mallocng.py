@@ -953,7 +953,7 @@ def mallocng_dump(meta_area: int | None = None) -> None:
         print(dump_meta_area(meta_area, coming_from_dump=True))
 
         # Iterate over all metas in this meta_area
-        for i in range(0, meta_area.nslots):
+        for i in range(meta_area.nslots):
             meta_addr = meta_area.at_index(i)
 
             if meta_addr in free_metas:

@@ -506,7 +506,6 @@ class Extent:
         """
         Returns True if the extent is free.
         """
-        pass
 
     @property
     def pai(self) -> str:

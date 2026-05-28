@@ -248,7 +248,6 @@ async def break_on_next_matching_instruction(
                 return ins
             # We don't want to be spinning in place, nudge execution forward
             # and try again.
-            pass
         else:
             # Move to the next branch instruction.
             nb = next_branch(pwndbg.aglib.regs.pc, including_current=True)

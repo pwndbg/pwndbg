@@ -84,8 +84,6 @@ class InvalidDebuggerError(Exception):
     it is disallowed.
     """
 
-    pass
-
 
 class CommandFormatter(argparse.RawDescriptionHelpFormatter):
     """

@@ -799,7 +799,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     )
                     break
                 start = None
-                pass
 
             if start is None:
                 break
