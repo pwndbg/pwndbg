@@ -118,6 +118,14 @@ ignore = [
     "F405",
     "F821",
     "W505",
+    "SIM102", # flake8-simplify collapsible-if
+    "SIM103", # flake8-simplify needless-bool
+    "SIM105", # flake8-simplify suppressible-exception
+    "SIM108", # flake8-simplify if-else-block-instead-of-if-exp
+    "SIM110", # flake8-simplify reimplemented-builtin
+    "SIM115", # flake8-simplify open-file-with-context-handler
+    "SIM117", # flake8-simplify multiple-with-statements
+    "SIM300", # flake8-simplify yoda-coonditions
     "RET503", # flake8-return implicit-return
     "RET504", # flake8-return unnecessary-assign
 ]
@@ -134,11 +142,11 @@ select = [
     "FLY",    # flynt
     "PGH",    # pygrep-hooks
     "PIE",    # flake8-pie
+    "SIM",    # flake8-simplify
     "RET",    # flake8-return
     "UP",     # pyugprade
     # We want to enable the below lints, but they currently return too many errors
     # "SLF" # flake8-self
-    # "SIM", # flake8-simplify
     # "PTH", # flake8-use-pathlib
 ]
 
