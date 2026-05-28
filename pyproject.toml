@@ -133,6 +133,7 @@ select = [
     "SLOT",   # flake8-slots
     "FLY",    # flynt
     "PGH",    # pygrep-hooks
+    "PIE",    # flake8-pie
     "RET",    # flake8-return
     "UP",     # pyugprade
     # We want to enable the below lints, but they currently return too many errors
