@@ -1587,7 +1587,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
         return self.mp is not None and any(
             x in self.mp.type.keys()  # noqa: SIM118 (mp is not a dict)
-            for x in ["tcache_bins", "tcache_small_bins"]
+            for x in ("tcache_bins", "tcache_small_bins")
         )
 
     @property

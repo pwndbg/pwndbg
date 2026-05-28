@@ -208,7 +208,7 @@ def kernel_vmmap_via_page_tables() -> tuple[Page, ...]:
     ptrsize: int = pwndbg.aglib.arch.ptrsize
     if arch == "aarch64":
         arch_backend = PT_Aarch64_Backend(machine_backend)
-    elif arch == "i386" or arch == "x86-64":
+    elif arch in {"x86-64", "i386"}:
         arch_backend = PT_x86_64_Backend(machine_backend)
     elif arch == "rv64":
         arch_backend = PT_RiscV64_Backend(machine_backend)

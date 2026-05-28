@@ -879,7 +879,7 @@ class BasicType(Type):
         elif ty in ("int", "uint", "uintptr", "funcptr"):
             self.sz = word_size()
             self.algn = word_size()
-        elif ty == "string" or ty in ("any", "interface"):
+        elif ty in ("string", "any", "interface"):
             self.sz = word_size() * 2
             self.algn = word_size()
         else:
