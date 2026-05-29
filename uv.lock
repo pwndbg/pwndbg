@@ -1813,7 +1813,7 @@ requires-dist = [
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
     { name = "pwntools", specifier = ">=4.14.1,<5" },
     { name = "pycparser", specifier = "~=3.0" },
-    { name = "pyelftools", specifier = ">=0.32,<0.33" },
+    { name = "pyelftools", specifier = "==0.32" },
     { name = "pygments", specifier = ">=2.19.2,<3" },
     { name = "pyreadline3", marker = "sys_platform == 'win32' and extra == 'lldb'", specifier = ">=3.5.4,<4" },
     { name = "requests", specifier = ">=2.32.5,<3" },
