@@ -226,6 +226,9 @@ disable_error_code = [
     "assignment",
 ]
 
+# ==== our typing is bad ====
+# FIXME: Fix the types in these modules
+
 [[tool.mypy.overrides]]
 module = [
     "pwndbg.color.*",
@@ -266,16 +269,17 @@ disable_error_code = ["name-defined", "attr-defined"]
 module = ["pwndbg.aglib.disasm.*"]
 disable_error_code = ["index", "name-defined", "attr-defined"]
 
+# ===========================
+
+# These are not our fault, so they make sense.
 [[tool.mypy.overrides]]
 module = [
     "capstone6pwndbg.*",
-    "unicorn.*",
     "pwnlib.*",
     "ropgadget.*",
     "ipdb.*",
     "r2pipe",
     "rzpipe",
-    "rich.*",
     "pt.*",
     "lldb.*",
     "gnureadline",
@@ -289,7 +293,6 @@ branch = true
 parallel = true
 disable_warnings = ["module-not-imported"]
 source = ["${SRC_DIR-.}"]
-omit = ["ida_script.py"]
 data_file = ".cov/coverage"
 
 [tool.coverage.report]
