@@ -13,7 +13,7 @@ dependencies = [
     "tabulate>=0.10.0,<0.11",
     "typing-extensions>=4.15.0,<5",
     "pycparser~=3.0",
-    "pyelftools==0.32",
+    "pyelftools>=0.33,<1",
     "pygments>=2.19.2,<3",
     "psutil>=7.0.0,<8",
     # We install uv to the venv
