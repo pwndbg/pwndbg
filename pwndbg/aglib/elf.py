@@ -346,7 +346,9 @@ def get_ehdr(pointer: int) -> tuple[int | None, Ehdr | None]:
     ei_class = pwndbg.aglib.memory.byte(base + 4)
 
     # Find out where the section headers start
-    Elfhdr: Elf32_Ehdr | Elf64_Ehdr | None = read(Ehdr, base)  # type: ignore[type-var]
+    Elfhdr: pwndbg.lib.elftypes.Elf32_Ehdr | pwndbg.lib.elftypes.Elf64_Ehdr | None = read(
+        Ehdr, base
+    )  # type: ignore[type-var]
     return ei_class, Elfhdr
 
 

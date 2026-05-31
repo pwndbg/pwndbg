@@ -13,7 +13,7 @@ dependencies = [
     "tabulate>=0.10.0,<0.11",
     "typing-extensions>=4.15.0,<5",
     "pycparser~=3.0",
-    "pyelftools>=0.32,<0.33",
+    "pyelftools>=0.33,<1",
     "pygments>=2.19.2,<3",
     "psutil>=7.0.0,<8",
     # We install uv to the venv
@@ -226,9 +226,8 @@ disable_error_code = [
     "assignment",
 ]
 
-[[tool.mypy.overrides]]
-module = ["pwndbg.aglib.elf"]
-disable_error_code = ["name-defined"]
+# ==== our typing is bad ====
+# FIXME: Fix the types in these modules
 
 [[tool.mypy.overrides]]
 module = [
@@ -270,21 +269,17 @@ disable_error_code = ["name-defined", "attr-defined"]
 module = ["pwndbg.aglib.disasm.*"]
 disable_error_code = ["index", "name-defined", "attr-defined"]
 
-[[tool.mypy.overrides]]
-module = ["tests.*"]
-warn_unused_ignores = false
+# ===========================
 
+# These are not our fault, so they make sense.
 [[tool.mypy.overrides]]
 module = [
     "capstone6pwndbg.*",
-    "unicorn.*",
     "pwnlib.*",
     "ropgadget.*",
-    "elftools.*",
     "ipdb.*",
     "r2pipe",
     "rzpipe",
-    "rich.*",
     "pt.*",
     "lldb.*",
     "gnureadline",
@@ -293,20 +288,12 @@ module = [
 ]
 ignore_missing_imports = true
 
-[[tool.mypy.overrides]]
-module = [
-    "pwndbg.lib.got",
-    "pwndbg.commands.got",
-]
-disable_error_code = ["no-untyped-call"]
-
 [tool.coverage.run]
 branch = true
 parallel = true
 disable_warnings = ["module-not-imported"]
 source = ["${SRC_DIR-.}"]
-omit = ["ida_script.py"]
 data_file = ".cov/coverage"
 
 [tool.coverage.report]
-omit = ["ida_script.py", "tests/*"]
+omit = ["tests/*"]

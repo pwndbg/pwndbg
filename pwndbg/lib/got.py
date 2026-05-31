@@ -4,7 +4,10 @@ from enum import Enum
 
 from elftools.elf.descriptions import describe_reloc_type
 from elftools.elf.elffile import ELFFile
+from elftools.elf.gnuversions import GNUVerNeedSection
+from elftools.elf.gnuversions import GNUVerSymSection
 from elftools.elf.relocation import RelocationSection
+from elftools.elf.sections import SymbolTableSection
 
 
 class RelocationType(Enum):
@@ -29,6 +32,7 @@ def get_got_entry(local_path: str) -> dict[RelocationType, list[dict[str, int | 
             for rel in section.iter_relocations():
                 # Get the symbol table and look up the symbol for this relocation
                 symbol_table = elf.get_section(section["sh_link"])
+                assert isinstance(symbol_table, SymbolTableSection)
                 symbol = symbol_table.get_symbol(rel["r_info_sym"])
                 symbol_name = symbol.name
 
@@ -38,6 +42,8 @@ def get_got_entry(local_path: str) -> dict[RelocationType, list[dict[str, int | 
                     # Get the version section if it exists
                     versym_section = elf.get_section_by_name(".gnu.version")
                     verneed_section = elf.get_section_by_name(".gnu.version_r")
+                    assert isinstance(versym_section, GNUVerSymSection)
+                    assert isinstance(verneed_section, GNUVerNeedSection)
 
                     if (
                         versym_section
@@ -51,7 +57,7 @@ def get_got_entry(local_path: str) -> dict[RelocationType, list[dict[str, int | 
                         if version_index > 1:
                             # Iterate through version requirements to find the matching version
                             # iter_versions() returns tuples of (verneed, vernaux_iter)
-                            for verneed_item, vernaux_iter in verneed_section.iter_versions():
+                            for _, vernaux_iter in verneed_section.iter_versions():
                                 for vernaux in vernaux_iter:
                                     if vernaux["vna_other"] == version_index:
                                         symbol_version = f"@{vernaux.name}"
