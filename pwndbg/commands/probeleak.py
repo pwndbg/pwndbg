@@ -95,7 +95,12 @@ which points to a libc rwx page.
 )
 @pwndbg.commands.OnlyWhenRunning
 def probeleak(
-    address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None
+    address: int,
+    count: int = 0x40,
+    max_distance: int = 0x0,
+    point_to: str | None = None,
+    max_ptrs: int = 0,
+    flags: str | None = None,
 ) -> None:
     address = int(address)
     address &= pwndbg.aglib.arch.ptrmask
@@ -129,7 +134,7 @@ def probeleak(
 
     found = False
     find_cnt = 0
-    for i in range(0, len(data) - ptrsize + 1):
+    for i in range(len(data) - ptrsize + 1):
         p = pwndbg.aglib.arch.unpack(data[i : i + ptrsize])
         page = find_module(p, max_distance)
         if page:

@@ -34,6 +34,12 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
                 pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
 
             await self.pc.execute("set context-reserve-lines never")
+            # Disable debuginfod globally for LLDB tests: a partial/laggy
+            # download triggers `LLVM ERROR: CachedFileStream was not committed`
+            # which aborts the whole process and makes CI flaky (commonly seen
+            # on the fedora43 image, which ships LLDB 21 + system-wide
+            # debuginfod URLs). See https://github.com/llvm/llvm-project/issues/184728
+            await self.pc.execute("settings clear plugin.symbol-locator.debuginfod.server-urls")
             await self.pc.execute(f"target create {binary}")
             env_args = " ".join((f"-E{k}={v}" for k, v in env.items()))
             await self.pc.execute(
@@ -67,7 +73,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
 
         async def disable_debuginfod(self) -> None:
             # Could also consider disabling `symbols.enable-external-lookup`
-            await self.pc.execute("settings set plugin.symbol-locator.debuginfod.server-urls {}")
+            await self.pc.execute("settings clear plugin.symbol-locator.debuginfod.server-urls")
 
         async def generate_core_file(self, path: Path) -> None:
             await self.pc.execute(f"process save-core {path}")

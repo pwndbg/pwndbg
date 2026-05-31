@@ -6,18 +6,18 @@ authors = [{ name = "Dominik 'disconnect3d' Czarnota", email = "dominik.b.czarno
 requires-python = ">=3.10, <4"
 readme = "README.md"
 dependencies = [
-    "capstone6pwndbg==6.0.0a6",
+    "capstone6pwndbg==6.0.0a9",
     "unicorn>=2.1.4,<3",
     "pwntools>=4.14.1,<5",
     "sortedcontainers>=2.4.0,<3",
-    "tabulate>=0.9.0,<0.10",
+    "tabulate>=0.10.0,<0.11",
     "typing-extensions>=4.15.0,<5",
     "pycparser~=3.0",
-    "pyelftools>=0.32,<0.33",
+    "pyelftools>=0.33,<1",
     "pygments>=2.19.2,<3",
     "psutil>=7.0.0,<8",
     # We install uv to the venv
-    "uv>=0.8.14",
+    "uv>=0.11.8",
     # Optional? only for 'ipi' command
     "ipython>=8.37.0,<9",
     # Optional? only for 'ropgadget' command
@@ -25,7 +25,7 @@ dependencies = [
     # Optional? only for 'ai' commands
     "requests>=2.32.5,<3",
     # Optional? only for pretty print traceback
-    "rich>=14.1.0,<15",
+    "rich>=15.0.0,<16",
     # Optional? only for qemu-system vmmap
     "pt @ git+https://github.com/martinradev/gdb-pt-dump@50227bda0b6332e94027f811a15879588de6d5cb",
     # Optional? 'ziglang' must be optional, as it is not available on every platform.
@@ -41,10 +41,10 @@ dependencies = [
 
 [project.optional-dependencies]
 lldb = [
-    # The LLDB REPL requires readline.
+    # Optional? for better LLDB REPL behaviour on python builds that use libeedit.
     'gnureadline>=8.2.13,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
-    "lldb-for-pwndbg==21.1.7.post1",
+    "lldb-for-pwndbg==22.1.0.post2",
 ]
 gdb = [
     "gdb-for-pwndbg==17.1.0.post2",
@@ -61,8 +61,8 @@ dev = [
 ]
 lint = [
     "mypy>=1.18.2,<2",
-    "ruff==0.14.10",
-    "vermin>=1.6.0,<2",
+    "ruff==0.15.9",
+    "vermin>=1.8.0,<2",
 ]
 tests = [
     # Newer versions of pytest break CI on GitHub
@@ -110,7 +110,26 @@ explicit = true
 line-length = 100
 
 [tool.ruff.lint]
-ignore = ["A003", "E402", "E501", "E731", "F405", "F821", "W505"]
+ignore = [
+    "A003",
+    "E402",
+    "E501",
+    "E731",
+    "F405",
+    "F821",
+    "W505",
+    "SIM102", # flake8-simplify collapsible-if
+    "SIM103", # flake8-simplify needless-bool
+    "SIM105", # flake8-simplify suppressible-exception
+    "SIM108", # flake8-simplify if-else-block-instead-of-if-exp
+    "SIM110", # flake8-simplify reimplemented-builtin
+    "SIM114", # flake8-simplify if-with-same-arms
+    "SIM115", # flake8-simplify open-file-with-context-handler
+    "SIM117", # flake8-simplify multiple-with-statements
+    "SIM300", # flake8-simplify yoda-coonditions
+    "RET503", # flake8-return implicit-return
+    "RET504", # flake8-return unnecessary-assign
+]
 
 select = [
     "A",      # flake8-builtins
@@ -123,14 +142,12 @@ select = [
     "SLOT",   # flake8-slots
     "FLY",    # flynt
     "PGH",    # pygrep-hooks
-    "RET505", # flake8-return: superfluous-else-return
-    "RET506", # flake8-return: superfluous-else-raise
-    "RET507", # flake8-return: superfluous-else-continue
-    "RET508", # flake8-return: superfluous-else-break
-    "UP",      # pyugprade
+    "PIE",    # flake8-pie
+    "SIM",    # flake8-simplify
+    "RET",    # flake8-return
+    "UP",     # pyugprade
     # We want to enable the below lints, but they currently return too many errors
     # "SLF" # flake8-self
-    # "SIM", # flake8-simplify
     # "PTH", # flake8-use-pathlib
 ]
 
@@ -209,9 +226,8 @@ disable_error_code = [
     "assignment",
 ]
 
-[[tool.mypy.overrides]]
-module = ["pwndbg.aglib.elf"]
-disable_error_code = ["name-defined"]
+# ==== our typing is bad ====
+# FIXME: Fix the types in these modules
 
 [[tool.mypy.overrides]]
 module = [
@@ -253,17 +269,17 @@ disable_error_code = ["name-defined", "attr-defined"]
 module = ["pwndbg.aglib.disasm.*"]
 disable_error_code = ["index", "name-defined", "attr-defined"]
 
+# ===========================
+
+# These are not our fault, so they make sense.
 [[tool.mypy.overrides]]
 module = [
     "capstone6pwndbg.*",
-    "unicorn.*",
     "pwnlib.*",
     "ropgadget.*",
-    "elftools.*",
     "ipdb.*",
     "r2pipe",
     "rzpipe",
-    "rich.*",
     "pt.*",
     "lldb.*",
     "gnureadline",
@@ -277,8 +293,7 @@ branch = true
 parallel = true
 disable_warnings = ["module-not-imported"]
 source = ["${SRC_DIR-.}"]
-omit = ["ida_script.py"]
 data_file = ".cov/coverage"
 
 [tool.coverage.report]
-omit = ["ida_script.py", "tests/*"]
+omit = ["tests/*"]

@@ -6,7 +6,7 @@ from capstone6pwndbg import *  # noqa: F403
 from capstone6pwndbg.ppc_const import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
@@ -73,7 +73,7 @@ def is_branch_taken(cr: int, ctr: int, bi: int, bo: int) -> bool | None:
     return None
 
 
-class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     saved_ctr: int | None = None
 
     def __init__(self, architecture) -> None:
@@ -94,23 +94,23 @@ class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        cr = self._read_register_name(instruction, "cr", emu)
-
-        if cr is None or self.saved_ctr is None:
-            # We can't reason about the value of cr register
-            return InstructionCondition.UNDETERMINED
-
         if instruction.id in POWERPC_CONDITIONAL_BRANCHES:
+            cr = self._read_register_name(instruction, "cr", emu)
+
+            if cr is None or self.saved_ctr is None:
+                # We can't reason about the value of cr register
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+
             is_taken = is_branch_taken(
                 cr, self.saved_ctr, instruction.cs_insn.bc.bi, instruction.cs_insn.bc.bo
             )
 
             if is_taken is None:
-                return InstructionCondition.UNDETERMINED
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
 
             return InstructionCondition.TRUE if is_taken else InstructionCondition.FALSE
 
-        return InstructionCondition.UNDETERMINED
+        return InstructionCondition.UNCONDITIONAL
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):

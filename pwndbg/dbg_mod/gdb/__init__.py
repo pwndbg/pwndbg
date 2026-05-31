@@ -799,7 +799,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     )
                     break
                 start = None
-                pass
 
             if start is None:
                 break
@@ -959,7 +958,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         block = gdb.block_for_pc(address)
 
         if block is not None:
-            # Final the top-level function that this block resides it
+            # Find the top-level function that this block resides in
             while block.superblock is not None and block.superblock.function is not None:
                 block = block.superblock
 
@@ -1329,14 +1328,22 @@ class GDBCommand(gdb.Command):
         # word=None. Why?
         # Since we only support one level of subcommand completion (i.e. we dont support subsubcommand completion),
         # we don't really care about the text and word distinction.
-        if word is None or text != word:
+        # Correction (#3751): We have to handle the `text != word` case to properly autocomplete stuff like
+        # `knft list-<tab>` (text="list-", word="").
+
+        if word is None:
             return []
         if text == "":
             # Return all subcommands
             return self.subcommand_names
 
         # Find all with matching prefix
-        return [valid for valid in self.subcommand_names if valid.startswith(text)]
+
+        # We need to calculate `comp_start` to handle stuff like `knft list-flowtables`
+        # and only return the matched word. I.e. `knft list-f<tab>` should return "flowtables"
+        # not "list-flowtables".
+        comp_start: int = len(text) - len(word)
+        return [valid[comp_start:] for valid in self.subcommand_names if valid.startswith(text)]
 
 
 class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
@@ -1720,7 +1727,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         set backtrace past-main on
         set step-mode on
         set print pretty on
-        set debuginfod enabled on
+        set output-radix 16
         handle SIGALRM nostop print nopass
         handle SIGBUS  stop   print nopass
         handle SIGPIPE nostop print nopass
@@ -1729,6 +1736,12 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         for line in pre_commands.strip().splitlines():
             gdb.execute(line)
+
+        # debuginfod may not be compiled in (e.g. bare-metal cross GDB)
+        try:
+            gdb.execute("set debuginfod enabled on")
+        except gdb.error:
+            pass
 
         # This may throw an exception, see pwndbg/pwndbg#27
         try:
@@ -1905,11 +1918,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         for line in command_list:
             line = line.strip()
             # Skip non-command entries
-            if (
-                not line
-                or line.startswith("Command class:")
-                or line.startswith("Unclassified commands")
-            ):
+            if not line or line.startswith(("Command class:", "Unclassified commands")):
                 continue
             command = line.split()[0]
             existing_commands.add(command)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import re
 import string
 import struct
 import textwrap
@@ -23,7 +24,6 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.color.memory
 import pwndbg.dintegration
-import pwndbg.hexdump
 import pwndbg.lib.cache
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
@@ -191,7 +191,6 @@ class Type(ABC):
     @abstractmethod
     def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         """Dump a type from memory given an address and format."""
-        pass
 
     @abstractmethod
     def size(self) -> int:
@@ -200,7 +199,6 @@ class Type(ABC):
 
         Used for computing array and struct layouts.
         """
-        pass
 
     @abstractmethod
     def align(self) -> int:
@@ -209,7 +207,6 @@ class Type(ABC):
 
         Used for computing array and struct layouts.
         """
-        pass
 
     @abstractmethod
     def get_typename(self) -> str:
@@ -218,7 +215,6 @@ class Type(ABC):
 
         Also used to get the string representation.
         """
-        pass
 
     def is_cyclic(self) -> bool:
         """
@@ -328,13 +324,13 @@ def get_go_version() -> tuple[int, ...] | None:
             version_string = read_varint_str(buildinfo + 32).decode()
     if version_string == "unknown":
         return None
-    if not version_string.startswith("go"):
+    version_match = re.match(r"^go(\d+)\.(\d+)\.(\d+)", version_string)
+    if version_match is None:
         emit_warning(f"Go version string {version_string!r} doesn't start with 'go'")
         return None
 
-    # Cleanup a string that looks like "go1.25.5 X:nodwarf5"
-    version_string = version_string.split(" ")[0]
-    return tuple(int(x) for x in version_string[2:].split("."))
+    # Cleanup a string that looks like "go1.25.5..."
+    return tuple(map(int, version_match.groups()))
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -624,7 +620,8 @@ def _inner_decode_runtime_type(
         addr,
         size=size,
         align=align,
-        direct_iface=(kind_raw & (1 << 5)) != 0,
+        # go 1.26 move direct/indirect flag from Kind to TFlag
+        direct_iface=((kind_raw & (1 << 5)) | tflag & (1 << 5)) != 0,
     )
     cache[addr] = (meta, BackrefType(meta, addr))
     simple_name = kind.get_simple_name()
@@ -818,7 +815,7 @@ class BasicType(Type):
             closure_addr = load_uint(val)
             f = load_uint(pwndbg.aglib.memory.read(closure_addr, word))
             return fmt.fmt_debug(f"(closure @ {closure_addr}) ") + fmt.fmt_ptr(f)
-        if ty.startswith("int") or ty.startswith("uint"):
+        if ty.startswith(("int", "uint")):
             if ty.startswith("int"):
                 n = load_int(val)
             else:
@@ -882,10 +879,7 @@ class BasicType(Type):
         elif ty in ("int", "uint", "uintptr", "funcptr"):
             self.sz = word_size()
             self.algn = word_size()
-        elif ty == "string":
-            self.sz = word_size() * 2
-            self.algn = word_size()
-        elif ty in ("any", "interface"):
+        elif ty in ("string", "any", "interface"):
             self.sz = word_size() * 2
             self.algn = word_size()
         else:

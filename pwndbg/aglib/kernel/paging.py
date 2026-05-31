@@ -124,7 +124,7 @@ class PageTableScan:
         # TODO: prev is used to avoid clustering the vmmap output with espfix ranges (happens for x86-64)
         # consecutive identical pt entries will be clapsed into one. None means not x86-64
         # I believe this is what gdb-pt-dump does as this gives identical output
-        prev = 0 if self.arch == "x86-64" else None
+        prev = 0 if self.arch == "x86-64" and level != 1 else None
         for entry in entries:
             if prev and prev == entry:
                 # be aware to not use continue
@@ -437,7 +437,6 @@ class x86_64PagingInfo(ArchPagingInfo):
             )
         except Exception as e:
             print(e)
-            pass
         vmemmap, vmalloc = None, None
         if result is not None:
             vmemmap = pwndbg.aglib.memory.u64(result - 0x10)
@@ -456,9 +455,11 @@ class x86_64PagingInfo(ArchPagingInfo):
     @pwndbg.lib.cache.cache_until("stop")
     def kbase(self) -> int | None:
         idt_entries = pwndbg.aglib.kernel.get_idt_entries()
-        if len(idt_entries) == 0:
+        try:
+            entry = next(idt_entries)
+            return self._kbase(entry.offset)
+        except StopIteration:
             return None
-        return self._kbase(idt_entries[0].offset)
 
     @property
     def page_shift(self) -> int:
@@ -665,7 +666,10 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def kbase(self) -> int | None:
-        return self._kbase(pwndbg.aglib.regs.read_reg("vbar"))
+        # AArch64 vector base: QEMU >= ~8.x exposes it as `vbar_el1`; older
+        # QEMU releases (and some non-EL1 contexts) expose it as the generic
+        # `vbar`. See #3869 / #3875.
+        return self._kbase(pwndbg.aglib.regs.read_reg("vbar_el1", "vbar"))
 
     @property
     @pwndbg.lib.cache.cache_until("stop")

@@ -5,6 +5,7 @@ import re
 from abc import ABC
 from abc import abstractmethod
 from collections.abc import Callable
+from collections.abc import Iterator
 from typing import TYPE_CHECKING
 from typing import TypeVar
 
@@ -270,7 +271,7 @@ def krelease() -> tuple[int, ...] | None:
     raise Exception("Linux version tuple not found")
 
 
-def get_idt_entries() -> list[pwndbg.lib.kernel.structs.IDTEntry]:
+def get_idt_entries() -> Iterator[pwndbg.lib.kernel.structs.IDTEntry]:
     """
     Retrieves the IDT entries from memory.
     """
@@ -278,17 +279,13 @@ def get_idt_entries() -> list[pwndbg.lib.kernel.structs.IDTEntry]:
     limit = pwndbg.aglib.regs.idt_limit
 
     size = pwndbg.aglib.arch.ptrsize * 2
-    num_entries = min((limit + 1) // size, 256)
-
-    entries = []
+    num_entries = (limit + 1) // size
 
     # TODO: read the entire IDT in one call?
     for i in range(num_entries):
         entry_addr = base + i * size
         entry = pwndbg.lib.kernel.structs.IDTEntry(pwndbg.aglib.memory.read(entry_addr, size))
-        entries.append(entry)
-
-    return entries
+        yield entry
 
 
 def current_cpu() -> int:
@@ -552,7 +549,11 @@ class Aarch64Ops(ArchOps):
 
     @staticmethod
     def paging_enabled() -> bool:
-        return int(pwndbg.aglib.regs.read_reg("SCTLR")) & BIT(0) != 0
+        # AArch64 system control register: newer QEMU releases (tested on
+        # 10.2.0) expose it as `SCTLR_EL1`; older releases used the generic
+        # `SCTLR`. Bit 0 (M) is the MMU-enable flag in either case. See
+        # #3871 / #3875.
+        return int(pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) & BIT(0) != 0
 
 
 @pwndbg.lib.cache.cache_until("start")

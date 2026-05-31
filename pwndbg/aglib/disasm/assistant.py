@@ -301,7 +301,7 @@ class DisassemblyAssistant:
         The goal of this function is to set the `annotation` field of the instruction,
         which is the string to be printed in a disasm view.
         """
-        return None
+        return
 
     def _enhance_operands(
         self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
@@ -404,22 +404,22 @@ class DisassemblyAssistant:
 
     # Delegates to "read_register", which takes Capstone ID for register.
     def _parse_register(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
     ) -> int | None:
-        reg = operand.reg
+        reg = op.reg
         return self._read_register(instruction, reg, emu)
 
     # Determine memory address of operand (Ex: in x86, mov rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
     # Subclasses override for specific architectures
     def _parse_memory(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
     ) -> int | None:
         return None
 
     def _parse_immediate(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
-    ):
-        return operand.imm
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+    ) -> int | None:
+        return op.imm
 
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
@@ -436,7 +436,7 @@ class DisassemblyAssistant:
 
     # Read register by its name
     def _read_register_name(
-        self, instruction: PwndbgInstruction, regname: str, emu: Emulator
+        self, instruction: PwndbgInstruction, regname: str, emu: Emulator | None
     ) -> int | None:
         if emu:
             # Will read the value of register from the emulator
@@ -624,12 +624,12 @@ class DisassemblyAssistant:
 
     def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if CS_GRP_INT not in instruction.groups:
-            return None
+            return
 
         syscall_arch, syscall_register = self._get_syscall_arch_info(instruction)
 
         if syscall_arch is None:
-            return None
+            return
 
         instruction.syscall = self._read_register_name(instruction, syscall_register, emu)
         if instruction.syscall is not None:
@@ -652,20 +652,22 @@ class DisassemblyAssistant:
         """
         Sets the `condition` of the instruction
 
-        If the instruction is always executed unconditionally, or we cannot reason about the instruction,
-        the value of the field is `InstructionCondition.UNDETERMINED`.
+        If the instruction is always executed unconditionally, the value is set to `InstructionCondition.UNCONDITIONAL`
+        This is the default value if not otherwise specified.
 
         If the instruction is executed conditionally, and we can be absolutely
         sure that it will be executed, the value of the field is `InstructionCondition.TRUE`.
 
-        In all other cases, it is set to `InstructionCondition.FALSE`.
+        If it's conditional, and the condition is false, it is set to `InstructionCondition.FALSE`.
+
+        If it's conditional but we cannot reason about if the condition is true, it is set to `InstructionCondition.UNDETERMINED_CONDITIONAL`.
         """
 
         instruction.condition = self._condition(instruction, emu)
 
     # Subclasses should override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        return InstructionCondition.UNDETERMINED
+        return InstructionCondition.UNCONDITIONAL
 
     def _enhance_next(
         self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
@@ -741,7 +743,7 @@ class DisassemblyAssistant:
         # in case we didn't manually determine the condition.
         if (
             jump_emu
-            and instruction.condition == InstructionCondition.UNDETERMINED
+            and instruction.condition == InstructionCondition.UNDETERMINED_CONDITIONAL
             and instruction.is_conditional_jump
         ):
             # At this point we know the emulator was used to determine

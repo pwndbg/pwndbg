@@ -89,8 +89,6 @@ class UserCancelledError(CancelledError):
     that is used in these conditions.
     """
 
-    pass
-
 
 def print_error(msg: str, *args):
     """
@@ -259,8 +257,6 @@ class YieldInteractive:
     """
     Prompt the user for the next command.
     """
-
-    pass
 
 
 class PwndbgController:

@@ -6,6 +6,7 @@ instruction of some type (call, branch, etc.)
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from itertools import chain
 
 from capstone6pwndbg import CS_GRP_INT
@@ -153,13 +154,40 @@ async def break_next_interrupt(
     return None
 
 
+async def break_next_interrupt_filtered(
+    ec: pwndbg.dbg_mod.ExecutionController,
+    predicate: Callable[[], bool],
+    address: int | None = None,
+    honor_current_branch: bool = False,
+) -> PwndbgInstruction | None:
+    """
+    Break at the next interrupt in the current basic block if it matches the predicate.
+
+    This behaves exactly like break_next_interrupt (stops at basic block boundaries,
+    does not follow branches), but additionally checks the predicate after stopping
+    at the interrupt instruction.
+    """
+    ins: PwndbgInstruction | None = next_int(address, honor_current_branch=honor_current_branch)
+    proc = pwndbg.dbg.selected_inferior()
+    if ins:
+        with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+            await ec.cont(bp)
+        try:
+            if predicate():
+                return ins
+        except Exception:
+            pass
+
+    return None
+
+
 async def break_next_call(ec: pwndbg.dbg_mod.ExecutionController, symbol_regex=None):
     symbol_regex = re.compile(symbol_regex) if symbol_regex else None
 
     while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
         if pwndbg.aglib.proc.stopped_with_signal():
-            return
+            return None
 
         ins = await break_next_branch(ec)
 
@@ -186,7 +214,7 @@ async def break_next_ret(ec: pwndbg.dbg_mod.ExecutionController, address=None):
     while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
         if pwndbg.aglib.proc.stopped_with_signal():
-            return
+            return None
 
         ins = await break_next_branch(ec, address)
 
@@ -220,7 +248,6 @@ async def break_on_next_matching_instruction(
                 return ins
             # We don't want to be spinning in place, nudge execution forward
             # and try again.
-            pass
         else:
             # Move to the next branch instruction.
             nb = next_branch(pwndbg.aglib.regs.pc, including_current=True)

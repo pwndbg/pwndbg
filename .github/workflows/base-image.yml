@@ -78,17 +78,18 @@ jobs:
 
       - name: Login to GitHub Container Registry
         if: github.ref == 'refs/heads/dev'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        id: buildx
+        uses: docker/setup-buildx-action@v4
 
       - name: Restore Docker cache mounts
         id: cache
@@ -108,20 +109,21 @@ jobs:
             --key "buildkit-${{ matrix.platform_base.tag_name }}-" \
             --json key -q '.[].key' | while read -r key; do
             echo "Deleting stale cache: $key"
-            gh cache delete "$key"
+            gh cache delete "$key" || echo "::warning::Failed to delete stale cache: $key"
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Inject/extract cache mounts
-        if: steps.cache.outputs.cache-hit != 'true'
-        uses: reproducible-containers/buildkit-cache-dance@v3.3.1
+        uses: reproducible-containers/buildkit-cache-dance@v3.3.2
         with:
           cache-map: |
             {
               "uv-${{ matrix.platform_base.tag_name }}": "/root/.cache/uv",
               "cargo-${{ matrix.platform_base.tag_name }}": "/root/.cargo/registry"
             }
+          builder: ${{ steps.buildx.outputs.name }}
+          skip-extraction: ${{ github.event_name == 'pull_request' }}
 
       - name: Build Docker image
         run: |
@@ -157,7 +159,7 @@ jobs:
 
     steps:
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

@@ -5,14 +5,25 @@ from typing import Any
 
 import pytest
 
-from .....host import Controller
-from .. import break_at_sym
-from .. import get_binary
-from .. import launch_to
-from .. import pwndbg_test
+from ....host import Controller
+from . import break_at_sym
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
 HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.native.out")
+
+ADDR_RE = re.compile(r"^Addr: (0x[0-9a-f]+)$")
+
+
+def extract_chunk_addrs(output: str) -> list[int]:
+    chunk_addrs: list[int] = []
+    for line in output.splitlines():
+        match = ADDR_RE.match(line)
+        if match:
+            chunk_addrs.append(int(match.group(1), 16))
+    return chunk_addrs
 
 
 def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, Any]:
@@ -136,6 +147,61 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
     ]
 
     return expected
+
+
+@pwndbg_test
+async def test_heap_command_count(ctrl: Controller) -> None:
+    import pwndbg.aglib
+
+    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
+    count_output = await ctrl.execute_and_capture("heap allocated_chunk --count 2")
+    count_addrs = extract_chunk_addrs(count_output)
+    assert len(count_addrs) == 2
+
+
+@pwndbg_test
+async def test_heap_command_range_and_count(ctrl: Controller) -> None:
+    import pwndbg.aglib
+    import pwndbg.aglib.symbol
+    from pwndbg.aglib.heap.ptmalloc import Chunk
+
+    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
+    chunk_start_addr = pwndbg.aglib.symbol.lookup_symbol_value("allocated_chunk")
+    assert chunk_start_addr is not None
+
+    first_chunk = Chunk(chunk_start_addr)
+    second_chunk = first_chunk.next_chunk()
+    assert second_chunk is not None
+    third_chunk = second_chunk.next_chunk()
+    assert third_chunk is not None
+    fourth_chunk = third_chunk.next_chunk()
+    assert fourth_chunk is not None
+
+    range_start = first_chunk.address
+    range_end = third_chunk.address
+
+    range_output = await ctrl.execute_and_capture(f"heap {range_start:#x} {range_end:#x}")
+    range_addrs = extract_chunk_addrs(range_output)
+
+    assert range_addrs == [first_chunk.address, second_chunk.address, third_chunk.address]
+    assert all(addr <= range_end for addr in range_addrs)
+    assert fourth_chunk.address not in range_addrs
+
+    range_count_output = await ctrl.execute_and_capture(
+        f"heap {range_start:#x} {fourth_chunk.address:#x} --count 2"
+    )
+    range_count_addrs = extract_chunk_addrs(range_count_output)
+
+    assert range_count_addrs == [first_chunk.address, second_chunk.address]
+
+    invalid_range_output = await ctrl.execute_and_capture(f"heap {range_start:#x} {range_start:#x}")
+    assert "`addr_end` must be greater than `addr_start`." in invalid_range_output
 
 
 @pwndbg_test
@@ -647,124 +713,3 @@ async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bo
         _test_heuristic_fail_gracefully("global_max_fast")
         _test_heuristic_fail_gracefully("thread_cache")
         _test_heuristic_fail_gracefully("thread_arena")
-
-
-##
-# Jemalloc Tests
-##
-HEAP_JEMALLOC_EXTENT_INFO = get_binary("heap_jemalloc_extent_info.native.out")
-HEAP_JEMALLOC_HEAP = get_binary("heap_jemalloc_heap.native.out")
-# Relax address regex to accept different virtual address layouts (ASLR / jemalloc mappings).
-# Old pattern assumed addresses starting with 0x7ffff and a limited digit count which fails on some hosts.
-re_match_valid_address = r"0x[0-9a-fA-F]{6,16}"
-
-
-@pwndbg_test
-async def test_jemalloc_find_extent(ctrl: Controller) -> None:
-    import pwndbg.aglib
-
-    pytest.skip("Flaky test, needs fixing. See #3615")
-
-    await launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
-    if pwndbg.aglib.arch.name != "x86-64":
-        pytest.skip("TODO multiarch")
-
-    # run jemalloc extent_info command
-    result = (await ctrl.execute_and_capture("jemalloc-find-extent ptr")).splitlines()
-
-    expected_output = [
-        "Jemalloc find extent",
-        "This command was tested only for jemalloc 5.3.0 and does not support lower versions",
-        "",
-        r"Pointer Address: " + re_match_valid_address,
-        r"Extent Address: " + re_match_valid_address,
-        "",
-        r"Allocated Address: " + re_match_valid_address,
-        r"Extent Address: " + re_match_valid_address,
-        "Size: 0x1000",
-        "Small class: True",
-    ]
-
-    expected_idx = 0
-    for i in range(len(result)):
-        if expected_idx == len(expected_output):
-            break
-        if re.match(expected_output[expected_idx], result[i]) is not None:
-            expected_idx += 1
-    assert expected_idx == len(expected_output)
-
-
-@pwndbg_test
-async def test_jemalloc_extent_info(ctrl: Controller) -> None:
-    import pwndbg.aglib
-
-    pytest.skip("Flaky test, needs fixing. See #3615")
-
-    await launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
-    if pwndbg.aglib.arch.name != "x86-64":
-        pytest.skip("TODO multiarch")
-
-    find_extent_results = (await ctrl.execute_and_capture("jemalloc-find-extent ptr")).splitlines()
-    extent_address = None
-    for line in find_extent_results:
-        if "Extent Address:" in line:
-            extent_address = int(line.split(" ")[-1], 16)
-    if extent_address is None:
-        raise ValueError("Could not find extent address")
-    # run jemalloc extent_info command
-    result = (await ctrl.execute_and_capture(f"jemalloc-extent-info {extent_address}")).splitlines()
-
-    expected_output = [
-        "Jemalloc extent info",
-        "This command was tested only for jemalloc 5.3.0 and does not support lower versions",
-        "",
-        r"Allocated Address: " + re_match_valid_address,
-        r"Extent Address: " + re_match_valid_address,
-        "Size: 0x1000",
-        "Small class: True",
-    ]
-
-    expected_idx = 0
-    for i in range(len(result)):
-        if expected_idx == len(expected_output):
-            break
-        if re.match(expected_output[expected_idx], result[i]) is not None:
-            expected_idx += 1
-    assert expected_idx == len(expected_output)
-
-
-@pwndbg_test
-async def test_jemalloc_heap(ctrl: Controller) -> None:
-    import pwndbg.aglib
-
-    pytest.skip("Flaky test, needs fixing. See #3615")
-
-    await launch_to(ctrl, HEAP_JEMALLOC_HEAP, "break_here")
-    if pwndbg.aglib.arch.name != "x86-64":
-        pytest.skip("TODO multiarch")
-
-    # run jemalloc extent_info command
-    result = (await ctrl.execute_and_capture("jemalloc-heap")).splitlines()
-
-    expected_output = [
-        "Jemalloc heap",
-        "This command was tested only for jemalloc 5.3.0 and does not support lower versions",
-    ]
-
-    # Extent sizes different depending on the system built (it would seem), so only check for the 0x8000 size,
-    # since it seems consistent. The output of an extent implies the rest of the command is working
-    expected_output += [
-        "",
-        "Allocated Address: " + re_match_valid_address,
-        r"Extent Address: " + re_match_valid_address,
-        "Size: 0x8000",
-        "Small class: False",
-    ]
-
-    expected_idx = 0
-    for i in range(len(result)):
-        if expected_idx == len(expected_output):
-            break
-        if re.match(expected_output[expected_idx], result[i]) is not None:
-            expected_idx += 1
-    assert expected_idx == len(expected_output)

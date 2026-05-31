@@ -139,7 +139,19 @@ class Page:
         return self.objfile.startswith("[stack")
 
     @property
+    def is_heap(self) -> bool:
+        return self.objfile.startswith("[heap")
+
+    @property
     def is_memory_mapped_file(self) -> bool:
+        """Whether this mapping is backed by a named file on disk.
+
+        Returns True when ``objfile`` is a real filesystem path (e.g.
+        ``/usr/lib/libc.so.6``).  Returns False for kernel-virtual regions
+        whose names are wrapped in square brackets — ``[stack]``, ``[heap]``,
+        ``[vdso]``, ``[anon_shmem]``, etc. — because those are not files that
+        can be opened or parsed as ELF objects.
+        """
         return len(self.objfile) != 0 and self.objfile[0] != "["
 
     @property
@@ -153,6 +165,10 @@ class Page:
     @property
     def execute(self) -> bool:
         return bool(self.flags & self.X_OK)
+
+    @property
+    def ro(self) -> bool:
+        return self.read and not (self.write or self.execute)
 
     @property
     def rw(self) -> bool:

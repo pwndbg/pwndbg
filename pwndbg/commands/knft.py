@@ -15,17 +15,7 @@ def parse_nft_family(s: str) -> int:
     return val
 
 
-parser = argparse.ArgumentParser(
-    description="Dump all nftables: tables, chains, rules, expressions"
-)
-parser.add_argument("nsid", type=int, nargs="?", help="Network Namespace ID")
-
-
-@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
-@pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugInfo
-@pwndbg.commands.OnlyWhenPagingEnabled
-def knft_dump(nsid: int | None = None):
+def knft_dump(nsid: int | None = None) -> None:
     nft = pwndbg.aglib.kernel.nftables.Nftables.find(nsid=nsid)
     if nft is None:
         print("No netns found")
@@ -34,17 +24,7 @@ def knft_dump(nsid: int | None = None):
     nft.print()
 
 
-parser = argparse.ArgumentParser(
-    description="Dump netfliter tables from a specific network namespace"
-)
-parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
-
-
-@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
-@pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugInfo
-@pwndbg.commands.OnlyWhenPagingEnabled
-def knft_list_tables(nsid: int | None = None):
+def knft_list_tables(nsid: int | None = None) -> None:
     nft = pwndbg.aglib.kernel.nftables.Nftables.find(nsid=nsid)
     if nft is None:
         print("No netns found")
@@ -54,24 +34,9 @@ def knft_list_tables(nsid: int | None = None):
         table.print(print_nested=False)
 
 
-parser = argparse.ArgumentParser(description="Dump netfilter chains form a specific table")
-parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
-parser.add_argument(
-    "table_family",
-    nargs="?",
-    type=parse_nft_family,
-    help="Netfilter table family (inet, ip, ip6, netdev, bridge, arp)",
-)
-parser.add_argument("table_name", nargs="?", type=str, help="Table name")
-
-
-@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
-@pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugInfo
-@pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_chains(
     table_family: int | None = None, table_name: str | None = None, nsid: int | None = None
-):
+) -> None:
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Table.find(
         nsid=nsid, table_family=table_family, table_name=table_name
@@ -84,28 +49,12 @@ def knft_list_chains(
         print("No nftables table found")
 
 
-parser = argparse.ArgumentParser(description="Dump netfilter rules form a specific chain")
-parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
-parser.add_argument(
-    "table_family",
-    nargs="?",
-    type=parse_nft_family,
-    help="Table family, eg: inet, ip, ip6, netdev, bridge, arp",
-)
-parser.add_argument("table_name", nargs="?", type=str, help="Table name")
-parser.add_argument("chain_name", nargs="?", type=str, help="Chain name")
-
-
-@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
-@pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugInfo
-@pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_rules(
     table_family: int | None = None,
     table_name: str | None = None,
     chain_name: str | None = None,
     nsid: int | None = None,
-):
+) -> None:
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Chain.find(
         nsid=nsid, table_family=table_family, table_name=table_name, chain_name=chain_name
@@ -117,30 +66,13 @@ def knft_list_rules(
         print("No nftables chain found")
 
 
-parser = argparse.ArgumentParser(description="Dump only expressions from specific rule")
-parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
-parser.add_argument(
-    "table_family",
-    nargs="?",
-    type=parse_nft_family,
-    help="Table family, eg: inet, ip, ip6, netdev, bridge, arp",
-)
-parser.add_argument("table_name", nargs="?", type=str, help="Table name")
-parser.add_argument("chain_name", nargs="?", type=str, help="Chain name")
-parser.add_argument("rule_id", nargs="?", type=int, help="Rule Handle ID")
-
-
-@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
-@pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugInfo
-@pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_exprs(
     table_family: int | None = None,
     table_name: str | None = None,
     chain_name: str | None = None,
     rule_id: int | None = None,
     nsid: int | None = None,
-):
+) -> None:
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Rule.find(
         nsid=nsid,
@@ -156,24 +88,9 @@ def knft_list_exprs(
         print("No nftables rule found")
 
 
-parser = argparse.ArgumentParser(description="Dump netfilter sets from a specific table")
-parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
-parser.add_argument(
-    "table_family",
-    nargs="?",
-    type=parse_nft_family,
-    help="Table family, eg: inet, ip, ip6, netdev, bridge, arp",
-)
-parser.add_argument("table_name", nargs="?", type=str, help="Table name")
-
-
-@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
-@pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugInfo
-@pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_sets(
     table_family: int | None = None, table_name: str | None = None, nsid: int | None = None
-):
+) -> None:
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Table.find(
         nsid=nsid, table_family=table_family, table_name=table_name
@@ -185,24 +102,9 @@ def knft_list_sets(
         print("No nftables table found")
 
 
-parser = argparse.ArgumentParser(description="Dump netfilter objects from a specific table")
-parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
-parser.add_argument(
-    "table_family",
-    nargs="?",
-    type=parse_nft_family,
-    help="Table family, eg: inet, ip, ip6, netdev, bridge, arp",
-)
-parser.add_argument("table_name", nargs="?", type=str, help="Table name")
-
-
-@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
-@pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugInfo
-@pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_objects(
     table_family: int | None = None, table_name: str | None = None, nsid: int | None = None
-):
+) -> None:
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Table.find(
         nsid=nsid, table_family=table_family, table_name=table_name
@@ -214,24 +116,9 @@ def knft_list_objects(
         print("No nftables table found")
 
 
-parser = argparse.ArgumentParser(description="Dump netfilter flowtables from a specific table")
-parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
-parser.add_argument(
-    "table_family",
-    nargs="?",
-    type=parse_nft_family,
-    help="Netfilter table family (inet, ip, ip6, netdev, bridge, arp)",
-)
-parser.add_argument("table_name", nargs="?", type=str, help="Table name")
-
-
-@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
-@pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugInfo
-@pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_flowtables(
     table_family: int | None = None, table_name: str | None = None, nsid: int | None = None
-):
+) -> None:
     is_any = False
     for nft in pwndbg.aglib.kernel.nftables.Table.find(
         nsid=nsid, table_family=table_family, table_name=table_name
@@ -241,3 +128,142 @@ def knft_list_flowtables(
             flowtable.print(print_nested=True)
     if not is_any:
         print("No nftables table found")
+
+
+parser = argparse.ArgumentParser(
+    description="Utility for inspecting the kernel netfilter subsystem."
+)
+subparsers = parser.add_subparsers(dest="command")
+subparsers.required = True
+
+list_flowtables_parser = subparsers.add_parser(
+    "list-flowtables",
+    description="Dump netfilter flowtables from a specific table",
+    help="Dump netfilter flowtables from a specific table",
+)
+list_flowtables_parser.add_argument("-n", "--nsid", type=int, help="Network Namespace ID")
+list_flowtables_parser.add_argument(
+    "table_family",
+    nargs="?",
+    type=parse_nft_family,
+    help="Netfilter table family (inet, ip, ip6, netdev, bridge, arp)",
+)
+list_flowtables_parser.add_argument("table_name", nargs="?", type=str, help="Table name")
+
+list_objects_parser = subparsers.add_parser(
+    "list-objects",
+    description="Dump netfilter objects from a specific table",
+    help="Dump netfilter objects from a specific table",
+)
+list_objects_parser.add_argument("-n", "--nsid", type=int, help="Network Namespace ID")
+list_objects_parser.add_argument(
+    "table_family",
+    nargs="?",
+    type=parse_nft_family,
+    help="Table family, eg: inet, ip, ip6, netdev, bridge, arp",
+)
+list_objects_parser.add_argument("table_name", nargs="?", type=str, help="Table name")
+
+list_sets_parser = subparsers.add_parser(
+    "list-sets",
+    description="Dump netfilter sets from a specific table",
+    help="Dump netfilter sets from a specific table",
+)
+list_sets_parser.add_argument("-n", "--nsid", type=int, help="Network Namespace ID")
+list_sets_parser.add_argument(
+    "table_family",
+    nargs="?",
+    type=parse_nft_family,
+    help="Table family, eg: inet, ip, ip6, netdev, bridge, arp",
+)
+list_sets_parser.add_argument("table_name", nargs="?", type=str, help="Table name")
+
+list_exprs_parser = subparsers.add_parser(
+    "list-exprs",
+    description="Dump only expressions from specific rule",
+    help="Dump only expressions from specific rule",
+)
+list_exprs_parser.add_argument("-n", "--nsid", type=int, help="Network Namespace ID")
+list_exprs_parser.add_argument(
+    "table_family",
+    nargs="?",
+    type=parse_nft_family,
+    help="Table family, eg: inet, ip, ip6, netdev, bridge, arp",
+)
+list_exprs_parser.add_argument("table_name", nargs="?", type=str, help="Table name")
+list_exprs_parser.add_argument("chain_name", nargs="?", type=str, help="Chain name")
+list_exprs_parser.add_argument("rule_id", nargs="?", type=int, help="Rule Handle ID")
+
+list_rules_parser = subparsers.add_parser(
+    "list-rules",
+    description="Dump netfilter rules from a specific chain",
+    help="Dump netfilter rules from a specific chain",
+)
+list_rules_parser.add_argument("-n", "--nsid", type=int, help="Network Namespace ID")
+list_rules_parser.add_argument(
+    "table_family",
+    nargs="?",
+    type=parse_nft_family,
+    help="Table family, eg: inet, ip, ip6, netdev, bridge, arp",
+)
+list_rules_parser.add_argument("table_name", nargs="?", type=str, help="Table name")
+list_rules_parser.add_argument("chain_name", nargs="?", type=str, help="Chain name")
+
+list_chains_parser = subparsers.add_parser(
+    "list-chains",
+    description="Dump netfilter chains from a specific table",
+    help="Dump netfilter chains from a specific table",
+)
+list_chains_parser.add_argument("-n", "--nsid", type=int, help="Network Namespace ID")
+list_chains_parser.add_argument(
+    "table_family",
+    nargs="?",
+    type=parse_nft_family,
+    help="Table family, eg: inet, ip, ip6, netdev, bridge, arp",
+)
+list_chains_parser.add_argument("table_name", nargs="?", type=str, help="Table name")
+
+list_tables_parser = subparsers.add_parser(
+    "list-tables",
+    description="Dump netfilter tables from a specific network namespace",
+    help="Dump netfilter tables from a specific network namespace",
+)
+list_tables_parser.add_argument("-n", "--nsid", type=int, help="Network Namespace ID")
+
+dump_parser = subparsers.add_parser(
+    "dump",
+    description="Dump all nftables: tables, chains, rules, expressions",
+    help="Dump all nftables: tables, chains, rules, expressions",
+)
+dump_parser.add_argument("nsid", type=int, nargs="?", help="Network Namespace ID")
+
+
+@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
+@pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWithKernelDebugInfo
+@pwndbg.commands.OnlyWhenPagingEnabled
+def knft(
+    command: str,
+    table_family: int | None = None,
+    table_name: str | None = None,
+    nsid: int | None = None,
+    chain_name: str | None = None,
+    rule_id: int | None = None,
+) -> None:
+    match command:
+        case "list-flowtables":
+            knft_list_flowtables(table_family, table_name, nsid)
+        case "list-objects":
+            knft_list_objects(table_family, table_name, nsid)
+        case "list-sets":
+            knft_list_sets(table_family, table_name, nsid)
+        case "list-exprs":
+            knft_list_exprs(table_family, table_name, chain_name, rule_id, nsid)
+        case "list-rules":
+            knft_list_rules(table_family, table_name, chain_name, nsid)
+        case "list-chains":
+            knft_list_chains(table_family, table_name, nsid)
+        case "list-tables":
+            knft_list_tables(nsid)
+        case "dump":
+            knft_dump(nsid)
