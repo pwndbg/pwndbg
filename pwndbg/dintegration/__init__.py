@@ -243,6 +243,8 @@ class DecompilerConnection:
         else:
             self._binary_base_addr = start_addr
 
+        print(f"Decompiled program found @ {start_addr:#x} ({path}).")
+
     def addr_to_mapped(self, rel_addr: int) -> int:
         """
         Takes an address relative to the image/file base and
@@ -314,7 +316,7 @@ class DecompilerConnection:
 
         answer: dict[str, Any] = cast(dict[str, Any], self.server.decompile(rel_addr))
 
-        if answer["decompilation"] is None:
+        if answer["decompilation"] is None or answer["decompilation"] == "":
             # Assuming all the other fields are as well
             return None
 
