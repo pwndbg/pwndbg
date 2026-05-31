@@ -16,7 +16,7 @@ import pwndbg.commands
 import pwndbg.commands.kbpf
 import pwndbg.commands.ktask
 import pwndbg.commands.parse_seccomp
-from pwndbg.aglib.disasm.arch import DisassemblyAssistant
+from pwndbg.aglib.disasm.assistant import DisassemblyAssistant
 from pwndbg.commands.ktask import Kthread
 from pwndbg.lib.exception import IndentContextManager
 from pwndbg.lib.regs import BitFlags

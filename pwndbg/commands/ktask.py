@@ -284,7 +284,7 @@ def get_ktasks() -> tuple[Ktask, ...]:
     tasks: list[Ktask] = []
     try:
         seen = set()
-        for i in range(0, pwndbg.aglib.kernel.nproc()):
+        for i in range(pwndbg.aglib.kernel.nproc()):
             task = pwndbg.aglib.kernel.current_task(i)
             if not pwndbg.aglib.memory.is_kernel(task):
                 continue
