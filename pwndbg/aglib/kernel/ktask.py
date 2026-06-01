@@ -13,6 +13,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.aglib.kernel.mapletree import MapleTree
+from pwndbg.lib import TypeNotRecoveredError
 
 
 class NextVmaFinder:
@@ -43,7 +44,7 @@ def get_stack_offset(tasks: list[int]) -> int:
         for task in tasks:
             a = pwndbg.aglib.memory.read_pointer_width(task + i * ptrsize)
             b = pwndbg.aglib.memory.read_pointer_width(task + (i + 1) * ptrsize)
-            # for x64, the frist kernel pointer should be the stack
+            # for x64, the first kernel pointer should be the stack
             # for aarch64, this might not be the case when CONFIG_SHADOW_CALL_STACK=y
             # see the definitions of task_struct and thread_info
             if pwndbg.aglib.memory.is_kernel(a) and not pwndbg.aglib.memory.is_kernel(b):
@@ -76,7 +77,10 @@ def get_tasks_offset(mm_offset: int) -> tuple[list[int], int]:
         tasks = pwndbg.aglib.kernel.get_double_linked_list(task + tasks_offset, minlen=5)
         if tasks is not None:
             break
-    assert tasks, f"cannot find the tasks double linked list: mm_offset: {hex(mm_offset)})"
+    else:
+        raise TypeNotRecoveredError(
+            "task_struct", f"cannot find the tasks doubly-linked list: mm_offset: {hex(mm_offset)})"
+        )
     tasks = [task - tasks_offset for task in tasks]
     return tasks, tasks_offset
 
@@ -91,7 +95,10 @@ def get_mm_offset(task: int) -> int:
         if pwndbg.aglib.kernel.in_kmem_cache(val, "mm_struct") or (init_mm and init_mm == val):
             mm_offset = off
             break
-    assert mm_offset, f"cound not find the offset of task_struct->mm: (task: {hex(task)}"
+    else:
+        raise TypeNotRecoveredError(
+            "task_struct", f"cound not find the offset of task_struct->mm: (task: {hex(task)}"
+        )
     mm_active = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
     if not pwndbg.aglib.kernel.in_kmem_cache(mm_active, "mm_struct"):
         # we actually found active_mm instead
@@ -172,7 +179,11 @@ def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
         pgd_offset = helper(task, mm_offset, pgd) or helper(task, mm_offset + ptrsize, pgd)
         if pgd_offset:
             break
-    assert pgd_offset, f"cannot find the offset of mm_struct->pgd: (active_mm: {hex(mm_offset)})"
+    else:
+        raise TypeNotRecoveredError(
+            "task_struct",
+            f"cannot find the offset of mm_struct->pgd: (active_mm: {hex(mm_offset)})",
+        )
 
     result = ""
     for task in tasks:
@@ -258,12 +269,13 @@ def get_pid_offset(tasks: list[int], mm_offset: int, comm_offset: int) -> int:
             seen.add(pid)
         else:
             return off
-    raise AssertionError(
-        f"cannot find the offset of task_struct->pid (mm_offset = {hex(mm_offset)}, comm_offset = {hex(comm_offset)})"
+    raise TypeNotRecoveredError(
+        "task_struct",
+        f"cannot find the offset of task_struct->pid (mm_offset = {hex(mm_offset)}, comm_offset = {hex(comm_offset)})",
     )
 
 
-def get_thread_list_offset(pid_offset: int):
+def get_thread_list_offset(pid_offset: int) -> int:
     # thread_group if <= 6.6 else thread_node
     off = pid_offset
     ptrsize = pwndbg.aglib.arch.ptrsize
@@ -349,7 +361,7 @@ def get_comm_offset(tasks: list[int]) -> tuple[int, int]:
             except Exception:
                 pass
             off += pwndbg.aglib.arch.ptrsize
-    raise AssertionError("cannot find the offset of task_struct->comm")
+    raise TypeNotRecoveredError("task_struct", "cannot find the offset of task_struct->comm")
 
 
 def get_cred_struct_and_offset(tasks: list[int], comm_offset: int) -> tuple[str, int]:
@@ -367,7 +379,8 @@ def get_cred_struct_and_offset(tasks: list[int], comm_offset: int) -> tuple[str,
             off -= ptrsize
         if cred_offset is not None:
             break
-    assert cred_offset, "cannot find the offset of task_struct->cred"
+    else:
+        raise TypeNotRecoveredError("task_struct", "cannot find the offset of task_struct->cred")
     assert INIT_TASK, "init task not found by get_comm_offset"
     cred = pwndbg.aglib.memory.read_pointer_width(INIT_TASK + cred_offset)
     off = 0x20
@@ -656,7 +669,8 @@ def get_files_struct_and_offset(
         # found it, off is the offset of fs, so need to increment by ptrsize
         files_offset = off + ptrsize
         break
-    assert files_offset, "cannot find the offset of task_struct->files"
+    else:
+        raise TypeNotRecoveredError("task_struct", "cannot find the offset of task_struct->files")
 
     fdt_offset = None
     files = pwndbg.aglib.memory.read_pointer_width(task + files_offset)
@@ -669,7 +683,8 @@ def get_files_struct_and_offset(
         if fdt == files + off + ptrsize:
             fdt_offset = off
             break
-    assert fdt_offset, "cannot find the offset of files_struct->fdt"
+    else:
+        raise TypeNotRecoveredError("files_struct", "cannot find the offset of files_struct->fdt")
 
     # find a userland task and get a file* from it
     file = None
@@ -975,7 +990,10 @@ def recover_seccomp_typeinfo(_filter: int) -> str:
         if page and "vmalloc" in page.objfile:
             off = (i - 1) * ptrsize
             break
-    assert off is not None, f"cannot find seccomp_filter->prog (filter @ {hex(_filter)})"
+    else:
+        raise TypeNotRecoveredError(
+            "seccomp_filter", f"cannot find seccomp_filter->prog (filter @ {hex(_filter)})"
+        )
     result += f"""
     struct seccomp_filter {{
         char _pad[{off}];
