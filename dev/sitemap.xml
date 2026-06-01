@@ -277,7 +277,23 @@
          <lastmod>2026-06-01</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/commands/kernel/knamespace/</loc>
+         <lastmod>2026-06-01</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/commands/kernel/knft/</loc>
+         <lastmod>2026-06-01</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/stable/commands/kernel/kseccomp/</loc>
+         <lastmod>2026-06-01</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/stable/commands/kernel/ksighand/</loc>
+         <lastmod>2026-06-01</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/stable/commands/kernel/kstack/</loc>
          <lastmod>2026-06-01</lastmod>
     </url>
     <url>
@@ -1065,7 +1081,15 @@
          <lastmod>2026-06-01</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/kernel/ktask/</loc>
+         <lastmod>2026-06-01</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/kernel/macros/</loc>
+         <lastmod>2026-06-01</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/kernel/mapletree/</loc>
          <lastmod>2026-06-01</lastmod>
     </url>
     <url>
