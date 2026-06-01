@@ -17,7 +17,7 @@ dependencies = [
     "pygments>=2.19.2,<3",
     "psutil>=7.0.0,<8",
     # We install uv to the venv
-    "uv>=0.11.15",
+    "uv>=0.11.17",
     # Optional? only for 'ipi' command
     "ipython>=8.37.0,<9",
     # Optional? only for 'ropgadget' command
@@ -43,7 +43,7 @@ dependencies = [
 lldb = [
     # Optional? for better LLDB REPL behaviour on python builds that use libeedit.
     'gnureadline>=8.2.13,<9; sys_platform != "win32"',
-    'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
+    'pyreadline3>=3.5.6,<4; sys_platform == "win32"',
     "lldb-for-pwndbg==22.1.0.post2",
 ]
 gdb = [
