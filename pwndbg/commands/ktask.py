@@ -24,7 +24,7 @@ from pwndbg.lib.exception import IndentContextManager
 
 
 class pt_regs_x86_64(ctypes.Structure):
-    _fields_ = [
+    _fields_ = (
         ("r15", ctypes.c_ulong),
         ("r14", ctypes.c_ulong),
         ("r13", ctypes.c_ulong),
@@ -46,11 +46,11 @@ class pt_regs_x86_64(ctypes.Structure):
         ("flags", ctypes.c_ulong),
         ("rsp", ctypes.c_ulong),
         ("ss", ctypes.c_uint64),
-    ]
+    )
 
 
 class pt_regs_aarch64(ctypes.Structure):
-    _fields_ = [
+    _fields_ = (
         ("x0", ctypes.c_uint64),
         ("x1", ctypes.c_uint64),
         ("x2", ctypes.c_uint64),
@@ -87,7 +87,7 @@ class pt_regs_aarch64(ctypes.Structure):
         ("pstate", ctypes.c_uint64),
         ("orig_x0", ctypes.c_uint64),
         ("syscallno", ctypes.c_int32),  # ends at offset 0x11c but the struct is 0x120 bytes
-    ]
+    )
 
 
 class Kthread:
@@ -251,9 +251,9 @@ class Kthread:
         for i in range(pwndbg.aglib.kernel.nproc()):
             if pwndbg.aglib.kernel.current_task(i) == int(self.thread):
                 cpu = f"[cpu: {i}]"
+                break
         cpulen = 7 + len(str(pwndbg.aglib.kernel.nproc() - 1))
         cpu = color.red(f"{cpu:<{cpulen}}")
-        desc = " "
         namelen = pwndbg.aglib.kernel.ktask.TASK_COMM_LEN
         prefix = f"{prefix} {pid} {cpu} task @ {thread}: {self.name:<{namelen}}"
         user = "[user task]" if self.user_task else ""
@@ -281,7 +281,6 @@ class Ktask:
 @pwndbg.lib.cache.cache_until("stop")
 def get_ktasks() -> tuple[Ktask, ...]:
     pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo()
-    tasks: list[Ktask] = []
     try:
         seen = set()
         for i in range(pwndbg.aglib.kernel.nproc()):
@@ -289,22 +288,19 @@ def get_ktasks() -> tuple[Ktask, ...]:
             if not pwndbg.aglib.memory.is_kernel(task):
                 continue
             seen.add(task)
-            tasks.append(Ktask(task))
         init_task = pwndbg.aglib.kernel.init_task()
         task = init_task
         if task not in seen and pwndbg.aglib.memory.is_kernel(task):
-            tasks.append(Ktask(task))
             seen.add(task)
         if init_task is not None:
             _init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task)
             for task in for_each_entry(_init_task["tasks"], "struct task_struct", "tasks"):
                 if (task := int(task)) and task not in seen and pwndbg.aglib.memory.is_kernel(task):
                     seen.add(task)
-                    tasks.append(Ktask(task))
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"ERROR (get_ktasks): {e}"))
         return ()
-    return tuple(tasks)
+    return tuple(Ktask(task) for task in seen)
 
 
 parser = argparse.ArgumentParser(description="Displays information about kernel tasks.")

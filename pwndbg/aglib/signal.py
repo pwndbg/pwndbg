@@ -77,7 +77,7 @@ SIGNALS = Literal[
     "SIGWINCH",
 ]
 
-COMMON_NUM_TO_SIGNAL_MAPPING: dict[int, SIGNALS] = {
+SHARED_NUM_TO_SIGNAL_MAPPING: dict[int, SIGNALS] = {
     1: "SIGHUP",
     2: "SIGINT",
     3: "SIGQUIT",
@@ -92,8 +92,8 @@ COMMON_NUM_TO_SIGNAL_MAPPING: dict[int, SIGNALS] = {
     15: "SIGTERM",
 }
 
-X86_64_NUM_TO_SIGNAL_MAPPING: dict[int, SIGNALS] = {
-    **COMMON_NUM_TO_SIGNAL_MAPPING,
+COMMON_NUM_TO_SIGNAL_MAPPING: dict[int, SIGNALS] = {
+    **SHARED_NUM_TO_SIGNAL_MAPPING,
     7: "SIGBUS",
     10: "SIGUSR1",
     12: "SIGUSR2",
@@ -119,8 +119,8 @@ X86_64_NUM_TO_SIGNAL_MAPPING: dict[int, SIGNALS] = {
 PER_ARCH_SIGNAL_MAPPINGS: dict[
     pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[int, SIGNALS]
 ] = {
-    "x86-64": X86_64_NUM_TO_SIGNAL_MAPPING,
-    "aarch64": X86_64_NUM_TO_SIGNAL_MAPPING,
+    "x86-64": COMMON_NUM_TO_SIGNAL_MAPPING,
+    "aarch64": COMMON_NUM_TO_SIGNAL_MAPPING,
 }
 
 
@@ -198,5 +198,5 @@ def get_last_signal() -> SIGNALS | None:
     if siginfo is None:
         return None
     curr_arch = pwndbg.aglib.arch.name
-    sig_mapping = PER_ARCH_SIGNAL_MAPPINGS.get(curr_arch, COMMON_NUM_TO_SIGNAL_MAPPING)
+    sig_mapping = PER_ARCH_SIGNAL_MAPPINGS.get(curr_arch, SHARED_NUM_TO_SIGNAL_MAPPING)
     return sig_mapping.get(siginfo.si_signo)

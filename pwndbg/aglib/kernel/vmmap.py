@@ -28,7 +28,7 @@ import pwndbg.lib.memory
 from pwndbg.lib.memory import Page
 
 
-def get_name(
+def _get_name(
     sections: tuple[tuple[str | None, int | None], ...] | None, addr: int | None
 ) -> str | None:
     if addr is None or sections is None:
@@ -43,19 +43,19 @@ def get_name(
     return None
 
 
-def apply_address_markers(pages: tuple[Page, ...]) -> None:
+def _apply_address_markers(pages: tuple[Page, ...]) -> None:
     pi = pwndbg.aglib.kernel.arch_paginginfo()
     if pi and pages:
         sections = pi.markers()
         # this is needed for context annotations
         for i, page in enumerate(pages):
-            name = get_name(sections, page.start)
+            name = _get_name(sections, page.start)
             if name is not None:
                 page.objfile = name
         pi.handle_kernel_pages(pages)
 
 
-def handle_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
+def _handle_page_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
     # only handle_offsets when invoked through vmmap command
     kernelrw = (
         pwndbg.aglib.kernel.paging.ArchPagingInfo.KERNELRO,
@@ -72,7 +72,7 @@ def handle_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
             page.offset = 0
 
 
-def get_kernel_stacks() -> list[tuple[int, int, str]]:
+def _get_kernel_stacks() -> list[tuple[int, int, str]]:
     stacks = []
     for task in pwndbg.commands.ktask.get_ktasks():
         for thread in task.threads:
@@ -81,7 +81,7 @@ def get_kernel_stacks() -> list[tuple[int, int, str]]:
     return stacks
 
 
-def handle_user_stack_and_filepaths(pages: pwndbg.dbg_mod.MemoryMap) -> None:
+def _handle_user_stack_and_filepaths(pages: pwndbg.dbg_mod.MemoryMap) -> None:
     task = pwndbg.aglib.kernel.current_task()
     if task is None:
         return
@@ -103,9 +103,9 @@ def annotate(pages: pwndbg.dbg_mod.MemoryMap) -> None:
         pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo()
     except (pwndbg.lib.err.TypeNotRecoveredError, AttributeError):
         return
-    handle_user_stack_and_filepaths(pages)
-    handle_offsets(pages)
-    stacks = get_kernel_stacks()
+    _handle_user_stack_and_filepaths(pages)
+    _handle_page_offsets(pages)
+    stacks = _get_kernel_stacks()
     if not stacks:
         return
     for page in pages.ranges():
@@ -463,7 +463,7 @@ def kernel_vmmap() -> tuple[pwndbg.lib.memory.Page, ...]:
         return ()
 
     pages = kernel_vmmap_pages()
-    apply_address_markers(pages)
+    _apply_address_markers(pages)
     if kernel_vmmap_mode == "monitor" and pwndbg.aglib.arch.name == "x86-64":
         # TODO: check version here when QEMU displays the x bit for x64
         # see: https://github.com/pwndbg/pwndbg/pull/3020#issuecomment-2914573242

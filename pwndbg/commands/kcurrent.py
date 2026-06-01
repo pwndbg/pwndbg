@@ -16,10 +16,10 @@ import pwndbg.commands
 import pwndbg.commands.kbpf
 import pwndbg.commands.ktask
 import pwndbg.commands.parse_seccomp
-from pwndbg.aglib.disasm.assistant import DisassemblyAssistant
 from pwndbg.commands.ktask import Kthread
 from pwndbg.lib.exception import IndentContextManager
 from pwndbg.lib.regs import BitFlags
+from pwndbg.lib.syscall import syscall_number_to_name
 
 indent = IndentContextManager()
 
@@ -58,7 +58,7 @@ def select_kthread_from_pid(pid: int | None) -> Kthread | None:
                     break
             if kthread:
                 break
-        if not kthread:
+        else:
             print(message.warn(f"ktask with pid {pid} not found"))
     return kthread
 
@@ -94,7 +94,7 @@ def kstack(pid: int | None = None) -> None:
                 namelen = max(len(reg) for reg, _ in regs)
                 for reg, val in regs:
                     _val = pwndbg.chain.format(val)
-                    desc = DisassemblyAssistant._syscall_name(val)
+                    desc = syscall_number_to_name(val, pwndbg.aglib.arch.name)
                     if reg == syscall_reg and desc:
                         _val += f" ({color.red(desc)})"
                     reg = f"{reg:<{namelen}}"
@@ -234,7 +234,7 @@ parser.add_argument(
     "--set",
     dest="set_pid",
     action="store_true",
-    help="sets the kernel task used for supported pwndbg commands (kfile, kstack, knamespace, ksighand, kseccomp, pagewalk, vmmap), this option does not change internal mem (purely effects how certain commands behaves)",
+    help="sets the kernel task used for supported pwndbg commands (kfile, kstack, knamespace, ksighand, kseccomp, pagewalk, vmmap), this option does not change internal memory (only effects how certain commands behaves)",
 )
 
 
@@ -245,8 +245,9 @@ parser.add_argument(
 @pwndbg.commands.WarnOnKernelConfigRandstruct
 def kcurrent(pid: int | None = None, set_pid: bool = False) -> None:
     kthread = select_kthread_from_pid(pid)
-    if kthread:
-        indent.print(kthread)
-    if set_pid and kthread:
+    if kthread is None:
+        return
+    indent.print(kthread)
+    if set_pid:
         global _KCURRENT
         _KCURRENT = kthread
