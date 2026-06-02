@@ -209,7 +209,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     frame = pwndbg.dbg.selected_frame()
     assert frame
     tcache_next = int(frame.evaluate_expression("tcache->entries[0]->next"))
-    tcache_key  = int(frame.evaluate_expression("tcache->entries[0]->key"))
+    tcache_key = int(frame.evaluate_expression("tcache->entries[0]->key"))
 
     tcache_hexdump = await hexdump_16B("tcache->entries[0]")
     freed_chunk = (
@@ -362,7 +362,7 @@ async def test_vis_heap_chunk_command_2_43(ctrl: Controller) -> None:
     frame = pwndbg.dbg.selected_frame()
     assert frame
     chunk1_next = int(frame.evaluate_expression("tcache->entries[65]->next"))
-    tcache_key  = int(frame.evaluate_expression("tcache->entries[65]->key"))
+    tcache_key = int(frame.evaluate_expression("tcache->entries[65]->key"))
 
     def hexdump_line(qword1: int = 0, qword2: int = 0) -> str:
         from pwnlib.util.packing import p64
@@ -383,9 +383,7 @@ async def test_vis_heap_chunk_command_2_43(ctrl: Controller) -> None:
     assert frame
     tcache64 = int(frame.evaluate_expression("tcache->entries[64]"))
     tcache65 = int(frame.evaluate_expression("tcache->entries[65]"))
-    top_size = pwndbg.aglib.memory.u64(
-        int(frame.evaluate_expression("main_arena.top")) + 8
-    )
+    top_size = pwndbg.aglib.memory.u64(int(frame.evaluate_expression("main_arena.top")) + 8)
 
     def pack2x4(wordl1: int, wordl2: int, wordl3: int, wordl4: int) -> int:
         return wordl1 | wordl2 << 16 | wordl3 << 32 | wordl4 << 48
