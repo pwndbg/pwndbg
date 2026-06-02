@@ -13,6 +13,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.color
 import pwndbg.color.context as ctx_color
 import pwndbg.color.disasm
+import pwndbg.color.memory as mem_color
 import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.lib.config
@@ -40,6 +41,14 @@ def ljust_padding(lst: list[str]) -> tuple[list[str], int]:
     """
     longest_len = max(map(len, lst)) if lst else 0
     return [s.ljust(longest_len) for s in lst], longest_len
+
+
+def _color_location_text(address: int, text: str, highlight: bool = False) -> str:
+    if not text:
+        return text
+
+    text = mem_color.get(address, text=text)
+    return ctx_color.highlight(text) if highlight else text
 
 
 c = ColorConfig(
@@ -578,13 +587,15 @@ def nearpc(
         # In case there are duplicate instances of an instruction (tight loop),
         # ones that the instruction pointer is not at stick out a little, to indicate the repetition
         elif not highlight_line:
-            address_str = c.address(address_str)
+            address_str = _color_location_text(instruction.address, address_str)
             symbol = c.symbol(symbol)
         else:
             # If this instruction is the one the PC is at.
             # In case of tight loops, with emulation we may display the same instruction multiple times.
             # Only highlight current instance, not past or future times.
-            address_str = ctx_color.highlight(address_str)
+            address_str = _color_location_text(
+                instruction.address, address_str, highlight=highlight_line
+            )
             symbol = ctx_color.highlight(symbol)
 
         opcodes = ""
