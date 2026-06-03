@@ -31,7 +31,6 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.auxv
 import pwndbg.dbg_mod
-import pwndbg.lib
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.elftypes
@@ -251,8 +250,7 @@ def exe() -> Ehdr | None:
     Return a loaded ELF header object pointing to the Ehdr of the
     main executable.
     """
-    e = entry()
-    if e:
+    if e := entry():
         return load(e)
     return None
 
@@ -263,13 +261,11 @@ def entry() -> int:
     """
     Return the address of the entry point for the main executable.
     """
-    entry = pwndbg.auxv.get().AT_ENTRY
-    if entry:
+    if entry := pwndbg.auxv.get().AT_ENTRY:
         return entry
 
     inf = pwndbg.dbg.selected_inferior()
-    entry = inf.main_module_entry()
-    if entry:
+    if entry := inf.main_module_entry():
         return entry
 
     # Try common names
