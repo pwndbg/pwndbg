@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import importlib
-import os
 import sys
 import types
 from collections import OrderedDict
@@ -44,9 +43,6 @@ IS_MMAPPED = 2
 NON_MAIN_ARENA = 4
 SIZE_BITS = PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA
 NONCONTIGUOUS_BIT = 2
-
-NBINS = 128
-NSMALLBINS = 64
 
 # The `pwndbg.aglib.heap.structs` module is only imported at runtime when
 # the heap heuristics are used in `HeuristicHeap.struct_module` and
@@ -92,6 +88,11 @@ class BinType(str, Enum):
         return []
 
 
+class BinVariant(str, Enum):
+    PLAIN = ""
+    TCACHE_LARGE = "large"
+
+
 class Bin:
     def __init__(
         self,
@@ -99,23 +100,16 @@ class Bin:
         bk_chain: list[int] | None = None,
         count: int | None = None,
         is_corrupted: bool = False,
+        variant: BinVariant = BinVariant.PLAIN,
     ) -> None:
         self.fd_chain = fd_chain
         self.bk_chain = bk_chain
         self.count = count
         self.is_corrupted = is_corrupted
+        self.variant = variant
 
     def contains_chunk(self, chunk: int) -> bool:
         return chunk in self.fd_chain
-
-    @staticmethod
-    def size_to_display_name(size: int | str) -> str:
-        if isinstance(size, str) and size == "all":
-            return size
-
-        assert isinstance(size, int)
-
-        return hex(size)
 
 
 class Bins:
@@ -125,7 +119,7 @@ class Bins:
 
     # TODO: There's a bunch of bin-specific logic in here, maybe we should
     # subclass and put that logic in there
-    def contains_chunk(self, size: int, chunk: int):
+    def contains_chunk(self, size: int, chunk: int) -> Bin | None:
         # TODO: It will be the same thing, but it would be better if we used
         # pwndbg.aglib.heap.current.size_sz. I think each bin should already have a
         # reference to the allocator and shouldn't need to access the `current`
@@ -136,9 +130,9 @@ class Bins:
             # The unsorted bin only has one bin called 'all'
 
             # Handle this case here, so we don't assign a str to an int-type variable
-            if "all" in self.bins:
-                return self.bins["all"].contains_chunk(chunk)
-            return False
+            if "all" in self.bins and self.bins["all"].contains_chunk(chunk):
+                return self.bins["all"]
+            return None
         if self.bin_type == BinType.LARGE:
             # All the other bins (other than unsorted) store chunks of the same
             # size in a bin, so we can use the size directly. But the largebin
@@ -158,10 +152,17 @@ class Bins:
             # TODO: Can we use chunk_key_offset?
             chunk += ptr_size * 2
 
-        if size in self.bins:
-            return self.bins[size].contains_chunk(chunk)
+            # fmt: off
+            if size > pwndbg.aglib.heap.structs.DEFAULT_MP_.tcache_max_bytes.value \
+                and pwndbg.libc.version() >= (2, 42):
+            # fmt: on
+                # we need to enlarge it to match large tcache size
+                size = 1 << size.bit_length()
 
-        return False
+        if size in self.bins and self.bins[size].contains_chunk(chunk):
+            return self.bins[size]
+
+        return None
 
 
 def heap_for_ptr(ptr: int) -> int:
@@ -1224,19 +1225,6 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         """Find the memory map containing 'addr'."""
         return copy.deepcopy(pwndbg.aglib.vmmap.find(addr))
 
-    def get_bins(self, bin_type: BinType, addr: int | None = None) -> Bins | None:
-        if bin_type == BinType.TCACHE:
-            return self.tcachebins(addr)
-        if bin_type == BinType.FAST:
-            return self.fastbins(addr)
-        if bin_type == BinType.UNSORTED:
-            return self.unsortedbin(addr)
-        if bin_type == BinType.SMALL:
-            return self.smallbins(addr)
-        if bin_type == BinType.LARGE:
-            return self.largebins(addr)
-        return None
-
     def fastbin_index(self, size: int) -> int:
         if pwndbg.aglib.arch.ptrsize == 8:
             return (size >> 4) - 2
@@ -1256,24 +1244,16 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
     def tcachebins(self, tcache_addr: int | None = None) -> Bins | None:
         """Returns: tuple(chain, count) or None"""
+        # Delay import so that libc can be loaded
+        from pwndbg.aglib.heap.structs import DEFAULT_MP_
+        from pwndbg.aglib.heap.structs import TCACHE_SMALL_BINS
+
+        TCACHE_LARGE_START_SIZE = 1 << (DEFAULT_MP_.tcache_max_bytes.value.bit_length() - 1)
+
         tcache = self.get_tcache(tcache_addr)
 
         if tcache is None:
             return None
-
-        # this will break expected output during tests, so we skip it
-        if (
-            pwndbg.libc.version() >= (2, 42)
-            and not hasattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued")
-            and os.environ.get("PWNDBG_IN_TEST") is None
-        ):
-            print(
-                message.warn(
-                    "Support for tcache large bins (a GLIBC 2.42 addition) has not been fully implemented. "
-                    "PR contributions are highly appreciated!"
-                )
-            )
-            setattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued", True)
 
         # counts was renamed to num_slots in newer version of GLIBC 2.42
         try:
@@ -1287,6 +1267,10 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
         def tidx2usize(idx: int) -> int:
             """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""
+            if idx >= TCACHE_SMALL_BINS and pwndbg.libc.version() >= (2, 42):
+                # reverse version of large_csize2tidx
+                # https://elixir.bootlin.com/glibc/glibc-2.43/source/malloc/malloc.c#L3003-L3010
+                return (TCACHE_LARGE_START_SIZE << (idx - TCACHE_SMALL_BINS)) - self.size_sz
             return idx * self.malloc_alignment + self.minsize - self.size_sz
 
         # TODO: use `__tcache_dummy` symbol when we have debug syms
@@ -1307,7 +1291,13 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
                 safe_linking=safe_lnk,
             )
 
-            result.bins[size] = Bin(chain, count=count)
+            if i >= TCACHE_SMALL_BINS and pwndbg.libc.version() >= (2, 42):
+                variant = BinVariant.TCACHE_LARGE
+                # we need this hack to avoid confliction with 0x400 small tcache
+                size <<= 1
+            else:
+                variant = BinVariant.PLAIN
+            result.bins[size] = Bin(chain, count=count, variant=variant)
         return result
 
     def check_chain_corrupted(self, chain_fd: list[int], chain_bk: list[int]) -> bool:

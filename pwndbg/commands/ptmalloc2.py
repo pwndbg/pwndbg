@@ -25,11 +25,13 @@ from pwndbg.aglib.heap import heap_chain_limit
 from pwndbg.aglib.heap.ptmalloc import Arena
 from pwndbg.aglib.heap.ptmalloc import Bins
 from pwndbg.aglib.heap.ptmalloc import BinType
+from pwndbg.aglib.heap.ptmalloc import BinVariant
 from pwndbg.aglib.heap.ptmalloc import Chunk
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import Heap
 from pwndbg.color import generateColorFunction
+from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -113,20 +115,23 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
                     size += hex(end_size)
                 else:
                     size += "\u221e"  # Unicode "infinity"
+            elif bins_type == BinType.TCACHE and b.variant is BinVariant.TCACHE_LARGE:
+                size = f"{size >> 1:#x}-{size:#x}"
             else:
                 size = hex(size)
 
+        line = message.hint(size)
         if is_chain_corrupted:
-            line = message.hint(size) + message.error(" [corrupted]") + "\n"
+            line += message.error(" [corrupted]") + "\n"
             line += message.hint("FD: ") + formatted_chain + "\n"
             line += message.hint("BK: ") + pwndbg.chain.format(
                 chain_bk[0], offset=allocator.chunk_key_offset("bk")
             )
         else:
             if count is not None:
-                line = (message.hint(size) + message.hint(f" [{count:3d}]") + ": ").ljust(13)
+                line = ljust_colored(line + message.hint(f" [{count:3d}]") + ": ", 13)
             else:
-                line = (message.hint(size) + ": ").ljust(13)
+                line = ljust_colored(line + ": ", 13)
             line += formatted_chain
 
         result.append(line)
@@ -562,9 +567,14 @@ def malloc_chunk(
             bins_list = [x for x in bins_list if x is not None]
             no_match = True
             for bins in bins_list:
-                if bins.contains_chunk(chunk.real_size, chunk.address):
+                b = bins.contains_chunk(chunk.real_size, chunk.address)
+                if b:
                     no_match = False
-                    headers_to_print.append(message.on(f"Free chunk ({bins.bin_type})"))
+                    if b.variant is not BinVariant.PLAIN:
+                        msg = f"Free chunk ({bins.bin_type} {b.variant})"
+                    else:
+                        msg = f"Free chunk ({bins.bin_type})"
+                    headers_to_print.append(message.on(msg))
                     if not verbose:
                         fields_to_print.update(bins.bin_type.valid_fields())
             if no_match:

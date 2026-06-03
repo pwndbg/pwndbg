@@ -26,6 +26,7 @@ T = TypeVar("T")
 def KernelTest(func: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(func)
     def wrapper(*a: P.args, **kw: P.kwargs) -> T | None:
+        pwndbg.color._disable_colors_trigger()
         # TODO: trigger NEW_OBJFILE event instead
         pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux()
         return func(*a, **kw)
@@ -94,17 +95,29 @@ def test_command_ksyscalls() -> None:
 
 @KernelTest
 def test_command_ktask() -> None:
-    if not pwndbg.aglib.kernel.has_debug_info():
-        res = gdb.execute("ktask", to_string=True)
-        assert "may only be run when debugging a Linux kernel with debug" in res
-        return
     res = gdb.execute("ktask", to_string=True)
     assert "task @" in res
-    res = gdb.execute("kcurrent --set 1", to_string=True)
+    p = re.compile(r"\[pid (\d)+\]")
+    userpid = None
+    for line in res.splitlines():
+        match = re.search(p, line)
+        if not match:
+            continue
+        if "user task" in line:
+            userpid = int(match.group(1))
+            break
+    else:
+        userpid = 1
+    res = gdb.execute("kcurrent", to_string=True)
     assert "task @" in res
-    if "not found" not in res:
-        res2 = gdb.execute("kfile", to_string=True)
-        assert res in res2
+    res = gdb.execute("kstack", to_string=True)
+    assert "canary =" in res
+    res = gdb.execute("knamespace", to_string=True)
+    assert "_ns" in res
+    res = gdb.execute(f"kcurrent --set {userpid}", to_string=True)
+    if "not found" not in res and "user task" in res:
+        res = gdb.execute("kfile", to_string=True)
+        assert "[fileno 001]" in res
 
 
 @KernelTest
@@ -182,7 +195,6 @@ def get_slab_object_address() -> tuple[list[Any], str]:
     for cache in caches:
         cache_name = cache.name
         info = gdb.execute(f"slab info -v {cache_name}", to_string=True)
-        info = pwndbg.color.strip(info)
         matches = re.findall(r"- \[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]+)", info)
         if len(matches) > 0:
             return (matches, cache_name)
@@ -337,7 +349,6 @@ def test_command_pagewalk() -> None:
 def test_command_paging() -> None:
     def test_command_paging_helper(pagetype, addr):
         out = gdb.execute(f"v2p {addr}", to_string=True)
-        out = pwndbg.color.strip(out)
         # pagetype should be correct
         assert pagetype in out
         page = int(out.splitlines()[1].split()[2], 16)
@@ -347,11 +358,9 @@ def test_command_paging() -> None:
         check_0x100_bytes(addr, physmap_addr)
         phys_addr = pwndbg.aglib.kernel.virt_to_phys(physmap_addr)
         out = gdb.execute(f"p2v {phys_addr}", to_string=True)
-        out = pwndbg.color.strip(out)
         # the virtual address should be the physmap address
         assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
         out = gdb.execute(f"pageinfo {page}", to_string=True)
-        out = pwndbg.color.strip(out)
         # the virtual address should be the physmap address
         assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
 

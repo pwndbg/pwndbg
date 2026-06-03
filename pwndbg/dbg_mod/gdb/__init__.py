@@ -21,6 +21,7 @@ import gdb.types
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.aglib.remote
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.gdblib
