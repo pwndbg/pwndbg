@@ -42,12 +42,12 @@ CAST_DEREF_MAPPING = {
     "(s64)": pwndbg.aglib.memory.s64,
 }
 CAST_MAPPING = {
-    "(u16)": lambda x: ctypes.c_uint16(x).value,
-    "(s16)": lambda x: ctypes.c_int16(x).value,
-    "(u32)": lambda x: ctypes.c_uint32(x).value,
-    "(s32)": lambda x: ctypes.c_int32(x).value,
-    "(u64)": lambda x: ctypes.c_uint64(x).value,
-    "(s64)": lambda x: ctypes.c_int64(x).value,
+    "(u16)": ctypes.c_uint16,
+    "(s16)": ctypes.c_int16,
+    "(u32)": ctypes.c_uint32,
+    "(s32)": ctypes.c_int32,
+    "(u64)": ctypes.c_uint64,
+    "(s64)": ctypes.c_int64,
 }
 ONEGADGET_COLOR = {
     "light_green": lambda x: colorize(x, "\x1b[38;5;82m"),
@@ -65,16 +65,16 @@ class CheckSatResult(Enum):
         return self.name
 
     def __and__(self, other: CheckSatResult) -> CheckSatResult:
-        if self == CheckSatResult.UNSAT or other == CheckSatResult.UNSAT:
+        if CheckSatResult.UNSAT in {self, other}:
             return CheckSatResult.UNSAT
-        if self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
+        if CheckSatResult.UNKNOWN in {self, other}:
             return CheckSatResult.UNKNOWN
         return CheckSatResult.SAT
 
     def __or__(self, other: CheckSatResult) -> CheckSatResult:
-        if self == CheckSatResult.SAT or other == CheckSatResult.SAT:
+        if CheckSatResult.SAT in {self, other}:
             return CheckSatResult.SAT
-        if self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
+        if CheckSatResult.UNKNOWN in {self, other}:
             return CheckSatResult.UNKNOWN
         return CheckSatResult.UNSAT
 
@@ -92,9 +92,9 @@ class Lambda:
     """
 
     def __init__(self, obj: str | Lambda) -> None:
-        self.immi = 0
+        self.immi: int = 0
         self.obj = obj
-        self.deref_count = 0
+        self.deref_count: int = 0
 
     def __add__(self, other: int) -> Lambda:
         if not isinstance(other, int):
@@ -193,7 +193,10 @@ class Lambda:
         return context[self.obj] + self.immi
 
     @staticmethod
-    def parse(argument: str, predefined: dict[Any, Any] = {}) -> int | Lambda:
+    def parse(argument: str, predefined: dict[Any, Any] | None = None) -> int | Lambda:
+        if predefined is None:
+            predefined = {}
+
         if not argument or argument == "!":
             return 0
         try:
@@ -229,12 +232,8 @@ class Lambda:
         raise ValueError(f"Unsupported instruction argument: {arg}")
 
 
-def colorize_reg(x: object) -> str:
-    return generate_color_function("light_green", ONEGADGET_COLOR)(x)
-
-
-def colorize_integer(x: object) -> str:
-    return generate_color_function("light_purple", ONEGADGET_COLOR)(x)
+colorize_reg = generate_color_function("light_green", ONEGADGET_COLOR)
+colorize_integer = generate_color_function("light_purple", ONEGADGET_COLOR)
 
 
 def colorize_psuedo_code(code: str) -> str:
@@ -257,6 +256,7 @@ def colorize_psuedo_code(code: str) -> str:
     return output
 
 
+# TODO: move this somewhere else e.g. a utils.py or sth
 def compute_file_hash(filename: str) -> str:
     """
     Compute the MD5 hash of the file, return the hash
@@ -273,13 +273,12 @@ def run_onegadget() -> str:
     Run onegadget and return the output
     """
     libc_path = pwndbg.aglib.file.get_file(str(pwndbg.libc.filepath()))
-    # We need cache because onegadget might be slow
-    cache_file: Path = ONEGADGET_CACHEDIR / compute_file_hash(libc_path)
+
+    # we cache because onegadget might be slow
+    cache_file = ONEGADGET_CACHEDIR / compute_file_hash(libc_path)
     if cache_file.exists():
-        # Cache hit
-        with open(cache_file) as f:
-            return f.read()
-    # Cache miss
+        return cache_file.read_text()
+
     output = subprocess.check_output(["one_gadget", "--level=100", libc_path], text=True)
     with open(cache_file, "w") as f:
         f.write(output)
@@ -313,7 +312,7 @@ def parse_expression(expr: str) -> tuple[int | None, str, str | None]:
                 result = CAST_DEREF_MAPPING[cast](addr)
             else:
                 addr = int(pwndbg.dbg.selected_inferior().evaluate_expression(gdb_expr))
-                result = CAST_MAPPING[cast](addr)
+                result = CAST_MAPPING[cast](addr).value
         else:
             addr = int(pwndbg.dbg.selected_inferior().evaluate_expression(gdb_expr))
             result = addr
@@ -583,11 +582,11 @@ def check_gadget(
         output_msg += verbose_msg
     output_msg += tabulate(result_list, headers=["Result", "Constraint"], tablefmt="grid") + "\n"
 
-    if is_valid_gadget == SAT:
-        print(output_msg)
-    elif is_valid_gadget == UNSAT and show_unsat:
-        print(output_msg)
-    elif is_valid_gadget == UNKNOWN and not no_unknown:
+    if (
+        (is_valid_gadget == SAT)
+        or (is_valid_gadget == UNSAT and show_unsat)
+        or (is_valid_gadget == UNKNOWN and not no_unknown)
+    ):
         print(output_msg)
 
     return is_valid_gadget
