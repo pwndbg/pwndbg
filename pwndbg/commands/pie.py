@@ -21,7 +21,7 @@ def translate_addr(offset, module):
             "There are no memory pages in `vmmap` "
             f"for specified address=0x{offset:x} and module={module}"
         )
-        return
+        return None
 
     first_page = min(pages, key=lambda page: page.vaddr)
 
@@ -34,7 +34,7 @@ def translate_addr(offset, module):
         )
         for p in pages:
             print(p)
-        return
+        return None
 
     return addr
 

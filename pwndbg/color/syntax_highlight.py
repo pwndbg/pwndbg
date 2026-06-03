@@ -91,7 +91,7 @@ def syntax_highlight(code: str, filename: str = ".asm") -> str:
 
     filename = os.path.basename(filename)
 
-    lexer = lexer_cache.get(filename, None)
+    lexer = lexer_cache.get(filename)
 
     # If source code is asm, use our customized lexer.
     # Note: We can not register our Lexer to pygments and use their APIs,

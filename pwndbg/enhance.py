@@ -14,6 +14,7 @@ import string
 
 import pwndbg
 import pwndbg.aglib
+import pwndbg.aglib.disasm.assistant
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
@@ -23,10 +24,12 @@ import pwndbg.color.memory
 import pwndbg.dintegration
 import pwndbg.lib.pretty_print
 from pwndbg import color
+from pwndbg.lib.memory import Page
 
 
-def int_str(value: int) -> str:
-    retval = pwndbg.lib.pretty_print.int_to_string(value)
+def int_str(value: int, respect_ptrwidth: bool = False) -> str:
+    ptralignment: int = pwndbg.aglib.arch.ptrbits if respect_ptrwidth else -1
+    retval = pwndbg.lib.pretty_print.int_to_string(value, adhere_to_ptrwidth=ptralignment)
 
     # Try to unpack the value as a string
     packed = pwndbg.aglib.arch.pack(value)
@@ -44,6 +47,8 @@ def enhance(
     safe_linking: bool = False,
     attempt_dereference=True,
     enhance_string_len: int = None,
+    respect_ptrwidth: bool = False,
+    page: Page = None,
 ) -> str:
     """
     Given the last pointer in a chain, attempt to characterize
@@ -63,10 +68,10 @@ def enhance(
     """
     value = int(value)
 
-    page = pwndbg.aglib.vmmap.find(value)
+    if not page:
+        page = pwndbg.aglib.vmmap.find(value)
 
-    # If it's not in a page we know about, try to dereference
-    # it anyway just to test.
+    # If it's not in a page we know about, see if we can try to dereference it anyways.
     can_read = True
     if not attempt_dereference or not page or None is pwndbg.aglib.memory.peek(value):
         can_read = False
@@ -74,11 +79,11 @@ def enhance(
     # If it's a pointer that we told we cannot deference, then color it accordingly and add symbol if can
     if page and not attempt_dereference:
         return pwndbg.color.memory.get_address_and_symbol(
-            value, pwndbg.dintegration.manager.get_stack_var_dict_all()
+            value, pwndbg.dintegration.manager.get_stack_var_dict_all(), respect_ptrwidth
         )
 
     if not can_read:
-        return E.integer(int_str(value))
+        return E.integer(int_str(value, respect_ptrwidth))
 
     # It's mapped memory, or we can at least read it.
     # Try to find out if it's a string.
@@ -94,7 +99,7 @@ def enhance(
     if exe:
         pwndbg_instr = pwndbg.aglib.disasm.disassembly.one_raw(value)
         if pwndbg_instr:
-            pwndbg.aglib.disasm.arch.basic_enhance(pwndbg_instr)
+            pwndbg.aglib.disasm.assistant.basic_enhance(pwndbg_instr)
             # For telescoping, we don't want the extra spaces between the mnemonic and operands
             # which are baked in during enhancement. This removes those spaces.
             instr = " ".join(pwndbg_instr.asm_string.split())
@@ -106,13 +111,18 @@ def enhance(
 
     # Fix for case when we can't read the end address anyway (#946)
     if value + pwndbg.aglib.arch.ptrsize > page.end:
-        return E.integer(int_str(value))
+        return E.integer(int_str(value, respect_ptrwidth))
 
     intval = pwndbg.aglib.memory.read_pointer_width(value)
     if safe_linking:
         intval ^= value >> 12
     intval0 = intval
-    intval = E.integer(pwndbg.lib.pretty_print.int_to_string(intval & pwndbg.aglib.arch.ptrmask))
+    intval = E.integer(
+        pwndbg.lib.pretty_print.int_to_string(
+            intval & pwndbg.aglib.arch.ptrmask,
+            pwndbg.aglib.arch.ptrbits if respect_ptrwidth else -1,
+        )
+    )
 
     retval = []
 
@@ -151,9 +161,9 @@ def enhance(
         new_page = pwndbg.aglib.vmmap.find(intval0)
         if new_page:
             return pwndbg.color.memory.get_address_and_symbol(
-                intval0, pwndbg.dintegration.manager.get_stack_var_dict_all()
+                intval0, pwndbg.dintegration.manager.get_stack_var_dict_all(), respect_ptrwidth
             )
-        return E.integer(int_str(intval0))
+        return E.integer(int_str(intval0, respect_ptrwidth))
 
     retval = tuple(filter(lambda x: x is not None, retval))
 

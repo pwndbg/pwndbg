@@ -1236,12 +1236,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 # It is probably better for this matching to be overly eager than overly restrictive,
                 # we can fix it later if we ever actually encounter false positives.
                 # The .startswith() logic is there for CTF-type setups when the libc/ld is in the same folder as the binary.
-                if (
-                    "/libc" in mapname
-                    or "/ld-" in mapname
-                    or mapname.startswith("libc")
-                    or mapname.startswith("ld-")
-                ):
+                if "/libc" in mapname or "/ld-" in mapname or mapname.startswith(("libc", "ld-")):
                     maybe_ctx = MallocContext(addr)
                     if maybe_ctx.looks_valid():
                         self.ctx_addr = addr

@@ -134,7 +134,7 @@ def probeleak(
 
     found = False
     find_cnt = 0
-    for i in range(0, len(data) - ptrsize + 1):
+    for i in range(len(data) - ptrsize + 1):
         p = pwndbg.aglib.arch.unpack(data[i : i + ptrsize])
         page = find_module(p, max_distance)
         if page:

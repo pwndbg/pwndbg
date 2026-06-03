@@ -1106,9 +1106,10 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         if not self.has_tcache():
             return None
         mp = self.mp
-        if "tcache_small_bins" in mp.type.keys():
+        keys = mp.type.keys()
+        if "tcache_small_bins" in keys:
             return int(mp["tcache_small_bins"])
-        if "tcache_bins" in mp.type.keys():
+        if "tcache_bins" in keys:
             return int(mp["tcache_bins"])
         return None
 
@@ -1200,7 +1201,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         val = self.malloc_chunk
         if val is None:
             return None
-        chunk_keys = [renames[key] if key in renames else key for key in val.keys()]
+        chunk_keys = [renames.get(key, key) for key in val.keys()]  # noqa: SIM118 (not a dict)
         try:
             return chunk_keys.index(key) * pwndbg.aglib.arch.ptrsize
         except Exception:
@@ -1575,7 +1576,8 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
     def has_tcache(self) -> bool:
         # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
         return self.mp is not None and any(
-            x in self.mp.type.keys() for x in ["tcache_bins", "tcache_small_bins"]
+            x in self.mp.type.keys()  # noqa: SIM118 (mp is not a dict)
+            for x in ("tcache_bins", "tcache_small_bins")
         )
 
     @property
@@ -1875,7 +1877,7 @@ class HeuristicHeap(
 
     def _get_heap_page(self) -> pwndbg.lib.memory.Page | None:
         """Get the [heap] memory page."""
-        return next((p for p in pwndbg.aglib.vmmap.get() if p.objfile == "[heap]"), None)
+        return next((p for p in pwndbg.aglib.vmmap.get() if p.is_heap), None)
 
     def _get_heap_range(self) -> pwndbg.lib.memory.Page | range:
         """Get the heap start & end"""

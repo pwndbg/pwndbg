@@ -7,7 +7,7 @@ from capstone6pwndbg import *  # noqa: F403
 from capstone6pwndbg.loongarch import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -21,10 +21,14 @@ CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
     LOONGARCH_INS_BNEZ: lambda ops: ops[0] != 0,
     LOONGARCH_INS_BEQ: lambda ops: ops[0] == ops[1],
     LOONGARCH_INS_BNE: lambda ops: ops[0] != ops[1],
-    LOONGARCH_INS_BGE: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
-    >= bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
-    LOONGARCH_INS_BLT: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
-    < bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits),
+    LOONGARCH_INS_BGE: lambda ops: (
+        bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+        >= bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits)
+    ),
+    LOONGARCH_INS_BLT: lambda ops: (
+        bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits)
+        < bit_math.to_signed(ops[1], pwndbg.aglib.arch.ptrbits)
+    ),
     LOONGARCH_INS_BLTU: lambda ops: ops[0] < ops[1],
     LOONGARCH_INS_BGEU: lambda ops: ops[0] >= ops[1],
 }
@@ -38,7 +42,7 @@ LOONGARCH_BINARY_OPERATIONS: dict[int, str] = {}
 
 
 # This class enhances 64-bit Loongarch
-class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
@@ -46,8 +50,12 @@ class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        if len(instruction.operands) == 0:
-            return InstructionCondition.UNDETERMINED
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.id)
+
+        if condition_resolver is None:
+            return InstructionCondition.UNCONDITIONAL
+
+        # Otherwise, we assume this is a conditional instruction
 
         # Not using list comprehension because they run in a separate scope in which super() does not exist
         resolved_operands: list[int] = []
@@ -60,12 +68,9 @@ class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
         if any(value is None for value in resolved_operands[:-1]):
             # Note the [:-1]. Loongarch jump instructions have the target as the last operand
             # https://loongson.github.io/LoongArch-Documentation/LoongArch-Vol1-EN.html#_beqz_bnez
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNDETERMINED_CONDITIONAL
 
-        conditional = CONDITION_RESOLVERS.get(instruction.id, lambda *a: None)(resolved_operands)
-
-        if conditional is None:
-            return InstructionCondition.UNDETERMINED
+        conditional = condition_resolver(resolved_operands)
 
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 

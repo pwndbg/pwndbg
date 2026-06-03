@@ -118,7 +118,7 @@ def convert_all_to_markdown(
     # Enumerate all the files we need to create.
     all_filenames: set[str] = set()
     for _, data in extracted:
-        for filename in data.keys():
+        for filename in data:
             all_filenames.add(filename)
 
     # Generate markdown for those files.
@@ -172,7 +172,7 @@ def generate_index(
     # Make a dict of all commands.
     all_cmds: dict[str, ExtractedCommand] = {}
     for _, data in extracted:
-        for filename in data.keys():
+        for filename in data:
             if filename not in all_cmds:
                 all_cmds[filename] = data[filename]
 

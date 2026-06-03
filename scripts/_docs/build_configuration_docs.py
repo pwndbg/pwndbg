@@ -98,7 +98,7 @@ def convert_all_to_markdown(
     # Enumerate all scopes we can see.
     all_scopes: set[str] = set()
     for _, data in extracted:
-        for scope in data.keys():
+        for scope in data:
             all_scopes.add(scope)
 
     # Check if the index is up to date while

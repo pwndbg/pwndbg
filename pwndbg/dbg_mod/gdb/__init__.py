@@ -21,6 +21,7 @@ import gdb.types
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.aglib.remote
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.gdblib
@@ -799,7 +800,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     )
                     break
                 start = None
-                pass
 
             if start is None:
                 break
@@ -1919,11 +1919,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         for line in command_list:
             line = line.strip()
             # Skip non-command entries
-            if (
-                not line
-                or line.startswith("Command class:")
-                or line.startswith("Unclassified commands")
-            ):
+            if not line or line.startswith(("Command class:", "Unclassified commands")):
                 continue
             command = line.split()[0]
             existing_commands.add(command)

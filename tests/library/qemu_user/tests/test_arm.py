@@ -15,6 +15,15 @@ ARM_GRACEFUL_EXIT = """
 mov r0, 0
 mov r7, 0xf8
 swi #0
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
 """
 
 ARM_BRANCHES = f"""
@@ -92,7 +101,8 @@ def test_arm_simple_branch(qemu_assembly_run):
         "   0x200f0 <end>            mov    r0, #0                  R0 => 0\n"
         "   0x200f4 <end+4>          mov    r7, #0xf8               R7 => 0xf8\n"
         "   0x200f8 <end+8>          svc    #0 <SYS_exit_group>\n"
-        "   0x200fc                  andeq  r1, r0, r1, asr #18\n"
+        "   0x200fc <end+12>         nop   \n"
+        "   0x20100 <end+16>         nop   \n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -296,17 +306,18 @@ def test_arm_implicit_branch_ldr(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
-        " ► 0x200b4 <_start>    ldr    pc, [pc, #0xc]              <end>\n"
+        " ► 0x200b4 <_start>    ldr    pc, [pc, #0x30]             <end>\n"
         "    ↓\n"
         "   0x200bc <end>       mov    r0, #0                  R0 => 0\n"
         "   0x200c0 <end+4>     mov    r7, #0xf8               R7 => 0xf8\n"
         "   0x200c4 <end+8>     svc    #0 <SYS_exit_group>\n"
-        "   0x200c8 <end+12>    strheq r0, [r2], -r12\n"
-        "   0x200cc             andeq  r1, r0, r1, asr #18\n"
-        "\n"
-        "\n"
-        "\n"
-        "\n"
+        "   0x200c8 <end+12>    nop   \n"
+        "   0x200cc <end+16>    nop   \n"
+        "   0x200d0 <end+20>    nop   \n"
+        "   0x200d4 <end+24>    nop   \n"
+        "   0x200d8 <end+28>    nop   \n"
+        "   0x200dc <end+32>    nop   \n"
+        "   0x200e0 <end+36>    nop   \n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -320,17 +331,18 @@ def test_arm_implicit_branch_ldr(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
-        "   0x200b4 <_start>    ldr    pc, [pc, #0xc]              <end>\n"
+        "   0x200b4 <_start>    ldr    pc, [pc, #0x30]             <end>\n"
         "    ↓\n"
         " ► 0x200bc <end>       mov    r0, #0                  R0 => 0\n"
         "   0x200c0 <end+4>     mov    r7, #0xf8               R7 => 0xf8\n"
         "   0x200c4 <end+8>     svc    #0 <SYS_exit_group>\n"
-        "   0x200c8 <end+12>    strheq r0, [r2], -r12\n"
-        "   0x200cc             andeq  r1, r0, r1, asr #18\n"
-        "\n"
-        "\n"
-        "\n"
-        "\n"
+        "   0x200c8 <end+12>    nop   \n"
+        "   0x200cc <end+16>    nop   \n"
+        "   0x200d0 <end+20>    nop   \n"
+        "   0x200d4 <end+24>    nop   \n"
+        "   0x200d8 <end+28>    nop   \n"
+        "   0x200dc <end+32>    nop   \n"
+        "   0x200e0 <end+36>    nop   \n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -442,9 +454,10 @@ def test_arm_cmp_instructions(qemu_assembly_run):
         "   0x200d0 <end>          mov    r0, #0                  R0 => 0\n"
         "   0x200d4 <end+4>        mov    r7, #0xf8               R7 => 0xf8\n"
         "   0x200d8 <end+8>        svc    #0 <SYS_exit_group>\n"
-        "   0x200dc                andeq  r1, r0, r1, asr #18\n"
-        "\n"
-        "\n"
+        "   0x200dc <end+12>       nop   \n"
+        "   0x200e0 <end+16>       nop   \n"
+        "   0x200e4 <end+20>       nop   \n"
+        "   0x200e8 <end+24>       nop   \n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -538,13 +551,13 @@ def test_arm_exclusive_store(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
-        " ► 0x200d4 <_start>       ldr    r0, [pc, #0x34]     R0, [_start+60] => 0x3011c (value1) ◂— 0\n"
-        "   0x200d8 <_start+4>     ldr    r1, [pc, #0x34]     R1, [_start+64] => 0x87654321\n"
-        "   0x200dc <_start+8>     ldr    r2, [pc, #0x34]     R2, [_start+68] => 0x12345678\n"
+        " ► 0x200d4 <_start>       ldr    r0, [pc, #0x58]     R0, [_start+96] => 0x30140 (value1) ◂— 0\n"
+        "   0x200d8 <_start+4>     ldr    r1, [pc, #0x58]     R1, [_start+100] => 0x87654321\n"
+        "   0x200dc <_start+8>     ldr    r2, [pc, #0x58]     R2, [_start+104] => 0x12345678\n"
         "   0x200e0 <_start+12>    str    r1, [r0]            [value1] <= 0x87654321\n"
         "   0x200e4 <_start+16>    strex  r3, r2, [r0]        [value1] <= 0x12345678\n"
         "   0x200e8 <_start+20>    str    r1, [r0], #1        [value1] <= 0x87654321\n"
-        "   0x200ec <_start+24>    add    r0, r0, r1          R0 => 0x8768443e (0x3011d + 0x87654321)\n"
+        "   0x200ec <_start+24>    add    r0, r0, r1          R0 => 0x87684462 (0x30141 + 0x87654321)\n"
         "   0x200f0 <_start+28>    nop   \n"
         "   0x200f4 <_start+32>    nop   \n"
         "   0x200f8 <_start+36>    nop   \n"
@@ -748,11 +761,11 @@ def test_arm_it_block(qemu_assembly_run):
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "─────────────────[ DISASM / arm / thumb mode / set emulate on ]─────────────────\n"
         " ► 0x200bc <_start+8>     cmp    r0, #0     0x200bd - 0x0     CPSR => 0x20000030 [ n z C v q j T e a i f ]\n"
-        "   0x200be <_start+10>    ittte  eq\n"
-        "   0x200c0 <_start+12>    moveq  r1, #1     R1 => 1\n"
-        "   0x200c2 <_start+14>    moveq  r2, #2     R2 => 2\n"
-        "   0x200c4 <_start+16>    moveq  r2, #3     R2 => 3\n"
-        "   0x200c6 <_start+18>    movne  r1, #4     R1 => 4\n"
+        "   0x200be <_start+10>  ? ittte  eq\n"
+        "   0x200c0 <_start+12>  ? moveq  r1, #1     R1 => 1\n"
+        "   0x200c2 <_start+14>  ? moveq  r2, #2     R2 => 2\n"
+        "   0x200c4 <_start+16>  ? moveq  r2, #3     R2 => 3\n"
+        "   0x200c6 <_start+18>  ? movne  r1, #4     R1 => 4\n"
         "   0x200c8 <_start+20>    nop   \n"
         "   0x200ca <_start+22>    nop   \n"
         "   0x200cc <_start+24>    nop   \n"
@@ -794,8 +807,8 @@ def test_arm_it_block_step_into(qemu_assembly_run):
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "─────────────────[ DISASM / arm / thumb mode / set emulate on ]─────────────────\n"
         "   0x200bc <_start+8>     cmp    r0, #0     0x200bd - 0x0     CPSR => 0x20000030 [ n z C v q j T e a i f ]\n"
-        "   0x200be <_start+10>    ittte  eq\n"
-        "   0x200c0 <_start+12>    moveq  r1, #1     R1 => 1\n"
+        "   0x200be <_start+10>  ? ittte  eq\n"
+        "   0x200c0 <_start+12>  ? moveq  r1, #1     R1 => 1\n"
         " ► 0x200c2 <_start+14>    movs   r2, #2     R2 => 2\n"
         "   0x200c4 <_start+16>    movs   r2, #3     R2 => 3\n"
         "   0x200c6 <_start+18>    movs   r1, #4     R1 => 4\n"
@@ -829,11 +842,11 @@ def test_arm_it_block_cached_thumb_mode(qemu_assembly_run):
         "   0x200b8 <_start+4>     bx     r0                          <_start+8>\n"
         "    ↓\n"
         "   0x200bc <_start+8>     cmp    r0, #0         0x200bd - 0x0     CPSR => 0x20000030 [ n z C v q j T e a i f ]\n"
-        "   0x200be <_start+10>    ittte  eq\n"
-        "   0x200c0 <_start+12>    moveq  r1, #1         R1 => 1\n"
-        "   0x200c2 <_start+14>    moveq  r2, #2         R2 => 2\n"
-        "   0x200c4 <_start+16>    moveq  r2, #3         R2 => 3\n"
-        "   0x200c6 <_start+18>    movne  r1, #4         R1 => 4\n"
+        "   0x200be <_start+10>  ? ittte  eq\n"
+        "   0x200c0 <_start+12>  ? moveq  r1, #1         R1 => 1\n"
+        "   0x200c2 <_start+14>  ? moveq  r2, #2         R2 => 2\n"
+        "   0x200c4 <_start+16>  ? moveq  r2, #3         R2 => 3\n"
+        "   0x200c6 <_start+18>  ? movne  r1, #4         R1 => 4\n"
         "   0x200c8 <_start+20>    nop   \n"
         "   0x200ca <_start+22>    nop   \n"
         "   0x200cc <_start+24>    nop   \n"

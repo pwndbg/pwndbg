@@ -302,4 +302,4 @@ def vfile_close(fd):
     packet = f"vFile:close:{fd:X}"
     response = pwndbg.dbg.selected_inferior().send_remote(packet)
     _vfile_check_response(response)
-    return None
+    return

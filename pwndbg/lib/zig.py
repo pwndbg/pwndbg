@@ -121,7 +121,7 @@ def _get_zig_target(arch: ArchDefinition) -> str | None:
     else:
         return None
 
-    arch_mapping = _arch_mapping.get((arch.name, arch.endian, arch.ptrsize), None)
+    arch_mapping = _arch_mapping.get((arch.name, arch.endian, arch.ptrsize))
     if arch_mapping is None:
         return None
 
@@ -146,7 +146,7 @@ def flags(arch: ArchDefinition) -> list[str]:
 
 
 def asm(arch: ArchDefinition, data: str, includes: list[pathlib.Path] | None = None) -> bytes:
-    arch_mapping = _arch_mapping.get((arch.name, arch.endian, arch.ptrsize), None)
+    arch_mapping = _arch_mapping.get((arch.name, arch.endian, arch.ptrsize))
     if arch_mapping is None:
         raise ValueError(
             f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})"
@@ -158,7 +158,7 @@ def asm(arch: ArchDefinition, data: str, includes: list[pathlib.Path] | None = N
 def _asm(arch_mapping: str, data: str, includes: list[pathlib.Path] | None = None) -> bytes:
     zig_executable = get_zig_executable()
 
-    header = _asm_header.get(arch_mapping, None)
+    header = _asm_header.get(arch_mapping)
     if header is None:
         raise ValueError(f"Can't find asm header for target {arch_mapping}")
 

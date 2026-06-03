@@ -549,11 +549,11 @@ class Aarch64Ops(ArchOps):
 
     @staticmethod
     def paging_enabled() -> bool:
-        sctlr_reg = pwndbg.aglib.regs.read_reg("SCTLR")
-        if sctlr_reg is None:
-            sctlr_reg = pwndbg.aglib.regs.read_reg("SCTLR_EL1")
-
-        return int(sctlr_reg) & BIT(0) != 0
+        # AArch64 system control register: newer QEMU releases (tested on
+        # 10.2.0) expose it as `SCTLR_EL1`; older releases used the generic
+        # `SCTLR`. Bit 0 (M) is the MMU-enable flag in either case. See
+        # #3871 / #3875.
+        return int(pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) & BIT(0) != 0
 
 
 @pwndbg.lib.cache.cache_until("start")
@@ -728,6 +728,20 @@ def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
     raise NotImplementedError()
 
 
+def PAGE_ENTRY_MASK() -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.PAGE_ENTRY_MASK
+    raise NotImplementedError()
+
+
+def STRUCT_PAGE_SIZE() -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.STRUCT_PAGE_SIZE
+    raise NotImplementedError()
+
+
 def slab_to_virt(slab: int) -> int:
     pi = arch_paginginfo()
     if pi:
@@ -857,4 +871,11 @@ def current_task(cpu: int | None = None) -> int | None:
             return result
         ptr = int(per_cpu(result, cpu=cpu))
         return pwndbg.aglib.memory.read_pointer_width(ptr)
+    return None
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def init_task() -> int | None:
+    if (syms := arch_symbols()) is not None:
+        return syms.init_task()
     return None

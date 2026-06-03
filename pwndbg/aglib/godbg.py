@@ -191,7 +191,6 @@ class Type(ABC):
     @abstractmethod
     def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         """Dump a type from memory given an address and format."""
-        pass
 
     @abstractmethod
     def size(self) -> int:
@@ -200,7 +199,6 @@ class Type(ABC):
 
         Used for computing array and struct layouts.
         """
-        pass
 
     @abstractmethod
     def align(self) -> int:
@@ -209,7 +207,6 @@ class Type(ABC):
 
         Used for computing array and struct layouts.
         """
-        pass
 
     @abstractmethod
     def get_typename(self) -> str:
@@ -218,7 +215,6 @@ class Type(ABC):
 
         Also used to get the string representation.
         """
-        pass
 
     def is_cyclic(self) -> bool:
         """
@@ -819,7 +815,7 @@ class BasicType(Type):
             closure_addr = load_uint(val)
             f = load_uint(pwndbg.aglib.memory.read(closure_addr, word))
             return fmt.fmt_debug(f"(closure @ {closure_addr}) ") + fmt.fmt_ptr(f)
-        if ty.startswith("int") or ty.startswith("uint"):
+        if ty.startswith(("int", "uint")):
             if ty.startswith("int"):
                 n = load_int(val)
             else:
@@ -883,10 +879,7 @@ class BasicType(Type):
         elif ty in ("int", "uint", "uintptr", "funcptr"):
             self.sz = word_size()
             self.algn = word_size()
-        elif ty == "string":
-            self.sz = word_size() * 2
-            self.algn = word_size()
-        elif ty in ("any", "interface"):
+        elif ty in ("string", "any", "interface"):
             self.sz = word_size() * 2
             self.algn = word_size()
         else:
