@@ -20,7 +20,7 @@ import pwndbg.lib.cache
 import pwndbg.lib.tempfile
 import pwndbg.libc
 from pwndbg.color import colorize
-from pwndbg.color import generateColorFunction
+from pwndbg.color import generate_color_function
 
 ADDRESS_WRITABLE_PATTERN = re.compile(r"address(?:es)? (.*) (?:is|are) writable")
 WRITABLE_COLON_PATTERN = re.compile(r"writable: (.*)")
@@ -230,11 +230,11 @@ class Lambda:
 
 
 def colorize_reg(x: object) -> str:
-    return generateColorFunction("light_green", ONEGADGET_COLOR)(x)
+    return generate_color_function("light_green", ONEGADGET_COLOR)(x)
 
 
 def colorize_integer(x: object) -> str:
-    return generateColorFunction("light_purple", ONEGADGET_COLOR)(x)
+    return generate_color_function("light_purple", ONEGADGET_COLOR)(x)
 
 
 def colorize_psuedo_code(code: str) -> str:

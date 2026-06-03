@@ -30,7 +30,7 @@ from pwndbg.aglib.heap.ptmalloc import Chunk
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import Heap
-from pwndbg.color import generateColorFunction
+from pwndbg.color import generate_color_function
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -1164,11 +1164,11 @@ def vis_heap_chunks(
     # Build the output buffer, changing color at each chunk delimiter.
     # TODO: maybe print free chunks in bold or underlined
     color_funcs = [
-        generateColorFunction("yellow"),
-        generateColorFunction("cyan"),
-        generateColorFunction("purple"),
-        generateColorFunction("green"),
-        generateColorFunction("blue"),
+        generate_color_function("yellow"),
+        generate_color_function("cyan"),
+        generate_color_function("purple"),
+        generate_color_function("green"),
+        generate_color_function("blue"),
     ]
 
     bin_collections = []

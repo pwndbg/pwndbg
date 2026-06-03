@@ -129,7 +129,7 @@ def underline(x: str) -> str:
 
 
 def colorize(x: str, color: str) -> str:
-    return color + terminateWith(str(x), color) + NORMAL
+    return color + terminate_with(str(x), color) + NORMAL
 
 
 def nocolor(x: str, color: str) -> str:
@@ -164,7 +164,7 @@ def _disable_colors_trigger():
             colorize.__code__ = colorize.original_code
 
 
-def generateColorFunctionInner(
+def generate_color_function_inner(
     old: Callable[[object], str], new: Callable[[str], str]
 ) -> Callable[[object], str]:
     def wrapper(text: object) -> str:
@@ -196,7 +196,7 @@ class ColorConfig:
         raise AttributeError(f"ColorConfig object for {self._namespace} has no attribute '{attr}'")
 
 
-def generateColorFunction(
+def generate_color_function(
     config: str | Parameter, _globals: dict[str, Callable[[str], str]] = globals()
 ) -> Callable[[object], str]:
     # the `config` here may be a config Parameter object
@@ -211,7 +211,7 @@ def generateColorFunction(
 
     for color in config.split(","):
         func_name = color.lower().replace("-", "_")
-        function = generateColorFunctionInner(function, _globals[func_name])
+        function = generate_color_function_inner(function, _globals[func_name])
     return function
 
 
@@ -219,7 +219,7 @@ def strip(x: str) -> str:
     return re.sub("\x1b\\[[\\d;]+m", "", x)
 
 
-def terminateWith(x: str, color: str) -> str:
+def terminate_with(x: str, color: str) -> str:
     return x.replace("\x1b[0m", NORMAL + color)
 
 
