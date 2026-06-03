@@ -65,18 +65,18 @@ class CheckSatResult(Enum):
         return self.name
 
     def __and__(self, other: CheckSatResult) -> CheckSatResult:
-        if CheckSatResult.UNSAT in {self, other}:
-            return CheckSatResult.UNSAT
-        if CheckSatResult.UNKNOWN in {self, other}:
-            return CheckSatResult.UNKNOWN
-        return CheckSatResult.SAT
+        if UNSAT in (self, other):
+            return UNSAT
+        if UNKNOWN in (self, other):
+            return UNKNOWN
+        return SAT
 
     def __or__(self, other: CheckSatResult) -> CheckSatResult:
-        if CheckSatResult.SAT in {self, other}:
-            return CheckSatResult.SAT
-        if CheckSatResult.UNKNOWN in {self, other}:
-            return CheckSatResult.UNKNOWN
-        return CheckSatResult.UNSAT
+        if SAT in (self, other):
+            return SAT
+        if UNKNOWN in (self, other):
+            return UNKNOWN
+        return UNSAT
 
 
 SAT = CheckSatResult.SAT
