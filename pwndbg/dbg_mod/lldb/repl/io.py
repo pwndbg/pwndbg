@@ -316,7 +316,7 @@ class IODriverPlainText(IODriver):
 
     @override
     def on_output_event(self) -> None:
-        try:
+        try:  # noqa: SIM105
             self.likely_output.release()
         except ValueError:
             # We haven't responded to the previous event yet. No matter, when

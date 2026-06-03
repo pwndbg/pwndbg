@@ -2134,7 +2134,7 @@ class HeuristicHeap(
         """
         # Initialize malloc's mp_ struct if necessary.
         if not self._mp_addr:
-            try:
+            try:  # noqa: SIM105
                 self.mp
             except Exception:
                 # Should only raise SymbolNotRecoveredError, but the heuristic heap implementation is still buggy so catch all exceptions for now.
