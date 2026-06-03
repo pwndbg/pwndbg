@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import sys
 from collections.abc import Callable
@@ -99,10 +100,8 @@ def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> Non
     # The GDB controller is entirely synchronous, so keep advancing the
     # corountine unconditionally until it ends..
     coroutine = outer(_GDBController())
-    try:
+    with contextlib.suppress(StopIteration):
         coroutine.send(None)
-    except StopIteration:
-        pass
 
 
 host.start = _start

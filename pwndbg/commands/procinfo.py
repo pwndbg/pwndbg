@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import shlex
 import string
 
@@ -225,10 +226,8 @@ class Process:
 
             # bit fields
             if set(v) < set(string.hexdigits) and len(v) == 16:
-                try:
+                with contextlib.suppress(AttributeError):
                     v = int(v, 16)
-                except AttributeError:
-                    pass
 
             # vm stats
             elif v.endswith(" kB"):

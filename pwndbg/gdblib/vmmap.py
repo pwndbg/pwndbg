@@ -8,6 +8,7 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Iterator
 
 import gdb
@@ -146,15 +147,11 @@ def enhance_known_pages_info(pages: list[pwndbg.lib.memory.Page]) -> None:
     auxv = pwndbg.gdblib.info.auxv().splitlines()
     for line in auxv:
         if "AT_EXECFN" in line:
-            try:
+            with contextlib.suppress(Exception):
                 stack_addr = int(line.split()[-2], 16)
-            except Exception:
-                pass
         if "AT_SYSINFO_EHDR" in line:
-            try:
+            with contextlib.suppress(Exception):
                 vdso_addr = int(line.split()[-1], 16)
-            except Exception:
-                pass
 
     for page in pages:
         if stack_addr and stack_addr in page:
