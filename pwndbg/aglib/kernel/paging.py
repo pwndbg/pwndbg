@@ -359,10 +359,10 @@ class ArchPagingInfo:
             for level in levels:
                 if level.phys is None or level.level is None:
                     continue
-                level.virt = level.phys + self.physmap - self.phys_offset
+                level.virt = level.phys + self.physmap - self.ram_phys_start
                 level.name = self.pagetable_level_names[level.level]
             if result.phys is not None:
-                result.virt = result.phys + self.physmap - self.phys_offset
+                result.virt = result.phys + self.physmap - self.ram_phys_start
         except Exception:
             pass
         finally:  # so that the PhyMemMode value is always restored
@@ -390,7 +390,7 @@ class ArchPagingInfo:
         raise NotImplementedError()
 
     @property
-    def phys_offset(self) -> int:
+    def ram_phys_start(self) -> int:
         return 0
 
     @property
@@ -724,7 +724,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             self.VMEMMAP_START = pwndbg.aglib.arch.unsigned(-0x40000000 - self.VMEMMAP_SIZE)
 
         # obtained through debugging -- kaslr offset of physmap determines the offset of vmemmap
-        vmemmap_kaslr = (self.physmap - self.PAGE_OFFSET - self.phys_offset) >> vmemmap_shift
+        vmemmap_kaslr = (self.physmap - self.PAGE_OFFSET - self.ram_phys_start) >> vmemmap_shift
         return self.VMEMMAP_START + vmemmap_kaslr
 
     @property
@@ -904,7 +904,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("start")
-    def phys_offset(self) -> int:
+    def ram_phys_start(self) -> int:
         found_system = False
         try:
             for line in pwndbg.dbg.selected_inferior().send_monitor("info mtree -f").splitlines():

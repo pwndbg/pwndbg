@@ -110,8 +110,8 @@ class QemuMachine(Machine):
         self.pid = QemuMachine.get_qemu_pid()
         self.file = os.open(f"/proc/{self.pid}/mem", os.O_RDONLY)
         arch_ops = pwndbg.aglib.kernel.arch_ops()
-        self.phys_offset = arch_ops.phys_offset if arch_ops else 0
-        res = pwndbg.dbg.selected_inferior().send_monitor(f"gpa2hva {self.phys_offset}")
+        self.ram_phys_start = arch_ops.ram_phys_start if arch_ops else 0
+        res = pwndbg.dbg.selected_inferior().send_monitor(f"gpa2hva {self.ram_phys_start}")
         try:
             self.base_hva = int(res.split(" ")[-1], 16)
         except Exception as e:
@@ -191,7 +191,7 @@ class QemuMachine(Machine):
             block = os.pread(
                 self.file,
                 length_to_read,
-                self.base_hva + physical_address - self.phys_offset + offset,
+                self.base_hva + physical_address - self.ram_phys_start + offset,
             )
             data += block
         return data

@@ -371,7 +371,7 @@ def test_command_paging() -> None:
     test_command_paging_helper("initialized", kbase)
     vmemmap = pi.vmemmap
     if pwndbg.aglib.arch.name == "aarch64":
-        vmemmap += pi.phys_offset >> (pi.page_shift - pi.STRUCT_PAGE_SHIFT)
+        vmemmap += pi.ram_phys_start >> (pi.page_shift - pi.STRUCT_PAGE_SHIFT)
     test_command_paging_helper("initialized", vmemmap)
     res = gdb.execute("buddydump", to_string=True)
     matches = get_buddy_freelist_elements(res)
