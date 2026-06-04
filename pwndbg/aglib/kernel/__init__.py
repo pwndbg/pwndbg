@@ -107,11 +107,6 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
     return decorator
 
 
-# Set by pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux() when page typeinfo
-# recovery fails.
-page_typeinfo_recovery_failure: None | TypeNotRecoveredError = None
-
-
 def typeinfo_recovery(
     name: str, requires_kversion: bool = False, requires_kbase: bool = False
 ) -> Callable[[Callable[P, str]], Callable[P, None]]:
@@ -126,6 +121,9 @@ def typeinfo_recovery(
                 return
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
                 return
+            recover_common_types_func = pwndbg.aglib.kernel.symbol.recover_page_typeinfo
+            if f.__name__ != recover_common_types_func.__name__:
+                recover_common_types_func()
             if requires_kversion and kversion() is None:
                 raise TypeNotRecoveredError(name, "kernel version is unavailable")
             if requires_kbase and kbase() is None:
@@ -134,13 +132,6 @@ def typeinfo_recovery(
             try:
                 result = f(*args, **kwargs)
             except TypeNotFoundError as e:
-                # typeinfo_recovery functions depend on
-                # pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux()
-                # succeeding and will try to directly read those types from the debbuger
-                # like e.g. `pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)`
-                # This will raise a TypeNotFoundError exception.
-                if page_typeinfo_recovery_failure is not None:
-                    raise page_typeinfo_recovery_failure
                 raise TypeNotRecoveredError(name, str(e))
             except AssertionError as e:
                 # FIXME: Some type recovery functions `assert` under the assumption that the assert
