@@ -18,6 +18,7 @@ import pwndbg.lib.cache
 
 COUNT = 100
 
+
 def run_benchmark(name: str, prefix: str, callback: Callable, count=COUNT) -> float:
     """
     Return:
@@ -28,6 +29,7 @@ def run_benchmark(name: str, prefix: str, callback: Callable, count=COUNT) -> fl
     profiler.enable()
 
     for _ in range(count):
+        pwndbg.lib.cache.clear_caches()
         callback()
 
     profiler.disable()
@@ -43,6 +45,7 @@ def run_benchmark(name: str, prefix: str, callback: Callable, count=COUNT) -> fl
 
     return full_time / count
 
+
 parser = argparse.ArgumentParser(
     description="""
 Benchmark contexts.
@@ -56,9 +59,9 @@ However, you can use it to find relative performance before/after changes, and f
 
 parser.add_argument("name", type=str, help="Name placed into output pstats filename")
 
+
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.DEV)
 def benchmark_context(name: str):
-
     # Context - clear cache
     ## Benchmark the `context` command, no caching
 
@@ -66,14 +69,9 @@ def benchmark_context(name: str):
         pwndbg.lib.cache.clear_caches()
         pwndbg.commands.context.context.function()
 
-    run_benchmark(
-        name,
-        "context-without-cache",
-        run_with_clear
-    )
+    run_benchmark(name, "context-without-cache", run_with_clear)
 
     pwndbg.lib.cache.clear_caches()
-
 
     # Context - with cache
     ## Benchmark the `context` command with cache
@@ -81,7 +79,7 @@ def benchmark_context(name: str):
         name,
         "context-with-cache",
         # Bypass the decorator so cProfile/snakeviz sees things correctly
-        lambda: pwndbg.commands.context.context.function()
+        lambda: pwndbg.commands.context.context.function(),
     )
 
     pwndbg.lib.cache.clear_caches()
@@ -93,11 +91,7 @@ def benchmark_context(name: str):
         # Bypass the decorator so cProfile can see function stack correctly
         pwndbg.commands.context.context.function()
 
-    run_benchmark(
-        name,
-        "step",
-        run_with_step
-    )
+    run_benchmark(name, "step", run_with_step)
 
     # Regs
 
@@ -105,11 +99,7 @@ def benchmark_context(name: str):
         gdb.execute("stepi")
         pwndbg.commands.context.context_regs()
 
-    run_benchmark(
-        name,
-        "regs",
-        regs
-    )
+    run_benchmark(name, "regs", regs)
 
     # Disasm
 
@@ -117,11 +107,7 @@ def benchmark_context(name: str):
         gdb.execute("stepi")
         pwndbg.commands.context.context_disasm()
 
-    run_benchmark(
-        name,
-        "disasm",
-        disasm
-    )
+    run_benchmark(name, "disasm", disasm)
 
     # Stack
 
@@ -129,12 +115,7 @@ def benchmark_context(name: str):
         gdb.execute("stepi")
         pwndbg.commands.context.context_stack()
 
-    run_benchmark(
-        name,
-        "stack",
-        stack
-    )
-
+    run_benchmark(name, "stack", stack)
 
 
 parser = argparse.ArgumentParser(
@@ -155,10 +136,4 @@ def benchmark_large_telescope(name: str):
     def print_all_stack():
         pwndbg.commands.telescope.telescope(start, len // pwndbg.aglib.arch.ptrsize)
 
-    run_benchmark(
-        name,
-        "all-stack",
-        print_all_stack,
-        4
-    )
-
+    run_benchmark(name, "all-stack", print_all_stack, 4)

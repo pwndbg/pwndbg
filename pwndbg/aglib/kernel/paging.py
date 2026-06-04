@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import re
 import struct
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import pwndbg
@@ -64,11 +65,13 @@ class PageTableScan:
         # for scanning
         self.pagesz = pi.page_size
         self.ptrsize = pwndbg.aglib.arch.ptrsize
-        self.inf = pwndbg.dbg.selected_inferior()
         self.fmt = "<" + ("Q" if self.ptrsize == 8 else "I") * (self.pagesz // self.ptrsize)
         self.cache: dict[tuple[int, int], list[tuple[int, int, int]]] = {}
         self.entry_cache: dict[int, tuple[int]] = {}
         self.arch = pwndbg.aglib.arch.name
+        self.read: Callable[[int, int], bytearray] = pwndbg.dbg.selected_inferior().read_memory
+        if qm := pwndbg.aglib.qemu.get_qemu_machine():
+            self.read = qm.read_physical_memory
 
     def scan(self, entry: int, is_kernel: bool = False) -> list[Page]:
         """
@@ -109,7 +112,7 @@ class PageTableScan:
     def _scan(self, addr: int, level: int) -> None:
         pagesz = self.pagesz
         orig = addr
-        self.entry_cache[addr] = struct.unpack(self.fmt, self.inf.read_memory(addr, self.pagesz))
+        self.entry_cache[addr] = struct.unpack(self.fmt, self.read(addr, self.pagesz))
         entries = self.entry_cache[addr]
         ranges: list[tuple[int, int, int]] = []
         append = ranges.append
@@ -202,9 +205,7 @@ class PageTableScan:
             idx = (target >> shift) & self.PAGE_INDEX_MASK
             addr = entry & self.PAGE_ENTRY_MASK
             if addr not in self.entry_cache:
-                self.entry_cache[addr] = struct.unpack(
-                    self.fmt, self.inf.read_memory(addr, self.pagesz)
-                )
+                self.entry_cache[addr] = struct.unpack(self.fmt, self.read(addr, self.pagesz))
             entry = self.entry_cache[addr][idx]
             if not entry:
                 break
@@ -495,7 +496,7 @@ class x86_64PagingInfo(ArchPagingInfo):
         return pwndbg.aglib.arch.unsigned(-3, self.P4D_SHIFT)
 
     @property
-    def SLAB_DATA_BASE_ADDR(self):
+    def SLAB_DATA_BASE_ADDR(self) -> int:
         STRUCT_SLAB_SIZE = 32 * pwndbg.aglib.arch.ptrsize
         SLAB_VPAGES = (1 << self.P4D_SHIFT) // self.page_size
         SLAB_META_SIZE = pwndbg.lib.memory.round_up(STRUCT_SLAB_SIZE * SLAB_VPAGES, self.page_size)
