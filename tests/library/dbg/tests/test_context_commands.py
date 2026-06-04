@@ -296,6 +296,74 @@ async def test_context_backtrace_show_proper_symbol_names(ctrl: Controller) -> N
 
 
 @pwndbg_test
+async def test_context_backtrace_aligns_symbols_after_wide_addresses(ctrl: Controller) -> None:
+    import pwndbg
+    import pwndbg.aglib.symbol
+    import pwndbg.commands.context
+    import pwndbg.ui
+
+    class FakeFrame:
+        def __init__(self, pc: int) -> None:
+            self._pc = pc
+            self._parent: FakeFrame | None = None
+            self._child: FakeFrame | None = None
+
+        def pc(self) -> int:
+            return self._pc
+
+        def parent(self) -> FakeFrame | None:
+            return self._parent
+
+        def child(self) -> FakeFrame | None:
+            return self._child
+
+    current = FakeFrame(0xFFFFFFFF81723AD0)
+    caller = FakeFrame(0)
+    current._parent = caller
+    caller._child = current
+
+    addresses = {
+        current.pc(): "0xffffffff81723ad0",
+        caller.pc(): "             0x0",
+    }
+    symbols = {
+        current.pc(): "newque",
+        caller.pc(): "__pfx_init_module",
+    }
+
+    await ctrl.launch(MANGLING_BINARY)
+
+    original_selected_frame = pwndbg.dbg.selected_frame
+    original_addrsz = pwndbg.ui.addrsz
+    original_resolve_addr = pwndbg.aglib.symbol.resolve_addr
+
+    def fake_selected_frame() -> FakeFrame:
+        return current
+
+    def fake_addrsz(address: int) -> str:
+        return addresses[address]
+
+    def fake_resolve_addr(address: int) -> str:
+        return symbols[address]
+
+    try:
+        setattr(pwndbg.dbg, "selected_frame", fake_selected_frame)
+        setattr(pwndbg.ui, "addrsz", fake_addrsz)
+        setattr(pwndbg.aglib.symbol, "resolve_addr", fake_resolve_addr)
+
+        backtrace = [
+            pwndbg.color.strip(line)
+            for line in pwndbg.commands.context.context_backtrace(with_banner=False)
+        ]
+    finally:
+        setattr(pwndbg.dbg, "selected_frame", original_selected_frame)
+        setattr(pwndbg.ui, "addrsz", original_addrsz)
+        setattr(pwndbg.aglib.symbol, "resolve_addr", original_resolve_addr)
+
+    assert backtrace[0].index("newque") == backtrace[1].index("__pfx_init_module")
+
+
+@pwndbg_test
 async def test_context_disasm_works_properly_with_disasm_flavor_switch(ctrl: Controller) -> None:
     await ctrl.launch(SYSCALLS_BINARY)
 
