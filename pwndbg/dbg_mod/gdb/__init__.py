@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from collections.abc import Sequence
 from contextlib import contextmanager
 from contextlib import nullcontext
+from contextlib import suppress
 from os import environ
 from pathlib import Path
 from random import randint
@@ -1739,16 +1740,12 @@ class GDB(pwndbg.dbg_mod.Debugger):
             gdb.execute(line)
 
         # debuginfod may not be compiled in (e.g. bare-metal cross GDB)
-        try:
+        with suppress(gdb.error):
             gdb.execute("set debuginfod enabled on")
-        except gdb.error:
-            pass
 
         # This may throw an exception, see pwndbg/pwndbg#27
-        try:
+        with suppress(gdb.error):
             gdb.execute("set disassembly-flavor intel")
-        except gdb.error:
-            pass
 
         from pwndbg.gdblib.tui import setup as tui_setup
 

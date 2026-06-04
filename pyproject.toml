@@ -120,7 +120,6 @@ ignore = [
     "W505",
     "SIM102", # flake8-simplify collapsible-if
     "SIM103", # flake8-simplify needless-bool
-    "SIM105", # flake8-simplify suppressible-exception
     "SIM108", # flake8-simplify if-else-block-instead-of-if-exp
     "SIM110", # flake8-simplify reimplemented-builtin
     "SIM114", # flake8-simplify if-with-same-arms

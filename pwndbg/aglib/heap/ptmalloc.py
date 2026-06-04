@@ -15,6 +15,7 @@ else:
 import typing
 from collections import OrderedDict as OrderedDictType
 from collections.abc import Callable
+from contextlib import suppress
 from typing import Any
 from typing import Generic
 from typing import TypeVar
@@ -299,32 +300,26 @@ class Chunk:
     @property
     def prev_size(self) -> int | None:
         if self._prev_size is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._prev_size = int(self._gdbValue[self.__match_renamed_field("prev_size")])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._prev_size
 
     @property
     def size(self) -> int | None:
         if self._size is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._size = int(self._gdbValue[self.__match_renamed_field("size")])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._size
 
     @property
     def real_size(self) -> int | None:
         if self._real_size is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._real_size = int(self._gdbValue[self.__match_renamed_field("size")]) & ~(
                     SIZE_BITS
                 )
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._real_size
 
@@ -375,40 +370,32 @@ class Chunk:
     @property
     def fd(self) -> int | None:
         if self._fd is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._fd = int(self._gdbValue["fd"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._fd
 
     @property
     def bk(self) -> int | None:
         if self._bk is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._bk = int(self._gdbValue["bk"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._bk
 
     @property
     def fd_nextsize(self):
         if self._fd_nextsize is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._fd_nextsize = int(self._gdbValue["fd_nextsize"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._fd_nextsize
 
     @property
     def bk_nextsize(self):
         if self._bk_nextsize is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._bk_nextsize = int(self._gdbValue["bk_nextsize"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._bk_nextsize
 
@@ -547,10 +534,8 @@ class Heap:
     @property
     def prev(self):
         if self._prev is None and self._gdbValue is not None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._prev = int(self._gdbValue["prev"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._prev
 
@@ -630,20 +615,16 @@ class Arena:
     @property
     def mutex(self) -> int | None:
         if self._mutex is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._mutex = int(self._gdbValue["mutex"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._mutex
 
     @property
     def flags(self) -> int | None:
         if self._flags is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._flags = int(self._gdbValue["flags"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._flags
 
@@ -659,20 +640,16 @@ class Arena:
     @property
     def have_fastchunks(self) -> int | None:
         if self._have_fastchunks is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._have_fastchunks = int(self._gdbValue["have_fastchunks"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._have_fastchunks
 
     @property
     def top(self) -> int | None:
         if self._top is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._top = int(self._gdbValue["top"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._top
 
@@ -715,30 +692,24 @@ class Arena:
     @property
     def next(self) -> int | None:
         if self._next is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._next = int(self._gdbValue["next"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._next
 
     @property
     def next_free(self) -> int | None:
         if self._next_free is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._next_free = int(self._gdbValue["next_free"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._next_free
 
     @property
     def system_mem(self) -> int | None:
         if self._system_mem is None:
-            try:
+            with suppress(pwndbg.dbg_mod.Error):
                 self._system_mem = int(self._gdbValue["system_mem"])
-            except pwndbg.dbg_mod.Error:
-                pass
 
         return self._system_mem
 
@@ -2163,7 +2134,7 @@ class HeuristicHeap(
         """
         # Initialize malloc's mp_ struct if necessary.
         if not self._mp_addr:
-            try:
+            try:  # noqa: SIM105
                 self.mp
             except Exception:
                 # Should only raise SymbolNotRecoveredError, but the heuristic heap implementation is still buggy so catch all exceptions for now.
