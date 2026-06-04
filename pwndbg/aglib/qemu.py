@@ -4,6 +4,7 @@ Determine whether the target is being run under QEMU.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import random
 import string
@@ -122,10 +123,8 @@ class QemuMachine(Machine):
 
     def __del__(self):
         if self.file is not None:
-            try:
+            with contextlib.suppress(OSError):
                 os.close(self.file)
-            except OSError:
-                pass
 
     @staticmethod
     def search_pids_for_file(pids: list[str], filename: str) -> str | None:
@@ -175,10 +174,8 @@ class QemuMachine(Machine):
     def read_memory(self, address: int, length: int) -> bytearray:
         phys = None
         res = pwndbg.dbg.selected_inferior().send_monitor(f"gva2gpa {address}")
-        try:
+        with contextlib.suppress(Exception):
             phys = int(res.split(" ")[-1], 16)
-        except Exception:
-            pass
         if phys is None:
             phys = pwndbg.aglib.kernel.pagewalk(address).phys
         if phys is None:
