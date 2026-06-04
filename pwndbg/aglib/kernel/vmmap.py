@@ -119,7 +119,7 @@ def kernel_vmmap_via_page_tables() -> tuple[Page, ...]:
         # QemuMachine requires access to /proc/{qemu-pid}/mem, which is only available on Linux
         return ()
 
-    machine_backend = pwndbg.aglib.qemu.get_qemu_machine()
+    machine_backend = pwndbg.aglib.qemu.get_qemu_machine(True)
     if machine_backend is None:
         return ()
 

@@ -69,8 +69,9 @@ class PageTableScan:
         self.cache: dict[tuple[int, int], list[tuple[int, int, int]]] = {}
         self.entry_cache: dict[int, tuple[int]] = {}
         self.arch = pwndbg.aglib.arch.name
+        # the default is slightly slower but does not require setting yama.ptrace_scope
         self.read: Callable[[int, int], bytearray] = pwndbg.dbg.selected_inferior().read_memory
-        if qm := pwndbg.aglib.qemu.get_qemu_machine():
+        if qm := pwndbg.aglib.qemu.get_qemu_machine():  # note this would fail silently
             self.read = qm.read_physical_memory
 
     def scan(self, entry: int, is_kernel: bool = False) -> list[Page]:
