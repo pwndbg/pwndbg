@@ -9,6 +9,8 @@ import re
 import sys
 from collections import defaultdict
 from collections.abc import Callable
+from contextlib import AbstractContextManager
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 from typing import TextIO
@@ -226,20 +228,15 @@ def validate_context_sections() -> None:
             return
 
 
-class StdOutput:
+@dataclass(frozen=True)
+class StdOutput(AbstractContextManager[TextIO]):
     """A context manager wrapper to give stdout"""
 
     def __enter__(self) -> TextIO:
         return sys.stdout
 
-    def __exit__(self, *args, **kwargs) -> None:
-        pass
-
-    def __hash__(self):
-        return hash(sys.stdout)
-
-    def __eq__(self, other) -> bool:
-        return isinstance(other, StdOutput)
+    def __exit__(self, *exc: object) -> None:
+        return None
 
 
 class FileOutput:
@@ -254,6 +251,7 @@ class FileOutput:
         return self.handle
 
     def __exit__(self, *args, **kwargs) -> None:
+        assert self.handle is not None
         self.handle.close()
 
     def __hash__(self):
@@ -263,23 +261,17 @@ class FileOutput:
         return self.args == other.args
 
 
+@dataclass(frozen=True)
 class CallOutput:
     """A context manager which calls a function on write"""
 
-    def __init__(self, func: Callable[[str], None]) -> None:
-        self.func = func
+    func: Callable[[str], None]
 
-    def __enter__(self):
+    def __enter__(self) -> CallOutput:
         return self
 
     def __exit__(self, *args, **kwargs) -> None:
         pass
-
-    def __hash__(self):
-        return hash(self.func)
-
-    def __eq__(self, other):
-        return self.func == other.func
 
     def write(self, data) -> None:
         self.func(data)
@@ -288,16 +280,13 @@ class CallOutput:
         self.func("".join(lines_iterable))
 
     def flush(self):
-        try:
-            return self.func.flush()
-        except AttributeError:
-            pass
+        if flush := getattr(self.func, "flush", None):
+            return flush()
 
     def isatty(self):
-        try:
-            return self.func.isatty()
-        except AttributeError:
-            return False
+        if isatty := getattr(self.func, "isatty", None):
+            return isatty()
+        return False
 
 
 OutputWrapper = StdOutput | FileOutput | CallOutput
@@ -779,31 +768,34 @@ def context(
     result: defaultdict[OutputWrapper, list[str]] = defaultdict(list)
     result_settings: defaultdict[OutputWrapper, dict[str, Any]] = defaultdict(dict)
     for section, func in sections:
-        if func:
-            target = output(section)
-            # Last section of an output decides about output settings
-            settings = output_settings[section]
-            if enabled is not None:
-                settings["enabled"] = enabled
-            if settings.get("enabled", True):
-                result_settings[target].update(settings)
-                with target as out:
-                    result[target].extend(
-                        func(
-                            target=out,
-                            width=settings.get("width", None),
-                            height=settings.get("height", None),
-                            with_banner=settings.get("banner_top", True),
-                        )
-                    )
+        if not func:
+            continue
+        target = output(section)
+        # Last section of an output decides about output settings
+        settings = output_settings[section]
+        if enabled is not None:
+            settings["enabled"] = enabled
+        if not settings.get("enabled", True):
+            continue
+        result_settings[target].update(settings)
+        with target as out:
+            result[target].extend(
+                func(
+                    target=out,
+                    width=settings.get("width", None),
+                    height=settings.get("height", None),
+                    with_banner=settings.get("banner_top", True),
+                )
+            )
 
     history_handle_unchanged_contents()
 
     for target, res in result.items():
         settings = result_settings[target]
-        if len(res) > 0 and settings.get("banner_bottom", True):
-            with target as out:
-                res.append(pwndbg.ui.banner("", target=out, width=settings.get("width", None)))
+        if not (len(res) and settings.get("banner_bottom", True)):
+            continue
+        with target as out:
+            res.append(pwndbg.ui.banner("", target=out, width=settings.get("width", None)))
 
     cmd_lines = 0
     for target, lines in result.items():
@@ -1111,6 +1103,13 @@ def compact_regs_very(
     return result
 
 
+COMPACT_REGS_MAP = {
+    CompactRegsOptions.YES.value: compact_regs_normal,
+    CompactRegsOptions.VERY.value: compact_regs_very,
+    CompactRegsOptions.HARDCUT.value: compact_regs_hardcut,
+}
+
+
 def compact_regs(
     regs: list[str], width: int | None = None, target: OutputTarget = sys.stdout
 ) -> list[str]:
@@ -1134,15 +1133,10 @@ def compact_regs(
         # => min_width = (window_width - (columns - 1) * separation) / columns
         min_width = max(min_width, (width - (columns - 1) * separation) // columns)
 
-    match pwndbg.config.show_compact_regs.value:
-        case CompactRegsOptions.YES.value:
-            return compact_regs_normal(regs, width, min_width, columns, separation)
-        case CompactRegsOptions.VERY.value:
-            return compact_regs_very(regs, width, min_width, columns, separation)
-        case CompactRegsOptions.HARDCUT.value:
-            return compact_regs_hardcut(regs, width, min_width, columns, separation)
-        case _:
-            assert False, "Invalid compact regs value."
+    compact_regs_fn = COMPACT_REGS_MAP.get(pwndbg.config.show_compact_regs.value)
+    assert compact_regs_fn is not None, "Invalid compact regs value."
+
+    return compact_regs_fn(regs, width, min_width, columns, separation)
 
 
 @serve_context_history
@@ -1204,7 +1198,7 @@ pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return addres
 class RegisterContext(RegisterContextProtocol):
     changed: list[str]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.changed = pwndbg.aglib.regs.changed
 
     def get_prefix(self, reg: str) -> str:
@@ -1270,7 +1264,6 @@ class RegisterContext(RegisterContextProtocol):
         val = self.get_register_value(reg)
         if val is None:
             return None
-        desc = ""
         desc = pwndbg.chain.format(val)
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
