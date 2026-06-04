@@ -275,7 +275,7 @@ async def test_context_backtrace_show_proper_symbol_names(ctrl: Controller) -> N
     assert re.match(r".*0\s+0x[0-9a-f]+\s+A::foo\(int, int\)(\+\d+)?", backtrace[2])
 
     # Match A::call_foo()+38 or similar: the offset may change so we match \d+ at the end
-    assert re.match(r".*1\s+0x[0-9a-f]+\sA::call_foo\(\)\+\d+", backtrace[3])
+    assert re.match(r".*1\s+0x[0-9a-f]+\s+A::call_foo\(\)\+\d+", backtrace[3])
 
     # Match main+87 or similar offset
     assert re.match(r".*2\s+0x[0-9a-f]+\s+main\+\d+", backtrace[4])

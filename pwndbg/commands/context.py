@@ -9,12 +9,16 @@ import re
 import sys
 from collections import defaultdict
 from collections.abc import Callable
+from contextlib import AbstractContextManager
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 from typing import TextIO
 from typing import TypeVar
 
 import unicorn as U
+from rich.table import Table
+from rich.text import Text
 from typing_extensions import ParamSpec
 from typing_extensions import override
 
@@ -41,6 +45,7 @@ import pwndbg.dintegration
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.pretty_print as pretty_print
+import pwndbg.rich
 import pwndbg.ui
 from pwndbg.aglib.arch_mod import get_thumb_mode_string
 from pwndbg.color import ColorConfig
@@ -178,7 +183,7 @@ config_max_threads_display = pwndbg.config.add_param(
     4,
     "maximum number of threads displayed by the context command",
 )
-config_backtrace_format = pwndbg.config.add_param(
+config_backtrace_hex = pwndbg.config.add_param(
     "context-backtrace-hex",
     False,
     "whether to use hex for offsets in the backtrace",
@@ -223,20 +228,15 @@ def validate_context_sections() -> None:
             return
 
 
-class StdOutput:
+@dataclass(frozen=True)
+class StdOutput(AbstractContextManager[TextIO]):
     """A context manager wrapper to give stdout"""
 
     def __enter__(self) -> TextIO:
         return sys.stdout
 
-    def __exit__(self, *args, **kwargs) -> None:
-        pass
-
-    def __hash__(self):
-        return hash(sys.stdout)
-
-    def __eq__(self, other) -> bool:
-        return isinstance(other, StdOutput)
+    def __exit__(self, *exc: object) -> None:
+        return None
 
 
 class FileOutput:
@@ -251,6 +251,7 @@ class FileOutput:
         return self.handle
 
     def __exit__(self, *args, **kwargs) -> None:
+        assert self.handle is not None
         self.handle.close()
 
     def __hash__(self):
@@ -260,23 +261,17 @@ class FileOutput:
         return self.args == other.args
 
 
+@dataclass(frozen=True)
 class CallOutput:
     """A context manager which calls a function on write"""
 
-    def __init__(self, func: Callable[[str], None]) -> None:
-        self.func = func
+    func: Callable[[str], None]
 
-    def __enter__(self):
+    def __enter__(self) -> CallOutput:
         return self
 
     def __exit__(self, *args, **kwargs) -> None:
         pass
-
-    def __hash__(self):
-        return hash(self.func)
-
-    def __eq__(self, other):
-        return self.func == other.func
 
     def write(self, data) -> None:
         self.func(data)
@@ -285,16 +280,13 @@ class CallOutput:
         self.func("".join(lines_iterable))
 
     def flush(self):
-        try:
-            return self.func.flush()
-        except AttributeError:
-            pass
+        if flush := getattr(self.func, "flush", None):
+            return flush()
 
     def isatty(self):
-        try:
-            return self.func.isatty()
-        except AttributeError:
-            return False
+        if isatty := getattr(self.func, "isatty", None):
+            return isatty()
+        return False
 
 
 OutputWrapper = StdOutput | FileOutput | CallOutput
@@ -776,31 +768,34 @@ def context(
     result: defaultdict[OutputWrapper, list[str]] = defaultdict(list)
     result_settings: defaultdict[OutputWrapper, dict[str, Any]] = defaultdict(dict)
     for section, func in sections:
-        if func:
-            target = output(section)
-            # Last section of an output decides about output settings
-            settings = output_settings[section]
-            if enabled is not None:
-                settings["enabled"] = enabled
-            if settings.get("enabled", True):
-                result_settings[target].update(settings)
-                with target as out:
-                    result[target].extend(
-                        func(
-                            target=out,
-                            width=settings.get("width", None),
-                            height=settings.get("height", None),
-                            with_banner=settings.get("banner_top", True),
-                        )
-                    )
+        if not func:
+            continue
+        target = output(section)
+        # Last section of an output decides about output settings
+        settings = output_settings[section]
+        if enabled is not None:
+            settings["enabled"] = enabled
+        if not settings.get("enabled", True):
+            continue
+        result_settings[target].update(settings)
+        with target as out:
+            result[target].extend(
+                func(
+                    target=out,
+                    width=settings.get("width", None),
+                    height=settings.get("height", None),
+                    with_banner=settings.get("banner_top", True),
+                )
+            )
 
     history_handle_unchanged_contents()
 
     for target, res in result.items():
         settings = result_settings[target]
-        if len(res) > 0 and settings.get("banner_bottom", True):
-            with target as out:
-                res.append(pwndbg.ui.banner("", target=out, width=settings.get("width", None)))
+        if not (len(res) and settings.get("banner_bottom", True)):
+            continue
+        with target as out:
+            res.append(pwndbg.ui.banner("", target=out, width=settings.get("width", None)))
 
     cmd_lines = 0
     for target, lines in result.items():
@@ -1108,6 +1103,13 @@ def compact_regs_very(
     return result
 
 
+COMPACT_REGS_MAP = {
+    CompactRegsOptions.YES.value: compact_regs_normal,
+    CompactRegsOptions.VERY.value: compact_regs_very,
+    CompactRegsOptions.HARDCUT.value: compact_regs_hardcut,
+}
+
+
 def compact_regs(
     regs: list[str], width: int | None = None, target: OutputTarget = sys.stdout
 ) -> list[str]:
@@ -1131,15 +1133,10 @@ def compact_regs(
         # => min_width = (window_width - (columns - 1) * separation) / columns
         min_width = max(min_width, (width - (columns - 1) * separation) // columns)
 
-    match pwndbg.config.show_compact_regs.value:
-        case CompactRegsOptions.YES.value:
-            return compact_regs_normal(regs, width, min_width, columns, separation)
-        case CompactRegsOptions.VERY.value:
-            return compact_regs_very(regs, width, min_width, columns, separation)
-        case CompactRegsOptions.HARDCUT.value:
-            return compact_regs_hardcut(regs, width, min_width, columns, separation)
-        case _:
-            assert False, "Invalid compact regs value."
+    compact_regs_fn = COMPACT_REGS_MAP.get(pwndbg.config.show_compact_regs.value)
+    assert compact_regs_fn is not None, "Invalid compact regs value."
+
+    return compact_regs_fn(regs, width, min_width, columns, separation)
 
 
 @serve_context_history
@@ -1201,7 +1198,7 @@ pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return addres
 class RegisterContext(RegisterContextProtocol):
     changed: list[str]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.changed = pwndbg.aglib.regs.changed
 
     def get_prefix(self, reg: str) -> str:
@@ -1267,7 +1264,6 @@ class RegisterContext(RegisterContextProtocol):
         val = self.get_register_value(reg)
         if val is None:
             return None
-        desc = ""
         desc = pwndbg.chain.format(val)
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
@@ -1570,38 +1566,46 @@ def context_backtrace(
 
     frame = newest_frame
     i = 0
-    bt_prefix = f"{pwndbg.config.backtrace_prefix}"
-    # Use visual width of the prefix (strip color codes) so Unicode chars like ► are measured correctly
-    bt_prefix_visual_len = len(pwndbg.color.strip(bt_prefix))
+    active_prefix = Text(" ")
+    active_prefix.append_text(Text.from_ansi(c.prefix(str(pwndbg.config.backtrace_prefix))))
+    inactive_prefix = Text(" " * active_prefix.cell_len)
 
-    # Pre-compute total number of frames to pad the frame label width consistently
-    total_frames = i
-    tmp = newest_frame
-    while tmp != oldest_frame:
-        total_frames += 1
-        tmp = tmp.parent()
-    frame_label_width = len(f"{backtrace_frame_label}{total_frames}")
+    table = Table.grid(expand=False, padding=(0, 1))
+    table.add_column(no_wrap=True)
+    table.add_column(justify="right", no_wrap=True)
+    table.add_column(justify="right", no_wrap=True)
+    table.add_column(no_wrap=True)
+
+    offset_regex = re.compile(r"^(.+)\+(\d+)$")
 
     while True:
-        prefix = bt_prefix if frame == this_frame else " " * bt_prefix_visual_len
-        prefix = f" {c.prefix(prefix)}"
-        addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
-        symbol = c.symbol(pwndbg.aglib.symbol.resolve_addr(int(frame.pc())))
+        pc = frame.pc()
+        prefix = active_prefix if frame == this_frame else inactive_prefix
+        # let rich handle alignment
+        address = Text.from_ansi(c.address(pwndbg.ui.addrsz(pc).strip()))
+        symbol = pwndbg.aglib.symbol.resolve_addr(int(pc))
+
+        symbol_cell = Text()
         if symbol:
-            if bool(config_backtrace_format):
-                offset_regex = re.compile(r"^(.+)\+(\d+)$")
-                parts = offset_regex.match(symbol)
-                if parts:
+            if bool(config_backtrace_hex):
+                if parts := offset_regex.match(symbol):
                     symbol = f"{parts[1]}+{int(parts[2]):#x}"
-            addrsz = f"{addrsz} {symbol}"
-        frame_label = f"{backtrace_frame_label}{i}".rjust(frame_label_width)
-        result.append(f"{prefix} {c.frame_label(frame_label)} {addrsz}")
+            symbol_cell = Text.from_ansi(c.symbol(symbol))
+
+        table.add_row(
+            prefix,
+            Text.from_ansi(c.frame_label(f"{backtrace_frame_label}{i}")),
+            address,
+            symbol_cell,
+        )
 
         if frame == oldest_frame:
             break
 
         frame = frame.parent()
         i += 1
+
+    result.extend(line.rstrip() for line in pwndbg.rich.rich_to_str(table).splitlines())
     return result
 
 
