@@ -19,7 +19,9 @@ import pwndbg.lib.cache
 COUNT = 100
 
 
-def run_benchmark(name: str, prefix: str, callback: Callable, count=COUNT) -> float:
+def run_benchmark(
+    name: str, prefix: str, callback: Callable, count: int = COUNT, with_cache: bool = True
+) -> float:
     """
     Return:
         Average time to execute callback in seconds
@@ -29,6 +31,8 @@ def run_benchmark(name: str, prefix: str, callback: Callable, count=COUNT) -> fl
     profiler.enable()
 
     for _ in range(count):
+        if not with_cache:
+            pwndbg.lib.cache.clear_caches()
         callback()
 
     profiler.disable()
