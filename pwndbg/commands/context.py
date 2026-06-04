@@ -15,6 +15,8 @@ from typing import TextIO
 from typing import TypeVar
 
 import unicorn as U
+from rich.table import Table
+from rich.text import Text
 from typing_extensions import ParamSpec
 from typing_extensions import override
 
@@ -41,6 +43,7 @@ import pwndbg.dintegration
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.pretty_print as pretty_print
+import pwndbg.rich
 import pwndbg.ui
 from pwndbg.aglib.arch_mod import get_thumb_mode_string
 from pwndbg.color import ColorConfig
@@ -178,7 +181,7 @@ config_max_threads_display = pwndbg.config.add_param(
     4,
     "maximum number of threads displayed by the context command",
 )
-config_backtrace_format = pwndbg.config.add_param(
+config_backtrace_hex = pwndbg.config.add_param(
     "context-backtrace-hex",
     False,
     "whether to use hex for offsets in the backtrace",
@@ -1570,38 +1573,46 @@ def context_backtrace(
 
     frame = newest_frame
     i = 0
-    bt_prefix = f"{pwndbg.config.backtrace_prefix}"
-    # Use visual width of the prefix (strip color codes) so Unicode chars like ► are measured correctly
-    bt_prefix_visual_len = len(pwndbg.color.strip(bt_prefix))
+    active_prefix = Text(" ")
+    active_prefix.append_text(Text.from_ansi(c.prefix(str(pwndbg.config.backtrace_prefix))))
+    inactive_prefix = Text(" " * active_prefix.cell_len)
 
-    # Pre-compute total number of frames to pad the frame label width consistently
-    total_frames = i
-    tmp = newest_frame
-    while tmp != oldest_frame:
-        total_frames += 1
-        tmp = tmp.parent()
-    frame_label_width = len(f"{backtrace_frame_label}{total_frames}")
+    table = Table.grid(expand=False, padding=(0, 1))
+    table.add_column(no_wrap=True)
+    table.add_column(justify="right", no_wrap=True)
+    table.add_column(justify="right", no_wrap=True)
+    table.add_column(no_wrap=True)
+
+    offset_regex = re.compile(r"^(.+)\+(\d+)$")
 
     while True:
-        prefix = bt_prefix if frame == this_frame else " " * bt_prefix_visual_len
-        prefix = f" {c.prefix(prefix)}"
-        addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
-        symbol = c.symbol(pwndbg.aglib.symbol.resolve_addr(int(frame.pc())))
+        pc = frame.pc()
+        prefix = active_prefix if frame == this_frame else inactive_prefix
+        # let rich handle alignment
+        address = Text.from_ansi(c.address(pwndbg.ui.addrsz(pc).strip()))
+        symbol = pwndbg.aglib.symbol.resolve_addr(int(pc))
+
+        symbol_cell = Text()
         if symbol:
-            if bool(config_backtrace_format):
-                offset_regex = re.compile(r"^(.+)\+(\d+)$")
-                parts = offset_regex.match(symbol)
-                if parts:
+            if bool(config_backtrace_hex):
+                if parts := offset_regex.match(symbol):
                     symbol = f"{parts[1]}+{int(parts[2]):#x}"
-            addrsz = f"{addrsz} {symbol}"
-        frame_label = f"{backtrace_frame_label}{i}".rjust(frame_label_width)
-        result.append(f"{prefix} {c.frame_label(frame_label)} {addrsz}")
+            symbol_cell = Text.from_ansi(c.symbol(symbol))
+
+        table.add_row(
+            prefix,
+            Text.from_ansi(c.frame_label(f"{backtrace_frame_label}{i}")),
+            address,
+            symbol_cell,
+        )
 
         if frame == oldest_frame:
             break
 
         frame = frame.parent()
         i += 1
+
+    result.extend(line.rstrip() for line in pwndbg.rich.rich_to_str(table).splitlines())
     return result
 
 
