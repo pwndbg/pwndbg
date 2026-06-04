@@ -12,10 +12,10 @@ if sys.version_info >= (3, 11):
 else:
     from enum import Enum
 
-import contextlib
 import typing
 from collections import OrderedDict as OrderedDictType
 from collections.abc import Callable
+from contextlib import suppress
 from typing import Any
 from typing import Generic
 from typing import TypeVar
@@ -300,7 +300,7 @@ class Chunk:
     @property
     def prev_size(self) -> int | None:
         if self._prev_size is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._prev_size = int(self._gdbValue[self.__match_renamed_field("prev_size")])
 
         return self._prev_size
@@ -308,7 +308,7 @@ class Chunk:
     @property
     def size(self) -> int | None:
         if self._size is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._size = int(self._gdbValue[self.__match_renamed_field("size")])
 
         return self._size
@@ -316,7 +316,7 @@ class Chunk:
     @property
     def real_size(self) -> int | None:
         if self._real_size is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._real_size = int(self._gdbValue[self.__match_renamed_field("size")]) & ~(
                     SIZE_BITS
                 )
@@ -370,7 +370,7 @@ class Chunk:
     @property
     def fd(self) -> int | None:
         if self._fd is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._fd = int(self._gdbValue["fd"])
 
         return self._fd
@@ -378,7 +378,7 @@ class Chunk:
     @property
     def bk(self) -> int | None:
         if self._bk is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._bk = int(self._gdbValue["bk"])
 
         return self._bk
@@ -386,7 +386,7 @@ class Chunk:
     @property
     def fd_nextsize(self):
         if self._fd_nextsize is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._fd_nextsize = int(self._gdbValue["fd_nextsize"])
 
         return self._fd_nextsize
@@ -394,7 +394,7 @@ class Chunk:
     @property
     def bk_nextsize(self):
         if self._bk_nextsize is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._bk_nextsize = int(self._gdbValue["bk_nextsize"])
 
         return self._bk_nextsize
@@ -534,7 +534,7 @@ class Heap:
     @property
     def prev(self):
         if self._prev is None and self._gdbValue is not None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._prev = int(self._gdbValue["prev"])
 
         return self._prev
@@ -615,7 +615,7 @@ class Arena:
     @property
     def mutex(self) -> int | None:
         if self._mutex is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._mutex = int(self._gdbValue["mutex"])
 
         return self._mutex
@@ -623,7 +623,7 @@ class Arena:
     @property
     def flags(self) -> int | None:
         if self._flags is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._flags = int(self._gdbValue["flags"])
 
         return self._flags
@@ -640,7 +640,7 @@ class Arena:
     @property
     def have_fastchunks(self) -> int | None:
         if self._have_fastchunks is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._have_fastchunks = int(self._gdbValue["have_fastchunks"])
 
         return self._have_fastchunks
@@ -648,7 +648,7 @@ class Arena:
     @property
     def top(self) -> int | None:
         if self._top is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._top = int(self._gdbValue["top"])
 
         return self._top
@@ -692,7 +692,7 @@ class Arena:
     @property
     def next(self) -> int | None:
         if self._next is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._next = int(self._gdbValue["next"])
 
         return self._next
@@ -700,7 +700,7 @@ class Arena:
     @property
     def next_free(self) -> int | None:
         if self._next_free is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._next_free = int(self._gdbValue["next_free"])
 
         return self._next_free
@@ -708,7 +708,7 @@ class Arena:
     @property
     def system_mem(self) -> int | None:
         if self._system_mem is None:
-            with contextlib.suppress(pwndbg.dbg_mod.Error):
+            with suppress(pwndbg.dbg_mod.Error):
                 self._system_mem = int(self._gdbValue["system_mem"])
 
         return self._system_mem
