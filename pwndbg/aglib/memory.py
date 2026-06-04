@@ -34,17 +34,7 @@ def read(addr: int, count: int, partial: bool = False) -> bytearray:
         `bytearray` The memory at the specified address,
         or ``None``.
     """
-    try:
-        return pwndbg.dbg.selected_inferior().read_memory(address=addr, size=count, partial=partial)
-    except pwndbg.dbg_mod.Error as e:
-        if pwndbg.aglib.qemu.is_qemu_kernel():
-            qm = pwndbg.aglib.qemu.get_qemu_machine()
-            if qm is not None:
-                try:
-                    return qm.read_memory(addr, count)
-                except (OSError, BlockingIOError):
-                    pass
-        raise e
+    return pwndbg.dbg.selected_inferior().read_memory(address=addr, size=count, partial=partial)
 
 
 def readtype(type: pwndbg.dbg_mod.Type, addr: int) -> int:
