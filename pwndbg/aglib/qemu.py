@@ -190,9 +190,11 @@ class QemuMachine(Machine):
             data += block
         return data
 
-    def read_register(self, _: str) -> int:
-        # we are not using this but the pt dump Machine class requires it - will be removed later
-        raise NotImplementedError()
+    def read_register(self, register_name: str) -> int:
+        if register_name.startswith("$"):
+            register_name = register_name[1:]
+
+        return int(pwndbg.aglib.regs.read_reg(register_name))
 
 
 @pwndbg.lib.cache.cache_until("forever")
