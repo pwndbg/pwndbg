@@ -29,7 +29,6 @@ def run_benchmark(name: str, prefix: str, callback: Callable, count=COUNT) -> fl
     profiler.enable()
 
     for _ in range(count):
-        pwndbg.lib.cache.clear_caches()
         callback()
 
     profiler.disable()

@@ -107,21 +107,25 @@ def exec_file_supported() -> bool:
 class QemuMachine(Machine):
     def __init__(self):
         super().__init__()
+        self.file = None
         self.pid = QemuMachine.get_qemu_pid()
         self.file = os.open(f"/proc/{self.pid}/mem", os.O_RDONLY)
         arch_ops = pwndbg.aglib.kernel.arch_ops()
         self.ram_phys_start = arch_ops.ram_phys_start if arch_ops else 0
-        res = pwndbg.dbg.selected_inferior().send_monitor(f"gpa2hva {self.ram_phys_start}")
+        res = pwndbg.dbg.selected_inferior().send_monitor(f"gpa2hva {hex(self.ram_phys_start)}")
         try:
             self.base_hva = int(res.split(" ")[-1], 16)
         except Exception as e:
             raise OSError(
-                f"Physical address 0 is not accessible. Reason: {e}. gpa2hva result: {res}"
+                f"Physical address {hex(self.ram_phys_start)} is not accessible. Reason: {e}. gpa2hva result: {res}"
             )
 
     def __del__(self):
-        if self.file:
-            os.close(self.file)
+        if self.file is not None:
+            try:
+                os.close(self.file)
+            except OSError:
+                pass
 
     @staticmethod
     def search_pids_for_file(pids: list[str], filename: str) -> str | None:
@@ -181,11 +185,12 @@ class QemuMachine(Machine):
             raise OSError(f"Virtual address {address} cannot be resolved")
         return bytearray(self.read_physical_memory(phys, length))
 
-    def read_physical_memory(self, physical_address: int, length: int) -> bytes:
+    def read_physical_memory(self, physical_address: int, length: int) -> bytearray:
         # It's not possible to pread large sizes, so let's break the request
         # into a few smaller ones.
         max_block_size = 1024 * 1024 * 256
-        data = b""
+        data = bytearray()
+        assert self.file
         for offset in range(0, length, max_block_size):
             length_to_read = min(length - offset, max_block_size)
             block = os.pread(
@@ -193,7 +198,7 @@ class QemuMachine(Machine):
                 length_to_read,
                 self.base_hva + physical_address - self.ram_phys_start + offset,
             )
-            data += block
+            data.extend(block)
         return data
 
     def read_register(self, register_name: str) -> int:
