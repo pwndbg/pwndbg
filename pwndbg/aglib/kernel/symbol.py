@@ -16,8 +16,6 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
-from pwndbg.dbg_mod import EventType
-from pwndbg.lib import TypeNotRecoveredError
 
 #########################################
 # helpers

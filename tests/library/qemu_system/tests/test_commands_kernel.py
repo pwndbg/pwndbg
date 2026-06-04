@@ -28,7 +28,6 @@ def KernelTest(func: Callable[P, T]) -> Callable[P, T | None]:
     def wrapper(*a: P.args, **kw: P.kwargs) -> T | None:
         pwndbg.color._disable_colors_trigger()
         # TODO: trigger NEW_OBJFILE event instead
-        pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux()
         return func(*a, **kw)
 
     return wrapper
