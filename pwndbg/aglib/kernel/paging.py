@@ -78,10 +78,10 @@ class PageTableScan:
         this needs to be EXTREMELY optimized as it is used to display context
         making as few functions calls or memory reads as possible
         avoid unnecessary python pointer deferences or repetative computations whenever possible
-        when benchmarked on the same linux kernels, on average:
-        - gdb-pt-dump takes ~0.123 for x64 and 5.572 seconds for aarch64
-        - this implementation takes less than 0.0262 seconds to complete for x64 and 0.491 seconds for aarch64
-        --> 2.35x speed up for x64 and more than 10x speed up for aarch64
+        when benchmarked on the same linux kernels with the same read method, on average:
+        - gdb-pt-dump takes ~0.122 for x64 and 0.562 seconds for aarch64
+        - this implementation takes less than 0.0297 seconds to complete for x64 and 0.0492 seconds for aarch64
+        --> 4x faster for x64 and 10x faster for aarch64
         """
         entry &= self.PAGE_ENTRY_MASK
         if (entry, self.paging_level) not in self.cache:
