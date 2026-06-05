@@ -410,7 +410,7 @@ def p2v(paddr: gdb.Value) -> int:
 @GdbFunction(only_when_running=True)
 def percpu(addr: gdb.Value, cpu: gdb.Value = gdb.Value(-1)) -> gdb.Value:
     """
-    Resolve a Linux kernel per-cpu pointer to its absolute address.
+    Resolve a Linux kernel per-cpu pointer to its absolute virtual address.
 
     The kernel keeps per-cpu data (`DEFINE_PER_CPU` / `alloc_percpu`) so that
     each CPU has its own private copy of a variable, which avoids locking and
