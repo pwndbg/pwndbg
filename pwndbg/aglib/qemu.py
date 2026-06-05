@@ -103,11 +103,6 @@ def exec_file_supported() -> bool:
 
 
 class QemuPhysAddressNotResolvedError(Exception):
-    """
-    We tried to recover (i.e. look up in the debugger and find through heuristics) the
-    symbol `name` but failed because of `msg`.
-    """
-
     def __init__(self, address: int) -> None:
         super().__init__(
             f"Qemu physical address {hex(address)} cannot be resolved to a host virtual address"
@@ -259,6 +254,7 @@ class QemuMachine(Machine):
     def read_physical_memory(self, physical_address: int, length: int) -> bytearray:
         """
         Assumes each RAM chunk (defined by each line of the mtree output) is virtually contiguous on the host side
+        Assumes any changes to the mtree output does not change the gpa2hva computed earlier
         """
         # It's not possible to pread large sizes, so let's break the request
         # into a few smaller ones.
