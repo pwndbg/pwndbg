@@ -405,3 +405,44 @@ def p2v(paddr: gdb.Value) -> int:
         raise gdb.GdbError("Physical to virtual address failed, invalid physical address?")
 
     return vaddr
+
+
+@GdbFunction(only_when_running=True)
+def percpu(addr: gdb.Value, cpu: gdb.Value = gdb.Value(-1)) -> gdb.Value:
+    """
+    Resolve a Linux kernel per-cpu pointer to its absolute virtual address.
+
+    The kernel keeps per-cpu data (`DEFINE_PER_CPU` / `alloc_percpu`) so that
+    each CPU has its own private copy of a variable, which avoids locking and
+    cache-line bouncing. A `__percpu` pointer is therefore not directly
+    dereferenceable: it is a base/offset that must be combined with a given
+    CPU's per-cpu offset (`__per_cpu_offset[cpu]`) to obtain the real address.
+    That is exactly what the kernel's `per_cpu_ptr(ptr, cpu)` / `this_cpu_ptr(ptr)`
+    macros do, and what this function reproduces:
+
+        result = addr + __per_cpu_offset[cpu]
+
+    If `cpu` is omitted (or -1), the currently running CPU is used.
+
+    References (Linux kernel):
+    - https://docs.kernel.org/core-api/this_cpu_ops.html
+    - include/linux/percpu-defs.h  (per_cpu_ptr, this_cpu_ptr)
+    - mm/percpu.c                  (the per-cpu allocator)
+
+    Only valid when kernel debugging; requires the `__per_cpu_offset` symbol.
+    Tested on x86-64 Linux 7.1.
+
+    Example:
+    ```
+    pwndbg> p $percpu(&some_percpu_var)
+    pwndbg> p $percpu(&some_percpu_var, 2)
+    pwndbg> p *$percpu(cache->cpu_slab)
+    ```
+    """
+    from pwndbg.dbg_mod.gdb import GDBValue
+
+    cpu = int(cpu)
+    result = pwndbg.aglib.kernel.per_cpu(GDBValue(addr), cpu if cpu >= 0 else None)
+    if result is None:
+        raise gdb.GdbError("__per_cpu_offset not found")
+    return dbg_value_to_gdb(result)

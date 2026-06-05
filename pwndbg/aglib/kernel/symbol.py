@@ -16,8 +16,6 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
-from pwndbg.dbg_mod import EventType
-from pwndbg.lib import TypeNotRecoveredError
 
 #########################################
 # helpers
@@ -288,20 +286,6 @@ def recover_page_typeinfo() -> str:
     };
     """
     return result
-
-
-@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
-def load_common_structs_on_load_linux() -> None:
-    if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.dbg.selected_inferior().is_linux():
-        try:
-            recover_page_typeinfo()
-        except (TypeNotRecoveredError, NotImplementedError) as e:
-            # We are not going to print anything here, because the user may not
-            # even end up using the type-dependant commands.
-            # Other commands and typeinfo recoveries depend on this succeeding,
-            # so we save the actual failure reason to have something meaningful to
-            # FIXME: NotImplementedError: Currently raised for non-linux OSes by stuff like `_paginginfo`. See #3911 .
-            pwndbg.aglib.kernel.page_typeinfo_recovery_failure = e
 
 
 P = ParamSpec("P")
