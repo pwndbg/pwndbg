@@ -102,26 +102,100 @@ def exec_file_supported() -> bool:
     return b"qXfer:exec-file:read" in response
 
 
+class QemuPhysAddressNotResolvedError(Exception):
+    """
+    We tried to recover (i.e. look up in the debugger and find through heuristics) the
+    symbol `name` but failed because of `msg`.
+    """
+
+    def __init__(self, address: int) -> None:
+        super().__init__(
+            f"Qemu physical address {hex(address)} cannot be resolved to a host virtual address"
+        )
+
+
+class QemuMtree:
+    def __init__(self) -> None:
+        self.mtree = []
+        found_system = False
+        """
+        example monitor output:
+
+        FlatView #2
+        AS "memory", root: system
+        AS "cpu-memory-0", root: system
+        AS "cpu-memory-1", root: system
+        AS "piix3-ide", root: bus master container
+        AS "e1000", root: bus master container
+        Root memory region: system
+        0000000000000000-000000000009ffff (prio 0, ram): m0
+        00000000000a0000-00000000000bffff (prio 1, i/o): vga-lowmem
+        00000000000c0000-00000000000cafff (prio 0, rom): m0 @00000000000c0000
+        00000000000cb000-00000000000cdfff (prio 0, ram): m0 @00000000000cb000
+        00000000000ce000-00000000000e3fff (prio 0, rom): m0 @00000000000ce000
+        00000000000e4000-00000000000effff (prio 0, ram): m0 @00000000000e4000
+        00000000000f0000-00000000000fffff (prio 0, rom): m0 @00000000000f0000
+        0000000000100000-000000007fffffff (prio 0, ram): m0 @0000000000100000
+        0000000080000000-00000000bfffffff (prio 0, ram): m1
+        00000000fd000000-00000000fdffffff (prio 1, ram): vga.vram
+        00000000feb80000-00000000feb9ffff (prio 1, i/o): e1000-mmio
+        00000000febb0000-00000000febb017f (prio 0, i/o): edid
+        00000000febb0180-00000000febb03ff (prio 1, i/o): vga.mmio @0000000000000180
+        00000000febb0400-00000000febb041f (prio 0, i/o): vga ioports remapped
+        00000000febb0420-00000000febb04ff (prio 1, i/o): vga.mmio @0000000000000420
+        00000000febb0500-00000000febb0515 (prio 0, i/o): bochs dispi interface
+        00000000febb0516-00000000febb05ff (prio 1, i/o): vga.mmio @0000000000000516
+        00000000febb0600-00000000febb0607 (prio 0, i/o): qemu extended regs
+        00000000febb0608-00000000febb0fff (prio 1, i/o): vga.mmio @0000000000000608
+        00000000fec00000-00000000fec00fff (prio 0, i/o): ioapic
+        00000000fed00000-00000000fed003ff (prio 0, i/o): hpet
+        00000000fee00000-00000000feefffff (prio 4096, i/o): apic-msi
+        00000000fffc0000-00000000ffffffff (prio 0, rom): pc.bios
+        0000000100000000-000000013fffffff (prio 0, ram): m1 @0000000040000000
+        """
+        for line in pwndbg.dbg.selected_inferior().send_monitor("info mtree -f").splitlines():
+            line = line.strip()
+            if "Root memory region: system" in line:
+                found_system = True
+                continue
+            if found_system:
+                if len(line) == 0:
+                    break
+                if ", ram):" not in line and ", rom):" not in line:
+                    # gpa2hva would return: Memory at address 0xfeb80000is not RAM
+                    continue
+                phys_range = list(filter(None, line.split(" ")))[0]
+                start, end = phys_range.split("-")
+                start = int(start, 16)
+                end = int(end, 16)
+                res = pwndbg.dbg.selected_inferior().send_monitor(f"gpa2hva {hex(start)}")
+                try:
+                    hva = int(res.split(" ")[-1], 16)
+                    self.mtree.append((start, end, hva))
+                except Exception as e:
+                    raise OSError(
+                        f"Physical address {hex(start)} is not accessible. Reason: {e}. gpa2hva result: {res}"
+                    )
+
+    def find(self, physical_address: int) -> tuple[int, int]:
+        for start, end, hva in self.mtree:
+            if start <= physical_address <= end:
+                return start, hva
+        raise QemuPhysAddressNotResolvedError(physical_address)
+
+
 # Most of QemuMachine code was inherited from gdb-pt-dump thanks to Martin Radev (@martinradev)
 # on the MIT license, see:
 # https://github.com/martinradev/gdb-pt-dump/blob/21158ac3f9b36d0e5e0c86193e0ef018fc628e74/pt_gdb/pt_gdb.py#L11-L80
 class QemuMachine(Machine):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.file = None
         self.pid = QemuMachine.get_qemu_pid()
         self.file = os.open(f"/proc/{self.pid}/mem", os.O_RDONLY)
-        arch_ops = pwndbg.aglib.kernel.arch_ops()
-        self.ram_phys_start = arch_ops.ram_phys_start if arch_ops else 0
-        res = pwndbg.dbg.selected_inferior().send_monitor(f"gpa2hva {hex(self.ram_phys_start)}")
-        try:
-            self.base_hva = int(res.split(" ")[-1], 16)
-        except Exception as e:
-            raise OSError(
-                f"Physical address {hex(self.ram_phys_start)} is not accessible. Reason: {e}. gpa2hva result: {res}"
-            )
+        self.mtree = QemuMtree()
 
-    def __del__(self):
+    def __del__(self) -> None:
         if self.file is not None:
             with contextlib.suppress(OSError):
                 os.close(self.file)
@@ -183,8 +257,12 @@ class QemuMachine(Machine):
         return bytearray(self.read_physical_memory(phys, length))
 
     def read_physical_memory(self, physical_address: int, length: int) -> bytearray:
+        """
+        Assumes each RAM chunk (defined by each line of the mtree output) is virtually contiguous on the host side
+        """
         # It's not possible to pread large sizes, so let's break the request
         # into a few smaller ones.
+        region_start, hva = self.mtree.find(physical_address)
         max_block_size = 1024 * 1024 * 256
         data = bytearray()
         assert self.file
@@ -193,7 +271,7 @@ class QemuMachine(Machine):
             block = os.pread(
                 self.file,
                 length_to_read,
-                self.base_hva + physical_address - self.ram_phys_start + offset,
+                hva + physical_address - region_start + offset,
             )
             data.extend(block)
         return data
