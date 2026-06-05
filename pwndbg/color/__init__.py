@@ -197,7 +197,7 @@ class ColorConfig:
 
 
 def generate_color_function(
-    config: str | Parameter, _globals: dict[str, Callable[[str], str]] = globals()
+    config: str | Parameter, _locals: dict[str, Callable[[str], str]] = locals()
 ) -> Callable[[object], str]:
     # the `config` here may be a config Parameter object
     # and if we run with disable_colors or if the config value
@@ -211,7 +211,10 @@ def generate_color_function(
 
     for color in config.split(","):
         func_name = color.lower().replace("-", "_")
-        function = generate_color_function_inner(function, _globals[func_name])
+        fn = _locals.get(func_name)
+        assert fn is not None, f"Invalid colour {color}"
+        assert callable(fn), f"Invalid colour {color}"
+        function = generate_color_function_inner(function, fn)
     return function
 
 
