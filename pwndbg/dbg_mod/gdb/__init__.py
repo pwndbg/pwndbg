@@ -1719,25 +1719,30 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         prompt.set_prompt()
 
-        pre_commands = """
-        set auto-load safe-path /
-        set confirm off
-        set verbose off
-        set pagination off
-        set history save on
-        set follow-fork-mode child
-        set backtrace past-main on
-        set step-mode on
-        set print pretty on
-        set output-radix 16
-        handle SIGALRM nostop print nopass
-        handle SIGBUS  stop   print nopass
-        handle SIGPIPE nostop print nopass
-        handle SIGSEGV stop   print nopass
-        """
+        pre_commands: list[str] = [
+            "set auto-load safe-path /",
+            "set confirm off",
+            "set verbose off",
+            "set pagination off",
+            "set history save on",
+            "set follow-fork-mode child",
+            "set backtrace past-main on",
+            "set step-mode on",
+            "set print pretty on",
+            "set output-radix 16",
+            "handle SIGALRM nostop print nopass",
+            "handle SIGBUS  stop   print nopass",
+            "handle SIGPIPE nostop print nopass",
+            "handle SIGSEGV stop   print nopass",
+            """\
+define set hookpost-architecture
+pi pwndbg.aglib.arch_mod.force_reload_architecture()
+end\
+""",
+        ]
 
-        for line in pre_commands.strip().splitlines():
-            gdb.execute(line)
+        for line in pre_commands:
+            gdb.execute(line.strip())
 
         # debuginfod may not be compiled in (e.g. bare-metal cross GDB)
         with suppress(gdb.error):

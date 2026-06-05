@@ -38,6 +38,7 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.disasm
 import pwndbg.dbg_mod
+import pwndbg.lib.cache
 from pwndbg.aglib import typeinfo
 from pwndbg.lib.abi import ABI
 from pwndbg.lib.abi import DEFAULT_ABIS
@@ -463,3 +464,15 @@ def update() -> None:
         pwndbg.aglib.set_arch(pwndbg_arch)
 
     pwndbg.aglib.arch.update(a)
+
+
+def force_reload_architecture() -> None:
+    """
+    Call this function to force an architecture change
+    in the underlying debugger to be observed by pwndbg.
+
+    For example, in GDB, there is not a "new architecture" event we can hook, but we add
+    a hook for the `set architecture` command, and run this function to reset pwndbg's view
+    """
+    pwndbg.lib.cache.clear_caches()
+    update()
