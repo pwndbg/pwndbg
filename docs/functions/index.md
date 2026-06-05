@@ -349,3 +349,19 @@ $33 = (struct kmem_cache *) 0xffff888006552e00
 ```
 
 ----------
+
+### **percpu**
+
+``` {.python .no-copy}
+percpu(addr: gdb.Value, cpu: gdb.Value = gdb.Value(-1)) -> gdb.Value
+```
+
+Resolve a per-cpu pointer to its address for the given CPU.
+
+#### Example
+```
+pwndbg> p $percpu(&percpu_addr)
+pwndbg> p $percpu(&percpu_addr, 2)
+```
+
+----------
