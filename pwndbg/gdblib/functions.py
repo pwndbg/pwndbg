@@ -405,3 +405,22 @@ def p2v(paddr: gdb.Value) -> int:
         raise gdb.GdbError("Physical to virtual address failed, invalid physical address?")
 
     return vaddr
+
+@GdbFunction(only_when_running=True)
+def percpu(addr: gdb.Value, cpu: gdb.Value = gdb.Value(-1)) -> gdb.Value:
+    """
+    Resolve a per-cpu pointer to its address for the given CPU.
+
+    Example:
+    ```
+    pwndbg> p $percpu(&percpu_addr)
+    pwndbg> p $percpu(&percpu_addr, 2)
+    ```
+    """
+    from pwndbg.dbg_mod.gdb import GDBValue
+
+    cpu = int(cpu)
+    result = pwndbg.aglib.kernel.per_cpu(GDBValue(addr), cpu if cpu >= 0 else None)
+    if result is None:
+        raise gdb.GdbError("__per_cpu_offset not found")
+    return dbg_value_to_gdb(result)
