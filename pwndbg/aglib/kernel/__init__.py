@@ -110,6 +110,12 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
 def typeinfo_recovery(
     name: str, requires_kversion: bool = False, requires_kbase: bool = False
 ) -> Callable[[Callable[P, str]], Callable[P, None]]:
+    """
+    Attached to functions which return the C source-code of the `name` type (usually struct).
+    
+    Compiles and adds the debug info for the struct into the debugger, from then on accessible via APIs
+    like `pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)`.
+    """
     def decorator(f: Callable[P, str]) -> Callable[P, None]:
         # returns true if the type exists or has been successfully recovered
         @functools.wraps(f)
