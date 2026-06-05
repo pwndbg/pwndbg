@@ -114,7 +114,7 @@ class QemuMtree:
         self.mtree = []
         found_system = False
         """
-        example monitor output:
+        example `monitor info mtree -f` output:
 
         FlatView #2
         AS "memory", root: system
@@ -254,7 +254,8 @@ class QemuMachine(Machine):
     def read_physical_memory(self, physical_address: int, length: int) -> bytearray:
         """
         Assumes each RAM chunk (defined by each line of the mtree output) is virtually contiguous on the host side
-        Assumes any changes to the mtree output does not change the gpa2hva computed earlier
+        Assumes any changes to the mtree output does not change the gpa2hva computed earlier, verified as follows:
+            used -S to compare the mtree output during bootloading and when kernel has finished initialization
         """
         # It's not possible to pread large sizes, so let's break the request
         # into a few smaller ones.
