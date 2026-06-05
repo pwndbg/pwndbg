@@ -61,6 +61,7 @@ from capstone6pwndbg.systemz import SYSTEMZ_INS_J
 from capstone6pwndbg.systemz import SYSTEMZ_INS_JL
 from capstone6pwndbg.x86 import X86_INS_CALL
 from capstone6pwndbg.x86 import X86_INS_JMP
+from capstone6pwndbg.x86 import X86_INS_LJMP
 from capstone6pwndbg.x86 import X86_INS_RET
 from capstone6pwndbg.x86 import X86Op
 from typing_extensions import override
@@ -70,7 +71,7 @@ from pwndbg.dbg_mod import DisassembledInstruction
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally
 UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
-    CS_ARCH_X86: {X86_INS_CALL, X86_INS_RET, X86_INS_JMP},
+    CS_ARCH_X86: {X86_INS_CALL, X86_INS_RET, X86_INS_JMP, X86_INS_LJMP},
     CS_ARCH_MIPS: {
         MIPS_INS_J,
         MIPS_INS_JR,
