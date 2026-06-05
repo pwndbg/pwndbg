@@ -374,6 +374,16 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+
+        if X86_INS_LJMP == instruction.id:
+            target_cs = instruction.operands[0].before_value
+            target_eip = instruction.operands[1].before_value
+
+            if target_cs is None or target_eip is None:
+                return super()._resolve_target(instruction, emu)
+
+            return target_cs * 0x10 + target_eip
+
         # Only handle 'ret', otherwise fallback to default implementation
         if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
             return super()._resolve_target(instruction, emu)
