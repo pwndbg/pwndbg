@@ -406,6 +406,7 @@ def p2v(paddr: gdb.Value) -> int:
 
     return vaddr
 
+
 @GdbFunction(only_when_running=True)
 def percpu(addr: gdb.Value, cpu: gdb.Value = gdb.Value(-1)) -> gdb.Value:
     """
