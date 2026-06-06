@@ -274,8 +274,7 @@ class QemuMachine(Machine):
         return data
 
     def read_register(self, register_name: str) -> int:
-        if register_name.startswith("$"):
-            register_name = register_name[1:]
+        register_name = register_name.removeprefix("$")
 
         return int(pwndbg.aglib.regs.read_reg(register_name))
 

@@ -872,8 +872,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         if pwndbg.aglib.file.is_vfile_qemu_user_bug():
             with open(local_path, "wb") as fp:
                 try:
-                    for data in pwndbg.aglib.file.vfile_readfile(remote_path):
-                        fp.write(data)
+                    fp.writelines(pwndbg.aglib.file.vfile_readfile(remote_path))
                     return
                 except OSError as e:
                     raise pwndbg.dbg_mod.Error(

@@ -1148,8 +1148,7 @@ def process_launch(
     result = driver.launch(
         target,
         io_driver,
-        [f"{name}={value}" for name, value in os.environ.items()]
-        + (args.environment if args.environment else []),
+        [f"{name}={value}" for name, value in os.environ.items()] + (args.environment or []),
         launch_args,
         os.getcwd(),
         args.disable_aslr,

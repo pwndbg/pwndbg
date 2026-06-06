@@ -650,7 +650,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def va_bits_min(self) -> int:
-        return 48 if self.va_bits > 48 else self.va_bits
+        return min(self.va_bits, 48)
 
     @property
     @pwndbg.lib.cache.cache_until("stop")

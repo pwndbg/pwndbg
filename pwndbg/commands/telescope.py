@@ -130,7 +130,7 @@ def telescope(
     else:
         telescope.offset = 0
 
-    address = address if address else pwndbg.aglib.regs.sp
+    address = address or pwndbg.aglib.regs.sp
     if address is None:
         print("Cannot display stack frame because stack pointer is unavailable")
         return None

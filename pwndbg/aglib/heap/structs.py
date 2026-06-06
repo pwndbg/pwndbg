@@ -40,7 +40,7 @@ if pwndbg.aglib.arch.name == "i386" and GLIBC_VERSION >= (2, 26):
 else:
     # See https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/generic/malloc-alignment.h#L27
     long_double_alignment = pwndbg.aglib.typeinfo.lookup_types("long double").alignof
-    MALLOC_ALIGN = long_double_alignment if 2 * SIZE_SZ < long_double_alignment else 2 * SIZE_SZ
+    MALLOC_ALIGN = max(2 * SIZE_SZ, long_double_alignment)
 
 MALLOC_ALIGN_MASK = MALLOC_ALIGN - 1
 MAX_FAST_SIZE = 80 * SIZE_SZ // 4
