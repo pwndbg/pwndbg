@@ -795,7 +795,7 @@ def num_numa_nodes() -> int:
 
         # 1 means aglib.typeinfo.enum_member("enum node_states", "N_ONLINE")
         node_mask = node_states[1]["bits"][0]
-        return bin(int(node_mask)).count("1")
+        return int(node_mask).bit_count()
 
     max_nodes = 1 << int(kc["CONFIG_NODES_SHIFT"])
     if max_nodes == 1:

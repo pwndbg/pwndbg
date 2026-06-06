@@ -1027,7 +1027,7 @@ def target_create_regular(args: Any, dbg: LLDB) -> None:
         )
         return
 
-    if args.platform and args.platform not in {"qemu-user"}:
+    if args.platform and args.platform != "qemu-user":
         print_error("Pwndbg does currently support platforms: qemu-user")
         return
 
