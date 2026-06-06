@@ -1736,7 +1736,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
             "handle SIGSEGV stop   print nopass",
             """\
 define set hookpost-architecture
-pi pwndbg.aglib.arch_mod.force_reload_architecture()
+python pwndbg.aglib.arch_mod.force_reload_architecture()
 end\
 """,
         ]
