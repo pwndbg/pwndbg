@@ -81,6 +81,15 @@ tests/binaries/**/div_zero_binary/core
 tests/binaries/**/div_zero_binary/binary
 !tests/binaries/**/*.go
 
+# Harness-extracted libc artifacts (scripts/download-test-libs.sh). These are built
+# in CI and pulled locally, never committed. The exception is the glibcs/2.33 test
+# fixture, which upstream ships committed in-tree.
+/tests/binaries/host/glibcs/*
+!/tests/binaries/host/glibcs/2.33/
+/tests/binaries/host/glibcs-nodebug/
+/tests/binaries/host/musls/
+/tests/binaries/host/bionics/
+
 # QEMU test images
 tests/library/qemu_system/kimages
 
