@@ -9,19 +9,46 @@ from ....host import Controller
 from . import break_at_sym
 from . import get_binary
 from . import launch_to
+from . import musl_test_versions
 from . import pwndbg_test
 
-HEAP_MALLOCNG_DYN = get_binary("heap_musl_dyn.native.out")
-HEAP_MALLOCNG_STATIC = get_binary("heap_musl_static.native.out")
+# Run the full mallocng suite against the system musl plus every per-version musl the
+# heap-libc-tests workflow builds (same heap_musl.native.c source, so assertions transfer).
+_MUSL_VERSIONS = musl_test_versions()
+
+
+def _mallocng_binaries() -> list[Path]:
+    bins = [
+        get_binary("heap_musl_dyn.native.out"),
+        get_binary("heap_musl_static.native.out"),
+    ]
+    for ver in _MUSL_VERSIONS:
+        if tuple(int(p) for p in ver.split(".")) < (1, 2, 1):
+            continue  # predates mallocng (oldmalloc); the ng* commands do not apply
+        for linkage in ("dynamic", "static"):
+            bins.append(get_binary(f"heap_musl.musl-{ver}-{linkage}.out"))
+    # Per-version binaries appear once the libc workflow has built them.
+    return [b for b in bins if b.exists()]
+
+
+def _mallocng_id(binary: Path) -> str:
+    if binary.name == "heap_musl_dyn.native.out":
+        return "system-dynamic"
+    if binary.name == "heap_musl_static.native.out":
+        return "system-static"
+    match = re.match(r"heap_musl\.musl-(.+)\.out", binary.name)
+    return match.group(1) if match else binary.name
+
+
+_MALLOCNG_BINARIES = _mallocng_binaries()
+_MALLOCNG_IDS = [_mallocng_id(b) for b in _MALLOCNG_BINARIES]
 
 # Userland only
 re_addr = r"0x[0-9a-fA-F]{1,12}"
 
 
 @pwndbg_test
-@pytest.mark.parametrize(
-    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
-)
+@pytest.mark.parametrize("binary", _MALLOCNG_BINARIES, ids=_MALLOCNG_IDS)
 async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
@@ -96,7 +123,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
 
     # Check offset
     assert "offset" in buffer2_out[offset_idx] and " 0x6 (0x60) " in buffer2_out[offset_idx]
-    if binary == HEAP_MALLOCNG_STATIC:
+    if "static" in binary.name:
         # Because it's cyclic
         assert "offset" in buffer4_out[offset_idx] and " 0x1 (0x10) " in buffer4_out[offset_idx]
     else:
@@ -112,7 +139,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
     assert "use ftr reserved" in buffer2_out[hdr_res_idx + 1]
     assert "use ftr reserved" in buffer4_out[hdr_res_idx + 1]
     assert "ftr reserved" in buffer2_out[ftr_res_idx] and " 0xc " in buffer2_out[ftr_res_idx]
-    if binary == HEAP_MALLOCNG_STATIC:
+    if "static" in binary.name:
         assert "ftr reserved" in buffer4_out[ftr_res_idx] and " 0x7b " in buffer4_out[ftr_res_idx]
     else:
         assert "ftr reserved" in buffer4_out[ftr_res_idx] and " 0x8b " in buffer4_out[ftr_res_idx]
@@ -122,7 +149,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
         "cyclic offset" in buffer2_out[cyclic_idx]
         and " NA (not cyclic) " in buffer2_out[cyclic_idx]
     )
-    if binary == HEAP_MALLOCNG_STATIC:
+    if "static" in binary.name:
         assert (
             "cyclic offset" in buffer4_out[cyclic_idx] and " 0x1 (0x10) " in buffer4_out[cyclic_idx]
         )
@@ -157,7 +184,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
     # Now buffer3 got free()'d and so did the group which contained buffer{1,2,3} so we cannot
     # recover information about buffer2 (it essentially doesn't exist anymore).
     buffer2_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer2"))
-    if binary == HEAP_MALLOCNG_DYN:
+    if "static" not in binary.name:
         assert (
             "Could not load valid meta from local information, searching the heap.." in buffer2_out
         )
@@ -170,9 +197,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
 
 
 @pwndbg_test
-@pytest.mark.parametrize(
-    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
-)
+@pytest.mark.parametrize("binary", _MALLOCNG_BINARIES, ids=_MALLOCNG_IDS)
 async def test_mallocng_slot_start(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
@@ -191,7 +216,7 @@ async def test_mallocng_slot_start(ctrl: Controller, binary: Path):
     assert "not cyclic" in slotu_buffer2_out
     assert slotu_buffer2_out == slots_buffer2_out
 
-    if binary == HEAP_MALLOCNG_STATIC:
+    if "static" in binary.name:
         assert "not cyclic" not in slotu_buffer5_out
         # Doing `ng slots buffer5` will give you garbage since buffer5 is not
         # a valid slot start.
@@ -199,9 +224,7 @@ async def test_mallocng_slot_start(ctrl: Controller, binary: Path):
 
 
 @pwndbg_test
-@pytest.mark.parametrize(
-    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
-)
+@pytest.mark.parametrize("binary", _MALLOCNG_BINARIES, ids=_MALLOCNG_IDS)
 async def test_mallocng_group(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
@@ -270,16 +293,14 @@ async def test_mallocng_group(ctrl: Controller, binary: Path):
             await ctrl.execute_and_capture(f"ng group {cur_group_addr}")
         ).splitlines()
 
-    if binary == HEAP_MALLOCNG_STATIC:
+    if "static" in binary.name:
         assert "mmap()" in cur_group_out[pgline_idx]
     else:
         assert "donated by ld" in cur_group_out[pgline_idx]
 
 
 @pwndbg_test
-@pytest.mark.parametrize(
-    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
-)
+@pytest.mark.parametrize("binary", _MALLOCNG_BINARIES, ids=_MALLOCNG_IDS)
 async def test_mallocng_meta(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
@@ -304,9 +325,7 @@ async def test_mallocng_meta(ctrl: Controller, binary: Path):
 
 
 @pwndbg_test
-@pytest.mark.parametrize(
-    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
-)
+@pytest.mark.parametrize("binary", _MALLOCNG_BINARIES, ids=_MALLOCNG_IDS)
 async def test_mallocng_malloc_context(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
@@ -315,12 +334,10 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: Path):
 
     await ctrl.launch(binary)
 
-    # Check that we do not find it at the first program instruction
-    if binary == HEAP_MALLOCNG_DYN:
-        # Since our static binary is symbolicated, we would still find
-        # __malloc_context by simply looking up the symbol. So we only
-        # check this for the dynamically linked binary.
-
+    # The "not found at the first instruction" check only holds for the system dynamic
+    # binary (stops at _dlstart, heap uninitialized); the positive check after `entry` is
+    # the real cross-version assertion.
+    if binary.name == "heap_musl_dyn.native.out":
         # This is at _dlstart - the heap is uninitialized at this point.
         ctx_out = color.strip(await ctrl.execute_and_capture("ng ctx"))
 
@@ -346,9 +363,7 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: Path):
 
 
 @pwndbg_test
-@pytest.mark.parametrize(
-    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
-)
+@pytest.mark.parametrize("binary", _MALLOCNG_BINARIES, ids=_MALLOCNG_IDS)
 async def test_mallocng_find(ctrl: Controller, binary: Path):
     import pwndbg
     import pwndbg.color as color
@@ -396,9 +411,7 @@ async def test_mallocng_find(ctrl: Controller, binary: Path):
 
 
 @pwndbg_test
-@pytest.mark.parametrize(
-    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
-)
+@pytest.mark.parametrize("binary", _MALLOCNG_BINARIES, ids=_MALLOCNG_IDS)
 async def test_mallocng_metaarea(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
@@ -430,9 +443,7 @@ async def test_mallocng_metaarea(ctrl: Controller, binary: Path):
 
 
 @pwndbg_test
-@pytest.mark.parametrize(
-    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
-)
+@pytest.mark.parametrize("binary", _MALLOCNG_BINARIES, ids=_MALLOCNG_IDS)
 async def test_mallocng_vis(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
@@ -505,9 +516,7 @@ async def test_mallocng_vis(ctrl: Controller, binary: Path):
 
 
 @pwndbg_test
-@pytest.mark.parametrize(
-    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
-)
+@pytest.mark.parametrize("binary", _MALLOCNG_BINARIES, ids=_MALLOCNG_IDS)
 async def test_mallocng_dump(ctrl: Controller, binary: Path):
     await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")

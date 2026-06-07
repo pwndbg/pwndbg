@@ -1,15 +1,26 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
 from ....host import Controller
 from . import get_binary
+from . import glibc_version_binaries
 from . import launch_to
 from . import pwndbg_test
 
-BINARY = get_binary("heap_bins.native.out")
+# Run each test against the system glibc plus every prebuilt per-version glibc.
+_BINS_BINARIES = glibc_version_binaries("heap_bins")
+
+glibc_versions = pytest.mark.parametrize(
+    "binary", [b for _, b in _BINS_BINARIES], ids=[i for i, _ in _BINS_BINARIES]
+)
 
 
+@glibc_versions
 @pwndbg_test
-async def test_heap_bins(ctrl: Controller) -> None:
+async def test_heap_bins(ctrl: Controller, binary: Path) -> None:
     """
     Tests pwndbg.aglib.heap bins commands
     """
@@ -21,7 +32,7 @@ async def test_heap_bins(ctrl: Controller) -> None:
     from pwndbg.aglib.heap.ptmalloc import BinType
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
-    await ctrl.launch(BINARY)
+    await ctrl.launch(binary)
     await ctrl.execute("set context-output /dev/null")
     await ctrl.execute("b breakpoint")
     await ctrl.cont()
@@ -31,6 +42,14 @@ async def test_heap_bins(ctrl: Controller) -> None:
     # check if all bins are empty at first
     allocator = pwndbg.aglib.heap.current
     assert allocator is not None
+
+    import pwndbg.libc
+
+    if pwndbg.libc.version() >= (2, 43):
+        pytest.skip(
+            "glibc 2.43 reworked bin placement; this strict per-bin test targets "
+            "pre-2.43 (test_heap_glibc_versions covers 2.43)"
+        )
 
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("tcache_size")
     assert addr is not None
@@ -514,8 +533,9 @@ async def test_smallbins_sizes_32bit_big(ctrl: Controller) -> None:
         assert bin_size.split(":")[0] == expected[bin_index]
 
 
+@glibc_versions
 @pwndbg_test
-async def test_heap_corruption_low_dereference(ctrl: Controller) -> None:
+async def test_heap_corruption_low_dereference(ctrl: Controller, binary: Path) -> None:
     """
     Tests that the bins corruption check doesn't report
     corrupted bins when heap-dereference-limit is less
@@ -523,13 +543,13 @@ async def test_heap_corruption_low_dereference(ctrl: Controller) -> None:
     """
 
     await ctrl.execute("set context-output /dev/null")
-    await launch_to(ctrl, BINARY, "breakpoint")
+    await launch_to(ctrl, binary, "breakpoint")
 
     await ctrl.cont()
     await ctrl.cont()
     await ctrl.cont()
 
-    # unsorted bin now has 3 chunks
+    # the 3 leftover chunks are in the unsorted bin (pre-2.42) or a smallbin (2.42+)
 
     await ctrl.execute("set heap-dereference-limit 1")
 

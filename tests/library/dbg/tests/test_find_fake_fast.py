@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import pytest
 
 from ....host import Controller
-from . import get_binary
+from . import glibc_version_binaries
 from . import launch_to
 from . import pwndbg_test
 
-HEAP_FIND_FAKE_FAST = get_binary("heap_find_fake_fast.native.out")
+_FIND_FAKE_FAST_BINARIES = glibc_version_binaries("heap_find_fake_fast")
 
 target_address = None
 
@@ -44,8 +45,13 @@ def check_no_results(result: str) -> None:
     assert len(matches) == 0
 
 
+@pytest.mark.parametrize(
+    "binary",
+    [b for _, b in _FIND_FAKE_FAST_BINARIES],
+    ids=[i for i, _ in _FIND_FAKE_FAST_BINARIES],
+)
 @pwndbg_test
-async def test_find_fake_fast_command(ctrl: Controller) -> None:
+async def test_find_fake_fast_command(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
@@ -53,7 +59,7 @@ async def test_find_fake_fast_command(ctrl: Controller) -> None:
 
     global target_address
 
-    await launch_to(ctrl, HEAP_FIND_FAKE_FAST, "break_here")
+    await launch_to(ctrl, binary, "break_here")
 
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")

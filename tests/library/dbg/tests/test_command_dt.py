@@ -1,48 +1,61 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import pytest
 
 from ....host import Controller
 from . import get_binary
+from . import get_expr
+from . import glibc_version_binaries
 from . import launch_to
 from . import pwndbg_test
 
-HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
+# tcache_perthread_struct changed across glibc (2.42: counts -> num_slots, 64 -> 76 slots);
+# the dt assertions below accept both. Run them across every built glibc version.
+_HEAP_MALLOC_CHUNK_BINARIES = glibc_version_binaries("heap_malloc_chunk")
 DT_RECURSIVE_OFFSETS = get_binary("dt_recursive_offsets.native.out")
 DT_BITFIELDS = get_binary("dt_bitfields.native.out")
 
 
+@pytest.mark.parametrize(
+    "binary",
+    [b for _, b in _HEAP_MALLOC_CHUNK_BINARIES],
+    ids=[i for i, _ in _HEAP_MALLOC_CHUNK_BINARIES],
+)
 @pwndbg_test
-async def test_command_dt_works_with_address(ctrl: Controller) -> None:
+async def test_command_dt_works_with_address(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib
 
-    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+    await launch_to(ctrl, binary, "break_here")
 
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
-    tcache = await ctrl.execute_and_capture("print tcache")
-
-    tcache_addr = tcache.split()[-1]
+    tcache_addr = hex(int(get_expr("tcache")))
 
     out = await ctrl.execute_and_capture(f'dt "struct tcache_perthread_struct" {tcache_addr}')
 
     # Accounting for differences between architectures and glibc versions (specifically 2.42)
     exp_regex = (
         "struct tcache_perthread_struct @ 0x[0-9a-f]+\n"
-        "    0x[0-9a-f]+ \\+0x0000 (counts|num_slots) +: +.*\\{((0x[0-9a-f]+|[0-9]+), (0x[0-9a-f]+|[0-9]+) <repeats (63|75) times>|(\\s*\\[[0-9]+\\] = [0-9]){20,76}\\s*([.]+\\s*)?)\\}\n"
+        "    0x[0-9a-f]+ \\+0x0000 (counts|num_slots) +: +.*\\{((0x[0-9a-f]+|[0-9]+), (0x[0-9a-f]+|[0-9]+) <repeats (63|75) times>|(\\s*\\[[0-9]+\\] = [0-9]+){20,76}\\s*([.]+\\s*)?)\\}\n"
         "    0x[0-9a-f]+ \\+0x[0-9a-f]{4} entries +: +.*\\{(0x[0-9a-f]+, 0x[0-9a-f]+ <repeats (63|75) times>|(\\s*\\[[0-9]+\\] = (0x[0-9a-f]+|NULL)){20,76}\\s*([.]+\\s*)?)\\}"
     )
     assert re.match(exp_regex, out)
 
 
+@pytest.mark.parametrize(
+    "binary",
+    [b for _, b in _HEAP_MALLOC_CHUNK_BINARIES],
+    ids=[i for i, _ in _HEAP_MALLOC_CHUNK_BINARIES],
+)
 @pwndbg_test
-async def test_command_dt_works_with_no_address(ctrl: Controller) -> None:
+async def test_command_dt_works_with_no_address(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib
 
-    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+    await launch_to(ctrl, binary, "break_here")
 
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
@@ -61,10 +74,7 @@ async def test_command_dt_works_with_no_address(ctrl: Controller) -> None:
 async def test_command_dt_recursively_prints_nested_offsets(ctrl: Controller) -> None:
     await launch_to(ctrl, DT_RECURSIVE_OFFSETS, "break_here")
 
-    global_outer = await ctrl.execute_and_capture("print &global_outer")
-    match = re.search(r"0x[0-9a-f]+", global_outer)
-    assert match is not None
-    global_outer_addr = match.group(0)
+    global_outer_addr = hex(int(get_expr("&global_outer")))
 
     out = await ctrl.execute_and_capture(f'dt "struct dt3807_outer" {global_outer_addr}')
 
@@ -79,10 +89,7 @@ async def test_command_dt_recursively_prints_nested_offsets(ctrl: Controller) ->
 async def test_command_dt_bitfield_alignment(ctrl: Controller) -> None:
     await launch_to(ctrl, DT_BITFIELDS, "break_here")
 
-    global_bf = await ctrl.execute_and_capture("print &global_bf")
-    match = re.search(r"0x[0-9a-f]+", global_bf)
-    assert match is not None
-    global_bf_addr = match.group(0)
+    global_bf_addr = hex(int(get_expr("&global_bf")))
 
     out = await ctrl.execute_and_capture(f'dt "struct dt3076_bitfields" {global_bf_addr}')
 
