@@ -70,10 +70,14 @@ from ....host import Controller
 from . import break_at_sym
 from . import get_binary
 from . import launch_to
+from . import musl_test_versions
 from . import pwndbg_test
 
-HEAP_MALLOCNG_DYN = get_binary("heap_musl_dyn.native.out")
-HEAP_MALLOCNG_STATIC = get_binary("heap_musl_static.native.out")
+# The mallocng suite runs against the system musl plus every per-version musl the
+# heap-libc-tests workflow has built; _mallocng_binaries() collects whichever of
+# those binaries exist on disk (see the file for the helper definitions).
+_MALLOCNG_BINARIES = _mallocng_binaries()
+_MALLOCNG_IDS = [_mallocng_id(b) for b in _MALLOCNG_BINARIES]
 
 # Userland only
 re_addr = r"0x[0-9a-fA-F]{1,12}"
@@ -85,34 +89,33 @@ Here's a function form the file:
 
 ```python
 @pwndbg_test
-@pytest.mark.parametrize(
-    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
-)
+@pytest.mark.parametrize("binary", _MALLOCNG_BINARIES, ids=_MALLOCNG_IDS)
 async def test_mallocng_slot_start(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
+    await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
-    # Check ng-slots is the same as ng-slotu when p == start
+    # Check `ng slots` is the same as `ng slotu` when p == start
     # and that they aren't the same when p != start.
 
-    slotu_buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer2"))
-    slots_buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slots buffer2"))
-    slotu_buffer5_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer5"))
-    slots_buffer5_out = color.strip(await ctrl.execute_and_capture("ng-slots buffer5"))
+    slotu_buffer2_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer2"))
+    slots_buffer2_out = color.strip(await ctrl.execute_and_capture("ng slots buffer2"))
+    slotu_buffer5_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer5"))
+    slots_buffer5_out = color.strip(await ctrl.execute_and_capture("ng slots buffer5"))
 
     assert "not cyclic" in slotu_buffer2_out
     assert slotu_buffer2_out == slots_buffer2_out
 
-    if binary == HEAP_MALLOCNG_STATIC:
+    if "static" in binary.name:
         assert "not cyclic" not in slotu_buffer5_out
-        # Doing `ng-slots buffer5` will give you garbage since buffer5 is not
+        # Doing `ng slots buffer5` will give you garbage since buffer5 is not
         # a valid slot start.
         assert slotu_buffer5_out != slots_buffer5_out
 ```
 
-`pytest` will run any function that starts with `test_` as a new test. We decorate our test function with `@pwndbg_test` as explained before. Furthermore, as we want to run this specific function both for the dynamically compiled binary and the statically compiled binary, we decorate it with `@pytest.mark.parametrize` as well. We put all pwndbg imports inside the function itself - putting them at the top of the test file is currently not supported. We use `launch_to` to run the binary until our `break_here` function, and then exit from that helper function back to main with `ctrl.finish()`. Finally, we assert on the output of `ctrl.execute_and_capture` to check whether the output of our command is as expected.
+`pytest` will run any function that starts with `test_` as a new test. We decorate our test function with `@pwndbg_test` as explained before. Furthermore, as we want to run this specific function for the dynamically and statically compiled binaries (and, when the per-version musl artifacts are present, for every musl version), we decorate it with `@pytest.mark.parametrize` as well. We put all pwndbg imports inside the function itself - putting them at the top of the test file is currently not supported. We use `launch_to` to run the binary until our `break_here` function, and then exit from that helper function back to main with `ctrl.finish()`. Finally, we assert on the output of `ctrl.execute_and_capture` to check whether the output of our command is as expected.
 
 Here is what [`heap_musl.native.c`](https://github.com/pwndbg/pwndbg/blob/dev/tests/binaries/host/heap_musl.native.c) looks like:
 
@@ -140,3 +143,33 @@ int main () {
 ## QEMU Tests
 
 To test architecture specific features, like disassembly annotations, we use emulate the appropriate architecure with qemu-user and attach to its debug port. These tests are located in [`tests/library/qemu_user/tests`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu_user/tests). They are currently `gdb-only` and thus follow the same format as the `gdb/` tests. They require a Python function with a Pytest fixture name as the parameter (it matches based on the name). You call the argument/fixture to start debugging a binary. The `qemu_assembly_run` fixture takes in a Python string of assembly code, compiles it in the appropriate architecture, and runs it - no need to create an external file or edit a Makefile.
+
+## Libc Version Testing
+
+`tests/library/dbg/tests/test_heap_glibc_versions.py`, `test_musl_versions.py`, `test_bionic_versions.py`, and `test_bionic_commands.py` exercise pwndbg against many libc versions and Android API levels. The per-version artifacts are built from source into small `ghcr.io` "scratch" images (one per libc: `Dockerfile.{glibc,musl,bionic}-test-libs`) that CI pulls, rebuilding only when an image-defining file changes. See [`.github/workflows/heap-libc-tests.yml`](https://github.com/pwndbg/pwndbg/blob/dev/.github/workflows/heap-libc-tests.yml).
+
+Where possible we avoid bespoke per-version tests and instead run the existing deep tests across the whole matrix by parametrizing their test binary over it (the `glibc_version_binaries()` / `bionic_api_binaries()` helpers in `tests/library/dbg/tests/__init__.py`, while the musl tests build their lists inline from `musl_test_versions()`; all filtered to binaries present on disk, plus a regex in each job's `test_filter`). Concretely:
+
+- **glibc** (2.35-2.43): version detection; the heap allocator, bins and `malloc-chunk` via debug symbols; the forced-heuristic path per version (`main_arena`/`mp_`/thread-cache resolution and the `heap` command); `find-fake-fast`; `dt` on `tcache_perthread_struct`; and a genuine no-symbol heuristic run against a stripped `glibcs-nodebug/<ver>/` libc (no debug info and no `.gnu_debuglink`, so pwndbg must scan for `main_arena` and read the version from the `.rodata` banner).
+- **musl** (1.1.24-1.2.6): detection plus exact version, statically (where the mallocng fingerprint exists) and dynamically, and the full `test_mallocng.py` suite run across every mallocng-era version (1.2.1+; 1.1.24 predates mallocng, so the `ng*` commands do not apply to it).
+- **bionic** (API 21/26/30/34): the static Android binary runs under gdb, its `.note.android.ident` API matches, `pwndbg.libc.which()` is `UNKNOWN` (there is no bionic provider yet), the libc-agnostic commands (`vmmap`, `nearpc`, `telescope`, `context backtrace`) work, and the heap commands degrade gracefully.
+
+**Architectures:** glibc and musl run on both **x86-64 and aarch64** (the aarch64 jobs use native `ubuntu-24.04-arm` runners, no emulation, so the libcs build and the tests run natively). The `arch` matrix dimension selects the runner and the per-arch loader name; both are 64-bit so the heap assertions are identical. bionic is x86-64 only for now: the NDK's x86_64 host cross-compiles `aarch64-linux-android` fine, so an arm cell is an easy future addition, deferred because pwndbg has no bionic provider yet (an arm axis would only re-confirm the same `UNKNOWN`/graceful behavior).
+
+**Adding or removing a glibc or musl version touches two files:** add (or remove) the `FROM base-builder AS build-<ver>` stage and its scratch-stage `COPY` line(s) in the relevant `Dockerfile.*-test-libs`, and pin the new release tarball's sha256 in `scripts/build-one-<libc>.sh` (the build fails loudly without the pin; the canary workflow prints the line to add). A bionic API level is added in `Dockerfile.bionic-test-libs` alone (the NDK is the only pinned download). The makefile, the `scripts/download-test-libs.sh` script, and the tests all re-parse the Dockerfile's stage list, so nothing else changes.
+
+**Running locally** (needs Docker):
+
+```bash
+./scripts/download-test-libs.sh glibc    # or musl / bionic
+make -C tests/binaries/host -j4 all  # glibc/musl compile per-version binaries; bionic ships prebuilt
+./tests.sh -d gdb -g dbg test_heap_glibc_versions
+```
+
+**Caveats:**
+
+- **musl**: the mallocng fingerprint only exists since 1.2.1, so older versions (e.g. 1.1.24) are tested dynamically only. The dynamic binaries emit a `.interp` section explicitly because the pinned `zig` silently drops `-Wl,--dynamic-linker` for `-nostdlib` links.
+- **bionic**: there is no pwndbg bionic provider, so detection asserts `UNKNOWN` rather than a real type, and heap commands are only checked for graceful degradation (bionic uses scudo). Binaries are prebuilt inside the image because the NDK clang is not in the test container.
+- **aarch64**: musl's *dynamic* binaries and the `dt` / `find-fake-fast` tests are x86-64 only. The hand-built dynamic-musl link (`zig` + crt + `.interp`) is x86-64-tuned and those binaries fail to launch on arm, so static musl (which still exercises mallocng) covers aarch64; `dt` and `find-fake-fast` produce arch-specific output the x86-64 expectations do not match on arm.
+- **glibc 2.43**: 2.43 removed fastbins, so the strict per-bin tests (`test_heap.py`, `test_heap_bins.py`) skip it and `test_heap_glibc_versions.py` asserts `fastbins()` returns `None`; detection, `malloc-chunk` and the heuristic paths still run on 2.43.
+- **glibc no-symbol heuristic**: the `2.42` case is currently `xfail` because pwndbg's heuristic does not recover `main_arena` on a stripped 2.42 libc; the other versions pass, so this documents a real pwndbg gap rather than a harness issue. (Separately, `test_mp_heuristic` is `xfail` on 2.42: the heuristic also cannot locate `mp_` in the `.data` section there.)
