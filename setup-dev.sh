@@ -227,7 +227,9 @@ install_jemalloc() {
         fi
 
         pushd "${JEMALLOC_EXTRACT_PATH}"
-        ./configure
+        # jemalloc's C++ integration (jemalloc_cpp.cpp) fails to build against newer
+        # libstdc++ (e.g. Arch's GCC), and pwndbg's tests don't use it, so disable it.
+        ./configure --disable-cxx
         make
         sudo make install
         popd
