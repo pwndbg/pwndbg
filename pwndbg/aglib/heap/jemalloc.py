@@ -208,7 +208,12 @@ def _load_rtree_geom() -> _RtreeGeom:
     LG_VADDR at build time -- 48 on 4-level-paging hosts, 57 on 5-level (LA57) -- and
     the two layouts are incompatible, so assuming 48 misreads a 57-bit build (the
     #3615 flake: it depended on the CI build host's CPU). Falls back to the 48-bit
-    layout if jemalloc's ``rtree_levels`` table can't be read."""
+    layout if jemalloc's ``rtree_levels`` table can't be read.
+
+    Height, per-level bit splits and the root array all derive from LG_VADDR in
+    jemalloc rtree.h (RTREE_NHIB = 64 - LG_VADDR, RTREE_NSB, RTREE_HEIGHT, rtree_levels):
+    https://github.com/jemalloc/jemalloc/blob/81034ce1f1373e37dc865038e1bc8eeecf559ce8/include/jemalloc/internal/rtree.h#L21-L38
+    """
     try:
         frame = pwndbg.dbg.selected_frame()
         ctx = frame or pwndbg.dbg.selected_inferior()
@@ -225,9 +230,13 @@ def _load_rtree_geom() -> _RtreeGeom:
         nhib = levels[0][1] - levels[0][0]
         node_sizeof = int(ctx.evaluate_expression("sizeof(struct rtree_node_elm_s)"))
         leaf_sizeof = int(ctx.evaluate_expression("sizeof(struct rtree_leaf_elm_s)"))
-        # The leaf packs the edata pointer with its metadata into one word only when
-        # enough high address bits are free (LG_VADDR <= 48); otherwise it stores a
-        # plain edata pointer plus a separate metadata word (twice the size).
+        # jemalloc uses a "compact" leaf -- the edata pointer packed with its metadata
+        # into one word (le_bits) -- only when enough high bits are free, i.e.
+        # RTREE_NHIB (= 64 - LG_VADDR) >= LG_CEIL(SC_NSIZES); otherwise the leaf is a
+        # plain edata pointer plus a separate metadata word ({le_edata, le_metadata},
+        # twice the size). We read the actual struct size rather than recompute that.
+        # jemalloc rtree.h (RTREE_LEAF_COMPACT condition + struct rtree_leaf_elm_s):
+        # https://github.com/jemalloc/jemalloc/blob/81034ce1f1373e37dc865038e1bc8eeecf559ce8/include/jemalloc/internal/rtree.h#L37-L88
         compact = leaf_sizeof == (1 << LG_SIZEOF_PTR)
         return _RtreeGeom(levels, nhib, compact, node_sizeof, leaf_sizeof)
     except (pwndbg.dbg_mod.Error, ValueError, TypeError):
