@@ -47,6 +47,12 @@ def prepend_venv_bin_to_path():
 def main():
     prepend_venv_bin_to_path()
 
+    # Let the rest of the loader know we got here through the portable binary and
+    # not from someone sourcing gdbinit.py out of their own .gdbinit. We inject a
+    # -nx below, and that extra -nx changes how many --nx the user needs to pass
+    # to actually skip ~/.gdbinit. See _disable_gdbinit_loading.
+    os.environ["PWNDBG_LOADED_FROM_PORTABLE"] = "1"
+
     gdb_argv = [
         sys.argv[0],
         "-q",

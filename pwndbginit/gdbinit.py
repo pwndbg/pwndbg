@@ -61,8 +61,13 @@ def main() -> None:
     import pwndbg  # noqa: F811
     import pwndbg.dbg_mod.gdb
 
-    # Mark that pwndbg was loaded from `pwndbg` binary (for double-load detection)
-    setattr(pwndbg, "_is_loaded_from_pwndbg", True)
+    # Only mark this when we actually came in through the portable `pwndbg` binary.
+    # The portable launcher injects an extra -nx, so the gdbinit loader needs to
+    # know about it to count --nx flags correctly. When pwndbg is sourced from a
+    # user's own .gdbinit there's no injected -nx, so leaving this unset lets a
+    # single user --nx behave like vanilla gdb. Also used for double-load detection.
+    if os.environ.get("PWNDBG_LOADED_FROM_PORTABLE") == "1":
+        setattr(pwndbg, "_is_loaded_from_pwndbg", True)
 
     pwndbg.dbg = pwndbg.dbg_mod.gdb.GDB()
     pwndbg.dbg.setup()

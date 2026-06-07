@@ -1633,23 +1633,15 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         import psutil
 
-        disable_home_gdbinit = 0
-        disable_any_gdbinit = 0
+        import pwndbg
+        import pwndbg.lib.gdbinit
+
+        # _is_loaded_from_pwndbg only gets set when we came in through the portable
+        # binary, which is the thing that injects an extra -nx.
+        loaded_from_portable = hasattr(pwndbg, "_is_loaded_from_pwndbg")
+
         proc = psutil.Process(os.getpid())
-        for arg in proc.cmdline():
-            if arg in ("-args", "--args"):
-                break
-            if arg in ("-nh", "--nh"):
-                disable_home_gdbinit += 1
-            elif arg in ("-nx", "--nx", "-n", "--n"):
-                disable_any_gdbinit += 1
-
-        if disable_any_gdbinit == 0:
-            # The `--nx` option is added only in pwndbg-portable mode.
-            # This check allows using OLD syntax, eg: `source /path/to/pwndbg/gdbinit.py`, from ~/.gdbinit
-            return True, True
-
-        return disable_any_gdbinit >= 2, disable_home_gdbinit >= 1
+        return pwndbg.lib.gdbinit.disable_gdbinit_loading(proc.cmdline(), loaded_from_portable)
 
     def _load_gdbinit(self):
         # Emulate how `gdb` loads `.gdbinit` files (home and local)
