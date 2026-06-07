@@ -1,0 +1,137 @@
+name: Libc Canary (new releases)
+
+# Weekly check for a newer glibc/musl *release* than the versions pinned in the test
+# Dockerfiles. If one exists, build it in canary mode (its checksum is computed on
+# first use since it is not pinned yet) and run the heap suite against just that
+# version, so breakage in a new libc is caught before it reaches users.
+# workflow_dispatch can force a specific version to exercise the pipeline on demand.
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      force_glibc:
+        description: "Force-test this glibc version (e.g. 2.43), even if not new"
+        required: false
+        default: ""
+      force_musl:
+        description: "Force-test this musl version (e.g. 1.2.6), even if not new"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      glibc_new: ${{ steps.detect.outputs.glibc_new }}
+      musl_new: ${{ steps.detect.outputs.musl_new }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Detect new libc releases
+        id: detect
+        env:
+          FORCE_GLIBC: ${{ inputs.force_glibc }}
+          FORCE_MUSL: ${{ inputs.force_musl }}
+        run: |
+          set -euo pipefail
+          if [ -n "${FORCE_GLIBC}" ] || [ -n "${FORCE_MUSL}" ]; then
+            echo "glibc_new=${FORCE_GLIBC}" >> "$GITHUB_OUTPUT"
+            echo "musl_new=${FORCE_MUSL}" >> "$GITHUB_OUTPUT"
+          else
+            bash scripts/check-new-libc.sh
+          fi
+
+  glibc:
+    needs: detect
+    if: needs.detect.outputs.glibc_new != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      VERSION: ${{ needs.detect.outputs.glibc_new }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Add the canary glibc version to the Dockerfile
+        run: bash scripts/add-canary-version.sh glibc "${VERSION}"
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+      - name: Log in to GHCR (to read the build cache)
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build glibc image (canary version + cached pinned versions)
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: Dockerfile.glibc-test-libs
+          load: true
+          tags: glibc-canary:local
+          cache-from: type=registry,ref=ghcr.io/pwndbg/glibc-test-libs:buildcache-x86-64
+      - name: Extract artifacts
+        run: |
+          set -euo pipefail
+          CID=$(docker create --entrypoint=/ glibc-canary:local)
+          trap 'docker rm -f "${CID}" >/dev/null 2>&1 || true' EXIT
+          mkdir -p tests/binaries/host/glibcs tests/binaries/host/glibcs-nodebug
+          docker cp "${CID}:/glibcs/." tests/binaries/host/glibcs/
+          docker cp "${CID}:/glibcs-nodebug/." tests/binaries/host/glibcs-nodebug/
+      - name: Run the glibc heap suite against the canary version
+        run: |
+          docker compose run -T --rm --quiet-pull -e "TEST_FILTER=${VERSION}" \
+            -v "$(pwd):/pwndbg" ubuntu24.04 bash -c '
+              set -euo pipefail
+              make -C /pwndbg/tests/binaries/host -j4 all
+              ./tests.sh -d gdb -g dbg "$TEST_FILTER"
+            '
+
+  musl:
+    needs: detect
+    if: needs.detect.outputs.musl_new != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      VERSION: ${{ needs.detect.outputs.musl_new }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Add the canary musl version to the Dockerfile
+        run: bash scripts/add-canary-version.sh musl "${VERSION}"
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+      - name: Log in to GHCR (to read the build cache)
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build musl image (canary version + cached pinned versions)
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: Dockerfile.musl-test-libs
+          load: true
+          tags: musl-canary:local
+          cache-from: type=registry,ref=ghcr.io/pwndbg/musl-test-libs:buildcache-x86-64
+      - name: Extract artifacts
+        run: |
+          set -euo pipefail
+          CID=$(docker create --entrypoint=/ musl-canary:local)
+          trap 'docker rm -f "${CID}" >/dev/null 2>&1 || true' EXIT
+          mkdir -p tests/binaries/host/musls
+          docker cp "${CID}:/musls/." tests/binaries/host/musls/
+      - name: Run the musl suite against the canary version
+        run: |
+          docker compose run -T --rm --quiet-pull -e "TEST_FILTER=${VERSION}" \
+            -v "$(pwd):/pwndbg" ubuntu24.04 bash -c '
+              set -euo pipefail
+              make -C /pwndbg/tests/binaries/host -j4 all
+              ./tests.sh -d gdb -g dbg "$TEST_FILTER"
+            '
