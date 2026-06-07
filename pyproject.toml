@@ -154,7 +154,6 @@ select = [
 
 [tool.uv]
 default-groups = []
-no-build-isolation-package = ["pwndbg"]
 
 [tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = [

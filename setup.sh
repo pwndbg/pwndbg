@@ -211,8 +211,10 @@ pip install uv
 # No need to install vendored GDB / LLDB since they won't be used
 # with this setup.
 echo "Installing dependencies.."
+# Build pwndbg without isolation (using the pre-installed build backend) so this
+# works offline; scoped here so other `uv sync` calls (docs, lint) keep isolation.
 uv sync --no-install-project --group build
-uv sync
+uv sync --no-build-isolation-package pwndbg
 
 if [ -z "$UPDATE_MODE" ]; then
     if grep -qs '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
