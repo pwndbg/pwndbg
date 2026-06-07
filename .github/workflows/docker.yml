@@ -85,6 +85,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker Buildx ${{ matrix.image }} (cache-enabled)
+        id: build
         if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
         run: |
           docker buildx build \
@@ -134,7 +135,7 @@ jobs:
           '
 
       - name: Push full image to registry
-        if: ${{ !cancelled() && github.event_name == 'push' }}
+        if: ${{ !cancelled() && github.event_name == 'push' && steps.build.outcome == 'success' }}
         run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-amd64
 
   docker_aarch64:
@@ -183,6 +184,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker Buildx ${{ matrix.image }} (cache-enabled)
+        id: build
         if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
         run: |
           docker buildx build \
@@ -231,7 +233,7 @@ jobs:
           '
 
       - name: Push full image to registry
-        if: ${{ !cancelled() && github.event_name == 'push' }}
+        if: ${{ !cancelled() && github.event_name == 'push' && steps.build.outcome == 'success' }}
         run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-arm64
 
   create_manifest:
