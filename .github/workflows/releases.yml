@@ -29,22 +29,22 @@ jobs:
     permissions:
       contents: write  # IMPORTANT: this permission is mandatory for github-release upload
     steps:
-    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # @v3
-    - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15  # @v31.9.0
+    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: build ${{ matrix.attribute }}
       run: nix build '.#${{ matrix.attribute }}' --accept-flake-config -o dist-tarball
 
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # @v4
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ matrix.os }}_${{ matrix.attribute }}
         retention-days: 90
         path: ./dist-tarball/*
 
     - name: release
-      uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # @v3.0.0
+      uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
       with:
         files: |
           ./dist-tarball/*
@@ -75,22 +75,22 @@ jobs:
     permissions:
       contents: write  # IMPORTANT: this permission is mandatory for github-release upload
     steps:
-    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # @v3
-    - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15  # @v31.9.0
+    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: build ${{ matrix.attribute }}
       run: nix build '.#${{ matrix.attribute }}' --accept-flake-config -o dist-tarball
 
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # @v4
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ matrix.os }}_${{ matrix.attribute }}
         retention-days: 90
         path: ./dist-tarball/*
 
     - name: release
-      uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # @v3.0.0
+      uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
       with:
         files: |
           ./dist-tarball/*
@@ -113,22 +113,22 @@ jobs:
     permissions:
       contents: write  # IMPORTANT: this permission is mandatory for github-release upload
     steps:
-    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # @v3
-    - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15  # @v31.9.0
+    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: build ${{ matrix.attribute }}
       run: nix build '.#${{ matrix.attribute }}' --accept-flake-config -o dist-tarball
 
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # @v4
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ matrix.os }}_${{ matrix.attribute }}
         retention-days: 90
         path: ./dist-tarball/*
 
     - name: release
-      uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # @v3.0.0
+      uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
       with:
         files: |
           ./dist-tarball/*
