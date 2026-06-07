@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import os
+import re
 from collections.abc import Callable
 from collections.abc import Coroutine
 from inspect import signature
@@ -39,6 +40,46 @@ def pwndbg_test(
 
 def get_binary(name: str) -> Path:
     return Path(BINARIES_PATH) / name
+
+
+def _dockerfile_versions(libc: str, pattern: str = "[0-9][0-9.]*") -> list[str]:
+    """The version (or API) list for a libc, parsed from its Dockerfile's
+    `FROM base-builder AS build-<n>` stages, so each list lives in one place."""
+    dockerfile = Path(__file__).resolve().parents[4] / f"Dockerfile.{libc}-test-libs"
+    return re.findall(rf"(?m)^FROM base-builder AS build-({pattern})", dockerfile.read_text())
+
+
+def glibc_test_versions() -> list[str]:
+    return _dockerfile_versions("glibc")
+
+
+def musl_test_versions() -> list[str]:
+    return _dockerfile_versions("musl")
+
+
+def bionic_apis() -> list[str]:
+    """Android API levels (plain integers) parsed from Dockerfile.bionic-test-libs."""
+    return _dockerfile_versions("bionic", "[0-9]+")
+
+
+def glibc_version_binaries(stem: str) -> list[tuple[str, Path]]:
+    """(id, binary) for the system build of `stem` plus each per-glibc-version build
+    present on disk. A normal run has only the system one; the per-version binaries
+    appear once the heap-libc-tests workflow has built them."""
+    targets = [("system", get_binary(f"{stem}.native.out"))]
+    for ver in glibc_test_versions():
+        targets.append((ver, get_binary(f"{stem}.glibc-{ver}.out")))
+    return [(name, b) for name, b in targets if b.exists()]
+
+
+def bionic_api_binaries() -> list[tuple[str, Path]]:
+    """(id, binary) per Android API level with a prebuilt static bionic probe present
+    (prebuilt per API level, so this is an API axis, not a version one)."""
+    targets = [
+        (api, get_binary(f"bionics/{api}/bionic_probe.bionic-{api}-static.out"))
+        for api in bionic_apis()
+    ]
+    return [(name, b) for name, b in targets if b.exists()]
 
 
 def break_at_sym(sym: str) -> None:

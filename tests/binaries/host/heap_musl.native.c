@@ -1,6 +1,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+// For the per-version dynamic binaries, the makefile passes the matching musl
+// loader path via -DMUSL_DYNAMIC_INTERP and we emit it as a .interp section.
+// That section is what makes the pinned zig 0.14.1 lld write a PT_INTERP segment:
+// with that toolchain, -Wl,--dynamic-linker is silently dropped for a
+// -nostdlib link, leaving the binary with no interpreter so it never loads libc
+// (pwndbg then reads it as statically linked). Static builds don't define the
+// macro, so they correctly get no .interp section.
+#ifdef MUSL_DYNAMIC_INTERP
+const char __musl_dynamic_interp[] __attribute__((section(".interp"), used)) =
+    MUSL_DYNAMIC_INTERP;
+#endif
+
 void break_here() {};
 
 int main () {
