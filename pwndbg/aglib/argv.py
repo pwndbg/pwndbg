@@ -26,7 +26,7 @@ _was_updated = False
 @pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.START)
 def update() -> None:
     if not pwndbg.dbg.selected_inferior().is_linux():
-        return None
+        return
 
     global _stack_ptr
     global _was_updated
@@ -47,7 +47,7 @@ def update_state() -> None:
     global _envc_numbers
 
     if _was_updated:
-        return None
+        return
     _was_updated = True
 
     sp = _stack_ptr
@@ -57,7 +57,7 @@ def update_state() -> None:
     try:
         _argc_numbers = pwndbg.aglib.memory.u(sp, ptrbits)
     except pwndbg.dbg_mod.Error:
-        return None
+        return
 
     sp += ptrsize
     _argv_ptr = sp

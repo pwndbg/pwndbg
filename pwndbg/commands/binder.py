@@ -114,7 +114,7 @@ class BinderVisitor:
             if t.code == pwndbg.dbg_mod.TypeCode.INT:
                 value = int(value)
             elif t.code == pwndbg.dbg_mod.TypeCode.BOOL:
-                value = True if int(value) else False
+                value = bool(int(value))
             elif t.code == pwndbg.dbg_mod.TypeCode.POINTER:
                 typename = t.target().name_identifier
                 if int(value) == 0:

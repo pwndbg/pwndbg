@@ -206,8 +206,12 @@ class SlabCache:
     @property
     def node_caches(self) -> Generator[NodeCache, None, None]:
         """returns node caches for all NUMA nodes"""
-        for node in range(kernel.num_numa_nodes()):
-            yield NodeCache(self._slab_cache["node"][node], self, node)
+        if kernel.krelease() >= (7, 1):
+            for node in range(kernel.num_numa_nodes()):
+                yield NodeCache(self._slab_cache["per_node"][node]["node"], self, node)
+        else:
+            for node in range(kernel.num_numa_nodes()):
+                yield NodeCache(self._slab_cache["node"][node], self, node)
 
     @property
     def cpu_partial(self) -> int | None:

@@ -25,7 +25,7 @@ jobs:
       code: ${{ steps.filter.outputs.code }}
     steps:
       - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@668c092af3649c4b664c54e4b704aa46782f6f7c # master (unreleased, for predicate-quantifier)
+      - uses: dorny/paths-filter@f3ceefdc7ef57bc2d8560787d4b6c33e44044cec # master (unreleased, for predicate-quantifier)
         id: filter
         with:
           predicate-quantifier: 'every'
@@ -74,17 +74,18 @@ jobs:
 
       - name: Set up Docker Buildx
         if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
         if: github.event_name == 'push'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker Buildx ${{ matrix.image }} (cache-enabled)
+        id: build
         if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
         run: |
           docker buildx build \
@@ -99,7 +100,7 @@ jobs:
 
       - name: Run Tests (GDB, DBG-GDB, DBG-LLDB in parallel) on ${{ matrix.image }}
         run: |
-          docker compose run -T --rm --pull never -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
+          docker compose run -T --rm --pull missing -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
             set -euo pipefail
             # Needed to prevent race conditions - prebuild binaries and create libpython symlink
             make -C /pwndbg/tests/binaries/host -j4 all
@@ -134,7 +135,7 @@ jobs:
           '
 
       - name: Push full image to registry
-        if: github.event_name == 'push'
+        if: ${{ !cancelled() && github.event_name == 'push' && steps.build.outcome == 'success' }}
         run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-amd64
 
   docker_aarch64:
@@ -172,17 +173,18 @@ jobs:
 
       - name: Set up Docker Buildx
         if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
         if: github.event_name == 'push'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker Buildx ${{ matrix.image }} (cache-enabled)
+        id: build
         if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
         run: |
           docker buildx build \
@@ -197,7 +199,7 @@ jobs:
 
       - name: Run Tests (Cross, DBG-GDB, DBG-LLDB in parallel) on ${{ matrix.image }}
         run: |
-          docker compose run -T --rm --pull never -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
+          docker compose run -T --rm --pull missing -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
             set -euo pipefail
             # Needed to prevent race conditions - prebuild binaries
             make -C /pwndbg/tests/binaries/host -j4 all
@@ -231,7 +233,7 @@ jobs:
           '
 
       - name: Push full image to registry
-        if: github.event_name == 'push'
+        if: ${{ !cancelled() && github.event_name == 'push' && steps.build.outcome == 'success' }}
         run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-arm64
 
   create_manifest:
@@ -240,10 +242,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

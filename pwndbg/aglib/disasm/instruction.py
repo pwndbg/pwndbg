@@ -36,6 +36,11 @@ from capstone6pwndbg.ppc import PPC_INS_B
 from capstone6pwndbg.ppc import PPC_INS_BA
 from capstone6pwndbg.ppc import PPC_INS_BL
 from capstone6pwndbg.ppc import PPC_INS_BLA
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_J
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_JAL
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_JALR
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_JR
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_RET
 from capstone6pwndbg.riscv import RISCV_INS_C_J
 from capstone6pwndbg.riscv import RISCV_INS_C_JAL
 from capstone6pwndbg.riscv import RISCV_INS_C_JALR
@@ -56,6 +61,7 @@ from capstone6pwndbg.systemz import SYSTEMZ_INS_J
 from capstone6pwndbg.systemz import SYSTEMZ_INS_JL
 from capstone6pwndbg.x86 import X86_INS_CALL
 from capstone6pwndbg.x86 import X86_INS_JMP
+from capstone6pwndbg.x86 import X86_INS_LJMP
 from capstone6pwndbg.x86 import X86_INS_RET
 from capstone6pwndbg.x86 import X86Op
 from typing_extensions import override
@@ -65,7 +71,7 @@ from pwndbg.dbg_mod import DisassembledInstruction
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally
 UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
-    CS_ARCH_X86: {X86_INS_CALL, X86_INS_RET, X86_INS_JMP},
+    CS_ARCH_X86: {X86_INS_CALL, X86_INS_RET, X86_INS_JMP, X86_INS_LJMP},
     CS_ARCH_MIPS: {
         MIPS_INS_J,
         MIPS_INS_JR,
@@ -89,12 +95,17 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
     },
     CS_ARCH_AARCH64: {AARCH64_INS_BL, AARCH64_INS_BLR, AARCH64_INS_BR},
     CS_ARCH_RISCV: {
-        RISCV_INS_JAL,
+        RISCV_INS_ALIAS_RET,
         RISCV_INS_JALR,
-        RISCV_INS_C_JAL,
+        RISCV_INS_ALIAS_JALR,
         RISCV_INS_C_JALR,
-        RISCV_INS_C_J,
         RISCV_INS_C_JR,
+        RISCV_INS_ALIAS_JR,
+        RISCV_INS_C_J,
+        RISCV_INS_ALIAS_J,
+        RISCV_INS_JAL,
+        RISCV_INS_ALIAS_JAL,
+        RISCV_INS_C_JAL,
     },
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
     CS_ARCH_SYSTEMZ: {
@@ -124,6 +135,11 @@ BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
     MIPS_INS_JAL,
     MIPS_INS_JALR,
 }
+BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_RISCV] = {
+    RISCV_INS_JALR,
+    RISCV_INS_ALIAS_JALR,
+    RISCV_INS_C_JALR,
+}
 
 # All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone
 GENERIC_JUMP_GROUPS = {CS_GRP_JUMP, CS_GRP_BRANCH_RELATIVE}
@@ -140,8 +156,10 @@ class InstructionCondition(Enum):
     TRUE = 1
     # Conditional instruction, but action is not taken
     FALSE = 2
-    # Unconditional instructions (most instructions), or we cannot reason about the instruction
-    UNDETERMINED = 3
+    # Conditional instruction, but we cannot reason about if the condition is true or not
+    UNDETERMINED_CONDITIONAL = 3
+    # Unconditional instructions (most instructions). This is the default
+    UNCONDITIONAL = 4
 
 
 def boolean_to_instruction_condition(condition: bool) -> InstructionCondition:
@@ -277,7 +295,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         # ***********
         # The following member variables are set during instruction enhancement
-        # in pwndbg.aglib.disasm.arch.py
+        # in pwndbg.aglib.disasm.assistant.py
         # ***********
 
         self.asm_string: str = (
@@ -326,14 +344,16 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Whether the target is a constant expression
         """
 
-        self.condition: InstructionCondition = InstructionCondition.UNDETERMINED
+        self.condition: InstructionCondition = InstructionCondition.UNCONDITIONAL
         """
         Does the condition that the instruction checks for pass?
 
         For example, "JNE" jumps if Zero Flag is 0, else it does nothing. "CMOVA" conditionally performs a move depending on a flag.
         See 'condition' function in pwndbg.aglib.disasm.x86 for example on setting this.
 
-        UNDETERMINED if we cannot reason about the condition, or if the instruction always executes unconditionally (most instructions).
+        UNCONDITIONAL if it's an unconditional instruction.
+
+        UNDETERMINED_CONDITIONAL if we cannot reason about the condition.
 
         TRUE if the instruction has a conditional action, and we determine it is taken.
 
@@ -508,7 +528,10 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         """
         return self.has_jump_target and (
             (self.is_unconditional_jump)
-            or (self.is_conditional_jump and self.condition != InstructionCondition.UNDETERMINED)
+            or (
+                self.is_conditional_jump
+                and self.condition != InstructionCondition.UNDETERMINED_CONDITIONAL
+            )
         )
 
     @property
@@ -519,7 +542,10 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         return self.cs_insn.bytes
 
     def op_find(self, op_type: int, position: int) -> EnhancedOperand:
-        """Get the operand at position @position of all operands having the same type @op_type"""
+        """
+        Get the operand at position @position of all operands having the same type @op_type
+        The position is 1-indexed.
+        """
         cs_op = self.cs_insn.op_find(op_type, position)
         # Find the matching EnhancedOperand
         for x in self.operands:
@@ -540,9 +566,10 @@ class PwndbgInstructionImpl(PwndbgInstruction):
             for reg_id, reg_value in self.register_writes.items()
         }
 
-        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch, None)})
+        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch)})
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
+        Is alias: {self.cs_insn.is_alias}
         Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else "None"}
         Raw asm: f"{self.mnemonic:-<6} {self.op_str}"
         New asm: {self.asm_string}
@@ -595,7 +622,7 @@ class EnhancedOperand:
 
         # ***********
         # The following member variables are set during instruction enhancement
-        # in pwndbg.aglib.disasm.arch.py
+        # in pwndbg.aglib.disasm.assistant.py
         # ***********
 
         self.before_value: int | None = None
@@ -731,7 +758,7 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.target_string = None
         self.target_const = None
 
-        self.condition = InstructionCondition.UNDETERMINED
+        self.condition = InstructionCondition.UNCONDITIONAL
 
         self.declare_is_unconditional_jump = False
         self.force_unconditional_jump_target = False

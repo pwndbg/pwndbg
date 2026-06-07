@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from collections.abc import Sequence
 from contextlib import contextmanager
 from contextlib import nullcontext
+from contextlib import suppress
 from os import environ
 from pathlib import Path
 from random import randint
@@ -21,6 +22,7 @@ import gdb.types
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.aglib.remote
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.gdblib
@@ -799,7 +801,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     )
                     break
                 start = None
-                pass
 
             if start is None:
                 break
@@ -871,8 +872,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         if pwndbg.aglib.file.is_vfile_qemu_user_bug():
             with open(local_path, "wb") as fp:
                 try:
-                    for data in pwndbg.aglib.file.vfile_readfile(remote_path):
-                        fp.write(data)
+                    fp.writelines(pwndbg.aglib.file.vfile_readfile(remote_path))
                     return
                 except OSError as e:
                     raise pwndbg.dbg_mod.Error(
@@ -1729,7 +1729,6 @@ class GDB(pwndbg.dbg_mod.Debugger):
         set step-mode on
         set print pretty on
         set output-radix 16
-        set debuginfod enabled on
         handle SIGALRM nostop print nopass
         handle SIGBUS  stop   print nopass
         handle SIGPIPE nostop print nopass
@@ -1739,11 +1738,13 @@ class GDB(pwndbg.dbg_mod.Debugger):
         for line in pre_commands.strip().splitlines():
             gdb.execute(line)
 
+        # debuginfod may not be compiled in (e.g. bare-metal cross GDB)
+        with suppress(gdb.error):
+            gdb.execute("set debuginfod enabled on")
+
         # This may throw an exception, see pwndbg/pwndbg#27
-        try:
+        with suppress(gdb.error):
             gdb.execute("set disassembly-flavor intel")
-        except gdb.error:
-            pass
 
         from pwndbg.gdblib.tui import setup as tui_setup
 
@@ -1914,11 +1915,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         for line in command_list:
             line = line.strip()
             # Skip non-command entries
-            if (
-                not line
-                or line.startswith("Command class:")
-                or line.startswith("Unclassified commands")
-            ):
+            if not line or line.startswith(("Command class:", "Unclassified commands")):
                 continue
             command = line.split()[0]
             existing_commands.add(command)

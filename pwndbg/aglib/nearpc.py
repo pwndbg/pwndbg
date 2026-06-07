@@ -59,6 +59,8 @@ c = ColorConfig(
 )
 
 # `pwndbg.arguments` imports `c` from this module.
+import contextlib
+
 import pwndbg.arguments
 
 nearpc_branch_marker = pwndbg.color.theme.add_param(
@@ -417,11 +419,11 @@ def nearpc(
     lines: int | None = None,
     back_lines: int = 0,
     total_lines: int | None = None,
-    emulate=False,
-    repeat=False,
-    use_cache=False,
-    linear=False,
-    branch_visualization=False,
+    emulate: bool = False,
+    repeat: bool = False,
+    use_cache: bool = False,
+    linear: bool = False,
+    branch_visualization: bool = False,
     address_to_highlight: int | None = None,
     end_address: int | None = None,
 ) -> list[str]:
@@ -518,7 +520,7 @@ def nearpc(
         symbols_max_length = max(map(len, symbols)) if symbols else 0
         addresses_max_length = max(map(len, addresses)) if addresses else 0
 
-    assembly_strings = pwndbg.color.disasm.instructions_and_padding(instructions)
+    assembly_strings = pwndbg.color.disasm.instructions_and_padding(instructions, linear=linear)
 
     breakpoint_locations = pwndbg.dbg.breakpoint_locations()
 
@@ -652,14 +654,12 @@ def nearpc(
         #     ]
 
         # For Comment Function
-        try:
+        with contextlib.suppress(Exception):
             line += " " * 10 + ctx_color.comment(
                 pwndbg.commands.comments.file_lists[pwndbg.aglib.proc.exe()][
                     hex(instruction.address)
                 ]
             )
-        except Exception:
-            pass
 
         result.append(line)
 

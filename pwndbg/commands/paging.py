@@ -79,6 +79,10 @@ def page_info(page) -> None:
 def pagewalk(vaddr, entry=None) -> None:
     if entry is not None:
         entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
+    elif (kcurrent := pwndbg.commands.kcurrent.get_kcurrent()) is not None:
+        # did the user set pgd with kcurrent?
+        # safe because pagewalk fallbacks to control regs when entry==None
+        entry = kcurrent.pgd
     if pwndbg.aglib.memory.is_kernel(entry):
         entry = pwndbg.aglib.kernel.pagewalk(entry, virt=False).phys
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))

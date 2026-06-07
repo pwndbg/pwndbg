@@ -94,7 +94,11 @@
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
 -  [kmem-trace](kernel/kmem-trace.md) - Trace kernel memory (SLUB and buddy) allocations and frees.
 -  [kmod](kernel/kmod.md) - Displays the loaded Linux kernel modules.
+-  [knamespace](kernel/knamespace.md) - Displays information about the namespcae of a task.
 -  [knft](kernel/knft.md) - Utility for inspecting the kernel netfilter subsystem.
+-  [kseccomp](kernel/kseccomp.md) - Displays information about the seccomp of a user task.
+-  [ksighand](kernel/ksighand.md) - Displays information about the signal handlers of a user task.
+-  [kstack](kernel/kstack.md) - Displays information about the stack of a task.
 -  [ksyscalls](kernel/ksyscalls.md) - Displays Linux syscall table, including names and addresses of syscalls.
 -  [ktask](kernel/ktask.md) - Displays information about kernel tasks.
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).

@@ -38,7 +38,10 @@ JEMALLOC_CFLAGS := $(shell $(PKG_CONFIG) --cflags jemalloc)
 JEMALLOC_LIBS   := $(shell $(PKG_CONFIG) --libs jemalloc)
 endif
 
-HAVE_MUSL := $(shell command -v $(firstword $(MUSLCC)) >/dev/null 2>&1 && echo yes || echo no)
+# musl is "available" only if musl-gcc actually compiles+links a trivial program.
+# Some distros (e.g. Arch) ship a musl-gcc whose spec is broken against the current
+# GCC, so an existence check alone is not enough.
+HAVE_MUSL := $(shell printf 'int main(void){return 0;}' | $(MUSLCC) -x c -o /dev/null - >/dev/null 2>&1 && echo yes || echo no)
 
 ifeq ($(DEBUG), 1)
 CFLAGS         +=      -DDEBUG=1 -ggdb -O0 -gdwarf-4

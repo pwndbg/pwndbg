@@ -69,11 +69,14 @@ def xinfo_mmap_file(page: Page, addr: int) -> None:
     print_line("File (Base)", addr, region_start, rva, "+")
 
     # find possible LOAD segments that designate memory and file backings
-    containing_loads = [
-        seg
-        for seg in pwndbg.aglib.elf.get_containing_segments(file_name, region_start, addr)
-        if seg["p_type"] == "PT_LOAD"
-    ]
+    try:
+        containing_loads = [
+            seg
+            for seg in pwndbg.aglib.elf.get_containing_segments(file_name, region_start, addr)
+            if seg["p_type"] == "PT_LOAD"
+        ]
+    except OSError:
+        containing_loads = []
 
     for segment in containing_loads:
         if segment["p_type"] == "PT_LOAD" and addr < segment["x_vaddr_mem_end"]:
@@ -89,7 +92,12 @@ def xinfo_mmap_file(page: Page, addr: int) -> None:
     else:
         print(f"{'File (Disk)'.rjust(20)} {mem_color.get(addr)} = [not file backed]")
 
-    containing_sections = pwndbg.aglib.elf.get_containing_sections(file_name, region_start, addr)
+    try:
+        containing_sections = pwndbg.aglib.elf.get_containing_sections(
+            file_name, region_start, addr
+        )
+    except OSError:
+        containing_sections = []
     if len(containing_sections) > 0:
         print("\n Containing ELF sections:")
         for sec in containing_sections:

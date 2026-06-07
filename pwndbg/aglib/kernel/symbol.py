@@ -9,14 +9,13 @@ from typing_extensions import ParamSpec
 
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
-from pwndbg.dbg_mod import EventType
-from pwndbg.lib import TypeNotRecoveredError
 
 #########################################
 # helpers
@@ -289,20 +288,6 @@ def recover_page_typeinfo() -> str:
     return result
 
 
-@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
-def load_common_structs_on_load_linux() -> None:
-    if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.dbg.selected_inferior().is_linux():
-        try:
-            recover_page_typeinfo()
-        except TypeNotRecoveredError as e:
-            # We are not going to print anything here, because the user may not
-            # even end up using the type-dependant commands.
-            # Other commands and typeinfo recoveries depend on this succeeding,
-            # so we save the actual failure reason to have something meaningful to
-            # show to the user.
-            pwndbg.aglib.kernel.page_typeinfo_recovery_failure = e
-
-
 P = ParamSpec("P")
 
 
@@ -337,9 +322,7 @@ def kernel_symbol_func(
                 return result
             result = None
             if prefer_symbol:
-                result = pwndbg.aglib.symbol.lookup_symbol_addr(
-                    symbol_name if symbol_name else f.__name__
-                )
+                result = pwndbg.aglib.symbol.lookup_symbol_addr(symbol_name or f.__name__)
             if result is None:
                 # we use heuristics if the symbol could not be resolved by lookup_symbol
                 if (field_name := f"{f.__name__}_heuristic_func") and hasattr(self, field_name):
@@ -350,9 +333,7 @@ def kernel_symbol_func(
                         )
                         result = arch_heuristic_handle()
             if result is None and not prefer_symbol:
-                result = pwndbg.aglib.symbol.lookup_symbol_addr(
-                    symbol_name if symbol_name else f.__name__
-                )
+                result = pwndbg.aglib.symbol.lookup_symbol_addr(symbol_name or f.__name__)
             if result is None:
                 return None
             return result
@@ -442,6 +423,10 @@ class ArchSymbols:
     def current_task(self) -> type[NeedLookup]:
         return NeedLookup
 
+    @kernel_symbol_func()
+    def init_task(self) -> type[NeedLookup]:
+        return NeedLookup
+
     def _node_data(self) -> int | None:
         raise NotImplementedError()
 
@@ -465,6 +450,9 @@ class ArchSymbols:
 
     def _current_task(self) -> int | None:
         raise NotImplementedError()
+
+    def _init_task(self) -> int | None:
+        return pwndbg.aglib.kernel.ktask.INIT_TASK
 
 
 class x86_64Symbols(ArchSymbols):

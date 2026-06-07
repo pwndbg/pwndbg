@@ -271,8 +271,7 @@ def eX(size, address, data, hex=True) -> None:
     if hex:
         # Early validation if all data is hex
         for string in data:
-            if string.startswith("0x"):
-                string = string[2:]
+            string = string.removeprefix("0x")
 
             if any(ch not in "0123456789abcdefABCDEF" for ch in string):
                 print(
@@ -283,8 +282,7 @@ def eX(size, address, data, hex=True) -> None:
     writes = 0
     for i, string in enumerate(data):
         if hex:
-            if string.startswith("0x"):
-                string = string[2:]
+            string = string.removeprefix("0x")
 
             string = string.rjust(size * 2, "0")
 

@@ -42,7 +42,7 @@ def fix_readline():
         def find_spec(self, fullname, path=None, target=None):
             if fullname == "readline":
                 raise ImportError("readline module disabled under GDB")
-            return None
+            return
 
     sys.meta_path.insert(0, GdbRemoveReadlineFinder())
 

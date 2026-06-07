@@ -59,49 +59,62 @@ class RegisterManager:
 
         return None
 
-    def read_reg_uncached_in_frame(self, reg: str, frame: pwndbg.dbg_mod.Frame) -> int | None:
-        reg = reg.lstrip("$")
-        try:
-            value = self.get_register(reg, frame)
-            if value is None and reg.lower() == "xpsr":
-                value = self.get_register("xPSR", frame)
-            if value is None:
-                return None
-            value = int(value)
-            if reg == "eip" and pwndbg.aglib.arch.name == "i8086":
-                cs = self.get_register("cs", frame)
-                if cs is None:
-                    return None
-                value += int(cs) * 0x10
+    def read_reg_uncached_in_frame(
+        self, reg: str, frame: pwndbg.dbg_mod.Frame, *aliases: str
+    ) -> int | None:
+        for name in (reg, *aliases):
+            name = name.lstrip("$")
+            try:
+                value = self.get_register(name, frame)
+                if value is None and name.lower() == "xpsr":
+                    value = self.get_register("xPSR", frame)
+                if value is None:
+                    # Register not exposed by the debugger under this name;
+                    # try the next alias, if any.
+                    continue
+                value = int(value)
+                if name == "eip" and pwndbg.aglib.arch.name == "i8086":
+                    cs = self.get_register("cs", frame)
+                    if cs is None:
+                        continue
+                    value += int(cs) * 0x10
 
-            # The value that the native debugger returns can be negative.
-            # We convert this to the unsigned bit representation by masking it
-            reg_definition = pwndbg.aglib.regs.current.reg_definitions.get(reg.lower())
-            if reg_definition and reg_definition.mask is not None:
-                mask = reg_definition.mask
-            else:
-                mask = pwndbg.aglib.arch.ptrmask
-            return int(value) & mask
-        except (ValueError, pwndbg.dbg_mod.Error):
-            return None
+                # The value that the native debugger returns can be negative.
+                # We convert this to the unsigned bit representation by masking it
+                reg_definition = pwndbg.aglib.regs.current.reg_definitions.get(name.lower())
+                if reg_definition and reg_definition.mask is not None:
+                    mask = reg_definition.mask
+                else:
+                    mask = pwndbg.aglib.arch.ptrmask
+                return int(value) & mask
+            except (ValueError, pwndbg.dbg_mod.Error):
+                continue
+        return None
 
-    def read_reg_uncached(self, reg: str) -> int | None:
+    def read_reg_uncached(self, reg: str, *aliases: str) -> int | None:
         frame = pwndbg.dbg.selected_frame()
         if frame is None:
             return None
-        return self.read_reg_uncached_in_frame(reg, frame)
+        return self.read_reg_uncached_in_frame(reg, frame, *aliases)
 
     @pwndbg.lib.cache.cache_until("stop")
-    def read_reg_in_frame(self, reg: str, frame: pwndbg.dbg_mod.Frame) -> int | None:
+    def read_reg_in_frame(self, reg: str, frame: pwndbg.dbg_mod.Frame, *aliases: str) -> int | None:
         """
         Same as read_reg() except for the provided frame, rather than the currently
         selected frame.
         """
-        return self.read_reg_uncached_in_frame(reg, frame)
+        return self.read_reg_uncached_in_frame(reg, frame, *aliases)
 
-    def read_reg(self, reg: str) -> int | None:
+    def read_reg(self, reg: str, *aliases: str) -> int | None:
         """
         Query the underlying debugger for the value of a register.
+
+        If `aliases` are provided, each is tried in turn after `reg` until one
+        returns a non-None value. This is useful for architectural registers
+        whose exposed names differ across debugger backends or QEMU versions
+        (for example, newer QEMU exposes `vbar_el1` on AArch64 while older
+        releases exposed it as `vbar`). Pass the most-likely-current name
+        first; less-likely names last.
 
         Note that in some rare cases, debuggers won't directly expose the values of some special model specific registers.
         Although we can sometimes determine these by other indirect means, this function does not run any extra logic to handle these special cases.
@@ -116,7 +129,7 @@ class RegisterManager:
         frame = pwndbg.dbg.selected_frame()
         if frame is None:
             return None
-        return self.read_reg_in_frame(reg, frame)
+        return self.read_reg_in_frame(reg, frame, *aliases)
 
     def write_reg(self, reg: str, value: int) -> None:
         if not pwndbg.dbg.selected_frame().reg_write(reg, value):
