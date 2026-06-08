@@ -23,14 +23,14 @@ dependencies = [
     # Optional? only for 'ropgadget' command
     "ropgadget==7.6",
     # Optional? only for 'ai' commands
-    "requests>=2.32.5,<3",
+    "requests>=2.34.2,<3",
     # Optional? only for pretty print traceback
     "rich>=15.0.0,<16",
     # Optional? only for qemu-system vmmap
     "pt @ git+https://github.com/martinradev/gdb-pt-dump@50227bda0b6332e94027f811a15879588de6d5cb",
     # Optional? 'ziglang' must be optional, as it is not available on every platform.
     # It is only used for the 'cymbol' command and some `asm` functionality.
-    "ziglang==0.14.1 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
+    "ziglang==0.16.0 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
     # Used for symbol syncing (e.g. klookup --apply and decompiler integration)
     "niche-elf==0.3.6",
     # This dep is optional.
