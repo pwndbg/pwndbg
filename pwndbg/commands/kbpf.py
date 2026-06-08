@@ -14,9 +14,9 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.bpf
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import BreakpointLocation
 from pwndbg.lib.exception import IndentContextManager

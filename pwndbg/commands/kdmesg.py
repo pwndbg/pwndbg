@@ -18,9 +18,9 @@ import time
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg.color import message
 
 parser = argparse.ArgumentParser(description="Displays the kernel ring buffer (dmesg) contents.")
 
@@ -116,8 +116,7 @@ def kdmesg(ctime: bool = False) -> None:
                 text_start = begin + size_long
                 text_len = int(info["text_len"])
 
-                if end - text_start < text_len:
-                    text_len = end - text_start
+                text_len = min(text_len, end - text_start)
 
                 text_data = pwndbg.aglib.memory.read(text_data_addr + text_start, text_len)
                 text = text_data.decode(encoding="utf8", errors="replace")

@@ -31,8 +31,8 @@ import pwndbg.aglib.vmmap
 import pwndbg.color.syntax_highlight
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
-import pwndbg.lib.pretty_print as pretty_print
 from pwndbg.color import message
+from pwndbg.lib import pretty_print
 
 # Note that XML RPC cannot send 64-bit ints (it is capped at 32 bits).
 # We hope that rebased integers will never be more than 32-bits. If need be,

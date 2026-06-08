@@ -923,9 +923,8 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def pagewalk(self, target: int, entry: int | None, virt: bool = True) -> PagewalkResult:
         if pwndbg.aglib.memory.is_kernel(target):
             entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
-        else:
-            if entry is None:
-                entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
+        elif entry is None:
+            entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
         if entry is None:
             return PagewalkResult()
         entry |= 3  # marks the entry as a table

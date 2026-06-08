@@ -13,8 +13,8 @@ import pwndbg
 import pwndbg.aglib.kernel.kmod
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg.color import message
 
 parser = argparse.ArgumentParser(description="Displays the loaded Linux kernel modules.")
 parser.add_argument(

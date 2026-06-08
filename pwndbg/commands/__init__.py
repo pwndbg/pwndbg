@@ -23,7 +23,6 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.exception
@@ -31,6 +30,7 @@ import pwndbg.libc
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
+from pwndbg.color import message
 from pwndbg.lib import SymbolNotRecoveredError
 from pwndbg.lib import TypeNotRecoveredError
 

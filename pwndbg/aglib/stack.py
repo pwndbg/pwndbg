@@ -13,10 +13,10 @@ import pwndbg.aglib.elf
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
-import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
+from pwndbg.color import message
 
 auto_explore = pwndbg.config.add_param(
     "auto-explore-stack",

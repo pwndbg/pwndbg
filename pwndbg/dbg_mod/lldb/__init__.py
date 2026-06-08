@@ -28,11 +28,11 @@ import lldb
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.path
+from pwndbg.color import message
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import selection
 from pwndbg.lib import TypeNotFoundError

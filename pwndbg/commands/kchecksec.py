@@ -4,8 +4,8 @@ import argparse
 from typing import NamedTuple
 
 import pwndbg.aglib.kernel
-import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
