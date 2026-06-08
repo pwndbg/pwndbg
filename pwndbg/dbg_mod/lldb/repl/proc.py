@@ -368,10 +368,7 @@ class ProcessDriver:
         """
         Stops the IODriver handling I/O from the process.
         """
-        assert (
-            self._io_driver_state == _IODriverState.PAUSED
-            or self._io_driver_state == _IODriverState.RUNNING
-        )
+        assert self._io_driver_state in (_IODriverState.PAUSED, _IODriverState.RUNNING)
 
         if self._io_driver_state == _IODriverState.PAUSED:
             # Not invalid, but currently a NOP. See pause_io_if_running()
@@ -503,17 +500,17 @@ class ProcessDriver:
                             result = _PollResultStopped(event)
                             break
 
-                        if new_state == lldb.eStateRunning or new_state == lldb.eStateStepping:
+                        if new_state in (lldb.eStateRunning, lldb.eStateStepping):
                             running = True
                             # Start the I/O driver here if its start got deferred
                             # because of `only_if_started` being set.
                             if only_if_started and with_io:
                                 self._start_io_driver()
 
-                        if (
-                            new_state == lldb.eStateExited
-                            or new_state == lldb.eStateCrashed
-                            or new_state == lldb.eStateDetached
+                        if new_state in (
+                            lldb.eStateExited,
+                            lldb.eStateCrashed,
+                            lldb.eStateDetached,
                         ):
                             # Nothing else for us to do here. Clear our internal
                             # references to the process, fire the exit event, and leave.

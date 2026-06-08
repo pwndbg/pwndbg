@@ -490,7 +490,7 @@ class DisassemblyAssistant:
         if value is None:
             return None
 
-        if operand.type == CS_OP_REG or operand.type == CS_OP_IMM:
+        if operand.type in (CS_OP_REG, CS_OP_IMM):
             return value
         if operand.type == CS_OP_MEM:
             # Assume that we are reading ptrsize - subclasses should override this function

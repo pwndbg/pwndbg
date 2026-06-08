@@ -780,7 +780,7 @@ class IntegrationManager:
         res = f"{name}: {ver}"
         # Add all other auxiliary information, no matter what it is.
         for key, value in versions.items():
-            if key == "name" or key == "version":
+            if key in {"name", "version"}:
                 continue
             res += f"\n{name} {key}: {value}"
 

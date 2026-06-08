@@ -1031,7 +1031,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 elif match == "riscv":
                     # If GDB doesn't detect the width, it will just say `riscv`.
                     match = "rv64"
-                elif match == "iwmmxt" or match == "iwmmxt2" or match == "xscale":
+                elif match in {"iwmmxt", "iwmmxt2", "xscale"}:
                     match = "arm"
                 elif match == "rs6000":
                     # The RS/6000 architecture is compatible with the PowerPC common
@@ -2014,7 +2014,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
             else:
                 raise pwndbg.dbg_mod.Error(e)
 
-        if flavor != "att" and flavor != "intel":
+        if flavor not in {"att", "intel"}:
             raise pwndbg.dbg_mod.Error(f"unrecognized disassembly flavor '{flavor}'")
 
         literal: Literal["att", "intel"] = flavor

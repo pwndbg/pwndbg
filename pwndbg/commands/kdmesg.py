@@ -93,7 +93,7 @@ def kdmesg(ctime: bool = False) -> None:
 
             # Skip non-committed or non-finalized records, indicated by the state variable.
             state = 3 & (int(desc["state_var"]["counter"]) >> desc_flags_shift)
-            if state != 1 and state != 2:  # desc_committed or desc_finalized
+            if state not in {1, 2}:  # desc_committed or desc_finalized
                 if did == head_id:
                     break
                 did = (did + 1) & desc_id_mask

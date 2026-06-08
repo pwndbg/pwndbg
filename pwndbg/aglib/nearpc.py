@@ -389,7 +389,7 @@ def create_branch_visualization_strings(
         empty_line_branch_vis_string_len += 1 + num_empty_lines
 
         # Now, create the string for the non-empty line
-        if pair.start == addr or pair.end == addr:
+        if addr in (pair.start, pair.end):
             continue
 
         # Only add to the string if the space hasn't been taking by a horizontal line

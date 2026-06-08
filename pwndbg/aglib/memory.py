@@ -429,7 +429,7 @@ def pack_struct_into_dictionary(
 def convert_pwndbg_value_to_python_value(dbg_value: pwndbg.dbg_mod.Value) -> int | GdbDict:
     ty = dbg_value.type.strip_typedefs()
 
-    if ty.code == TypeCode.POINTER or ty.code == TypeCode.INT:
+    if ty.code in (TypeCode.POINTER, TypeCode.INT):
         return int(dbg_value)
     if ty.code == TypeCode.STRUCT:
         return pack_struct_into_dictionary(dbg_value)

@@ -1793,7 +1793,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             raise RuntimeError(
                 "SBTarget::GetByteOrder() != SBProcess::GetByteOrder(). We don't know how to handle that"
             )
-        if endian0 != lldb.eByteOrderLittle and endian0 != lldb.eByteOrderBig:
+        if endian0 not in (lldb.eByteOrderLittle, lldb.eByteOrderBig):
             raise RuntimeError("We only support little and big endian systems")
         if endian0 == lldb.eByteOrderInvalid:
             raise RuntimeError("Byte order is invalid")
@@ -1839,7 +1839,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
             if any(has_xpsr):
                 arch_name = "armcm"
-        elif arch_name == "arm64" or arch_name == "arm64e":
+        elif arch_name in {"arm64", "arm64e"}:
             # Apple uses a different name for AArch64 than we do.
             arch_name = "aarch64"
         elif arch_name == "riscv32":
@@ -2490,7 +2490,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         if flavor == "default":
             flavor = "intel"
 
-        if flavor != "att" and flavor != "intel":
+        if flavor not in {"att", "intel"}:
             raise pwndbg.dbg_mod.Error(f"unrecognized disassembly flavor '{flavor}'")
 
         literal: Literal["att", "intel"] = flavor

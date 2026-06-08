@@ -58,7 +58,7 @@ def main() -> None:
         sys.exit(1)
 
     force_serial = False
-    assert args.driver == Driver.GDB or args.driver == Driver.LLDB
+    assert args.driver in (Driver.GDB, Driver.LLDB)
     match args.driver:
         case Driver.GDB:
             host = get_gdb_host(args, local_pwndbg_root)

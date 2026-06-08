@@ -61,7 +61,7 @@ def parse_value(param: pwndbg.lib.config.Parameter, expression: str) -> Any:
         # in the string, while at the same time resolving all escape sequences
         # in the original string.
         return expression.encode("ascii", "backslashreplace").decode("unicode_escape")
-    elif param_class == cfg.PARAM_ZUINTEGER or param_class == cfg.PARAM_ZUINTEGER_UNLIMITED:
+    elif param_class in (cfg.PARAM_ZUINTEGER, cfg.PARAM_ZUINTEGER_UNLIMITED):
         try:
             value = int(expression, 0)
             if value < 0:
