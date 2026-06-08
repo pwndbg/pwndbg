@@ -207,6 +207,8 @@ build-backend = "hatchling.build"
 [tool.ruff.lint.per-file-ignores]
 # FIXME
 "pwndbg/gdblib/__init__.py" = ["F401"]
+# magic values are usually fine in tests
+"tests/{library,unit_tests}/**" = ["PLR2004"]
 
 [tool.mypy]
 strict_optional = false
