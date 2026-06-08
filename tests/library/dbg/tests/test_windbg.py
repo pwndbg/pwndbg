@@ -222,6 +222,18 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
         "Perhaps try: db <address> <count> or hexdump <address>\n"
     )
 
+    #################################################
+    #### dds / dps / dqs / kd command tests
+    #################################################
+    for cmd in ("dds", "dps", "dqs", "kd"):
+        # Without count argument (uses default)
+        out_default = (await ctrl.execute_and_capture(f"{cmd} &data")).strip().splitlines()
+        # With count argument
+        out_3 = (await ctrl.execute_and_capture(f"{cmd} &data 3")).strip().splitlines()
+        assert len(out_3) == 3
+        # Ensure the first lines of both are identical
+        assert out_default[:3] == out_3
+
 
 @pwndbg_test
 async def test_windbg_eX_commands(ctrl: Controller) -> None:
