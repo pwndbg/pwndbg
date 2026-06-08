@@ -1,13 +1,7 @@
 from __future__ import annotations
 
-import os
-import random
-import string
-import subprocess
 import sys
-import tempfile
 
-from pt.machine import Machine
 from pt.pt import PageTableDump
 from pt.pt_aarch64_parse import PT_Aarch64_Backend
 from pt.pt_riscv64_parse import PT_RiscV64_Backend
@@ -116,91 +110,6 @@ def annotate(pages: pwndbg.dbg_mod.MemoryMap) -> None:
                 break
 
 
-# Most of QemuMachine code was inherited from gdb-pt-dump thanks to Martin Radev (@martinradev)
-# on the MIT license, see:
-# https://github.com/martinradev/gdb-pt-dump/blob/21158ac3f9b36d0e5e0c86193e0ef018fc628e74/pt_gdb/pt_gdb.py#L11-L80
-class QemuMachine(Machine):
-    def __init__(self):
-        super().__init__()
-        self.file = None
-        self.pid = QemuMachine.get_qemu_pid()
-        self.file = os.open(f"/proc/{self.pid}/mem", os.O_RDONLY)
-
-    def __del__(self):
-        if self.file:
-            os.close(self.file)
-
-    @staticmethod
-    def search_pids_for_file(pids: list[str], filename: str) -> str | None:
-        for pid in pids:
-            fd_dir = f"/proc/{pid}/fd"
-            try:
-                for fd in os.listdir(fd_dir):
-                    if os.readlink(f"{fd_dir}/{fd}") == filename:
-                        return pid
-            except FileNotFoundError:
-                # Either the process has gone or fds are changing, not our pid
-                pass
-            except PermissionError:
-                # Evade processes owned by other users
-                pass
-
-        return None
-
-    @staticmethod
-    def get_qemu_pid():
-        try:
-            out = subprocess.check_output(["pgrep", "qemu-system"], encoding="utf8")
-            pids = out.strip().split("\n")
-
-            if len(pids) == 1:
-                return int(pids[0], 10)
-        except subprocess.CalledProcessError:
-            # If no process with the name `qemu-system` is found, fallback to alternative methods,
-            # as the binary name may vary (e.g., `qemu_system`).
-            pass
-
-        # We add a chardev file backend (we dont add a fronted, so it doesn't affect
-        # the guest). We can then look through proc to find which process has the file
-        # open. This approach is agnostic to namespaces (pid, network and mount).
-        chardev_id = "gdb-pt-dump" + "-" + "".join(random.choices(string.ascii_letters, k=16))
-        with tempfile.NamedTemporaryFile() as tmpf:
-            pwndbg.dbg.selected_inferior().send_monitor(
-                f"chardev-add file,id={chardev_id},path={tmpf.name}"
-            )
-            pid_found = QemuMachine.search_pids_for_file(pids, tmpf.name)
-            pwndbg.dbg.selected_inferior().send_monitor(f"chardev-remove {chardev_id}")
-
-        if not pid_found:
-            raise ProcessLookupError("Could not find qemu-system pid")
-
-        return int(pid_found, 10)
-
-    def read_physical_memory(self, physical_address: int, length: int) -> bytes:
-        res = pwndbg.dbg.selected_inferior().send_monitor(f"gpa2hva {hex(physical_address)}")
-
-        # It's not possible to pread large sizes, so let's break the request
-        # into a few smaller ones.
-        max_block_size = 1024 * 1024 * 256
-        try:
-            hva = int(res.split(" ")[-1], 16)
-            data = b""
-            for offset in range(0, length, max_block_size):
-                length_to_read = min(length - offset, max_block_size)
-                block = os.pread(self.file, length_to_read, hva + offset)
-                data += block
-            return data
-        except Exception as e:
-            msg = f"Physical address ({hex(physical_address)}, +{hex(length)}) is not accessible. Reason: {e}. gpa2hva result: {res}"
-            raise OSError(msg)
-
-    def read_register(self, register_name: str) -> int:
-        if register_name.startswith("$"):
-            register_name = register_name[1:]
-
-        return int(pwndbg.aglib.regs.read_reg(register_name))
-
-
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_via_page_tables() -> tuple[Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
@@ -210,25 +119,8 @@ def kernel_vmmap_via_page_tables() -> tuple[Page, ...]:
         # QemuMachine requires access to /proc/{qemu-pid}/mem, which is only available on Linux
         return ()
 
-    try:
-        machine_backend = QemuMachine()
-    except PermissionError:
-        print(
-            message.error(
-                "Permission error when attempting to parse page tables with gdb-pt-dump.\n"
-                "Either change the kernel-vmmap setting, re-run GDB as root, or disable "
-                "`ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`)"
-            )
-        )
-        return ()
-    except ProcessLookupError:
-        print(
-            message.error(
-                "Could not find the PID for process named `qemu-system`.\n"
-                "This might happen if pwndbg is running on a different machine than `qemu-system`,\n"
-                "or if the `qemu-system` binary has a different name."
-            )
-        )
+    machine_backend = pwndbg.aglib.qemu.get_qemu_machine(True)
+    if machine_backend is None:
         return ()
 
     arch: str = pwndbg.aglib.arch.name

@@ -252,7 +252,7 @@ async def test_heap_bins_2_43(ctrl: Controller) -> None:
     result = (await ctrl.execute_and_capture("smallbins")).splitlines()[1:]
     assert len(result) == 1
     matches = [bin_pattern.search(bin_str) for bin_str in result]
-    verify_match(matches[0], "0x110")
+    verify_match(matches[0], "0x120")
 
     result = (await ctrl.execute_and_capture("largebins")).splitlines()[1:]
     assert len(result) == 1
@@ -287,7 +287,7 @@ async def test_heap_bins_2_43(ctrl: Controller) -> None:
     result = allocator.smallbins()
     assert result is not None
     assert result.bin_type == BinType.SMALL
-    bin = result.bins[0x110]
+    bin = result.bins[0x120]
     assert len(bin.fd_chain) == len(bin.bk_chain) == 3
     assert pwndbg.aglib.vmmap.find(bin.fd_chain[0])
 

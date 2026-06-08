@@ -17,6 +17,7 @@ from collections.abc import Generator
 from collections.abc import Iterator
 from collections.abc import Sequence
 from contextlib import contextmanager
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 from typing import Literal
@@ -145,10 +146,8 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
             raise pwndbg.dbg_mod.Error(f"Symbol {name!r} contains invalid characters")
 
         value = None
-        try:
+        with suppress(pwndbg.dbg_mod.Error):
             value = self.evaluate_expression(f"&{name}")
-        except pwndbg.dbg_mod.Error:
-            pass
 
         if value is None:
             # Fallback because `evaluate_expression` may fail to resolve symbols for TLS variables.
