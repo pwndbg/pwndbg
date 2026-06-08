@@ -119,16 +119,23 @@ ignore = [
     "F405",
     "F821",
     "W505",
-    "SIM102", # flake8-simplify collapsible-if
-    "SIM103", # flake8-simplify needless-bool
-    "SIM108", # flake8-simplify if-else-block-instead-of-if-exp
-    "SIM110", # flake8-simplify reimplemented-builtin
-    "SIM114", # flake8-simplify if-with-same-arms
-    "SIM115", # flake8-simplify open-file-with-context-handler
-    "SIM117", # flake8-simplify multiple-with-statements
-    "SIM300", # flake8-simplify yoda-coonditions
-    "RET503", # flake8-return implicit-return
-    "RET504", # flake8-return unnecessary-assign
+    "SIM102",  # flake8-simplify collapsible-if
+    "SIM103",  # flake8-simplify needless-bool
+    "SIM108",  # flake8-simplify if-else-block-instead-of-if-exp
+    "SIM110",  # flake8-simplify reimplemented-builtin
+    "SIM114",  # flake8-simplify if-with-same-arms
+    "SIM115",  # flake8-simplify open-file-with-context-handler
+    "SIM117",  # flake8-simplify multiple-with-statements
+    "SIM300",  # flake8-simplify yoda-coonditions
+    "RET503",  # flake8-return implicit-return
+    "RET504",  # flake8-return unnecessary-assign
+    "PLR0911", # pylint-refactor too-many-statements
+    "PLR0912", # pylint-refactor too-many-branches
+    # We want to unignore the below lints, but they currently return too many errors
+    "PLR0913", # pylint-refactor too-many-arguments
+    "PLR0915", # pylint-refactor too-many-return-statements
+    "PLR1704", # pylint-refactor redefined-argument-from-local (this will probably also catch some bugs)
+    "PLR2004", # pylint-refactor magic-value-comparison
 ]
 
 select = [
@@ -147,7 +154,7 @@ select = [
     "RET",    # flake8-return
     "UP",     # pyugprade
     "FURB",   # refurb
-    "PLR",    # refactor
+    "PLR",    # pylint-refactor
     # We want to enable the below lints, but they currently return too many errors
     # "SLF" # flake8-self
     # "PTH", # flake8-use-pathlib
@@ -183,6 +190,9 @@ known-third-party = [
     "lldb",
 ]
 required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.lint.pylint]
+max-args = 10
 
 [tool.hatch.metadata]
 allow-direct-references = true
