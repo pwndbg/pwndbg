@@ -147,6 +147,7 @@ select = [
     "RET",    # flake8-return
     "UP",     # pyugprade
     "FURB",   # refurb
+    "PLR",    # refactor
     # We want to enable the below lints, but they currently return too many errors
     # "SLF" # flake8-self
     # "PTH", # flake8-use-pathlib
