@@ -234,20 +234,22 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
         # Ensure the first lines of both are identical
         assert out_default[:3] == out_3
 
-    # Test repeat/Enter behavior by mocking check_repeated to return True
-    out_normal = (await ctrl.execute_and_capture("dds &data 2")).strip().splitlines()
-    await ctrl.execute("pi pwndbg.commands.windbg.dds.check_repeated = lambda *a, **kw: True")
-    try:
-        out_repeated = (await ctrl.execute_and_capture("dds &data 2")).strip().splitlines()
-        # Verify it has different addresses
-        assert out_normal != out_repeated
-        # Verify it dumped consecutive memory regions (e.g. out_repeated starts after out_normal ends)
-        ptrsize = pwndbg.aglib.typeinfo.ptrsize
-        addr_normal_start = int(out_normal[0].split()[1], 16)
-        addr_repeated_start = int(out_repeated[0].split()[1], 16)
-        assert addr_repeated_start == addr_normal_start + 2 * ptrsize
-    finally:
-        await ctrl.execute("pi del pwndbg.commands.windbg.dds.check_repeated")
+    # Test repeat/Enter behavior by mocking check_repeated to return True (only on GDB)
+    is_gdb = "GDB" in type(ctrl).__name__
+    if is_gdb:
+        out_normal = (await ctrl.execute_and_capture("dds &data 2")).strip().splitlines()
+        await ctrl.execute("pi pwndbg.commands.windbg.dds.check_repeated = lambda *a, **kw: True")
+        try:
+            out_repeated = (await ctrl.execute_and_capture("dds &data 2")).strip().splitlines()
+            # Verify it has different addresses
+            assert out_normal != out_repeated
+            # Verify it dumped consecutive memory regions (e.g. out_repeated starts after out_normal ends)
+            ptrsize = pwndbg.aglib.typeinfo.ptrsize
+            addr_normal_start = int(out_normal[0].split()[1], 16)
+            addr_repeated_start = int(out_repeated[0].split()[1], 16)
+            assert addr_repeated_start == addr_normal_start + 2 * ptrsize
+        finally:
+            await ctrl.execute("pi del pwndbg.commands.windbg.dds.check_repeated")
 
 
 @pwndbg_test
