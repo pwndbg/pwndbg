@@ -106,7 +106,7 @@ def probeleak(
     address &= pwndbg.aglib.arch.ptrmask
     ptrsize = pwndbg.aglib.arch.ptrsize
     count = max(int(count), ptrsize)
-    off_zeros = int(math.ceil(math.log(count, 2) / 4))
+    off_zeros = int(math.ceil(math.log2(count) / 4))
     if flags is not None:
         require_flags = flags_str2int(flags)
 

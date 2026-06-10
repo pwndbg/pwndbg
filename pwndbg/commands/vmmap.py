@@ -240,6 +240,9 @@ def vmmap(
 
     # All displayed pages, including lines after and lines before
     vmmap = pwndbg.aglib.vmmap.get_memory_map()
+    if pwndbg.aglib.qemu.is_qemu_kernel():
+        # called here so to not impact kernel_vmmap
+        pwndbg.aglib.kernel.vmmap.annotate(vmmap)
     total_pages = vmmap.ranges()
 
     cache_status = pwndbg.aglib.vmmap.cache_status_text()

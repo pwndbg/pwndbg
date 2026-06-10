@@ -107,14 +107,16 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
     return decorator
 
 
-# Set by pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux() when page typeinfo
-# recovery fails.
-page_typeinfo_recovery_failure: None | TypeNotRecoveredError = None
-
-
 def typeinfo_recovery(
     name: str, requires_kversion: bool = False, requires_kbase: bool = False
 ) -> Callable[[Callable[P, str]], Callable[P, None]]:
+    """
+    Attached to functions which return the C source-code of the `name` type (usually struct).
+
+    Compiles and adds the debug info for the struct into the debugger, from then on accessible via APIs
+    like `pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)`.
+    """
+
     def decorator(f: Callable[P, str]) -> Callable[P, None]:
         # returns true if the type exists or has been successfully recovered
         @functools.wraps(f)
@@ -126,6 +128,9 @@ def typeinfo_recovery(
                 return
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
                 return
+            recover_common_types_func = pwndbg.aglib.kernel.symbol.recover_page_typeinfo
+            if f.__name__ != recover_common_types_func.__name__:
+                recover_common_types_func()
             if requires_kversion and kversion() is None:
                 raise TypeNotRecoveredError(name, "kernel version is unavailable")
             if requires_kbase and kbase() is None:
@@ -134,13 +139,6 @@ def typeinfo_recovery(
             try:
                 result = f(*args, **kwargs)
             except TypeNotFoundError as e:
-                # typeinfo_recovery functions depend on
-                # pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux()
-                # succeeding and will try to directly read those types from the debbuger
-                # like e.g. `pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)`
-                # This will raise a TypeNotFoundError exception.
-                if page_typeinfo_recovery_failure is not None:
-                    raise page_typeinfo_recovery_failure
                 raise TypeNotRecoveredError(name, str(e))
             except AssertionError as e:
                 # FIXME: Some type recovery functions `assert` under the assumption that the assert
@@ -386,8 +384,8 @@ class ArchOps(ABC):
         return self._paginginfo().physmap
 
     @property
-    def phys_offset(self) -> int:
-        return self._paginginfo().phys_offset
+    def ram_phys_start(self) -> int:
+        return self._paginginfo().ram_phys_start
 
     @property
     def page_shift(self) -> int:
@@ -525,11 +523,11 @@ class Aarch64Ops(ArchOps):
             _virt = pagewalk(virt).virt
         if _virt is None:
             _virt = virt
-        return _virt - self.page_offset + self.phys_offset
+        return _virt - self.page_offset + self.ram_phys_start
 
     def phys_to_virt(self, phys: int) -> int:
         # https://elixir.bootlin.com/linux/v6.16.4/source/arch/arm64/include/asm/memory.h#L356
-        return phys - self.phys_offset + self.page_offset
+        return phys - self.ram_phys_start + self.page_offset
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.page_shift
@@ -728,6 +726,20 @@ def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
     raise NotImplementedError()
 
 
+def PAGE_ENTRY_MASK() -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.PAGE_ENTRY_MASK
+    raise NotImplementedError()
+
+
+def STRUCT_PAGE_SIZE() -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.STRUCT_PAGE_SIZE
+    raise NotImplementedError()
+
+
 def slab_to_virt(slab: int) -> int:
     pi = arch_paginginfo()
     if pi:
@@ -783,7 +795,7 @@ def num_numa_nodes() -> int:
 
         # 1 means aglib.typeinfo.enum_member("enum node_states", "N_ONLINE")
         node_mask = node_states[1]["bits"][0]
-        return bin(int(node_mask)).count("1")
+        return int(node_mask).bit_count()
 
     max_nodes = 1 << int(kc["CONFIG_NODES_SHIFT"])
     if max_nodes == 1:
@@ -857,4 +869,11 @@ def current_task(cpu: int | None = None) -> int | None:
             return result
         ptr = int(per_cpu(result, cpu=cpu))
         return pwndbg.aglib.memory.read_pointer_width(ptr)
+    return None
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def init_task() -> int | None:
+    if (syms := arch_symbols()) is not None:
+        return syms.init_task()
     return None

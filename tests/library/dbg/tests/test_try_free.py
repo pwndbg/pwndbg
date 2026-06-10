@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import tempfile
 from pathlib import Path
@@ -72,10 +73,8 @@ async def setup_heap(ctrl: Controller, bug_no: int) -> dict[str, int]:
     global breakpoints
 
     # for communication python<->HEAP_BINARY
-    try:
+    with contextlib.suppress(FileNotFoundError):
         os.remove(OUTPUT_FILE)
-    except FileNotFoundError:
-        pass
 
     await ctrl.launch(HEAP_BINARY, args=[str(bug_no), f"{OUTPUT_FILE}"])
     await ctrl.execute("b " + str(breakpoints[bug_no][0]))

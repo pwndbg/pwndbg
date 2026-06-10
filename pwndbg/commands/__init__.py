@@ -641,7 +641,7 @@ def fix(
     frame = pwndbg.dbg.selected_frame()
     try:
         target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
-            frame if frame else pwndbg.dbg.selected_inferior()
+            frame or pwndbg.dbg.selected_inferior()
         )
     except pwndbg.dbg_mod.NoInferior:
         raise AssertionError("Reached command expression evaluation with no frame or inferior")
@@ -672,8 +672,7 @@ def fix(
     if frame:
         regs = frame.regs()
         arg = arg.strip()
-        if arg.startswith("$"):
-            arg = arg[1:]
+        arg = arg.removeprefix("$")
         reg = regs.by_name(arg)
         if reg:
             return reg
@@ -1010,7 +1009,7 @@ def sloppy_gdb_parse(s: str) -> int | str:
     frame = pwndbg.dbg.selected_frame()
     try:
         target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
-            frame if frame else pwndbg.dbg.selected_inferior()
+            frame or pwndbg.dbg.selected_inferior()
         )
     except pwndbg.dbg_mod.NoInferior:
         raise AssertionError("Reached command expression evaluation with no frame or inferior")

@@ -8,9 +8,13 @@ import pytest
 
 from ....host import Controller
 from . import break_at_sym
+from . import get_binary
 from . import glibc_version_binaries
 from . import launch_to
 from . import pwndbg_test
+
+HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
+HEAP_GLIBC2_43 = get_binary("heap_glibc2.43.native.out")
 
 # Run each test against the system glibc plus every prebuilt per-version glibc.
 _HEAP_BINARIES = glibc_version_binaries("heap_malloc_chunk")
@@ -55,16 +59,19 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
 
     expected = {}
 
-    size = int(
-        chunks["allocated"][
-            (
-                "mchunk_size"
-                if "mchunk_size" in (f.name for f in chunks["allocated"].type.fields())
-                else "size"
-            )
-        ]
-    )
-    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
+    def read_chunk_real_size(chunk_type: str) -> tuple[int, int]:
+        size = int(
+            chunks[chunk_type][
+                (
+                    "mchunk_size"
+                    if "mchunk_size" in (f.name for f in chunks[chunk_type].type.fields())
+                    else "size"
+                )
+            ]
+        )
+        return size, size & (0xFFFFFFFFFFFFFFF - 0b111)
+
+    size, real_size = read_chunk_real_size("allocated")
     expected["allocated"] = [
         "Allocated chunk | PREV_INUSE",
         f"Addr: {int(chunks['allocated'].address):#x}",
@@ -72,16 +79,7 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
         "",
     ]
 
-    size = int(
-        chunks["tcache"][
-            (
-                "mchunk_size"
-                if "mchunk_size" in (f.name for f in chunks["tcache"].type.fields())
-                else "size"
-            )
-        ]
-    )
-    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
+    size, real_size = read_chunk_real_size("tcache")
     expected["tcache"] = [
         f"Free chunk ({'tcachebins' if pwndbg.aglib.heap.current.has_tcache else 'fastbins'}) | PREV_INUSE",
         f"Addr: {int(chunks['tcache'].address):#x}",
@@ -90,34 +88,17 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
         "",
     ]
 
-    size = int(
-        chunks["fast"][
-            (
-                "mchunk_size"
-                if "mchunk_size" in (f.name for f in chunks["fast"].type.fields())
-                else "size"
-            )
+    if "fast" in chunks:
+        size, real_size = read_chunk_real_size("fast")
+        expected["fast"] = [
+            f"Free chunk ({'fastbins'}) | PREV_INUSE",
+            f"Addr: {int(chunks['fast'].address):#x}",
+            f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
+            f"fd: 0x{int(chunks['fast']['fd']):02x}",
+            "",
         ]
-    )
-    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
-    expected["fast"] = [
-        "Free chunk (fastbins) | PREV_INUSE",
-        f"Addr: {int(chunks['fast'].address):#x}",
-        f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
-        f"fd: 0x{int(chunks['fast']['fd']):02x}",
-        "",
-    ]
 
-    size = int(
-        chunks["small"][
-            (
-                "mchunk_size"
-                if "mchunk_size" in (f.name for f in chunks["small"].type.fields())
-                else "size"
-            )
-        ]
-    )
-    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
+    size, real_size = read_chunk_real_size("small")
     expected["small"] = [
         "Free chunk (smallbins) | PREV_INUSE",
         f"Addr: {int(chunks['small'].address):#x}",
@@ -127,16 +108,7 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
         "",
     ]
 
-    size = int(
-        chunks["large"][
-            (
-                "mchunk_size"
-                if "mchunk_size" in (f.name for f in chunks["large"].type.fields())
-                else "size"
-            )
-        ]
-    )
-    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
+    size, real_size = read_chunk_real_size("large")
     expected["large"] = [
         "Free chunk (largebins) | PREV_INUSE",
         f"Addr: {int(chunks['large'].address):#x}",
@@ -148,16 +120,7 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
         "",
     ]
 
-    size = int(
-        chunks["unsorted"][
-            (
-                "mchunk_size"
-                if "mchunk_size" in (f.name for f in chunks["unsorted"].type.fields())
-                else "size"
-            )
-        ]
-    )
-    real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
+    size, real_size = read_chunk_real_size("unsorted")
     expected["unsorted"] = [
         "Free chunk (unsortedbin) | PREV_INUSE",
         f"Addr: {int(chunks['unsorted'].address):#x}",
@@ -166,6 +129,16 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
         f"bk: 0x{int(chunks['unsorted']['bk']):02x}",
         "",
     ]
+
+    if "tcache_large" in chunks:
+        size, real_size = read_chunk_real_size("tcache_large")
+        expected["tcache_large"] = [
+            "Free chunk (tcachebins large) | PREV_INUSE",
+            f"Addr: {int(chunks['tcache_large'].address):#x}",
+            f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
+            f"fd: 0x{int(chunks['tcache_large']['fd']):02x}",
+            "",
+        ]
 
     return expected
 
@@ -227,9 +200,7 @@ async def test_heap_command_range_and_count(ctrl: Controller, binary: Path) -> N
     assert "`addr_end` must be greater than `addr_start`." in invalid_range_output
 
 
-@glibc_versions
-@pwndbg_test
-async def test_malloc_chunk_command(ctrl: Controller, binary: Path) -> None:
+async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: list[str]) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
@@ -237,32 +208,25 @@ async def test_malloc_chunk_command(ctrl: Controller, binary: Path) -> None:
     import pwndbg.dbg_mod
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
-    await launch_to(ctrl, binary, "break_here")
-    if pwndbg.aglib.arch.name != "x86-64":
-        pytest.skip("TODO multiarch")
-
-    import pwndbg.libc
-
-    if pwndbg.libc.version() >= (2, 43):
-        pytest.skip(
-            "glibc 2.43 reworked bin placement; this strict per-bin test targets "
-            "pre-2.43 (test_heap_glibc_versions covers 2.43)"
-        )
-
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     chunks = {}
     results = {}
-    chunk_types = ["allocated", "tcache", "fast", "small", "large", "unsorted"]
     malloc_chunk = pwndbg.aglib.heap.current.malloc_chunk
-    assert isinstance(malloc_chunk, pwndbg.dbg_mod.Type)
+    if heuristic:
+        assert malloc_chunk is not None
+    else:
+        assert isinstance(malloc_chunk, pwndbg.dbg_mod.Type)
     for name in chunk_types:
         chunk_addr = pwndbg.aglib.symbol.lookup_symbol_value(f"{name}_chunk")
         assert chunk_addr is not None
-        chunks[name] = pwndbg.aglib.memory.get_typed_pointer_value(
-            malloc_chunk,
-            chunk_addr,
-        )
+        if heuristic:
+            chunks[name] = malloc_chunk(chunk_addr)
+        else:
+            chunks[name] = pwndbg.aglib.memory.get_typed_pointer_value(
+                malloc_chunk,
+                chunk_addr,
+            )
         results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
 
     expected = generate_expected_malloc_chunk_output(chunks)
@@ -286,16 +250,22 @@ async def test_malloc_chunk_command(ctrl: Controller, binary: Path) -> None:
     for name in chunk_types:
         chunk_addr = pwndbg.aglib.symbol.lookup_symbol_value(f"{name}_chunk")
         assert chunk_addr is not None
-        chunks[name] = pwndbg.aglib.memory.get_typed_pointer_value(
-            malloc_chunk,
-            chunk_addr,
-        )
+        if heuristic:
+            chunks[name] = malloc_chunk(chunk_addr)
+        else:
+            chunks[name] = pwndbg.aglib.memory.get_typed_pointer_value(
+                malloc_chunk,
+                chunk_addr,
+            )
         results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
 
     expected = generate_expected_malloc_chunk_output(chunks)
     expected["allocated"][0] += " | NON_MAIN_ARENA"
     expected["tcache"][0] += " | NON_MAIN_ARENA"
-    expected["fast"][0] += " | NON_MAIN_ARENA"
+    if "tcache_large" in expected:
+        expected["tcache_large"][0] += " | NON_MAIN_ARENA"
+    if "fast" in expected:
+        expected["fast"][0] += " | NON_MAIN_ARENA"
 
     for name in chunk_types:
         assert results[name] == expected[name]
@@ -309,79 +279,91 @@ async def test_malloc_chunk_command(ctrl: Controller, binary: Path) -> None:
     assert results["large"] == expected["large"]
 
 
-@glibc_versions
 @pwndbg_test
-async def test_malloc_chunk_command_heuristic(ctrl: Controller, binary: Path) -> None:
+async def test_malloc_chunk_command(ctrl: Controller) -> None:
     import pwndbg.aglib
-    import pwndbg.aglib.heap
-    import pwndbg.aglib.symbol
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    import pwndbg.libc
 
-    await ctrl.launch(binary)
+    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
-    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+    if pwndbg.libc.version() >= (2, 43):
+        pytest.skip("Test is not applicable above glibc 2.43")
+
+    await resolve_malloc_chunks(
+        ctrl,
+        False,
+        ["allocated", "tcache", "fast", "small", "large", "unsorted"],
+    )
+
+
+@pwndbg_test
+async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
+    import pwndbg.aglib
+    import pwndbg.libc
+
+    await ctrl.launch(HEAP_MALLOC_CHUNK)
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
 
-    # Detect the version only after running to break_here, where libc is loaded.
+    if pwndbg.libc.version() >= (2, 43):
+        pytest.skip("Test is not applicable above glibc 2.43")
+
+    await resolve_malloc_chunks(
+        ctrl,
+        True,
+        ["allocated", "tcache", "fast", "small", "large", "unsorted"],
+    )
+
+
+@pwndbg_test
+async def test_malloc_chunk_2_43(ctrl: Controller) -> None:
+    import pwndbg.aglib
     import pwndbg.libc
 
-    if pwndbg.libc.version() >= (2, 43):
-        pytest.skip(
-            "glibc 2.43 reworked bin placement; this strict per-bin test targets "
-            "pre-2.43 (test_heap_glibc_versions covers 2.43)"
-        )
+    await ctrl.launch(HEAP_GLIBC2_43, env={"GLIBC_TUNABLES": "glibc.malloc.tcache_max=0x1000"})
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
-    chunks = {}
-    results = {}
-    chunk_types = ["allocated", "tcache", "fast", "small", "large", "unsorted"]
-    malloc_chunk = pwndbg.aglib.heap.current.malloc_chunk
-    assert malloc_chunk is not None
-    for name in chunk_types:
-        chunks[name] = malloc_chunk(pwndbg.aglib.symbol.lookup_symbol_value(f"{name}_chunk"))
-        results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
-
-    expected = generate_expected_malloc_chunk_output(chunks)
-
-    for name in chunk_types:
-        assert results[name] == expected[name]
-
+    break_at_sym("break_here")
     await ctrl.cont()
 
-    # Print main thread's chunk from another thread
-    thread = pwndbg.dbg.selected_thread()
-    assert thread is not None
-    assert thread.index() == 2
-    results["large"] = (await ctrl.execute_and_capture("malloc-chunk large_chunk")).splitlines()
-    expected = generate_expected_malloc_chunk_output(chunks)
-    assert results["large"] == expected["large"]
+    if pwndbg.libc.version() < (2, 43):
+        pytest.skip("Test is not applicable below glibc 2.43")
 
+    await resolve_malloc_chunks(
+        ctrl,
+        False,
+        ["allocated", "tcache", "tcache_large", "small", "large", "unsorted"],
+    )
+
+
+@pwndbg_test
+async def test_malloc_chunk_2_43_heuristic(ctrl: Controller) -> None:
+    import pwndbg.aglib
+    import pwndbg.libc
+
+    await ctrl.launch(HEAP_GLIBC2_43, env={"GLIBC_TUNABLES": "glibc.malloc.tcache_max=0x1000"})
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
+    await ctrl.execute("set resolve-heap-via-heuristic force")
+    break_at_sym("break_here")
     await ctrl.cont()
 
-    # Test some non-main-arena chunks
-    for name in chunk_types:
-        chunks[name] = malloc_chunk(pwndbg.aglib.symbol.lookup_symbol_value(f"{name}_chunk"))
-        results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
+    if pwndbg.libc.version() < (2, 43):
+        pytest.skip("Test is not applicable below glibc 2.43")
 
-    expected = generate_expected_malloc_chunk_output(chunks)
-    expected["allocated"][0] += " | NON_MAIN_ARENA"
-    expected["tcache"][0] += " | NON_MAIN_ARENA"
-    expected["fast"][0] += " | NON_MAIN_ARENA"
-
-    for name in chunk_types:
-        assert results[name] == expected[name]
-
-    # Print another thread's chunk from the main thread
-    await ctrl.select_thread(1)
-    thread = pwndbg.dbg.selected_thread()
-    assert thread is not None
-    assert thread.index() == 1
-    results["large"] = (await ctrl.execute_and_capture("malloc-chunk large_chunk")).splitlines()
-    assert results["large"] == expected["large"]
+    await resolve_malloc_chunks(
+        ctrl,
+        True,
+        ["allocated", "tcache", "tcache_large", "small", "large", "unsorted"],
+    )
 
 
 @glibc_dump_versions
@@ -694,6 +676,7 @@ async def test_global_max_fast_heuristic(ctrl: Controller, binary: Path) -> None
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
+    import pwndbg.libc
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     # TODO: Support other architectures or different libc versions
@@ -704,10 +687,9 @@ async def test_global_max_fast_heuristic(ctrl: Controller, binary: Path) -> None
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     await ctrl.execute("set resolve-heap-via-heuristic force")
+
     break_at_sym("break_here")
     await ctrl.cont()
-
-    import pwndbg.libc
 
     # glibc 2.43 removed fastbins, so there is no global_max_fast symbol to recover.
     if pwndbg.libc.version() >= (2, 43):

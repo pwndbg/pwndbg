@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import NamedTuple
+
+import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
@@ -179,6 +182,67 @@ rtree_levels = [
 ]
 
 
+class _RtreeGeom(NamedTuple):
+    """Radix-tree geometry actually used by the inferior's jemalloc (see
+    :func:`_load_rtree_geom`)."""
+
+    levels: list[tuple[int, int]]  # (bits, cumbits) per level; len == tree height
+    nhib: int  # high insignificant address bits (= 64 - LG_VADDR)
+    compact: bool  # whether a leaf packs the edata pointer + metadata into one word
+    node_sizeof: int  # stride of an interior-node element
+    leaf_sizeof: int  # stride of a leaf element
+
+
+def _default_rtree_geom() -> _RtreeGeom:
+    """Geometry assuming LG_VADDR == 48 (4-level paging). Used only as a fallback
+    when jemalloc's actual layout cannot be read from the target."""
+    levels = [(lvl["bits"], lvl["cumbits"]) for lvl in rtree_levels[RTREE_HEIGHT - 1]]
+    ptr_sizeof = 1 << LG_SIZEOF_PTR
+    return _RtreeGeom(levels, RTREE_NHIB, True, ptr_sizeof, ptr_sizeof)
+
+
+def _load_rtree_geom() -> _RtreeGeom:
+    """Read jemalloc's rtree geometry from the target instead of assuming it.
+
+    jemalloc derives the tree's height, per-level bit splits and leaf layout from
+    LG_VADDR at build time -- 48 on 4-level-paging hosts, 57 on 5-level (LA57) -- and
+    the two layouts are incompatible, so assuming 48 misreads a 57-bit build (the
+    #3615 flake: it depended on the CI build host's CPU). Falls back to the 48-bit
+    layout if jemalloc's ``rtree_levels`` table can't be read.
+
+    Height, per-level bit splits and the root array all derive from LG_VADDR in
+    jemalloc rtree.h (RTREE_NHIB = 64 - LG_VADDR, RTREE_NSB, RTREE_HEIGHT, rtree_levels):
+    https://github.com/jemalloc/jemalloc/blob/81034ce1f1373e37dc865038e1bc8eeecf559ce8/include/jemalloc/internal/rtree.h#L21-L38
+    """
+    try:
+        frame = pwndbg.dbg.selected_frame()
+        ctx = frame or pwndbg.dbg.selected_inferior()
+        height = int(ctx.evaluate_expression("sizeof(rtree_levels)")) // int(
+            ctx.evaluate_expression("sizeof(rtree_levels[0])")
+        )
+        levels = [
+            (
+                int(ctx.evaluate_expression(f"rtree_levels[{i}].bits")),
+                int(ctx.evaluate_expression(f"rtree_levels[{i}].cumbits")),
+            )
+            for i in range(height)
+        ]
+        nhib = levels[0][1] - levels[0][0]
+        node_sizeof = int(ctx.evaluate_expression("sizeof(struct rtree_node_elm_s)"))
+        leaf_sizeof = int(ctx.evaluate_expression("sizeof(struct rtree_leaf_elm_s)"))
+        # jemalloc uses a "compact" leaf -- the edata pointer packed with its metadata
+        # into one word (le_bits) -- only when enough high bits are free, i.e.
+        # RTREE_NHIB (= 64 - LG_VADDR) >= LG_CEIL(SC_NSIZES); otherwise the leaf is a
+        # plain edata pointer plus a separate metadata word ({le_edata, le_metadata},
+        # twice the size). We read the actual struct size rather than recompute that.
+        # jemalloc rtree.h (RTREE_LEAF_COMPACT condition + struct rtree_leaf_elm_s):
+        # https://github.com/jemalloc/jemalloc/blob/81034ce1f1373e37dc865038e1bc8eeecf559ce8/include/jemalloc/internal/rtree.h#L37-L88
+        compact = leaf_sizeof == (1 << LG_SIZEOF_PTR)
+        return _RtreeGeom(levels, nhib, compact, node_sizeof, leaf_sizeof)
+    except (pwndbg.dbg_mod.Error, ValueError, TypeError):
+        return _default_rtree_geom()
+
+
 class RTree:
     """
     RTree is used by jemalloc to keep track of extents that are allocated by jemalloc.
@@ -204,6 +268,7 @@ class RTree:
         self._Value = pwndbg.aglib.memory.get_typed_pointer_value("struct rtree_s", self._addr)
 
         self._extents = None
+        self._geom = _load_rtree_geom()
 
     @staticmethod
     def get_rtree() -> RTree:
@@ -216,24 +281,6 @@ class RTree:
     def root(self):
         return self._Value["root"]
 
-    # from include/jemalloc/internal/rtree.h
-    # converted implementation of rtree_leafkey
-    def __rtree_leaf_maskbits(self, level):
-        ptrbits = 1 << (LG_SIZEOF_PTR + 3)
-        # print("ptrbits: ", ptrbits, bin(ptrbits))
-        cumbits = (
-            rtree_levels[RTREE_HEIGHT - 1][level - 1]["cumbits"]
-            - rtree_levels[RTREE_HEIGHT - 1][level - 1]["bits"]
-        )
-        # print("cumbits: ", cumbits, bin(cumbits))
-        return ptrbits - cumbits
-
-    # Can be used to lookup key quickly in cache
-    def __rtree_leafkey(self, key: int, level: int) -> int:
-        mask = ~((1 << self.__rtree_leaf_maskbits(level)) - 1)
-        # print("mask: ", mask, bin(mask))
-        return key & mask
-
     def __subkey(self, key: int, level: int) -> int:
         """
         Return a portion of the key that is used to find the node/leaf in the rtree at a specific level.
@@ -241,12 +288,25 @@ class RTree:
         """
 
         ptrbits = 1 << (LG_SIZEOF_PTR + 3)
-        cumbits = rtree_levels[RTREE_HEIGHT - 1][level - 1]["cumbits"]
+        maskbits, cumbits = self._geom.levels[level - 1]
         shiftbits = ptrbits - cumbits
-        maskbits = rtree_levels[RTREE_HEIGHT - 1][level - 1]["bits"]
-        mask = (1 << maskbits) - 1
 
-        return (key >> shiftbits) & mask
+        return (key >> shiftbits) & ((1 << maskbits) - 1)
+
+    def __decode_leaf(self, raw: int) -> int:
+        """Extract the edata pointer from the first word of a rtree leaf element.
+
+        On compact leaves that word is ``le_bits`` (the edata pointer packed with
+        szind/slab metadata); on non-compact leaves it is ``le_edata`` (a plain
+        edata pointer with its metadata kept in a separate word). Either way the
+        edata pointer lives at offset 0, so a single word read covers both.
+        """
+        if raw == 0:
+            return 0
+        if self._geom.compact:
+            ls = (raw << self._geom.nhib) & ((2**64) - 1)
+            return ((ls >> self._geom.nhib) >> 1) << 1
+        return raw & ~1
 
     @staticmethod
     def __alignment_addr2base(addr, alignment=64):
@@ -254,66 +314,41 @@ class RTree:
 
     def lookup_hard(self, key: int):
         """
-        Lookup the key in the rtree and return the value.
+        Lookup the key in the rtree and return the extent that owns it.
 
-        How it works:
-        - Jemalloc stores the extent address in the rtree as a node and to find a specific node we need a address key.
+        Jemalloc stores each mapped page's owning extent in the rtree, keyed by the
+        page address. We walk every level of the tree: interior levels hold child
+        pointers to the next level, the final level holds leaf elements that encode
+        the extent (edata) pointer. The number of levels, the per-level bit splits
+        and the leaf layout all come from the target (see :func:`_load_rtree_geom`).
+
+        Credits: 盏一's jegdb
+        https://web.archive.org/web/20221114090949/https://github.com/hidva/hidva.github.io/blob/dev/_drafts/jegdb.py
         """
-        rtree_node_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_node_elm_s")
-        if rtree_node_elm_s is None:
-            raise pwndbg.dbg_mod.Error("rtree_node_elm_s type not found")
-        rtree_leaf_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_leaf_elm_s")
-        if rtree_leaf_elm_s is None:
-            raise pwndbg.dbg_mod.Error("rtree_leaf_elm_s type not found")
+        geom = self._geom
+        height = len(geom.levels)
 
-        # Credits: 盏一's jegdb
-        # https://web.archive.org/web/20221114090949/https://github.com/hidva/hidva.github.io/blob/dev/_drafts/jegdb.py
-
-        # For subkey 0
-        subkey = self.__subkey(key, 1)
-
-        addr = int(self.root.address) + subkey * rtree_node_elm_s.sizeof
-        fetched_struct = pwndbg.aglib.memory.get_typed_pointer_value(
-            "struct rtree_node_elm_s", addr
-        )
-        child_repr = int(fetched_struct["child"]["repr"])
-
-        # on node element, child contains the bits with which we can find another node or leaf element
-        if child_repr == 0:
-            return None
-
-        # For subkey 1
-        subkey = self.__subkey(key, 2)
-        addr = child_repr + subkey * rtree_leaf_elm_s.sizeof
-        fetched_struct = pwndbg.aglib.memory.get_typed_pointer_value(
-            "struct rtree_leaf_elm_s", addr
-        )
-
-        # On leaf element, le_bits contains the virtual memory address bits so we can use it to find the extent address
-        val = int(fetched_struct["le_bits"]["repr"])
-        if val == 0:
-            return None
-
-        # In this function, we are trying to find the extent address given the address of memory block
-        # that this extent is managing (which is represented by edata->e_addr in the extent structure)
-
-        # e_addr is 64 bits but
-        # e_addr is also page (4096) aligned which means last 12 bits are zero and therefore unused
-        # In rtree, each layer can be accessed using bits 0-16, 17-33 and 34-51
-        # When height of rtree is 3, level 1 can be accessed using bits 0-16, and so on for level 2 and 3
-        # When the height is 2, 0-15 bits are unused and level 1 can be accessed using bits 16-33 and level 2 using 34-51
-
-        ls = (val << RTREE_NHIB) & ((2**64) - 1)
-        ptr = ((ls >> RTREE_NHIB) >> 1) << 1
+        # Interior levels store a child pointer at offset 0 of each node element;
+        # leaf elements store the (packed or plain) edata pointer at offset 0.
+        cur = int(self.root.address)
+        ptr = 0
+        for level in range(1, height + 1):
+            subkey = self.__subkey(key, level)
+            if level < height:
+                cur = int(pwndbg.aglib.memory.u64(cur + subkey * geom.node_sizeof))
+                if cur == 0:
+                    return None
+            else:
+                raw = int(pwndbg.aglib.memory.u64(cur + subkey * geom.leaf_sizeof))
+                ptr = self.__decode_leaf(raw)
 
         if ptr == 0:
             return None
 
-        # return Extent(ptr)
         extent = Extent(ptr)
         if extent.size == 0:
-            ptr = RTree.__alignment_addr2base(ptr)
-            extent_tmp = Extent(ptr)
+            aligned = RTree.__alignment_addr2base(ptr)
+            extent_tmp = Extent(aligned)
             if extent_tmp.size != 0:
                 return extent_tmp
 
@@ -326,74 +361,61 @@ class RTree:
         if self._extents is None:  # TODO: handling cache on extents changes
             self._extents = []
             try:
-                root = self.root
+                geom = self._geom
+                height = len(geom.levels)
+                ptr_size = 1 << LG_SIZEOF_PTR
+
+                # Collect every extent pointer stored in the tree's leaves. Each
+                # node/leaf array is contiguous, so read a whole level in one shot
+                # rather than element by element -- a level can have tens of
+                # thousands of slots, and one extent spans many (de-duplicated next).
+                leaf_ptrs: list[int] = []
+
+                def walk(base_addr: int, level: int) -> None:
+                    bits = geom.levels[level - 1][0]
+                    n = 1 << bits
+                    stride = geom.node_sizeof if level < height else geom.leaf_sizeof
+                    data = pwndbg.aglib.memory.read(base_addr, n * stride)
+                    for i in range(n):
+                        word = int.from_bytes(data[i * stride : i * stride + ptr_size], "little")
+                        if word == 0:
+                            continue
+                        if level < height:
+                            # interior node: word is the child pointer
+                            walk(word, level + 1)
+                        else:
+                            ptr = self.__decode_leaf(word)
+                            if ptr != 0:
+                                leaf_ptrs.append(ptr)
+
+                walk(int(self.root.address), 1)
+
                 last_addr = None
                 extent_addresses = []
+                for ptr in leaf_ptrs:
+                    if ptr == last_addr:
+                        continue
+                    last_addr = ptr
 
-                rtree_node_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_node_elm_s")
-                if rtree_node_elm_s is None:
-                    raise pwndbg.dbg_mod.Error("rtree_node_elm_s type not found")
-                rtree_leaf_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_leaf_elm_s")
-                if rtree_leaf_elm_s is None:
-                    raise pwndbg.dbg_mod.Error("rtree_leaf_elm_s type not found")
+                    extent = Extent(ptr)
 
-                max_subkeys = 1 << rtree_levels[RTREE_HEIGHT - 1][0]["bits"]
-                # print("max_subkeys: ", max_subkeys)
-
-                for i in range(max_subkeys):
-                    node_address = int(root.address) + i * rtree_node_elm_s.sizeof
-                    # node = pwndbg.aglib.memory.poi(rtree_node_elm_s, node)
-                    fetched_struct = pwndbg.aglib.memory.get_typed_pointer_value(
-                        rtree_node_elm_s, node_address
-                    )
-                    leaf0 = int(fetched_struct["child"]["repr"])
-                    if leaf0 == 0:
+                    if extent.extent_address in extent_addresses:
                         continue
 
-                    # print(hex(leaf0))
-                    # print("leaf0: ", leaf0)
+                    extent_addresses.append(extent.extent_address)
 
-                    # level 1
-                    for j in range(max_subkeys):
-                        leaf_address = leaf0 + j * rtree_leaf_elm_s.sizeof
-                        # leaf = pwndbg.aglib.memory.poi(rtree_leaf_elm_s, leaf)
-                        fetched_struct = pwndbg.aglib.memory.get_typed_pointer_value(
-                            rtree_leaf_elm_s, leaf_address
-                        )
-                        val = int(fetched_struct["le_bits"]["repr"])
-                        if val == 0:
+                    # during initializations, addresses may get some alignment
+                    # lets check if size makes sense, otherwise do page alignment and check if again
+                    # TODO: better way to do this
+                    extent_tmp = extent
+                    if extent.size == 0:
+                        aligned = RTree.__alignment_addr2base(int(ptr))
+                        extent_tmp = Extent(aligned)
+                        if extent_tmp.size != 0:
+                            self._extents.append(extent_tmp)
                             continue
 
-                        # print("leaf: ", hex(leaf_address))
-                        # print(j, leaf)
-
-                        ls = (val << RTREE_NHIB) & ((2**64) - 1)
-                        ptr = ((ls >> RTREE_NHIB) >> 1) << 1
-
-                        if ptr == 0 or ptr == last_addr:
-                            continue
-
-                        last_addr = ptr
-
-                        extent = Extent(ptr)
-
-                        if extent.extent_address in extent_addresses:
-                            continue
-
-                        extent_addresses.append(extent.extent_address)
-
-                        # during initializations, addresses may get some alignment
-                        # lets check if size makes sense, otherwise do page alignment and check if again
-                        # TODO: better way to do this
-                        extent_tmp = extent
-                        if extent.size == 0:
-                            ptr = RTree.__alignment_addr2base(int(ptr))
-                            extent_tmp = Extent(ptr)
-                            if extent_tmp.size != 0:
-                                self._extents.append(extent_tmp)
-                                continue
-
-                        self._extents.append(extent_tmp)
+                    self._extents.append(extent_tmp)
 
             except pwndbg.dbg_mod.Error:
                 pass

@@ -104,7 +104,7 @@ def syntax_highlight(code: str, filename: str = ".asm") -> str:
                 break
 
     if not lexer:
-        try:
+        try:  # noqa: SIM105
             lexer = _pygments_get_lexer_for_filename(filename, code, stripnl=False)
         except pygments.util.ClassNotFound:
             # no lexer for this file or invalid style

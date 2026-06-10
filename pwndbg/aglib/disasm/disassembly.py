@@ -682,6 +682,7 @@ ALL_DISASSEMBLY_ASSISTANTS: dict[
     PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Callable[[], DisassemblyAssistant]
 ] = {
     "aarch64": lambda: pwndbg.aglib.disasm.aarch64.AArch64DisassemblyAssistant("aarch64"),
+    "i8086": lambda: pwndbg.aglib.disasm.x86.X86DisassemblyAssistant("i8086"),
     "i386": lambda: pwndbg.aglib.disasm.x86.X86DisassemblyAssistant("i386"),
     "x86-64": lambda: pwndbg.aglib.disasm.x86.X86DisassemblyAssistant("x86-64"),
     "arm": lambda: pwndbg.aglib.disasm.arm.ArmDisassemblyAssistant("arm", "cpsr"),

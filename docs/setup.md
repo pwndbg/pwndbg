@@ -177,7 +177,7 @@ uv tool install --python=$PY_VER  git+https://github.com/pwndbg/pwndbg
 ```
 To view supported GDB and LLDB versions and compiling GDB from source, see [these instructions](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source).
 
-### System GDB, but not like that
+### System GDB, sourced from `~/.gdbinit`
 
 If you want the "classic" setup, where you run the `gdb` binary and Pwndbg is sourced from `~/.gdbinit` you can do that like this:
 ```{.bash .copy}
@@ -194,7 +194,7 @@ git clone https://github.com/pwndbg/pwndbg
 cd pwndbg
 ./setup.sh
 ```
-will get you the same setup as in [System GDB, but not like that](#system-gdb-but-not-like-that). You can update with `git pull`.
+will get you the same setup as in [System GDB, sourced from `~/.gdbinit`](#system-gdb-sourced-from-gdbinit). You can update with `git pull`.
 
 In general, if you have the repository cloned you can run the same commands as in the above sections, but replacing `git+https://github.com/pwndbg/pwndbg` with `.` (the current folder) and adding `--editable` so changes in the source are reflected in the installation.
 

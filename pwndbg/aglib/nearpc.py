@@ -59,6 +59,8 @@ c = ColorConfig(
 )
 
 # `pwndbg.arguments` imports `c` from this module.
+import contextlib
+
 import pwndbg.arguments
 
 nearpc_branch_marker = pwndbg.color.theme.add_param(
@@ -652,14 +654,12 @@ def nearpc(
         #     ]
 
         # For Comment Function
-        try:
+        with contextlib.suppress(Exception):
             line += " " * 10 + ctx_color.comment(
                 pwndbg.commands.comments.file_lists[pwndbg.aglib.proc.exe()][
                     hex(instruction.address)
                 ]
             )
-        except Exception:
-            pass
 
         result.append(line)
 

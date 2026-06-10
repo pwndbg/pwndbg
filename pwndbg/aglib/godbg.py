@@ -25,7 +25,7 @@ import pwndbg.aglib.symbol
 import pwndbg.color.memory
 import pwndbg.dintegration
 import pwndbg.lib.cache
-from pwndbg.color import generateColorFunction
+from pwndbg.color import generate_color_function
 from pwndbg.color import message
 from pwndbg.color import theme
 
@@ -164,7 +164,7 @@ class FormatOpts:
 
     def fmt_debug(self, val: str, default: str = "") -> str:
         if self.debug:
-            return generateColorFunction(debug_color)(val)
+            return generate_color_function(debug_color)(val)
         return default
 
     def fmt_elems(self, elems: Iterable[str]) -> str:

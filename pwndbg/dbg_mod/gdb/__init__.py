@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from collections.abc import Sequence
 from contextlib import contextmanager
 from contextlib import nullcontext
+from contextlib import suppress
 from os import environ
 from pathlib import Path
 from random import randint
@@ -21,6 +22,7 @@ import gdb.types
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.aglib.remote
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.gdblib
@@ -870,8 +872,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         if pwndbg.aglib.file.is_vfile_qemu_user_bug():
             with open(local_path, "wb") as fp:
                 try:
-                    for data in pwndbg.aglib.file.vfile_readfile(remote_path):
-                        fp.write(data)
+                    fp.writelines(pwndbg.aglib.file.vfile_readfile(remote_path))
                     return
                 except OSError as e:
                     raise pwndbg.dbg_mod.Error(
@@ -1738,16 +1739,12 @@ class GDB(pwndbg.dbg_mod.Debugger):
             gdb.execute(line)
 
         # debuginfod may not be compiled in (e.g. bare-metal cross GDB)
-        try:
+        with suppress(gdb.error):
             gdb.execute("set debuginfod enabled on")
-        except gdb.error:
-            pass
 
         # This may throw an exception, see pwndbg/pwndbg#27
-        try:
+        with suppress(gdb.error):
             gdb.execute("set disassembly-flavor intel")
-        except gdb.error:
-            pass
 
         from pwndbg.gdblib.tui import setup as tui_setup
 
