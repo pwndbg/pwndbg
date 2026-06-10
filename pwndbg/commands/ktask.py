@@ -13,13 +13,13 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import pwndbg.color as color
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib
 import pwndbg.lib.cache
+from pwndbg import color
 from pwndbg.aglib.kernel.macros import for_each_entry
+from pwndbg.color import message
 from pwndbg.lib.exception import IndentContextManager
 
 

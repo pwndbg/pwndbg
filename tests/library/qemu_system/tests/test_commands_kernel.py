@@ -258,7 +258,7 @@ def get_buddy_freelist_elements(out) -> list[tuple[int, int]]:
 def test_command_buddydump() -> None:
     res = gdb.execute("buddydump", to_string=True)
     NOFREEPAGE = "No free pages with specified filters found.\n"
-    if res == "WARNING: Symbol 'node_data' not found\n" or NOFREEPAGE == res:
+    if res in ("WARNING: Symbol 'node_data' not found\n", NOFREEPAGE):
         return
     # this indicates the buddy allocator contains at least one entry
     assert "order" in res and "zone" in res and ("per_cpu_pageset" in res or "free_area" in res)

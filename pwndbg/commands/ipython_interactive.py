@@ -10,9 +10,9 @@ from contextlib import contextmanager
 
 import gdb
 
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.lib.stdio
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 

@@ -6,9 +6,9 @@ from collections.abc import Iterator
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
-import pwndbg.color as color
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg import color
 from pwndbg.aglib.kernel.macros import container_of
 from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.aglib.kernel.rbtree import for_each_rb_entry

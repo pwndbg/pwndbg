@@ -9,13 +9,13 @@ import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
 import pwndbg.aglib.signal
 import pwndbg.chain
-import pwndbg.color as color
 import pwndbg.color.context as ctx_color
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.commands.kbpf
 import pwndbg.commands.ktask
 import pwndbg.commands.parse_seccomp
+from pwndbg import color
+from pwndbg.color import message
 from pwndbg.commands.ktask import Kthread
 from pwndbg.lib.exception import IndentContextManager
 from pwndbg.lib.regs import BitFlags

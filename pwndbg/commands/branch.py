@@ -6,10 +6,10 @@ import gdb
 from capstone6pwndbg import CS_GRP_JUMP
 
 import pwndbg.aglib.disasm.disassembly
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.bpoint
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 

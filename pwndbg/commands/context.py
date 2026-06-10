@@ -36,7 +36,6 @@ import pwndbg.chain
 import pwndbg.color
 import pwndbg.color.context as ctx_color
 import pwndbg.color.memory as mem_color
-import pwndbg.color.message as message
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
@@ -44,16 +43,17 @@ import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.lib.cache
 import pwndbg.lib.config
-import pwndbg.lib.pretty_print as pretty_print
 import pwndbg.rich
 import pwndbg.ui
 from pwndbg.aglib.arch_mod import get_thumb_mode_string
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
+from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
+from pwndbg.lib import pretty_print
 from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import RegisterContextProtocol
 from pwndbg.lib.regs import VisitableRegister
@@ -446,7 +446,7 @@ def history_handle_unchanged_contents() -> None:
         # Duplicate the last entry if it is the same as the previous one
         # and wasn't added when the history was updated
         if len(history) == longest_history - 1 and history:
-            context_history[section_name].append(history[-1])
+            history.append(history[-1])
         # Prepend empty entries to the history to make all sections have the same length
         elif len(history) < longest_history - 1:
             context_history[section_name] = [
@@ -1693,10 +1693,8 @@ def context_threads(
 
     for thread in displayed_threads:
         name = thread.name or ""
-        if len(name) > max_name_length:
-            max_name_length = len(name)
-        if len(str(thread.global_num)) > max_global_num_len:
-            max_global_num_len = len(str(thread.global_num))
+        max_name_length = max(max_name_length, len(name))
+        max_global_num_len = max(max_global_num_len, len(str(thread.global_num)))
 
     for thread in filter(lambda t: t.is_valid(), displayed_threads):
         selected = " ►" if thread is original_thread else "  "

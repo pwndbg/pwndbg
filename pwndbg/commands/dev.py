@@ -4,8 +4,8 @@ import argparse
 import logging
 
 import pwndbg.aglib.disasm.disassembly
-import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
