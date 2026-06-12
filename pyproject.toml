@@ -23,7 +23,7 @@ dependencies = [
     # Optional? only for 'ropgadget' command
     "ropgadget==7.6",
     # Optional? only for 'ai' commands
-    "requests>=2.32.5,<3",
+    "requests>=2.34.2,<3",
     # Optional? only for pretty print traceback
     "rich>=15.0.0,<16",
     # Optional? only for qemu-system vmmap
@@ -47,7 +47,7 @@ lldb = [
     "lldb-for-pwndbg==22.1.0.post2",
 ]
 gdb = [
-    "gdb-for-pwndbg==17.1.0.post2",
+    "gdb-for-pwndbg==17.2.0.post3",
 ]
 
 [dependency-groups]
