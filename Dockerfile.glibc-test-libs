@@ -1,22 +1,12 @@
-# Dockerfile for building glibc shared libraries for testing pwndbg's heap commands
-# against multiple glibc versions.
+# This Dockerfile is used by ./.github/workflows/heap-libc-tests.yml and ./scripts/download-test-libs.sh
 #
-# CI (heap-libc-tests.yml) builds this per-arch and publishes the per-arch tags plus
-# a :latest multi-arch manifest. To build it locally for testing:
-#   docker buildx build -f Dockerfile.glibc-test-libs -t glibc-test-libs:local .
-#
-# The final image is a minimal scratch image containing only the glibc artifacts:
-#   /glibcs/2.35/  /glibcs/2.36/  /glibcs/2.37/  ...
-#
-# Each directory contains:
+# Each /glibcs/<version>/ contains:
 #   ld-X.XX.so              (dynamic linker)
 #   ld-linux-x86-64.so.2 / ld-linux-aarch64.so.1 (per-arch symlink -> ld-X.XX.so)
 #   libc-X.XX.so            (stripped libc)
 #   libc.so.6               (symlink -> libc-X.XX.so)
 #   .debug/libc-X.XX.so     (separate debug info)
 
-# Use Debian 12 (GCC 12) - newer GCC versions (13/14) break older glibc builds.
-# Pinned by digest for reproducibility (debian:12 = bookworm).
 FROM debian:12@sha256:ed4fcc40bb1162b6d2d32e7bec15044d13963779abbe63f67f1cd62b06220519 AS base-builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -26,7 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     bison \
     gawk \
-    texinfo \
     python3 \
     && rm -rf /var/lib/apt/lists/* \
     && MA="$(uname -m)-linux-gnu" \
@@ -35,19 +24,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -sf "/usr/include/${MA}/bits" /usr/include/bits \
     && ln -sf "/usr/include/${MA}/sys" /usr/include/sys
 
-# Also emit a no-debug variant of each libc (stripped, no .gnu_debuglink) into
-# /glibcs-nodebug/<ver>/, for the heuristic-heap tests that must run with no libc
-# symbols available. See scripts/build-one-glibc.sh.
+# Also create a no-debug variant of each libc into /glibcs-nodebug/<version>/
 ENV GLIBC_BUILD_NODEBUG=1
 COPY scripts/build-one-glibc.sh /build-one-glibc.sh
 RUN chmod +x /build-one-glibc.sh
 
-# Build each glibc version in a separate layer for caching.
-# Each RUN produces /glibcs/<version>/ with the artifacts.
-# The makefile, download script, and test parse the version list from these
-# build-<ver> stages, so add/remove a version by editing this file (the stage and
-# its COPY below) plus its sha256 pin in scripts/build-one-glibc.sh.
-
+# Build each glibc version in a separate stage for caching. (stages don't invalidate each other like layers do)
+# Add new versions here and in ./scripts/build-one-glibc.sh
 FROM base-builder AS build-2.35
 RUN /build-one-glibc.sh 2.35
 
@@ -75,7 +58,6 @@ RUN /build-one-glibc.sh 2.42
 FROM base-builder AS build-2.43
 RUN /build-one-glibc.sh 2.43
 
-# Final minimal image with just the artifacts
 FROM scratch
 COPY --from=build-2.35 /glibcs/2.35 /glibcs/2.35
 COPY --from=build-2.36 /glibcs/2.36 /glibcs/2.36

@@ -1,14 +1,12 @@
-# Dockerfile for building musl libc shared libraries for testing pwndbg against
-# multiple musl versions. Mirrors Dockerfile.glibc-test-libs.
+# This Dockerfile is used by ./.github/workflows/heap-libc-tests.yml and ./scripts/download-test-libs.sh
 #
-# CI (heap-libc-tests.yml) builds this per-arch and publishes the per-arch tags plus
-# a :latest multi-arch manifest. To build it locally for testing:
-#   docker buildx build -f Dockerfile.musl-test-libs -t musl-test-libs:local .
-#
-# The final image is a minimal scratch image containing only the musl artifacts:
-#   /musls/1.2.5/lib/{libc.a,libc.so,ld-musl-<arch>.so.1,crt*.o}  /musls/1.2.5/include/  ...
+# Each /musls/<version>/ contains:
+#   lib/libc.a              (static archive)
+#   lib/libc.so             (shared lib = the loader)
+#   lib/ld-musl-<arch>.so.1 (symlink -> libc.so)
+#   lib/{crt1,Scrt1,crti,crtn}.o (startup objects)
+#   include/                (headers)
 
-# debian:12 (bookworm), pinned by digest for reproducibility.
 FROM debian:12@sha256:ed4fcc40bb1162b6d2d32e7bec15044d13963779abbe63f67f1cd62b06220519 AS base-builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -21,12 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY scripts/build-one-musl.sh /build-one-musl.sh
 RUN chmod +x /build-one-musl.sh
 
-# Build each musl version in a separate stage for caching.
-# The makefile, download script, and test parse the version list from these
-# build-<ver> stages, so add/remove a version by editing this file (the stage and
-# its COPY below) plus its sha256 pin in scripts/build-one-musl.sh.
-# Each RUN produces /musls/<version>/ with the artifacts.
-
+# Build each musl version in a separate stage for caching. (stages don't invalidate each other like layers do)
+# Add new versions here and in ./scripts/build-one-musl.sh
 FROM base-builder AS build-1.1.24
 RUN /build-one-musl.sh 1.1.24
 
@@ -48,7 +42,6 @@ RUN /build-one-musl.sh 1.2.5
 FROM base-builder AS build-1.2.6
 RUN /build-one-musl.sh 1.2.6
 
-# Final minimal image with just the artifacts
 FROM scratch
 COPY --from=build-1.1.24 /musls/1.1.24 /musls/1.1.24
 COPY --from=build-1.2.1 /musls/1.2.1 /musls/1.2.1
