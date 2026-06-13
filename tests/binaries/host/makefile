@@ -95,7 +95,7 @@ AVAILABLE_GLIBC_VERSIONS := $(foreach ver,$(GLIBC_TEST_VERSIONS),\
 
 ifeq ($(LIBC_VER_ARCH_OK),yes)
 ifeq ($(strip $(GLIBC_TEST_VERSIONS)),)
-$(error Could not parse glibc versions from Dockerfile.glibc-test-libs - expected 'FROM base-builder AS build-<ver>' stages)
+$(error Could not parse glibc versions from Dockerfile.glibc-test-libs - expected 'FROM base-builder AS build-<version>' stages)
 endif
 define GLIBC_HEAP_TARGET
 $(1).glibc-$(2).out: $(1).native.c
@@ -152,7 +152,7 @@ MUSL_STATIC_VERSIONS := $(shell printf '%s\n' $(AVAILABLE_MUSL_VERSIONS) | \
 
 ifeq ($(LIBC_VER_ARCH_OK),yes)
 ifeq ($(strip $(MUSL_TEST_VERSIONS)),)
-$(error Could not parse musl versions from Dockerfile.musl-test-libs - expected 'FROM base-builder AS build-<ver>' stages)
+$(error Could not parse musl versions from Dockerfile.musl-test-libs - expected 'FROM base-builder AS build-<version>' stages)
 endif
 
 define MUSL_HEAP_STATIC_TARGET

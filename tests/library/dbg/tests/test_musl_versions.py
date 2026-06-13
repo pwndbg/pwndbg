@@ -14,8 +14,6 @@ from . import launch_to
 from . import musl_test_versions
 from . import pwndbg_test
 
-# Versions parsed from Dockerfile.musl-test-libs (its build-<ver> stages) so the
-# list lives in one place.
 MUSL_VERSIONS = musl_test_versions()
 assert MUSL_VERSIONS, "no musl versions parsed from Dockerfile.musl-test-libs"
 

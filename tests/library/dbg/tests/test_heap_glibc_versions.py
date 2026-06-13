@@ -25,7 +25,6 @@ def glibc_ver_tuple(ver: str) -> tuple[int, int]:
     return (int(parts[0]), int(parts[1]))
 
 
-# No-debug glibc binaries (stripped, glibcs-nodebug/<ver>/); present only once CI built them.
 _NODEBUG_BINARIES = [
     (ver, get_binary(f"heap_malloc_chunk.glibc-{ver}-nodebug.out")) for ver in GLIBC_VERSIONS
 ]

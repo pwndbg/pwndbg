@@ -42,11 +42,11 @@ def get_binary(name: str) -> Path:
     return Path(BINARIES_PATH) / name
 
 
-def _dockerfile_versions(libc: str, pattern: str = "[0-9][0-9.]*") -> list[str]:
-    """The version (or API) list for a libc, parsed from its Dockerfile's
-    `FROM base-builder AS build-<n>` stages, so each list lives in one place."""
+def _dockerfile_versions(libc: str) -> list[str]:
+    """The version list for a libc, parsed from its Dockerfile's
+    `FROM base-builder AS build-<version>` stages"""
     dockerfile = Path(__file__).resolve().parents[4] / f"Dockerfile.{libc}-test-libs"
-    return re.findall(rf"(?m)^FROM base-builder AS build-({pattern})", dockerfile.read_text())
+    return re.findall(r"(?m)^FROM base-builder AS build-([0-9][0-9.]*)", dockerfile.read_text())
 
 
 def glibc_test_versions() -> list[str]:
