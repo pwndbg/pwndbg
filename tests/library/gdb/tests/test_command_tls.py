@@ -7,7 +7,7 @@ from . import get_binary
 TLS_BINARY = get_binary("tls.x86-64.out")
 
 
-def test_tls_region_labeled_in_vmmap(start_binary):
+def test_tls_region_labeled_in_vmmap(start_binary):  # type: ignore[no-untyped-def]
     start_binary(TLS_BINARY)
 
     gdb.execute("break break_here")
