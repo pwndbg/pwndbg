@@ -1,11 +1,5 @@
 name: Heap Libc Version Tests
 
-# Tests pwndbg's libc detection + heap commands against many glibc, musl, and
-# bionic (Android) versions. Per-version/per-API libc artifacts live in ghcr
-# "scratch" images (one per libc); CI pulls them and only rebuilds an image when
-# its image-defining files change, (re)publishing on the publish branch. One
-# matrix job covers all three libcs.
-
 on:
   workflow_dispatch:
   push:
@@ -31,7 +25,6 @@ jobs:
       relevant: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.relevant == 'true' }}
       glibc_image: ${{ steps.filter.outputs.glibc_image }}
       musl_image: ${{ steps.filter.outputs.musl_image }}
-      bionic_image: ${{ steps.filter.outputs.bionic_image }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -50,7 +43,6 @@ jobs:
               - 'tests/library/dbg/tests/test_mallocng*'
               - 'tests/library/dbg/tests/test_find_fake_fast*'
               - 'tests/library/dbg/tests/test_command_dt*'
-              - 'tests/library/dbg/tests/test_bionic*'
               - 'tests/library/dbg/tests/__init__.py'
               - 'tests/binaries/host/makefile'
               - 'tests/binaries/host/heap_malloc_chunk.native.c'
@@ -59,13 +51,10 @@ jobs:
               - 'tests/binaries/host/heap_find_fake_fast.native.c'
               - 'tests/binaries/host/heap_glibc2.43.native.c'
               - 'tests/binaries/host/heap_musl.native.c'
-              - 'tests/binaries/host/bionic_probe.native.c'
               - 'Dockerfile.glibc-test-libs'
               - 'Dockerfile.musl-test-libs'
-              - 'Dockerfile.bionic-test-libs'
               - 'scripts/build-one-glibc.sh'
               - 'scripts/build-one-musl.sh'
-              - 'scripts/build-one-bionic.sh'
               - '.github/workflows/heap-libc-tests.yml'
             glibc_image:
               - 'Dockerfile.glibc-test-libs'
@@ -73,10 +62,6 @@ jobs:
             musl_image:
               - 'Dockerfile.musl-test-libs'
               - 'scripts/build-one-musl.sh'
-            bionic_image:
-              - 'Dockerfile.bionic-test-libs'
-              - 'scripts/build-one-bionic.sh'
-              - 'tests/binaries/host/bionic_probe.native.c'
 
   heap-libc-versions:
     needs: changes
@@ -86,12 +71,8 @@ jobs:
       fail-fast: false
       matrix:
         # glibc + musl run on both x86-64 (ubuntu-latest) and aarch64 (native
-        # ubuntu-24.04-arm; no emulation). bionic is x86-64 only for now: the NDK's
-        # x86_64-Linux host cross-compiles aarch64-linux-android fine, so an arm cell
-        # is a straightforward future addition. It is deferred because pwndbg has no
-        # bionic provider yet, so an arm axis would only re-confirm the same
-        # UNKNOWN/graceful behavior. sentinel is the per-arch glibc loader name;
-        # musl's libc.a and bionic's probe are arch-agnostic.
+        # ubuntu-24.04-arm; no emulation). sentinel is the per-arch glibc loader
+        # name; musl's libc.a is arch-agnostic.
         include:
           - libc: glibc
             arch: x86-64
@@ -129,15 +110,6 @@ jobs:
             sentinel: lib/libc.a
             build_binaries: true
             test_filter: "test_musl_versions|test_mallocng"
-          - libc: bionic
-            arch: x86-64
-            runs_on: ubuntu-latest
-            image: bionic-test-libs
-            dockerfile: Dockerfile.bionic-test-libs
-            artifact_dir: bionics
-            sentinel: bionic_probe.*-static.out
-            build_binaries: false
-            test_filter: test_bionic
     runs-on: ${{ matrix.runs_on }}
     timeout-minutes: 120
     steps:
@@ -154,14 +126,12 @@ jobs:
         env:
           GLIBC_IMG: ${{ needs.changes.outputs.glibc_image }}
           MUSL_IMG: ${{ needs.changes.outputs.musl_image }}
-          BIONIC_IMG: ${{ needs.changes.outputs.bionic_image }}
         run: |
           set -euo pipefail
           echo "IMAGE=ghcr.io/pwndbg/${{ matrix.image }}" >> "$GITHUB_ENV"
           case "${{ matrix.libc }}" in
             glibc) image_changed="${GLIBC_IMG}" ;;
             musl) image_changed="${MUSL_IMG}" ;;
-            bionic) image_changed="${BIONIC_IMG}" ;;
           esac
           if [ "${image_changed}" != "true" ]; then
             mode=pull
@@ -184,10 +154,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Build the multi-stage image and load it locally (docker/build-push-action);
-      # on publish also write the build-layer cache to the registry. We use load (not
-      # push) so the Extract step below has the image in the local daemon; publish then
-      # pushes the loaded image in the next step.
       - name: Build ${{ matrix.libc }} image
         if: steps.mode.outputs.mode != 'pull'
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
@@ -203,8 +169,6 @@ jobs:
         if: steps.mode.outputs.mode == 'publish'
         run: docker push "${IMAGE}:${{ matrix.arch }}"
 
-      # Pull the prebuilt image; fall back to a local build (next step) if it isn't
-      # published yet or the package isn't public.
       - name: Pull ${{ matrix.libc }} image
         id: pull
         if: steps.mode.outputs.mode == 'pull'
@@ -221,7 +185,6 @@ jobs:
           tags: ghcr.io/pwndbg/${{ matrix.image }}:${{ matrix.arch }}
           cache-from: type=registry,ref=ghcr.io/pwndbg/${{ matrix.image }}:buildcache-${{ matrix.arch }}
 
-      # scratch image has no entrypoint, so give `docker create` one so it succeeds.
       - name: Extract ${{ matrix.libc }} artifacts
         run: |
           set -euo pipefail
@@ -237,8 +200,6 @@ jobs:
             ls tests/binaries/host/glibcs-nodebug/
           fi
 
-      # Cross-check against the versions declared in the Dockerfile, so a stale or
-      # partial image fails loudly instead of a whole version silently never running.
       - name: Verify ${{ matrix.libc }} artifacts
         run: |
           set -euo pipefail
@@ -267,8 +228,7 @@ jobs:
         run: |
           docker compose run -T --rm --quiet-pull -v "$(pwd):/pwndbg" ubuntu24.04 bash -c '
             set -euo pipefail
-            # glibc/musl compile their per-version test binaries in the container;
-            # bionic ships them prebuilt in the image (the NDK clang is not here).
+            # glibc/musl compile their per-version test binaries in the container.
             if [ "${{ matrix.build_binaries }}" = "true" ]; then
               make -C /pwndbg/tests/binaries/host -j4 all
             fi
@@ -276,10 +236,6 @@ jobs:
             ./tests.sh -d gdb -g dbg "${{ matrix.test_filter }}"
           '
 
-  # Once the per-(libc, arch) cells have published their per-arch tags (publish mode
-  # only), combine them into a :latest multi-arch manifest (mirroring docker.yml's
-  # create_manifest job) so download-test-libs.sh can pull :latest and resolve the
-  # right arch automatically. glibc/musl are x86-64 + aarch64; bionic is x86-64 only.
   create-manifest:
     needs: [changes, heap-libc-versions]
     # !cancelled(): the per-arch pushes happen before the tests run, so build the
@@ -301,5 +257,3 @@ jobs:
             img="ghcr.io/pwndbg/${libc}-test-libs"
             docker buildx imagetools create -t "${img}:latest" "${img}:x86-64" "${img}:aarch64"
           done
-          docker buildx imagetools create -t "ghcr.io/pwndbg/bionic-test-libs:latest" \
-            "ghcr.io/pwndbg/bionic-test-libs:x86-64"
