@@ -51,7 +51,7 @@ def get_proc_maps():
             start, end = (int(v, 16) for v in addrs.split("-"))
             offset = offset.lstrip("0") or "0"
             size = end - start
-            maps.append([hex(start), hex(end), perms, hex(size)[2:], offset, objfile])
+            maps.append([hex(start), hex(end), perms, f"{size:x}", offset, objfile])
 
     maps.sort()
 

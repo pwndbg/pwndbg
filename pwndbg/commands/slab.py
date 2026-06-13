@@ -15,7 +15,6 @@ import pwndbg
 import pwndbg.aglib.kernel.slab
 import pwndbg.aglib.memory
 import pwndbg.color
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 from pwndbg.aglib.kernel.slab import CpuCache
@@ -23,6 +22,7 @@ from pwndbg.aglib.kernel.slab import Freelist
 from pwndbg.aglib.kernel.slab import NodeCache
 from pwndbg.aglib.kernel.slab import Slab
 from pwndbg.aglib.kernel.slab import find_containing_slab_cache
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.exception import IndentContextManager
 
@@ -327,11 +327,10 @@ def slab_contains(address: str) -> None:
                 inuse = "in-use"
             if slab.is_active:
                 location = f"active, cpu {slab.cpu_cache.cpu}"
+            elif slab.is_cpu:
+                location = f"partial, cpu {slab.cpu_cache.cpu}"
             else:
-                if slab.is_cpu:
-                    location = f"partial, cpu {slab.cpu_cache.cpu}"
-                else:
-                    location = f"partial, node {slab.node_cache.node}"
+                location = f"partial, node {slab.node_cache.node}"
             if slab.inuse == slab.object_count:
                 objcnt = "full"
             else:

@@ -6,9 +6,9 @@ from pwnlib.util.cyclic import cyclic
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Spray memory with cyclic() generated values")

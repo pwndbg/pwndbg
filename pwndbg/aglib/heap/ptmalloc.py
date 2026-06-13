@@ -1102,9 +1102,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             return 16
         # See https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/generic/malloc-alignment.h#L27
         long_double_alignment = pwndbg.aglib.typeinfo.lookup_types("long double").alignof
-        return (
-            long_double_alignment if 2 * self.size_sz < long_double_alignment else 2 * self.size_sz
-        )
+        return max(2 * self.size_sz, long_double_alignment)
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")

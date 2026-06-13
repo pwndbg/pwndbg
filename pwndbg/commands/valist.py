@@ -4,8 +4,8 @@ import argparse
 
 import pwndbg.aglib.memory
 import pwndbg.chain
-import pwndbg.color as color
 import pwndbg.commands
+from pwndbg import color
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Dumps the arguments of a va_list.")

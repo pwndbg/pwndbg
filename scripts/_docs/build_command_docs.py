@@ -427,7 +427,7 @@ def main():
                 print("new file.")
                 print(f"Files ({len(not_deleted)}):")
                 print("\n".join(not_deleted))
-                exit(18)
+                sys.exit(18)
             else:
                 print("Deleted successfully.")
 

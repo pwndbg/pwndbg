@@ -12,8 +12,8 @@ import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.kmod
 import pwndbg.aglib.memory
-import pwndbg.color.message as message
 import pwndbg.lib.cache
+from pwndbg.color import message
 
 
 @pwndbg.lib.cache.cache_until("start")
