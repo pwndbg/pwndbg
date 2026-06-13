@@ -8,6 +8,7 @@ from pathlib import Path
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.macho
+import pwndbg.aglib.tls
 import pwndbg.aglib.vmmap_custom
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
@@ -128,6 +129,22 @@ def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
     return type(pages)(final_pages)
 
 
+# issue #1570 - TLS region shows as [anon_...] in vmmap, label it as [tls]
+# Reads TLS base address from register, finds the matching page, sets its label.
+# Called from both get_memory_map() and _stop_cached_memory_map()
+def _label_tls_region(memory_map: MemoryMap) -> None:
+    # Returns 0 if TLS is not initialized or the architecture is not supported.
+    tls_address = pwndbg.aglib.tls.find_address_with_register()
+    if not tls_address:
+        return
+
+    # lookup_page() returns the actual Page object so setting objfile here
+    # modifies it in place inside the memory map.
+    tls_page = memory_map.lookup_page(tls_address)
+    if tls_page is not None:
+        tls_page.objfile = "[tls]"
+
+
 _persistent_memory_map: MemoryMap | None = None
 _stops_since_fetch = 0
 
@@ -173,13 +190,16 @@ def get_memory_map() -> MemoryMap:
         global _persistent_memory_map
         if _persistent_memory_map is None:
             _persistent_memory_map = _refine_memory_map(pwndbg.dbg.selected_inferior().vmmap())
+            _label_tls_region(_persistent_memory_map)
         return _persistent_memory_map
     return _stop_cached_memory_map()
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
 def _stop_cached_memory_map() -> MemoryMap:
-    return _refine_memory_map(pwndbg.dbg.selected_inferior().vmmap())
+    memory_map = _refine_memory_map(pwndbg.dbg.selected_inferior().vmmap())
+    _label_tls_region(memory_map)
+    return memory_map
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
