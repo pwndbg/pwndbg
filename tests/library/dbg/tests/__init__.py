@@ -57,11 +57,6 @@ def musl_test_versions() -> list[str]:
     return _dockerfile_versions("musl")
 
 
-def bionic_apis() -> list[str]:
-    """Android API levels (plain integers) parsed from Dockerfile.bionic-test-libs."""
-    return _dockerfile_versions("bionic", "[0-9]+")
-
-
 def glibc_version_binaries(stem: str) -> list[tuple[str, Path]]:
     """(id, binary) for the system build of `stem` plus each per-glibc-version build
     present on disk. A normal run has only the system one; the per-version binaries
@@ -69,16 +64,6 @@ def glibc_version_binaries(stem: str) -> list[tuple[str, Path]]:
     targets = [("system", get_binary(f"{stem}.native.out"))]
     for ver in glibc_test_versions():
         targets.append((ver, get_binary(f"{stem}.glibc-{ver}.out")))
-    return [(name, b) for name, b in targets if b.exists()]
-
-
-def bionic_api_binaries() -> list[tuple[str, Path]]:
-    """(id, binary) per Android API level with a prebuilt static bionic probe present
-    (prebuilt per API level, so this is an API axis, not a version one)."""
-    targets = [
-        (api, get_binary(f"bionics/{api}/bionic_probe.bionic-{api}-static.out"))
-        for api in bionic_apis()
-    ]
     return [(name, b) for name, b in targets if b.exists()]
 
 
