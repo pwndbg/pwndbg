@@ -27,9 +27,6 @@ MIRRORS=(
     "https://mirrors.kernel.org/gnu/glibc/glibc-${VERSION}.tar.gz"
     "https://ftp.gnu.org/gnu/glibc/glibc-${VERSION}.tar.gz"
 )
-if [ "${GLIBC_CANARY:-0}" = "1" ]; then
-    MIRRORS=("https://ftp.gnu.org/gnu/glibc/glibc-${VERSION}.tar.gz")
-fi
 downloaded=
 for attempt in 1 2; do
     for url in "${MIRRORS[@]}"; do
@@ -58,15 +55,8 @@ case "${VERSION}" in
     2.42) SHA256=d4468d3e3267068c1b0623ca6424aac9a28766df774c8d8fb4978127fca7125a ;;
     2.43) SHA256=e1e622cbd635019090fa23260e5d9ec219b12f97ae7ae02f033d4ae42cf2c004 ;;
     *)
-        if [ "${GLIBC_CANARY:-0}" = "1" ]; then
-            SHA256=$(sha256sum "${TARBALL}" | cut -c1-64)
-            echo "CANARY: glibc ${VERSION} is unpinned; computed sha256 ${SHA256} from ${url}"
-            echo "CANARY: to pin it, add '    ${VERSION}) SHA256=${SHA256} ;;' to build-one-glibc.sh"
-            echo "CANARY: then add a build-${VERSION} stage + COPY lines to Dockerfile.glibc-test-libs"
-        else
-            echo "FATAL: no known sha256 for glibc ${VERSION}; add it to build-one-glibc.sh"
-            exit 1
-        fi
+        echo "FATAL: no known sha256 for glibc ${VERSION}; add it to build-one-glibc.sh"
+        exit 1
         ;;
 esac
 echo "${SHA256}  ${TARBALL}" | sha256sum -c - || {

@@ -37,15 +37,8 @@ case "${VERSION}" in
     1.2.5) SHA256=a9a118bbe84d8764da0ea0d28b3ab3fae8477fc7e4085d90102b8596fc7c75e4 ;;
     1.2.6) SHA256=d585fd3b613c66151fc3249e8ed44f77020cb5e6c1e635a616d3f9f82460512a ;;
     *)
-        if [ "${MUSL_CANARY:-0}" = "1" ]; then
-            SHA256=$(sha256sum "${TARBALL}" | cut -c1-64)
-            echo "CANARY: musl ${VERSION} is unpinned; computed sha256 ${SHA256}"
-            echo "CANARY: to pin it, add '    ${VERSION}) SHA256=${SHA256} ;;' to build-one-musl.sh"
-            echo "CANARY: then add a build-${VERSION} stage + COPY line to Dockerfile.musl-test-libs"
-        else
-            echo "FATAL: no known sha256 for musl ${VERSION}; add it to build-one-musl.sh"
-            exit 1
-        fi
+        echo "FATAL: no known sha256 for musl ${VERSION}; add it to build-one-musl.sh"
+        exit 1
         ;;
 esac
 echo "${SHA256}  ${TARBALL}" | sha256sum -c - || {
