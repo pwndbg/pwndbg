@@ -3,11 +3,9 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib
-import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.tls
-import pwndbg.arguments
 import pwndbg.color.memory
 import pwndbg.color.message
 import pwndbg.commands
@@ -23,11 +21,11 @@ def rol(val: int, amount: int) -> int:
 
 
 def ptr_mangle(cookie: int, ptr: int) -> int:
-    return rol(ptr ^ cookie, 0x11)
+    return rol(ptr ^ cookie, pwndbg.aglib.arch.ptrsize * 2 + 1)
 
 
 def ptr_demangle(cookie: int, ptr: int) -> int:
-    return (rol(ptr, -0x11) ^ cookie) & pwndbg.aglib.arch.ptrmask
+    return (rol(ptr, -(pwndbg.aglib.arch.ptrsize * 2 + 1)) ^ cookie) & pwndbg.aglib.arch.ptrmask
 
 
 def _get_cookie() -> int:
@@ -72,22 +70,18 @@ def _get_exit_funcs_from_emulator() -> int | None:
         return None
     emulator = pwndbg.emu.emulator.Emulator()
     if pwndbg.aglib.arch.name == "i386":
-        # WHY DOES THIS NOT WORK??????
-        # print(hex(int(exit_addr)))
-        # for a, _ in emulator.single_step_iter(int(exit_addr)):
-        #     print(pwndbg.aglib.disasm.disassembly.get(a))
-        #     print(hex(a))
-        # esp = emulator.read_register("esp")
-        # if esp is None:
-        #     print(pwndbg.color.message.error("Failed to read ESP register"))
-        #     return None
-        # exit_funcs_ptr_bytes = emulator.read_memory(
-        #     esp + 4, 4
-        # )  # not sure why this seems to end up in esp[0] not esp[1]
-        # if exit_funcs_ptr_bytes is None:
-        #     print(pwndbg.color.message.error("Failed to read &__exit_funcs from stack"))
-        #     return None
-        # exit_funcs_ptr = int.from_bytes(exit_funcs_ptr_bytes, "little")
+        emulator.update_pc(int(exit_addr))
+        emulator.single_step()
+        emulator.until_call()
+        esp = emulator.read_register("esp")
+        if esp is None:
+            print(pwndbg.color.message.error("Failed to read ESP register"))
+            return None
+        exit_funcs_ptr_bytes = emulator.read_memory(esp + 8, 4)
+        if exit_funcs_ptr_bytes is None:
+            print(pwndbg.color.message.error("Failed to read &__exit_funcs from stack"))
+            return None
+        exit_funcs_ptr = int.from_bytes(exit_funcs_ptr_bytes, "little")
 
     else:
         emulator.until_call(int(exit_addr))
