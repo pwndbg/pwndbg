@@ -3,9 +3,11 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.tls
+import pwndbg.arguments
 import pwndbg.color.memory
 import pwndbg.color.message
 import pwndbg.commands
@@ -63,6 +65,43 @@ def _exit_function_to_string(addr: int, flavor: int, fn: int, arg: int, dso_hand
     return string
 
 
+def _get_exit_funcs_from_emulator() -> int | None:
+    exit_addr = pwndbg.aglib.symbol.lookup_symbol("exit")
+    if exit_addr is None:
+        print(pwndbg.color.message.error("Failed to get address of exit"))
+        return None
+    emulator = pwndbg.emu.emulator.Emulator()
+    if pwndbg.aglib.arch.name == "i386":
+        # WHY DOES THIS NOT WORK??????
+        # print(hex(int(exit_addr)))
+        # for a, _ in emulator.single_step_iter(int(exit_addr)):
+        #     print(pwndbg.aglib.disasm.disassembly.get(a))
+        #     print(hex(a))
+        # esp = emulator.read_register("esp")
+        # if esp is None:
+        #     print(pwndbg.color.message.error("Failed to read ESP register"))
+        #     return None
+        # exit_funcs_ptr_bytes = emulator.read_memory(
+        #     esp + 4, 4
+        # )  # not sure why this seems to end up in esp[0] not esp[1]
+        # if exit_funcs_ptr_bytes is None:
+        #     print(pwndbg.color.message.error("Failed to read &__exit_funcs from stack"))
+        #     return None
+        # exit_funcs_ptr = int.from_bytes(exit_funcs_ptr_bytes, "little")
+
+    else:
+        emulator.until_call(int(exit_addr))
+        abi = pwndbg.aglib.arch.function_abi
+        if abi is None:
+            print(pwndbg.color.message.error("arch.function_abi is None"))
+            return None
+        exit_funcs_ptr = emulator.read_register(abi.register_arguments[1])
+        if exit_funcs_ptr is None:
+            print(pwndbg.color.message.error("Failed to read RSI register"))
+            return None
+    return exit_funcs_ptr
+
+
 parser = argparse.ArgumentParser(description="View glibc exit handlers")
 
 
@@ -70,20 +109,15 @@ parser = argparse.ArgumentParser(description="View glibc exit handlers")
 def exit_handlers() -> None:
     cookie = _get_cookie()
     print(f"PTR_MANGLE cookie: {pwndbg.color.message.notice(hex(cookie))}")
-    exit_addr = pwndbg.aglib.symbol.lookup_symbol("exit")
-    if exit_addr is None:
-        print("Failed to get address of exit")
-        return
-    emulator = pwndbg.emu.emulator.Emulator()
-    emulator.until_call(int(exit_addr))
-    exit_funcs_ptr = emulator.read_register("RSI")
-    if exit_funcs_ptr is None:
-        print("Failed to read RSI")
-        return
-    exit_function_list = pwndbg.aglib.memory.read_pointer_width(exit_funcs_ptr)
-    print(
-        f"Registered handlers (first {pwndbg.color.message.hint('exit_function_list')} is at {pwndbg.color.memory.get(exit_function_list)}):"
+    exit_funcs_ptr = (
+        pwndbg.aglib.symbol.lookup_symbol("__exit_funcs") or _get_exit_funcs_from_emulator()
     )
+    if exit_funcs_ptr is None:
+        print(pwndbg.color.message.error("Failed to get address of __exit_funcs"))
+        return
+    exit_funcs_ptr = int(exit_funcs_ptr)
+    exit_function_list = pwndbg.aglib.memory.read_pointer_width(exit_funcs_ptr)
+    print(f"Registered handlers (__exit_funcs @ {pwndbg.color.memory.get(exit_function_list)}):")
     exit_handlers = []
     while True:
         if exit_function_list == 0:
