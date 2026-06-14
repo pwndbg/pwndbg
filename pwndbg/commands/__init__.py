@@ -1087,6 +1087,7 @@ def load_commands() -> None:
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
     import pwndbg.commands.errno
+    import pwndbg.commands.exit_handlers
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
     import pwndbg.commands.godbg
@@ -1152,4 +1153,3 @@ def load_commands() -> None:
     import pwndbg.commands.windbg
     import pwndbg.commands.xinfo
     import pwndbg.commands.xor
-    import pwndbg.commands.exit_handlers
