@@ -7,6 +7,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.tls
 import pwndbg.color.memory
+import pwndbg.color.message
 import pwndbg.commands
 import pwndbg.dintegration
 import pwndbg.emu.emulator
@@ -68,6 +69,7 @@ parser = argparse.ArgumentParser(description="View glibc exit handlers")
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.LINUX)
 def exit_handlers() -> None:
     cookie = _get_cookie()
+    print(f"PTR_MANGLE cookie: {pwndbg.color.message.notice(hex(cookie))}")
     exit_addr = pwndbg.aglib.symbol.lookup_symbol("exit")
     if exit_addr is None:
         print("Failed to get address of exit")
@@ -79,6 +81,9 @@ def exit_handlers() -> None:
         print("Failed to read RSI")
         return
     exit_function_list = pwndbg.aglib.memory.read_pointer_width(exit_funcs_ptr)
+    print(
+        f"Registered handlers (first {pwndbg.color.message.hint('exit_function_list')} is at {pwndbg.color.memory.get(exit_function_list)}):"
+    )
     exit_handlers = []
     while True:
         if exit_function_list == 0:
