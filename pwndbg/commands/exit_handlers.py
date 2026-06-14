@@ -71,8 +71,9 @@ def _get_exit_funcs_from_emulator() -> int | None:
     emulator = pwndbg.emu.emulator.Emulator()
     if pwndbg.aglib.arch.name == "i386":
         emulator.update_pc(int(exit_addr))
-        emulator.single_step()
-        emulator.until_call()
+        emulator.single_step()  # call mov eax, [esp] function
+        emulator.until_jump()  # ret
+        emulator.until_jump()  # call __run_exit_handlers
         esp = emulator.read_register("esp")
         if esp is None:
             print(pwndbg.color.message.error("Failed to read ESP register"))
@@ -84,7 +85,7 @@ def _get_exit_funcs_from_emulator() -> int | None:
         exit_funcs_ptr = int.from_bytes(exit_funcs_ptr_bytes, "little")
 
     else:
-        emulator.until_call(int(exit_addr))
+        emulator.until_jump(int(exit_addr))
         abi = pwndbg.aglib.arch.function_abi
         if abi is None:
             print(pwndbg.color.message.error("arch.function_abi is None"))
