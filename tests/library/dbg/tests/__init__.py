@@ -43,8 +43,6 @@ def get_binary(name: str) -> Path:
 
 
 def _dockerfile_versions(libc: str) -> list[str]:
-    """The version list for a libc, parsed from its Dockerfile's
-    `FROM base-builder AS build-<version>` stages"""
     dockerfile = Path(__file__).resolve().parents[4] / f"Dockerfile.{libc}-test-libs"
     return re.findall(r"(?m)^FROM base-builder AS build-([0-9][0-9.]*)", dockerfile.read_text())
 

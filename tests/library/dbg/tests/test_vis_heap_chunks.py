@@ -8,8 +8,6 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-# System glibc only: hardcodes the exact chunk layout, which shifts across glibc versions
-# (2.43 moved the top chunk); cross-version coverage lives in the other heap tests.
 HEAP_VIS = get_binary("heap_vis.native.out")
 HEAP_2_43 = get_binary("heap_glibc2.43.native.out")
 

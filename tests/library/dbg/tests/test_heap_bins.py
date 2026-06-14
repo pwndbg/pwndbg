@@ -11,14 +11,12 @@ from . import glibc_version_binaries
 from . import launch_to
 from . import pwndbg_test
 
-# Run each test against the system glibc plus every prebuilt per-version glibc.
 _BINS_BINARIES = glibc_version_binaries("heap_bins")
 
 glibc_versions = pytest.mark.parametrize(
     "binary", [b for _, b in _BINS_BINARIES], ids=[i for i, _ in _BINS_BINARIES]
 )
 
-# glibc 2.43+ bin layout is exercised separately by test_heap_bins_2_43.
 GLIBC_2_43 = get_binary("heap_glibc2.43.native.out")
 
 
@@ -43,10 +41,7 @@ async def test_heap_bins(ctrl: Controller, binary: Path) -> None:
     await ctrl.cont()
 
     if pwndbg.libc.version() >= (2, 43):
-        pytest.skip(
-            "glibc 2.43 reworked bin placement; this strict per-bin test targets "
-            "pre-2.43 (test_heap_bins_2_43 covers 2.43+)"
-        )
+        pytest.skip("Test is not applicable for glibc 2.43+")
 
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 

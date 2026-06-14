@@ -12,29 +12,25 @@ from . import launch_to
 from . import musl_test_versions
 from . import pwndbg_test
 
-# Run the full mallocng suite against the system musl plus every per-version musl the
-# heap-libc-tests workflow builds (same heap_musl.native.c source, so assertions transfer).
+HEAP_MALLOCNG_DYN = get_binary("heap_musl_dyn.native.out")
+HEAP_MALLOCNG_STATIC = get_binary("heap_musl_static.native.out")
 _MUSL_VERSIONS = musl_test_versions()
 
 
 def _mallocng_binaries() -> list[Path]:
-    bins = [
-        get_binary("heap_musl_dyn.native.out"),
-        get_binary("heap_musl_static.native.out"),
-    ]
+    bins = [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC]
     for ver in _MUSL_VERSIONS:
         if tuple(int(p) for p in ver.split(".")) < (1, 2, 1):
-            continue  # predates mallocng (oldmalloc); the ng* commands do not apply
+            continue
         for linkage in ("dynamic", "static"):
             bins.append(get_binary(f"heap_musl.musl-{ver}-{linkage}.out"))
-    # Per-version binaries appear once the libc workflow has built them.
     return [b for b in bins if b.exists()]
 
 
 def _mallocng_id(binary: Path) -> str:
-    if binary.name == "heap_musl_dyn.native.out":
+    if binary == HEAP_MALLOCNG_DYN:
         return "system-dynamic"
-    if binary.name == "heap_musl_static.native.out":
+    if binary == HEAP_MALLOCNG_STATIC:
         return "system-static"
     match = re.match(r"heap_musl\.musl-(.+)\.out", binary.name)
     return match.group(1) if match else binary.name
@@ -334,10 +330,12 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: Path):
 
     await ctrl.launch(binary)
 
-    # The "not found at the first instruction" check only holds for the system dynamic
-    # binary (stops at _dlstart, heap uninitialized); the positive check after `entry` is
-    # the real cross-version assertion.
-    if binary.name == "heap_musl_dyn.native.out":
+    # Check that we do not find it at the first program instruction
+    if binary == HEAP_MALLOCNG_DYN:
+        # Since our static binary is symbolicated, we would still find
+        # __malloc_context by simply looking up the symbol. So we only
+        # check this for the dynamically linked binary.
+
         # This is at _dlstart - the heap is uninitialized at this point.
         ctx_out = color.strip(await ctrl.execute_and_capture("ng ctx"))
 

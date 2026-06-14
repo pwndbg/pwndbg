@@ -16,11 +16,9 @@ from . import pwndbg_test
 HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 HEAP_GLIBC2_43 = get_binary("heap_glibc2.43.native.out")
 
-# Run each test against the system glibc plus every prebuilt per-version glibc.
 _HEAP_BINARIES = glibc_version_binaries("heap_malloc_chunk")
 _HEAP_DUMP_BINARIES = glibc_version_binaries("heap_malloc_chunk_dump")
 
-# Known pwndbg bug: the heuristic cannot find mp_ on a glibc 2.42 libc.
 _MP_HEURISTIC_242 = "pwndbg heuristic cannot find mp_ in the .data section on glibc 2.42"
 
 
@@ -561,7 +559,7 @@ async def test_thread_cache_heuristic(
     import pwndbg.aglib.typeinfo
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
-    # TODO: Support other architectures or different libc versions
+    # TODO: Support other architectures
     await ctrl.launch(binary)
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
@@ -629,7 +627,7 @@ async def test_thread_arena_heuristic(
     import pwndbg.aglib.symbol
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
-    # TODO: Support other architectures or different libc versions
+    # TODO: Support other architectures
     await ctrl.launch(binary)
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
@@ -679,7 +677,7 @@ async def test_global_max_fast_heuristic(ctrl: Controller, binary: Path) -> None
     import pwndbg.libc
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
-    # TODO: Support other architectures or different libc versions
+    # TODO: Support other architectures
     await ctrl.launch(binary)
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
@@ -691,9 +689,8 @@ async def test_global_max_fast_heuristic(ctrl: Controller, binary: Path) -> None
     break_at_sym("break_here")
     await ctrl.cont()
 
-    # glibc 2.43 removed fastbins, so there is no global_max_fast symbol to recover.
     if pwndbg.libc.version() >= (2, 43):
-        pytest.skip("glibc 2.43 removed global_max_fast (fastbins removed)")
+        pytest.skip("Fastbins removed in glibc 2.43+")
 
     # Use the debug symbol to find the address of `global_max_fast`
     global_max_fast_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
@@ -727,7 +724,7 @@ async def test_heuristic_fail_gracefully(
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
     from pwndbg.lib import SymbolNotRecoveredError
 
-    # TODO: Support other architectures or different libc versions
+    # TODO: Support other architectures
     await ctrl.launch(binary)
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")

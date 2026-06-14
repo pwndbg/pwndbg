@@ -12,8 +12,6 @@ from . import glibc_version_binaries
 from . import launch_to
 from . import pwndbg_test
 
-# tcache_perthread_struct changed across glibc (2.42: counts -> num_slots, 64 -> 76 slots);
-# the dt assertions below accept both. Run them across every built glibc version.
 _HEAP_MALLOC_CHUNK_BINARIES = glibc_version_binaries("heap_malloc_chunk")
 DT_RECURSIVE_OFFSETS = get_binary("dt_recursive_offsets.native.out")
 DT_BITFIELDS = get_binary("dt_bitfields.native.out")
