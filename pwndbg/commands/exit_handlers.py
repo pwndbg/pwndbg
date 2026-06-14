@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import argparse
-import pwndbg.commands
-import pwndbg.aglib.symbol
-import pwndbg.aglib.memory
+
 import pwndbg.aglib
+import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 import pwndbg.aglib.tls
+import pwndbg.color.memory
+import pwndbg.commands
+import pwndbg.dintegration
 import pwndbg.emu.emulator
 
 
@@ -45,16 +50,15 @@ def _exit_function_to_string(addr: int, flavor: int, fn: int, arg: int, dso_hand
         case _:
             flavor_str = "unknown"
 
-    string = f"{hex(addr)} [{flavor_str} ({flavor})]"
+    string = f"{pwndbg.color.memory.get(addr)} [{flavor_str} ({flavor})]"
     if flavor_str in {"ef_on", "ef_cxa", "ef_at", "unknown"}:
-        fn_str = pwndbg.aglib.symbol.resolve_addr(fn) or hex(fn)
+        decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
+        fn_str = pwndbg.color.memory.get_address_and_symbol(fn, decomp_stack_vars)
         string += f": {fn_str}"
     if flavor_str in {"ef_on", "ef_cxa", "unknown"}:
-        string += f"({hex(arg)})"
-    elif flavor_str == "ef_at":
-        string += "(void)"
+        string += f" [arg = {pwndbg.color.memory.get(arg)}"
     if flavor_str in {"ef_cxa", "unknown"}:
-        string += f" [dso_handle = {hex(dso_handle)}]"
+        string += f", dso_handle = {pwndbg.color.memory.get(dso_handle)}]"
     return string
 
 
@@ -82,7 +86,7 @@ def exit_handlers() -> None:
         num_handlers = pwndbg.aglib.memory.read_pointer_width(
             exit_function_list + pwndbg.aglib.arch.ptrsize
         )
-        for i in range(num_handlers):
+        for i in range(num_handlers)[::-1]:
             struct_base = exit_function_list + pwndbg.aglib.arch.ptrsize * (2 + 4 * i)
             flavor = pwndbg.aglib.memory.read_pointer_width(struct_base)
             fn = ptr_demangle(
