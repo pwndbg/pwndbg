@@ -56,9 +56,6 @@ def musl_test_versions() -> list[str]:
 
 
 def glibc_version_binaries(stem: str) -> list[tuple[str, Path]]:
-    """(id, binary) for the system build of `stem` plus each per-glibc-version build
-    present on disk. A normal run has only the system one; the per-version binaries
-    appear once the heap-libc-tests workflow has built them."""
     targets = [("system", get_binary(f"{stem}.native.out"))]
     for ver in glibc_test_versions():
         targets.append((ver, get_binary(f"{stem}.glibc-{ver}.out")))
