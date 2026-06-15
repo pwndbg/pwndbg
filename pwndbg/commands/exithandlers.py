@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import typing
+
+from pwnlib.util.fiddling import ror
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
@@ -15,17 +18,11 @@ import pwndbg.dintegration
 import pwndbg.emu.emulator
 
 
-def rol(val: int, amount: int) -> int:
-    amount %= pwndbg.aglib.arch.ptrbits
-    return (
-        (val << amount) | val >> (pwndbg.aglib.arch.ptrbits - amount)
-    ) & pwndbg.aglib.arch.ptrmask
-
-
 def ptr_demangle(pointer_guard: int, ptr: int) -> int:
     if pwndbg.aglib.arch.name in {"x86-64", "i386"}:
         return (
-            rol(ptr, -(pwndbg.aglib.arch.ptrsize * 2 + 1)) ^ pointer_guard
+            typing.cast(int, ror(ptr, pwndbg.aglib.arch.ptrsize * 2 + 1, pwndbg.aglib.arch.ptrbits))
+            ^ pointer_guard
         ) & pwndbg.aglib.arch.ptrmask
     return ptr ^ pointer_guard
 
