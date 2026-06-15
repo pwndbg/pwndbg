@@ -22,13 +22,15 @@ def rol(val: int, amount: int) -> int:
     ) & pwndbg.aglib.arch.ptrmask
 
 
-def ptr_demangle(cookie: int, ptr: int) -> int:
+def ptr_demangle(pointer_guard: int, ptr: int) -> int:
     if pwndbg.aglib.arch.name in {"x86-64", "i386"}:
-        return (rol(ptr, -(pwndbg.aglib.arch.ptrsize * 2 + 1)) ^ cookie) & pwndbg.aglib.arch.ptrmask
-    return ptr ^ cookie
+        return (
+            rol(ptr, -(pwndbg.aglib.arch.ptrsize * 2 + 1)) ^ pointer_guard
+        ) & pwndbg.aglib.arch.ptrmask
+    return ptr ^ pointer_guard
 
 
-def _get_cookie() -> int | None:
+def _get_pointer_guard() -> int | None:
     if pwndbg.aglib.arch.name in {"x86-64", "i386"}:
         tls_addr = (
             pwndbg.aglib.tls.find_address_with_register()
@@ -37,8 +39,8 @@ def _get_cookie() -> int | None:
         if tls_addr is None:
             print(pwndbg.color.message.error("Failed to get TLS address"))
             return None
-        tls_cookie_offset = pwndbg.aglib.arch.ptrsize * 6
-        return pwndbg.aglib.memory.read_pointer_width(tls_addr + tls_cookie_offset)
+        pointer_guard_offset = pwndbg.aglib.arch.ptrsize * 6
+        return pwndbg.aglib.memory.read_pointer_width(tls_addr + pointer_guard_offset)
     if pwndbg.aglib.arch.name in {"aarch64", "arm"}:
         pointer_chk_guard = pwndbg.aglib.symbol.lookup_symbol(
             "__pointer_chk_guard"
@@ -50,8 +52,7 @@ def _get_cookie() -> int | None:
                 )
             )
             return None
-        cookie = pwndbg.aglib.memory.read_pointer_width(int(pointer_chk_guard))
-        return int(cookie)
+        return int(pwndbg.aglib.memory.read_pointer_width(int(pointer_chk_guard)))
 
 
 def _exit_function_to_string(addr: int, flavor: int, fn: int, arg: int, dso_handle: int) -> str:
@@ -132,11 +133,11 @@ parser = argparse.ArgumentParser(description="List currently registered glibc ex
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "i386", "aarch64", "arm"])
 def exithandlers() -> None:
-    cookie = _get_cookie()
-    if cookie is None:
-        print(pwndbg.color.message.error("Failed to get PTR_MANGLE cookie"))
+    pointer_guard = _get_pointer_guard()
+    if pointer_guard is None:
+        print(pwndbg.color.message.error("Failed to get pointer_guard"))
         return
-    print(f"PTR_MANGLE cookie: {pwndbg.color.message.notice(hex(cookie))}")
+    print(f"pointer_guard: {pwndbg.color.message.notice(hex(pointer_guard))}")
     exit_funcs_ptr = (
         pwndbg.aglib.symbol.lookup_symbol("__exit_funcs") or _get_exit_funcs_from_emulator()
     )
@@ -145,7 +146,8 @@ def exithandlers() -> None:
         return
     exit_funcs_ptr = int(exit_funcs_ptr)
     exit_function_list = pwndbg.aglib.memory.read_pointer_width(exit_funcs_ptr)
-    print(f"Registered handlers (__exit_funcs @ {pwndbg.color.memory.get(exit_function_list)}):")
+    print(f"__exit_funcs: {pwndbg.color.memory.get(exit_function_list)}")
+    print("Registered handlers:")
     exit_handlers = []
     while True:
         if exit_function_list == 0:
@@ -157,7 +159,7 @@ def exithandlers() -> None:
             struct_base = exit_function_list + pwndbg.aglib.arch.ptrsize * (2 + 4 * i)
             flavor = pwndbg.aglib.memory.read_pointer_width(struct_base)
             fn = ptr_demangle(
-                cookie,
+                pointer_guard,
                 pwndbg.aglib.memory.read_pointer_width(struct_base + pwndbg.aglib.arch.ptrsize),
             )
             arg = pwndbg.aglib.memory.read_pointer_width(
