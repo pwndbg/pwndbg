@@ -161,64 +161,44 @@ def _get_tls_dtor_list_offset_from_emulator_x86_64(
     emulator: pwndbg.emu.emulator.Emulator,
 ) -> int | None:
     while True:
-        if emulator.single_step() is None:
-            print(
-                pwndbg.color.message.error(
-                    f"Emulator failed to execute __call_tls_dtors instruction at {hex(emulator.pc())}"
-                )
-            )
-            return None
-        inst = pwndbg.aglib.disasm.disassembly.get(emulator.pc(), 1, emulator)
+        inst = pwndbg.aglib.disasm.disassembly.get(emulator.pc(), 1)
         if len(inst) < 1:
-            print(pwndbg.color.message.error("Failed to disassemble __call_tls_dtors"))
+            print(pwndbg.color.message.error("Failed to disassembly __call_tls_dtors"))
             return None
         inst = inst[0]
         read, _ = inst.cs_insn.regs_access()
         read_names: list[str] = [str(inst.cs_insn.reg_name(r)) for r in read]
-        if len(read_names) != 2:
-            continue
-        try:
+        if len(read_names) == 2 and "fs" in read_names:
             fs_idx = read_names.index("fs")
-        except ValueError:
-            continue
-        offset_reg = read_names[(fs_idx + 1) % 2]
-        offset = emulator.read_register(offset_reg)
-        if offset is None:
-            print(pwndbg.color.message.error(f"Failed to read offset from {offset_reg}"))
-            return None
-        return typing.cast(int, u64(p64(offset, sign="unsigned"), sign="signed"))
+            offset_reg = read_names[(fs_idx + 1) % 2]
+            offset = emulator.read_register(offset_reg)
+            if offset is None:
+                print(pwndbg.color.message.error(f"Failed to read offset from {offset_reg}"))
+                return None
+            return typing.cast(int, u64(p64(offset, sign="unsigned"), sign="signed"))
+        emulator.single_step()
 
 
 def _get_tls_dtor_list_offset_from_emulator_i386(
     emulator: pwndbg.emu.emulator.Emulator,
 ) -> int | None:
     while True:
-        if emulator.single_step() is None:
-            print(
-                pwndbg.color.message.error(
-                    f"Emulator failed to execute __call_tls_dtors instruction at {hex(emulator.pc())}"
-                )
-            )
-            return None
-        inst = pwndbg.aglib.disasm.disassembly.get(emulator.pc(), 1, emulator)
+        inst = pwndbg.aglib.disasm.disassembly.get(emulator.pc(), 1)
         if len(inst) < 1:
             print(pwndbg.color.message.error("Failed to disassemble __call_tls_dtors"))
             return None
         inst = inst[0]
         read, _ = inst.cs_insn.regs_access()
         read_names: list[str] = [str(inst.cs_insn.reg_name(r)) for r in read]
-        if len(read_names) != 2:
-            continue
-        try:
+        if len(read_names) == 2 and "gs" in read_names:
             gs_idx = read_names.index("gs")
-        except ValueError:
-            continue
-        offset_reg = read_names[(gs_idx + 1) % 2]
-        offset = emulator.read_register(offset_reg)
-        if offset is None:
-            print(pwndbg.color.message.error(f"Failed to read offset from {offset_reg}"))
-            return None
-        return typing.cast(int, u32(p32(offset, sign="unsigned"), sign="signed"))
+            offset_reg = read_names[(gs_idx + 1) % 2]
+            offset = emulator.read_register(offset_reg)
+            if offset is None:
+                print(pwndbg.color.message.error(f"Failed to read offset from {offset_reg}"))
+                return None
+            return typing.cast(int, u32(p32(offset, sign="unsigned"), sign="signed"))
+        emulator.single_step()
 
 
 def _get_tls_dtor_list_from_emulator() -> int | None:
