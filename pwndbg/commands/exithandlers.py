@@ -25,12 +25,16 @@ def ptr_demangle(cookie: int, ptr: int) -> int:
     return (rol(ptr, -(pwndbg.aglib.arch.ptrsize * 2 + 1)) ^ cookie) & pwndbg.aglib.arch.ptrmask
 
 
-def _get_cookie() -> int:
+def _get_cookie() -> int | None:
     tls_addr = (
         pwndbg.aglib.tls.find_address_with_register()
         or pwndbg.aglib.tls.find_address_with_pthread_self()
     )
-    return pwndbg.aglib.memory.read_pointer_width(tls_addr + pwndbg.aglib.arch.ptrsize * 6)
+    if tls_addr is None:
+        print(pwndbg.color.message.error("Failed to get TLS address"))
+        return None
+    tls_cookie_offset = pwndbg.aglib.arch.ptrsize * 6
+    return pwndbg.aglib.memory.read_pointer_width(tls_addr + tls_cookie_offset)
 
 
 def _exit_function_to_string(addr: int, flavor: int, fn: int, arg: int, dso_handle: int) -> str:
@@ -106,6 +110,9 @@ parser = argparse.ArgumentParser(description="List currently registered glibc ex
 @pwndbg.commands.OnlyWhenRunning
 def exithandlers() -> None:
     cookie = _get_cookie()
+    if cookie is None:
+        print(pwndbg.color.message.error("Failed to get PTR_MANGLE cookie"))
+        return
     print(f"PTR_MANGLE cookie: {pwndbg.color.message.notice(hex(cookie))}")
     exit_funcs_ptr = (
         pwndbg.aglib.symbol.lookup_symbol("__exit_funcs") or _get_exit_funcs_from_emulator()
