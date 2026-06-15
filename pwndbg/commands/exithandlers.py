@@ -53,8 +53,8 @@ def _exit_function_to_string(addr: int, flavor: int, fn: int, arg: int, dso_hand
             flavor_str = "unknown"
 
     string = f"{pwndbg.color.memory.get(addr)} [{flavor_str} ({flavor})]"
-    decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
     if flavor_str in {"ef_on", "ef_cxa", "ef_at", "unknown"}:
+        decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
         fn_str = pwndbg.color.memory.get_address_and_symbol(fn, decomp_stack_vars)
         string += f": {fn_str}"
     if flavor_str in {"ef_on", "ef_cxa", "unknown"}:
