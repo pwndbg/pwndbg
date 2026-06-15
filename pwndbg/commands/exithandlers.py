@@ -5,7 +5,9 @@ import typing
 from dataclasses import dataclass
 
 from pwnlib.util.fiddling import ror
-from pwnlib.util.packing import p64, u32, u64
+from pwnlib.util.packing import p64
+from pwnlib.util.packing import u32
+from pwnlib.util.packing import u64
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
@@ -193,8 +195,9 @@ def _get_tls_dtor_list_from_emulator() -> int | None:
             if offset is None:
                 print(pwndbg.color.message.error(f"Failed to read offset from {offset_reg}"))
                 return None
-            offset = u64(p64(offset, sign="unsigned"), sign="signed")
+            offset = typing.cast(int, u64(p64(offset, sign="unsigned"), sign="signed"))
             return tls_addr + offset
+    return None
 
 
 def _list_exit_handlers(pointer_guard: int, exit_funcs: int) -> list[_ExitFunctionEntry]:
