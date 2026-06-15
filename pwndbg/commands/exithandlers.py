@@ -205,11 +205,11 @@ def _get_tls_dtor_list_offset_from_emulator_aarch64(
     emulator: pwndbg.emu.emulator.Emulator,
 ) -> int | None:
     while True:
-        inst = pwndbg.aglib.disasm.disassembly.get(emulator.pc(), 1)
-        if len(inst) < 1:
+        insts = pwndbg.aglib.disasm.disassembly.get(emulator.pc(), 1)
+        if len(insts) < 1:
             print(pwndbg.color.message.error("Failed to disassemble __call_tls_dtors"))
             return None
-        inst = inst[0]
+        inst = insts[0]
         if inst.mnemonic.lower() == "mrs" and "tpidr_el0" in inst.cs_insn.op_str.lower():
             _, written = inst.cs_insn.regs_access()
             written_names = [str(inst.cs_insn.reg_name(r)) for r in written]
@@ -224,11 +224,11 @@ def _get_tls_dtor_list_offset_from_emulator_aarch64(
             emulator.update_pc(inst.next)  # unicorn seems to not like emulating mrs
             # continue until something like ldr ... [tls, offset]
             while True:
-                inst = pwndbg.aglib.disasm.disassembly.get(emulator.pc(), 1)
-                if len(inst) < 1:
+                insts = pwndbg.aglib.disasm.disassembly.get(emulator.pc(), 1)
+                if len(insts) < 1:
                     print(pwndbg.color.message.error("Failed to disassemble __call_tls_dtors"))
                     return None
-                inst = inst[0]
+                inst = insts[0]
                 read, _ = inst.cs_insn.regs_access()
                 read_names = [str(inst.cs_insn.reg_name(r)) for r in read]
                 if len(read_names) == 2 and tls_base_reg in read_names:
