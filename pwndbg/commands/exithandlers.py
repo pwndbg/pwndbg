@@ -53,6 +53,12 @@ def _get_pointer_guard() -> int | None:
             )
             return None
         return int(pwndbg.aglib.memory.read_pointer_width(int(pointer_chk_guard)))
+    print(
+        pwndbg.color.message.error(
+            f"Don't know how to get pointer_guard on {pwndbg.aglib.arch.name}"
+        )
+    )
+    return None
 
 
 def _exit_function_to_string(addr: int, flavor: int, fn: int, arg: int, dso_handle: int) -> str:
