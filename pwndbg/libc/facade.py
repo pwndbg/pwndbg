@@ -164,7 +164,7 @@ def __get_libc() -> tuple[Path, Path, LibcProvider]:
 
         basename = os.path.basename(
             # Strip "target:" prefix used for remote debugging
-            path[7:] if path.startswith("target:") else path
+            path.removeprefix("target:")
         )
 
         # Get absolute path and resolve symlinks if it seems plausible.

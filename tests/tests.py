@@ -58,7 +58,7 @@ def main() -> None:
         sys.exit(1)
 
     force_serial = False
-    assert args.driver == Driver.GDB or args.driver == Driver.LLDB
+    assert args.driver in (Driver.GDB, Driver.LLDB)
     match args.driver:
         case Driver.GDB:
             host = get_gdb_host(args, local_pwndbg_root)
@@ -137,7 +137,7 @@ def run_tests_and_print_stats(
 
     end = time.monotonic_ns()
     duration = end - start
-    print("")
+    print()
     print("*********************************")
     print("********* TESTS SUMMARY *********")
     print("*********************************")
@@ -420,12 +420,12 @@ class TestStats:
         self.total_duration += test_result.duration_ns
 
         print(
-            f"{case:<100} {test_result.status} {test_result.duration_ns / 1000000000:.2f}s {test_result.context if test_result.context else ''}"
+            f"{case:<100} {test_result.status} {test_result.duration_ns / 1000000000:.2f}s {test_result.context or ''}"
         )
 
         # Only show the output of failed tests unless the verbose flag was used
         if verbose or test_result.status == TestStatus.FAILED:
-            print("")
+            print()
             print(test_result.stderr)
             print(test_result.stdout)
 

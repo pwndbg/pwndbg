@@ -94,7 +94,7 @@ def vm(show: bool = True) -> tuple[Any, ...]:
             perms += "x" if page.execute else "-"
             size = page.end - page.start
             offset = f"{page.offset:#x}" if page.offset is not None else "-"
-            objfile = page.objfile if page.objfile else ""
+            objfile = page.objfile or ""
             print(
                 f"{page.start:#018x}-{page.end:#018x} {perms}  {size:#010x}  {offset:8}  {objfile}"
             )

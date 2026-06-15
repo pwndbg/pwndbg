@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 from collections import defaultdict
 
-import pwndbg.color as color
-import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg import color
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Prints out a list of all Pwndbg commands.")

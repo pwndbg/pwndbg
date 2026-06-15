@@ -384,8 +384,8 @@ class ArchOps(ABC):
         return self._paginginfo().physmap
 
     @property
-    def phys_offset(self) -> int:
-        return self._paginginfo().phys_offset
+    def ram_phys_start(self) -> int:
+        return self._paginginfo().ram_phys_start
 
     @property
     def page_shift(self) -> int:
@@ -523,11 +523,11 @@ class Aarch64Ops(ArchOps):
             _virt = pagewalk(virt).virt
         if _virt is None:
             _virt = virt
-        return _virt - self.page_offset + self.phys_offset
+        return _virt - self.page_offset + self.ram_phys_start
 
     def phys_to_virt(self, phys: int) -> int:
         # https://elixir.bootlin.com/linux/v6.16.4/source/arch/arm64/include/asm/memory.h#L356
-        return phys - self.phys_offset + self.page_offset
+        return phys - self.ram_phys_start + self.page_offset
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.page_shift
@@ -795,7 +795,7 @@ def num_numa_nodes() -> int:
 
         # 1 means aglib.typeinfo.enum_member("enum node_states", "N_ONLINE")
         node_mask = node_states[1]["bits"][0]
-        return bin(int(node_mask)).count("1")
+        return int(node_mask).bit_count()
 
     max_nodes = 1 << int(kc["CONFIG_NODES_SHIFT"])
     if max_nodes == 1:

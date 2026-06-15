@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import re
 import struct
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import pwndbg
@@ -64,23 +65,24 @@ class PageTableScan:
         # for scanning
         self.pagesz = pi.page_size
         self.ptrsize = pwndbg.aglib.arch.ptrsize
-        self.inf = pwndbg.dbg.selected_inferior()
         self.fmt = "<" + ("Q" if self.ptrsize == 8 else "I") * (self.pagesz // self.ptrsize)
         self.cache: dict[tuple[int, int], list[tuple[int, int, int]]] = {}
         self.entry_cache: dict[int, tuple[int]] = {}
         self.arch = pwndbg.aglib.arch.name
+        # the default is slightly slower but does not require setting yama.ptrace_scope
+        self.read: Callable[[int, int], bytearray] = pwndbg.dbg.selected_inferior().read_memory
+        if qm := pwndbg.aglib.qemu.get_qemu_machine():  # note this would fail silently
+            self.read = qm.read_physical_memory
 
     def scan(self, entry: int, is_kernel: bool = False) -> list[Page]:
         """
         this needs to be EXTREMELY optimized as it is used to display context
         making as few functions calls or memory reads as possible
         avoid unnecessary python pointer deferences or repetative computations whenever possible
-        when benchmarked on the same linux kernels, on average:
-        - gdb-pt-dump takes ~0.153 for x64 and 5.572 seconds for aarch64
-        - this implementation takes less than 0.065 seconds to complete for x64 and 0.491 seconds for aarch64
-        --> around 45-65% of the time is used to read qemu system memory depending on arch and kernel
-            (the theoratical limit would be that all time consumed is used for reading memory)
-        --> 2.35x speed up for x64 and more than 10x speed up for aarch64
+        when benchmarked on the same linux kernels with the same read method, on average:
+        - gdb-pt-dump takes ~0.122 for x64 and 0.562 seconds for aarch64
+        - this implementation takes less than 0.0297 seconds to complete for x64 and 0.0492 seconds for aarch64
+        --> 4x faster for x64 and 10x faster for aarch64
         """
         entry &= self.PAGE_ENTRY_MASK
         if (entry, self.paging_level) not in self.cache:
@@ -109,7 +111,7 @@ class PageTableScan:
     def _scan(self, addr: int, level: int) -> None:
         pagesz = self.pagesz
         orig = addr
-        self.entry_cache[addr] = struct.unpack(self.fmt, self.inf.read_memory(addr, self.pagesz))
+        self.entry_cache[addr] = struct.unpack(self.fmt, self.read(addr, self.pagesz))
         entries = self.entry_cache[addr]
         ranges: list[tuple[int, int, int]] = []
         append = ranges.append
@@ -144,7 +146,7 @@ class PageTableScan:
                         flags = Page.R_OK if entry & 1 != 0 else 0
                         flags |= Page.X_OK if (entry >> 53) & 3 != 3 else 0
                         ap = (entry >> 6) & 3
-                        flags |= Page.W_OK if ap == 1 or ap == 0 else 0
+                        flags |= Page.W_OK if ap in {1, 0} else 0
                 if flags & Page.R_OK:  # only append present pages, read bit indicates presence
                     if curr_off is not None:
                         if flags == curr_flags:
@@ -202,9 +204,7 @@ class PageTableScan:
             idx = (target >> shift) & self.PAGE_INDEX_MASK
             addr = entry & self.PAGE_ENTRY_MASK
             if addr not in self.entry_cache:
-                self.entry_cache[addr] = struct.unpack(
-                    self.fmt, self.inf.read_memory(addr, self.pagesz)
-                )
+                self.entry_cache[addr] = struct.unpack(self.fmt, self.read(addr, self.pagesz))
             entry = self.entry_cache[addr][idx]
             if not entry:
                 break
@@ -360,10 +360,10 @@ class ArchPagingInfo:
             for level in levels:
                 if level.phys is None or level.level is None:
                     continue
-                level.virt = level.phys + self.physmap - self.phys_offset
+                level.virt = level.phys + self.physmap - self.ram_phys_start
                 level.name = self.pagetable_level_names[level.level]
             if result.phys is not None:
-                result.virt = result.phys + self.physmap - self.phys_offset
+                result.virt = result.phys + self.physmap - self.ram_phys_start
         except Exception:
             pass
         finally:  # so that the PhyMemMode value is always restored
@@ -391,7 +391,7 @@ class ArchPagingInfo:
         raise NotImplementedError()
 
     @property
-    def phys_offset(self) -> int:
+    def ram_phys_start(self) -> int:
         return 0
 
     @property
@@ -495,7 +495,7 @@ class x86_64PagingInfo(ArchPagingInfo):
         return pwndbg.aglib.arch.unsigned(-3, self.P4D_SHIFT)
 
     @property
-    def SLAB_DATA_BASE_ADDR(self):
+    def SLAB_DATA_BASE_ADDR(self) -> int:
         STRUCT_SLAB_SIZE = 32 * pwndbg.aglib.arch.ptrsize
         SLAB_VPAGES = (1 << self.P4D_SHIFT) // self.page_size
         SLAB_META_SIZE = pwndbg.lib.memory.round_up(STRUCT_SLAB_SIZE * SLAB_VPAGES, self.page_size)
@@ -650,7 +650,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def va_bits_min(self) -> int:
-        return 48 if self.va_bits > 48 else self.va_bits
+        return min(self.va_bits, 48)
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -725,7 +725,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             self.VMEMMAP_START = pwndbg.aglib.arch.unsigned(-0x40000000 - self.VMEMMAP_SIZE)
 
         # obtained through debugging -- kaslr offset of physmap determines the offset of vmemmap
-        vmemmap_kaslr = (self.physmap - self.PAGE_OFFSET - self.phys_offset) >> vmemmap_shift
+        vmemmap_kaslr = (self.physmap - self.PAGE_OFFSET - self.ram_phys_start) >> vmemmap_shift
         return self.VMEMMAP_START + vmemmap_kaslr
 
     @property
@@ -905,7 +905,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("start")
-    def phys_offset(self) -> int:
+    def ram_phys_start(self) -> int:
         found_system = False
         try:
             for line in pwndbg.dbg.selected_inferior().send_monitor("info mtree -f").splitlines():
@@ -923,9 +923,8 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def pagewalk(self, target: int, entry: int | None, virt: bool = True) -> PagewalkResult:
         if pwndbg.aglib.memory.is_kernel(target):
             entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
-        else:
-            if entry is None:
-                entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
+        elif entry is None:
+            entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
         if entry is None:
             return PagewalkResult()
         entry |= 3  # marks the entry as a table

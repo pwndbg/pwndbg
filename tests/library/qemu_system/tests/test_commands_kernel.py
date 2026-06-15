@@ -258,7 +258,7 @@ def get_buddy_freelist_elements(out) -> list[tuple[int, int]]:
 def test_command_buddydump() -> None:
     res = gdb.execute("buddydump", to_string=True)
     NOFREEPAGE = "No free pages with specified filters found.\n"
-    if res == "WARNING: Symbol 'node_data' not found\n" or NOFREEPAGE == res:
+    if res in ("WARNING: Symbol 'node_data' not found\n", NOFREEPAGE):
         return
     # this indicates the buddy allocator contains at least one entry
     assert "order" in res and "zone" in res and ("per_cpu_pageset" in res or "free_area" in res)
@@ -370,7 +370,7 @@ def test_command_paging() -> None:
     test_command_paging_helper("initialized", kbase)
     vmemmap = pi.vmemmap
     if pwndbg.aglib.arch.name == "aarch64":
-        vmemmap += pi.phys_offset >> (pi.page_shift - pi.STRUCT_PAGE_SHIFT)
+        vmemmap += pi.ram_phys_start >> (pi.page_shift - pi.STRUCT_PAGE_SHIFT)
     test_command_paging_helper("initialized", vmemmap)
     res = gdb.execute("buddydump", to_string=True)
     matches = get_buddy_freelist_elements(res)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import TracebackType
 
-import pwndbg.color as color
+from pwndbg import color
 
 
 class IndentContextManager:

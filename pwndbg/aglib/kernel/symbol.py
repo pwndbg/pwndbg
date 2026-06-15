@@ -322,9 +322,7 @@ def kernel_symbol_func(
                 return result
             result = None
             if prefer_symbol:
-                result = pwndbg.aglib.symbol.lookup_symbol_addr(
-                    symbol_name if symbol_name else f.__name__
-                )
+                result = pwndbg.aglib.symbol.lookup_symbol_addr(symbol_name or f.__name__)
             if result is None:
                 # we use heuristics if the symbol could not be resolved by lookup_symbol
                 if (field_name := f"{f.__name__}_heuristic_func") and hasattr(self, field_name):
@@ -335,9 +333,7 @@ def kernel_symbol_func(
                         )
                         result = arch_heuristic_handle()
             if result is None and not prefer_symbol:
-                result = pwndbg.aglib.symbol.lookup_symbol_addr(
-                    symbol_name if symbol_name else f.__name__
-                )
+                result = pwndbg.aglib.symbol.lookup_symbol_addr(symbol_name or f.__name__)
             if result is None:
                 return None
             return result

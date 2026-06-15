@@ -50,16 +50,15 @@ def one_instruction(ins: PwndbgInstruction, linear: bool) -> str:
 
     if linear:
         asm = f"  {asm}"
+    # If we know the conditional is taken, mark it as taken.
+    elif ins.condition == InstructionCondition.TRUE or ins.is_conditional_jump_taken:
+        asm = on(f"{config_branch_on} ") + asm
+    elif ins.condition == InstructionCondition.FALSE:
+        asm = off(f"{config_branch_off} ") + asm
+    elif ins.condition == InstructionCondition.UNDETERMINED_CONDITIONAL:
+        asm = gray("? ") + asm
     else:
-        # If we know the conditional is taken, mark it as taken.
-        if ins.condition == InstructionCondition.TRUE or ins.is_conditional_jump_taken:
-            asm = on(f"{config_branch_on} ") + asm
-        elif ins.condition == InstructionCondition.FALSE:
-            asm = off(f"{config_branch_off} ") + asm
-        elif ins.condition == InstructionCondition.UNDETERMINED_CONDITIONAL:
-            asm = gray("? ") + asm
-        else:
-            asm = f"  {asm}"
+        asm = f"  {asm}"
 
     return asm
 
@@ -114,16 +113,15 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
             elif cur_padding_len - raw_len < MIN_SPACING:
                 # Annotations are getting too close to the disasm, push them to the right again
                 cur_padding_len = raw_len + MIN_SPACING
-            else:
-                # This path allows the padding to be smaller again
-                # If the instruction has too much whitespace, put the annotation more to the left
-                # Make sure there is an instruction after this one, and it's not a branch. Otherwise, maintain current indentation.
-                if (
-                    i < len(instructions) - 1
-                    and not instructions[i + 1].has_jump_target
-                    and cur_padding_len - raw_len > WHITESPACE_LIMIT
-                ):
-                    cur_padding_len = raw_len + MIN_SPACING
+            # This path allows the padding to be smaller again
+            # If the instruction has too much whitespace, put the annotation more to the left
+            # Make sure there is an instruction after this one, and it's not a branch. Otherwise, maintain current indentation.
+            elif (
+                i < len(instructions) - 1
+                and not instructions[i + 1].has_jump_target
+                and cur_padding_len - raw_len > WHITESPACE_LIMIT
+            ):
+                cur_padding_len = raw_len + MIN_SPACING
 
             # Give the padding to the instruction, so we can reuse it in the future
             if ins.annotation:

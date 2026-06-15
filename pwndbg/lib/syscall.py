@@ -70,8 +70,7 @@ def syscall_name_to_number(name: str, arch_name: PWNDBG_SUPPORTED_ARCHITECTURES_
         return None
 
     # Strip SYS_ prefix if present
-    if name.startswith("SYS_"):
-        name = name[4:]
+    name = name.removeprefix("SYS_")
 
     attr_name = f"__NR_{name}"
     value = getattr(arch_module, attr_name, None)
