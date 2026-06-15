@@ -332,8 +332,8 @@ def kernel_symbol_func(
                             self, f"_{f.__name__}"
                         )
                         result = arch_heuristic_handle()
-                if result is None:
-                    result = pwndbg.aglib.symbol.lookup_symbol_addr(symbol_name or f.__name__)
+            if result is None and not prefer_symbol:
+                result = pwndbg.aglib.symbol.lookup_symbol_addr(symbol_name or f.__name__)
             return result
 
         return func
