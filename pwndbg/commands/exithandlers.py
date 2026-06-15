@@ -61,6 +61,9 @@ def _exit_function_to_string(addr: int, flavor: int, fn: int, arg: int, dso_hand
         string += f" [arg = {pwndbg.chain.format(arg)}"
     if flavor_str in {"ef_cxa", "unknown"}:
         string += f", dso_handle = {pwndbg.color.memory.get(dso_handle)}]"
+    elif flavor_str == "ef_on":
+        string += "]"
+
     return string
 
 
