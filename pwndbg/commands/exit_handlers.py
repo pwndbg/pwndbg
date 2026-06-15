@@ -97,10 +97,11 @@ def _get_exit_funcs_from_emulator() -> int | None:
     return exit_funcs_ptr
 
 
-parser = argparse.ArgumentParser(description="View glibc exit handlers")
+parser = argparse.ArgumentParser(description="List currently registered glibc exit handlers.")
 
 
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.LINUX)
+@pwndbg.commands.OnlyWhenRunning
 def exit_handlers() -> None:
     cookie = _get_cookie()
     print(f"PTR_MANGLE cookie: {pwndbg.color.message.notice(hex(cookie))}")
