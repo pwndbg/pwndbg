@@ -3,11 +3,9 @@ from __future__ import annotations
 import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
-import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 
 
-def get_struct_bpf_prog():
+def get_struct_bpf_prog() -> str:
     result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     result += """
     /* the enum types (probably) have been added to the kernel in decending order */
@@ -109,6 +107,16 @@ def get_struct_bpf_prog():
         __MAX_BPF_ATTACH_TYPE
     };
     #define BPF_TAG_SIZE 8 // true for v5.0 - 6.17
+    struct sock_filter {	/* Filter block */
+        u16	code;   /* Actual filter code */
+        u8	jt;	/* Jump true */
+        u8	jf;	/* Jump false */
+        u32	k;      /* Generic multiuse field */
+    };
+    struct sock_fprog_kern {
+        u16			len;
+        struct sock_filter	*filter;
+    };
     struct bpf_prog {
         u16			pages;		/* Number of allocated pages */
         u16			fields;     /* bit fields */
@@ -123,7 +131,7 @@ def get_struct_bpf_prog():
         unsigned int		(*bpf_func)(void *ctx, void *insn);
 #endif
         void	*aux;		/* Auxiliary fields */
-        void	*orig_prog;	/* Original BPF program */
+        struct sock_fprog_kern *orig_prog;	/* Original BPF program */
 #if KVERSION < KERNEL_VERSION(5, 12, 0)
         unsigned int		(*bpf_func)(void *ctx, void *insn);
 #endif
@@ -133,7 +141,7 @@ def get_struct_bpf_prog():
     return result
 
 
-def get_struct_bpf_map():
+def get_struct_bpf_map() -> str:
     result = ""
     if "CONFIG_SECURITY" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_SECURITY\n"
@@ -197,10 +205,8 @@ def get_struct_bpf_map():
     return result
 
 
-def get_bpf_struct_offsets(prog_idr, map_idr) -> int:
+def get_bpf_struct_offsets(prog_idr: int, map_idr: int) -> int | None:
     xarray_pad_sz = None
-    map_idr = int(map_idr)
-    prog_idr = int(prog_idr)
     ptrsize = pwndbg.aglib.arch.ptrsize
     max_idr_sz = abs(map_idr - prog_idr)
     xa_node = None
@@ -217,24 +223,16 @@ def get_bpf_struct_offsets(prog_idr, map_idr) -> int:
     return xarray_pad_sz
 
 
-def load_bpf_typeinfo():
-    if pwndbg.aglib.typeinfo.lookup_types("struct bpf_map") is not None:
-        return
-    if pwndbg.aglib.kernel.symbol.kversion_cint() is None:
-        return
+@pwndbg.aglib.kernel.typeinfo_recovery("struct bpf_map", requires_kversion=True)
+def recover_bpf_typeinfo() -> str:
     prog_idr = pwndbg.aglib.kernel.prog_idr()
     map_idr = pwndbg.aglib.kernel.map_idr()
     if not prog_idr or not map_idr:
-        print(message.warn("cannot find either prog_idr or map_idr"))
-        return
-    xarray_pad_sz = get_bpf_struct_offsets(prog_idr, map_idr)
-    if not xarray_pad_sz:
-        print(
-            message.warn(
-                "cannot find xa_head -- might be uninitialized (add a bpf prog/map first!)"
-            )
-        )
-        return
+        raise AssertionError("cannot find either prog_idr or map_idr")
+    xarray_pad_sz = get_bpf_struct_offsets(int(prog_idr), int(map_idr))
+    assert xarray_pad_sz, (
+        "cannot find xa_head -- might be uninitialized (add a bpf prog/map first!)"
+    )
     result = pwndbg.aglib.kernel.symbol.COMMON_TYPES
     result += f"""
     struct xarray {{
@@ -265,5 +263,4 @@ def load_bpf_typeinfo():
     """
     result += get_struct_bpf_prog()
     result += get_struct_bpf_map()
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "bpf_structs", True)
+    return result

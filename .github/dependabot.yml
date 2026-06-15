@@ -1,0 +1,79 @@
+version: 2
+
+updates:
+  # Python dependencies via UV
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "tuesday"
+      time: "03:00"
+      timezone: Europe/London
+
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 1
+      semver-patch-days: 1
+
+    open-pull-requests-limit: 5
+
+    groups:
+      prod-patch:
+        patterns: ["*"]
+        dependency-type: "production"
+        update-types: ["patch"]
+
+      prod-minor:
+        patterns: ["*"]
+        dependency-type: "production"
+        update-types: ["minor"]
+
+      prod-major:
+        patterns: ["*"]
+        dependency-type: "production"
+        update-types: ["major"]
+
+      dev-updates:
+        patterns: ["*"]
+        dependency-type: "development"
+
+    ignore:
+      # Pinned for CI compatibility (comment in pyproject.toml)
+      - dependency-name: "pytest"
+      # Pinned for linting consistency
+      - dependency-name: "ruff"
+      # Pinned for exploit pattern compatibility
+      - dependency-name: "ropgadget"
+      # Git dependency handled separately
+      - dependency-name: "pt"
+      # Pinned for supporting gdb 12.1 for ubuntu 22.04
+      - dependency-name: "types-gdb"
+
+    labels:
+      - "dependencies"
+
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+
+  # GitHub Actions versions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "wednesday"
+      time: "03:00"
+      timezone: "Europe/London"
+
+    groups:
+      actions:
+        patterns: ["*"]
+
+    labels:
+      - "dependencies"
+
+    commit-message:
+      prefix: "ci"
+      include: "scope"

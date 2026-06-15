@@ -5,23 +5,22 @@ The abstracted debugger interface.
 from __future__ import annotations
 
 import contextlib
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Coroutine
+from collections.abc import Generator
+from collections.abc import Iterator
+from collections.abc import Sequence
 from enum import Enum
 from typing import Any
-from typing import Awaitable
-from typing import Callable
-from typing import Coroutine
-from typing import Generator
-from typing import Iterator
-from typing import List
 from typing import Literal
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
 from typing import TypedDict
 from typing import TypeVar
 
+import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.arch import ArchDefinition
+from pwndbg.lib.siginfo import SigInfo
 
 dbg: Debugger = None
 
@@ -65,6 +64,11 @@ def selection(target: T, get_current: Callable[[], T], select: Callable[[T], Non
 
 class Error(Exception):
     pass
+
+
+class NoInferior(Exception):
+    def __init__(self) -> None:
+        super().__init__("The debugger couldn't find a selected inferior.")
 
 
 class DisassembledInstruction(TypedDict):
@@ -247,7 +251,7 @@ class Frame:
         """
         raise NotImplementedError()
 
-    def start(self) -> Optional[int]:
+    def start(self) -> int | None:
         """
         The start (highest) address of this frame. The return address
         is usually here.
@@ -266,19 +270,22 @@ class Frame:
         """
         raise NotImplementedError()
 
-    def sal(self) -> Tuple[str, int] | None:
+    def sal(self) -> tuple[str, int] | None:
         """
         The filename of the source code file associated with this frame, and the
         line number associated with it, if available.
         """
         raise NotImplementedError()
 
-    def stack_variables(self) -> Tuple[Tuple[int, int, str], ...]:
+    @pwndbg.lib.cache.cache_until("forever")
+    def stack_variables(self) -> tuple[tuple[int, int, str], ...]:
         """
         Get all stack variables (local variables and arguments) in current frame.
 
         Returns a tuple of (start_address, end_address, name) for each variable.
         Returns an empty tuple if no debug information is available or on error.
+
+        Cached forever since a Frame is to be used ephemerally.
         """
         raise NotImplementedError()
 
@@ -324,6 +331,12 @@ class Thread:
     def index(self) -> int:
         """
         The unique index of this thread from the perspective of the debugger.
+        """
+        raise NotImplementedError()
+
+    def siginfo(self) -> SigInfo | None:
+        """
+        The siginfo of this thread.
         """
         raise NotImplementedError()
 
@@ -407,7 +420,7 @@ class ExecutionController:
 
 
 class Process:
-    def threads(self) -> List[Thread]:
+    def threads(self) -> list[Thread]:
         """
         Returns a list containing the threads in this process.
         """
@@ -425,9 +438,21 @@ class Process:
         """
         raise NotImplementedError()
 
+    def is_core_file(self) -> bool:
+        """
+        Returns whether this process is a coredump file.
+        """
+        raise NotImplementedError()
+
     def stopped_with_signal(self) -> bool:
         """
         Returns whether this process was stopped by a signal.
+        """
+        raise NotImplementedError()
+
+    def stopped_at_breakpoint(self) -> bool:
+        """
+        Returns whether this process was stopped at a breakpoint.
         """
         raise NotImplementedError()
 
@@ -558,6 +583,15 @@ class Process:
         Raises:
         - pwndbg.dbg_mod.Error: If no object file matching the `objfile_endswith` pattern is found.
         """
+
+    def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
+        """
+        Return the function start and end address for a function that
+        contains address `addr`.
+
+        Returns:
+        - tuple[int, int] | None: [start, end) of function block if found (end address is exclusive)
+        """
         raise NotImplementedError()
 
     # There is an interesting counterpart to this method that exists at the
@@ -634,10 +668,14 @@ class Process:
 
     # We probably want to expose a better module interface in the future, but,
     # for now, this is good enough.
-    def module_section_locations(self) -> List[Tuple[int, int, str, str]]:
+    def module_section_locations(self) -> list[tuple[int, int, str, str]]:
         """
         Return a list of (address, size, section_name, module_name) tuples for
         the loaded sections in every module of this process.
+
+        The module name will have its full path resolved without following symlinks,
+        so it is not guaranteed to be the same string as in `/proc/<pid>/maps`
+        or vmmap.
         """
         raise NotImplementedError()
 
@@ -684,7 +722,7 @@ class Process:
         """
         raise NotImplementedError()
 
-    def add_symbol_file(self, path, base=None):
+    def add_symbol_file(self, path: str, base: int | None = None) -> None:
         """
         Adds a symbol file at base.
         """
@@ -700,9 +738,9 @@ class Process:
         """
         raise NotImplementedError()
 
-    def runcmd(self, cmd):
+    def runcmd(self, cmd: str) -> str:
         """
-        Runs a debugger command
+        Runs a debugger command and returns the output as a string.
         """
         raise NotImplementedError()
 
@@ -822,7 +860,7 @@ class Type:
         """
         raise NotImplementedError()
 
-    def func_arguments(self) -> List[Type] | None:
+    def func_arguments(self) -> list[Type] | None:
         """
         Returns a list of function arguments type.
 
@@ -834,7 +872,7 @@ class Type:
         """
         raise NotImplementedError()
 
-    def fields(self) -> List[TypeField]:
+    def fields(self) -> list[TypeField]:
         """
         List of all fields in this type, if it is a structured type.
         """
@@ -880,7 +918,7 @@ class Type:
         """
         raise NotImplementedError()
 
-    def keys(self) -> List[str]:
+    def keys(self) -> list[str]:
         """
         Returns a list containing all the field names of this type.
         """
@@ -903,7 +941,7 @@ class Type:
         return next((f.enumval for f in self.fields() if f.name == field_name), None)
 
     def _offsetof(
-        self, field_name: str, *, base_offset_bits: int = 0, nested_cyclic_types: List[Type] = None
+        self, field_name: str, *, base_offset_bits: int = 0, nested_cyclic_types: list[Type] = None
     ) -> int | None:
         NESTED_TYPES = (TypeCode.STRUCT, TypeCode.UNION)
         struct_type = self
@@ -915,7 +953,7 @@ class Type:
 
         if struct_type.code not in NESTED_TYPES:
             return None
-        elif struct_type in nested_cyclic_types:
+        if struct_type in nested_cyclic_types:
             return None
 
         # note: lldb.SBType and gdb.Type dont support Sets
@@ -1124,7 +1162,10 @@ class EventType(Enum):
 
     CONTINUE = 5
     """This event is fired after the user has requested for process execution to continue
-    after it had been previously suspended."""
+    after it had been previously suspended.
+
+    Be careful about using this event since the debugger may not allow many operations as
+    it may consider the program as 'running' when this event is dispatched (e.g. #3683)."""
 
     NEW_MODULE = 6
     """This event is fired when a new application module has been encountered by the
@@ -1150,6 +1191,8 @@ class EventHandlerPriority(Enum):
     UPDATE_ARCH_AND_TYPEINFO = 10
     """We need to initialize the architecture and type information before doing anything
     else substantial."""
+    SAVE_SIGNAL = 20
+    """Save siginfo information for displaying in the context."""
     STANDARD = 100
     """The default value."""
 
@@ -1176,7 +1219,7 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def history(self, last: int = 10) -> List[Tuple[int, str]]:
+    def history(self, last: int = 10) -> list[tuple[int, str]]:
         """
         The command history of the interactive session in this debugger.
 
@@ -1187,16 +1230,21 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def lex_args(self, command_line: str) -> List[str]:
+    def lex_args(self, command_line: str) -> list[str]:
         """
         Lexes the given command line into a list of arguments, according to the
         conventions of the debugger being used and of the interactive session.
         """
         raise NotImplementedError()
 
-    def selected_inferior(self) -> Process | None:
+    def selected_inferior(self) -> Process:
         """
         The inferior process currently being focused on in this interactive session.
+
+        Raises:
+            pwndbg.dbg_mod.NoInferior: If the debugger couldn't return an inferior. If
+                there is an alive Process (i.e. you are under @pwndbg.commands.OnlyWhenRunning)
+                this will not be raised.
         """
         raise NotImplementedError()
 
@@ -1212,7 +1260,7 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def commands(self) -> List[str]:
+    def commands(self) -> list[str]:
         """
         List the commands available in this session.
         """
@@ -1312,7 +1360,7 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def breakpoint_locations(self) -> List[BreakpointLocation]:
+    def breakpoint_locations(self) -> list[BreakpointLocation]:
         """
         Returns a list of all breakpoint locations that are currently
         installed and enabled in the focused process.
@@ -1352,7 +1400,7 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def get_cmd_window_size(self) -> Tuple[int, int]:
+    def get_cmd_window_size(self) -> tuple[int, int]:
         """
         The size of the command window, in characters, if available.
         """
@@ -1378,7 +1426,7 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
+    def set_convenience_var(self, name: str, value: str, type: str | None) -> None:
         """
         Set a convenience variable which will be accessible with $name in the
         debugger.

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+
 import gdb
 
 from pwndbg.gdblib.tui import context as context
@@ -38,7 +40,5 @@ def setup() -> None:
         ),
     ]
     for layout in tui_layouts:
-        try:
+        with contextlib.suppress(gdb.error):
             gdb.execute(layout)
-        except gdb.error:
-            pass

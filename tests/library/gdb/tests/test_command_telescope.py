@@ -75,7 +75,7 @@ def test_telescope_command_with_address_as_count(start_binary):
     rsp = pwndbg.aglib.regs.sp
 
     assert len(out) == 2
-    assert out[0] == "00:0000│ rsp %#x ◂— 1" % rsp
+    assert out[0] == f"00:0000│ rsp {rsp:#x} ◂— 1"
 
     expected = rf"01:0008│     {rsp + 8:#x} —▸ 0x[0-9a-f]+ ◂— '{pwndbg.aglib.proc.exe()}'"
     assert re.search(expected, out[1])
@@ -87,7 +87,7 @@ def test_telescope_command_with_address_as_count_and_reversed_flag(start_binary)
     out = gdb.execute("telescope -r 2", to_string=True).splitlines()
     rsp = pwndbg.aglib.regs.sp
 
-    assert out == ["00:0000│     %#x ◂— 0" % (rsp - 8), "01:0008│ rsp %#x ◂— 1" % rsp]
+    assert out == ["00:0000│     %#x ◂— 0" % (rsp - 8), f"01:0008│ rsp {rsp:#x} ◂— 1"]
 
 
 def test_command_telescope_reverse_skipped_records_shows_input_address(start_binary):

@@ -3,13 +3,13 @@ from __future__ import annotations
 import argparse
 
 import gdb
-from capstone import CS_GRP_JUMP
+from capstone6pwndbg import CS_GRP_JUMP
 
 import pwndbg.aglib.disasm.disassembly
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.bpoint
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
@@ -19,7 +19,7 @@ class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
     """
 
     def __init__(self, instruction: PwndbgInstruction, taken: bool) -> None:
-        super().__init__("*%#x" % instruction.address, type=gdb.BP_BREAKPOINT, internal=False)
+        super().__init__(f"*{instruction.address:#x}", type=gdb.BP_BREAKPOINT, internal=False)
         self.instruction = instruction
         self.taken = taken
 

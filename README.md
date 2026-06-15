@@ -16,11 +16,13 @@ and [CHEATSHEET][CHEATSHEET] (feel free to print it!). If you have any questions
 
 [CHEATSHEET]: https://pwndbg.re/dev/CHEATSHEET.pdf
 
+Want Pwndbg to keep moving fast, or, have us give a talk about it? [Sponsor us!](https://github.com/sponsors/pwndbg)
+
 ## Why?
 
 Vanilla GDB and LLDB are terrible to use for reverse engineering and exploit development.
 Typing `x/30gx $rsp` or navigating cumbersome LLDB commands is not fun and often provides
-minimal information. The year is 2025, and core debuggers still lack many user-friendly
+minimal information. The year is 2026, and core debuggers still lack many user-friendly
 features such as a robust hexdump command. WinDbg users are completely lost when they
 occasionally need to bump into GDB or LLDB.
 
@@ -37,7 +39,7 @@ See [installation instructions](https://pwndbg.re/stable/setup).
 Many past ([gdbinit][gdbinit], [PEDA][PEDA]) and present projects ([GEF][GEF],
 [bata24/GEF][bata24/GEF]) offer great features, but are hard to extend and are packaged
 as large single files ([103KB][gdbinit2], [195KB][peda.py], [423KB][gef.py],
-[4.12MB][bata24/gef.py]). Pwndbg aims to replace them with a faster, cleaner, and
+[5.24MB][bata24/gef.py]). Pwndbg aims to replace them with a faster, cleaner, and
 more robust implementation.
 
 [gdbinit]: https://github.com/gdbinit/Gdbinit
@@ -76,7 +78,7 @@ Pwndbg ensures a consistent experience across both, so switching between them is
 | pwndbg-gdb  | - Python 3.10+ <br/>- GDB 12.1+ | Battle-tested on Ubuntu 22.04/24.04  |
 | pwndbg-lldb | - Python 3.12+ <br/>- LLDB 19+  | Experimental/early-stage support     |
 | qemu-user   | QEMU 8.1+                       | vFile API is needed for vmmap        |
-| qemu-system | QEMU 6.2+                       | Supported version since ubuntu 22.04 |
+| qemu-system | QEMU 6.2+                       | Supported version since Ubuntu 22.04 |
 
 
 ## Contributing

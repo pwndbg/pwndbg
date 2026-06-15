@@ -4,15 +4,15 @@ Search the address space for byte patterns.
 
 from __future__ import annotations
 
-from typing import Collection
-from typing import Generator
+from collections.abc import Collection
+from collections.abc import Generator
 
 import pwndbg.aglib.vmmap
 import pwndbg.lib.memory
 
 
 def search(
-    searchfor: bytes,
+    searchfor: bytes | bytearray,
     mappings: Collection[pwndbg.lib.memory.Page] | None = None,
     start: int | None = None,
     end: int | None = None,
@@ -39,7 +39,7 @@ def search(
     Yields:
         An iterator on the address matches
     """
-    i = pwndbg.dbg.selected_inferior()
+    inf = pwndbg.dbg.selected_inferior()
 
     maps = mappings or pwndbg.aglib.vmmap.get()
 
@@ -72,7 +72,7 @@ def search(
         if limit and count >= limit:
             break
 
-        for element in i.find_in_memory(
+        for element in inf.find_in_memory(
             bytearray(searchfor),
             start,
             end - start,

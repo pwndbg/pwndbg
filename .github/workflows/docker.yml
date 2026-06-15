@@ -1,75 +1,267 @@
 name: Test Docker
+
 on:
+  push:
+    branches:
+      - dev
   pull_request:
-    paths:
-      - "**"
-      - "!mkdocs.yml"
-      - "!docs/**"
-      - "!*.md"
+
+concurrency:
+  # Pushes (dev): queue sequentially (prevent cache corruption)
+  # PRs: cancel in-progress runs (only test latest)
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
+  # Use dorny/paths-filter instead of on.paths so that skipped jobs report
+  # as passed to branch protection, allowing docs-only PRs to merge.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
+        with:
+          predicate-quantifier: 'every'
+          filters: |
+            code:
+              - '**'
+              - '!mkdocs.yml'
+              - '!docs/**'
+              - '!*.md'
+
   docker_x86-64:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    name: docker_x86-64 (${{ matrix.image }})
     strategy:
       fail-fast: false
       matrix:
-        images: [ubuntu22.04, ubuntu24.04, debian12, archlinux, fedora41, fedora42, fedora43]
+        include:
+          - { image: ubuntu22.04, dockerfile: Dockerfile, base: ubuntu:22.04 }
+          - { image: ubuntu24.04, dockerfile: Dockerfile, base: ubuntu:24.04 }
+          - { image: debian12, dockerfile: Dockerfile, base: debian:12 }
+          - { image: archlinux, dockerfile: Dockerfile.arch, base: archlinux:latest }
+          - { image: fedora41, dockerfile: Dockerfile.dnf, base: fedora:41 }
+          - { image: fedora42, dockerfile: Dockerfile.dnf, base: fedora:42 }
+          - { image: fedora43, dockerfile: Dockerfile.dnf, base: fedora:43 }
 
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Cache for docker images
-        uses: jpribyl/action-docker-layer-caching@v0.1.1
-        # Ignore the failure of a step and avoid terminating the job.
-        continue-on-error: true
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
-          key: ${{ matrix.images }}-cache-images-{hash}
+          fetch-depth: 0
 
-      - name: Docker Build ${{ matrix.images }}
-        run: docker compose build ${{ matrix.images }}
-
-      - name: Run GDB Tests on ${{ matrix.images }}
+      - name: Check for Dockerfile or setup changes
+        id: build-check
+        if: github.event_name == 'pull_request'
         run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g gdb
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          if git diff --name-only "origin/${{ github.base_ref }}...${{ github.event.pull_request.head.sha }}" | \
+             grep -qE '^(Dockerfile.*|setup\.sh|setup-dev\.sh|scripts/common\.sh)$'; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Run DBG Tests on GDB on ${{ matrix.images }}
-        run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g dbg
+      - name: Set up Docker Buildx
+        if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
-      - name: Run DBG Tests on LLDB on ${{ matrix.images }}
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Buildx ${{ matrix.image }} (cache-enabled)
+        id: build
+        if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
         run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg
+          docker buildx build \
+            --load \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.image }}-amd64 \
+            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0}-amd64,mode=max', matrix.image) || '' }} \
+            -f ${{ matrix.dockerfile }} \
+            --build-arg image=${{ matrix.base }} \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-amd64 \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }} \
+            .
+
+      - name: Run Tests (GDB, DBG-GDB, DBG-LLDB in parallel) on ${{ matrix.image }}
+        run: |
+          docker compose run -T --rm --pull missing -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
+            set -euo pipefail
+            # Needed to prevent race conditions - prebuild binaries and create libpython symlink
+            make -C /pwndbg/tests/binaries/host -j4 all
+            gdb --batch
+
+            set +e
+            echo "Running generic tests on gdb, generic tests on lldb, and gdb-only tests on gdb at the same time. This should take ~6-9 minutes, results outputted at the end..."
+            ./tests.sh -d gdb -g gdb > /tmp/gdb.log 2>&1 & gdb_pid=$!
+            ./tests.sh -d gdb -g dbg > /tmp/dbg-gdb.log 2>&1 & dbg_gdb_pid=$!
+            ./tests.sh -d lldb -g dbg > /tmp/dbg-lldb.log 2>&1 & dbg_lldb_pid=$!
+            wait $gdb_pid; gdb_exit=$?
+            wait $dbg_gdb_pid; dbg_gdb_exit=$?
+            wait $dbg_lldb_pid; dbg_lldb_exit=$?
+            set -e
+
+            sed "s/^/[GDB] /" /tmp/gdb.log
+            sed "s/^/[DBG-GDB] /" /tmp/dbg-gdb.log
+            sed "s/^/[DBG-LLDB] /" /tmp/dbg-lldb.log
+
+            echo ""
+            echo "========================================"
+            echo "       COMBINED TEST SUMMARY"
+            echo "========================================"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/gdb.log | sed "s/^/[GDB] /"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/dbg-gdb.log | sed "s/^/[DBG-GDB] /"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/dbg-lldb.log | sed "s/^/[DBG-LLDB] /"
+
+            exit $((gdb_exit | dbg_gdb_exit | dbg_lldb_exit))
+          '
+
+      - name: Push full image to registry
+        if: ${{ !cancelled() && github.event_name == 'push' && steps.build.outcome == 'success' }}
+        run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-amd64
 
   docker_aarch64:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    name: docker_aarch64 (${{ matrix.image }})
     strategy:
       fail-fast: false
       matrix:
-        images: [ubuntu24.04, fedora41, fedora42, fedora43]
+        include:
+          - { image: ubuntu24.04, dockerfile: Dockerfile, base: ubuntu:24.04 }
+          - { image: fedora41, dockerfile: Dockerfile.dnf, base: fedora:41 }
+          - { image: fedora42, dockerfile: Dockerfile.dnf, base: fedora:42 }
+          - { image: fedora43, dockerfile: Dockerfile.dnf, base: fedora:43 }
 
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Cache for docker images
-        uses: jpribyl/action-docker-layer-caching@v0.1.1
-        # Ignore the failure of a step and avoid terminating the job.
-        continue-on-error: true
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
-          key: ${{ matrix.images }}-cache-images-aarch64-{hash}
+          fetch-depth: 0
 
-      - name: Docker Build ${{ matrix.images }}
-        run: docker compose build ${{ matrix.images }}
-
-      - name: Run Cross Tests on GDB on ${{ matrix.images }}
+      - name: Check for Dockerfile or setup changes
+        id: build-check
+        if: github.event_name == 'pull_request'
         run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g cross-arch-user
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          if git diff --name-only "origin/${{ github.base_ref }}...${{ github.event.pull_request.head.sha }}" | \
+             grep -qE '^(Dockerfile.*|setup\.sh|setup-dev\.sh|scripts/common\.sh)$'; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Run DBG Tests on GDB on ${{ matrix.images }}
-        run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g dbg
+      - name: Set up Docker Buildx
+        if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
-      - name: Run DBG Tests on LLDB on ${{ matrix.images }}
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Buildx ${{ matrix.image }} (cache-enabled)
+        id: build
+        if: github.event_name == 'push' || steps.build-check.outputs.needed == 'true'
         run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg
+          docker buildx build \
+            --load \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.image }}-arm64 \
+            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0}-arm64,mode=max', matrix.image) || '' }} \
+            -f ${{ matrix.dockerfile }} \
+            --build-arg image=${{ matrix.base }} \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-arm64 \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }} \
+            .
+
+      - name: Run Tests (Cross, DBG-GDB, DBG-LLDB in parallel) on ${{ matrix.image }}
+        run: |
+          docker compose run -T --rm --pull missing -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
+            set -euo pipefail
+            # Needed to prevent race conditions - prebuild binaries
+            make -C /pwndbg/tests/binaries/host -j4 all
+
+            set +e
+            echo "Running generic tests on gdb, generic tests on lldb, and cross-arch tests at the same time. This should take ~6-9 minutes, results outputted at the end..."
+            ./tests.sh -d gdb -g cross-arch-user > /tmp/cross.log 2>&1 & cross_pid=$!
+            ./tests.sh -d gdb -g dbg > /tmp/dbg-gdb.log 2>&1 & dbg_gdb_pid=$!
+            ./tests.sh -d lldb -g dbg > /tmp/dbg-lldb.log 2>&1 & dbg_lldb_pid=$!
+            wait $cross_pid; cross_exit=$?
+            wait $dbg_gdb_pid; dbg_gdb_exit=$?
+            wait $dbg_lldb_pid; dbg_lldb_exit=$?
+            set -e
+
+            sed "s/^/[CROSS] /" /tmp/cross.log
+            sed "s/^/[DBG-GDB] /" /tmp/dbg-gdb.log
+            sed "s/^/[DBG-LLDB] /" /tmp/dbg-lldb.log
+
+            echo ""
+            echo "========================================"
+            echo "       COMBINED TEST SUMMARY"
+            echo "========================================"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/cross.log | sed "s/^/[CROSS] /"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/dbg-gdb.log | sed "s/^/[DBG-GDB] /"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/dbg-lldb.log | sed "s/^/[DBG-LLDB] /"
+
+            exit $((cross_exit | dbg_gdb_exit | dbg_lldb_exit))
+          '
+
+      - name: Push full image to registry
+        if: ${{ !cancelled() && github.event_name == 'push' && steps.build.outcome == 'success' }}
+        run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-arm64
+
+  create_manifest:
+    needs: [docker_x86-64, docker_aarch64]
+    if: ${{ !cancelled() && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - name: Login to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push manifests
+        run: |
+          # Multi-arch images (amd64 + arm64)
+          for image in ubuntu24.04 fedora41 fedora42 fedora43; do
+            docker buildx imagetools create -t ghcr.io/pwndbg/pwndbg:$image \
+              ghcr.io/pwndbg/pwndbg:$image-amd64 \
+              ghcr.io/pwndbg/pwndbg:$image-arm64
+          done
+
+          # amd64-only images
+          for image in ubuntu22.04 debian12 archlinux; do
+            docker buildx imagetools create -t ghcr.io/pwndbg/pwndbg:$image \
+              ghcr.io/pwndbg/pwndbg:$image-amd64
+          done

@@ -9,11 +9,9 @@ work on all versions of Darwin.
 
 from __future__ import annotations
 
-from typing import Callable
-from typing import Generator
+from collections.abc import Callable
+from collections.abc import Generator
 from typing import Generic
-from typing import List
-from typing import Tuple
 from typing import TypeVar
 
 from typing_extensions import override
@@ -205,8 +203,7 @@ class _ClassRwPtr:
         ptr = pwndbg.aglib.memory.read_pointer_width(self._ptr + 8)
         if ptr & 1 == 1:
             return _ClassRwExtPtr(ptr & ~1)
-        else:
-            return _ClassRoPtr(ptr)
+        return _ClassRoPtr(ptr)
 
 
 class _ClassDataBitsPtr:
@@ -529,7 +526,7 @@ class Object:
         if isinstance(self._id, _IdRaw):
             isa = _IsaPtr(self._id.addr)
             return isa.get_class()
-        elif isinstance(self._id, _IdTagged):
+        if isinstance(self._id, _IdTagged):
             return self._id.lookup_class()
 
 
@@ -549,15 +546,14 @@ class Class(Object):
         data = self._data_bits().data()
         if isinstance(data, _ClassRoPtr):
             return data
-        elif isinstance(data, _ClassRwPtr):
+        if isinstance(data, _ClassRwPtr):
             ro_or_rw_ext = data.ro_or_rw_ext()
             if isinstance(ro_or_rw_ext, _ClassRwExtPtr):
                 return ro_or_rw_ext.ro()
-            elif isinstance(ro_or_rw_ext, _ClassRoPtr):
+            if isinstance(ro_or_rw_ext, _ClassRoPtr):
                 return ro_or_rw_ext
-            else:
-                # FIXME: Should be `typing.assert_never`, needs Python 3.11
-                assert False
+            # FIXME: Should be `typing.assert_never`, needs Python 3.11
+            assert False
         else:
             # FIXME: Should be `typing.assert_never`, needs Python 3.11
             assert False
@@ -566,15 +562,14 @@ class Class(Object):
         data = self._data_bits().data()
         if isinstance(data, _ClassRoPtr):
             return None
-        elif isinstance(data, _ClassRwPtr):
+        if isinstance(data, _ClassRwPtr):
             ro_or_rw_ext = data.ro_or_rw_ext()
             if isinstance(ro_or_rw_ext, _ClassRwExtPtr):
                 return ro_or_rw_ext
-            elif isinstance(ro_or_rw_ext, _ClassRoPtr):
+            if isinstance(ro_or_rw_ext, _ClassRoPtr):
                 return None
-            else:
-                # FIXME: Should be `typing.assert_never`, needs Python 3.11
-                assert False
+            # FIXME: Should be `typing.assert_never`, needs Python 3.11
+            assert False
         else:
             # FIXME: Should be `typing.assert_never`, needs Python 3.11
             assert False
@@ -772,9 +767,7 @@ class Method:
                 # To resolve selectors of small method pointers in the shared cache,
                 # we have to look up the identity of @selector(🤯).
                 rel = (
-                    pwndbg.aglib.macho.shared_cache()
-                    .objc_builtin_selectors()
-                    .lookup("🤯".encode("utf-8"))
+                    pwndbg.aglib.macho.shared_cache().objc_builtin_selectors().lookup("🤯".encode())
                 )
                 ptr = rel + pwndbg.aglib.memory.s32(base)
             else:
@@ -785,8 +778,7 @@ class Method:
                 ptr = pwndbg.aglib.memory.read_pointer_width(ref)
 
             return Selector(ptr)
-        else:
-            return Selector(_ptrauth_strip(pwndbg.aglib.memory.read_pointer_width(base)))
+        return Selector(_ptrauth_strip(pwndbg.aglib.memory.read_pointer_width(base)))
 
     @property
     def types(self) -> bytes:
@@ -828,11 +820,10 @@ class Method:
             ptr = base + 8
             offset = pwndbg.aglib.memory.s32(ptr)
             return ptr + offset
-        else:
-            ptr = base + 16
-            return _ptrauth_strip(
-                pwndbg.aglib.memory.read_pointer_width(base + pwndbg.aglib.typeinfo.ptrsize)
-            )
+        ptr = base + 16
+        return _ptrauth_strip(
+            pwndbg.aglib.memory.read_pointer_width(base + pwndbg.aglib.typeinfo.ptrsize)
+        )
 
 
 class _MethodList(_EntList[Method]):
@@ -858,12 +849,11 @@ class _MethodList(_EntList[Method]):
         if self.flags() & self.SMALL_METHOD_LIST_FLAG != 0:
             # This is a small pointer list.
             return (ptr & ~3) | 1
-        elif self._ptr & self.BIG_SIGNED_METHOD_LIST_FLAG:
+        if self._ptr & self.BIG_SIGNED_METHOD_LIST_FLAG:
             # This is a big signed poitner list.
             return (ptr & ~3) | 2
-        else:
-            # No tag or flag. This is a big pointer list.
-            return ptr & ~3
+        # No tag or flag. This is a big pointer list.
+        return ptr & ~3
 
     @override
     def _addr_from_ptr(self, ptr: int) -> int:
@@ -912,7 +902,7 @@ class _ClassPropertyList(_EntList[ClassProperty]):
         return ClassProperty(ptr)
 
 
-def _parse_method_type_array(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+def _parse_method_type_array(ty: bytes, depth: int) -> tuple[Type, int] | None:
     """
     Parses a typed array entry in an Objective-C method type string.
     """
@@ -927,7 +917,7 @@ def _parse_method_type_array(ty: bytes, depth: int) -> Tuple[Type, int] | None:
     return inner[0].pointer(), inner[1] + 2
 
 
-def _parse_method_type_pointer(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+def _parse_method_type_pointer(ty: bytes, depth: int) -> tuple[Type, int] | None:
     """
     Parses a typed pointer entry in an Objective-C method type string.
     """
@@ -939,7 +929,7 @@ def _parse_method_type_pointer(ty: bytes, depth: int) -> Tuple[Type, int] | None
     return inner[0].pointer(), inner[1] + 1
 
 
-def _parse_method_type_id_typed(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+def _parse_method_type_id_typed(ty: bytes, depth: int) -> tuple[Type, int] | None:
     """
     Parses a typed `id` entry in an Objective-C method type string.
     """
@@ -952,7 +942,7 @@ def _parse_method_type_id_typed(ty: bytes, depth: int) -> Tuple[Type, int] | Non
     return pwndbg.aglib.typeinfo.lookup_types("id"), end + 1
 
 
-def _parse_method_type(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+def _parse_method_type(ty: bytes, depth: int) -> tuple[Type, int] | None:
     """
     Parses a single entry in an Objective-C method type string.
     """
@@ -1090,7 +1080,7 @@ def try_resolve_call_at_current_pc(insn: PwndbgInstruction) -> pwndbg.lib.functi
         clss = obj.cls
         while clss is not None:
             try:
-                method = next((method for method in clss.methods if method.sel.name == sel.name))
+                method = next(method for method in clss.methods if method.sel.name == sel.name)
                 break
             except StopIteration:
                 pass
@@ -1114,7 +1104,7 @@ def try_resolve_call_at_current_pc(insn: PwndbgInstruction) -> pwndbg.lib.functi
         # Because of that, we try to extract some information only on a best-
         # effort basis, since we don't know whether it will be truly useful, or
         # if the program is actively trying to confuse us.
-        sel_args: List[bytes] = [b"id", b"sel"]
+        sel_args: list[bytes] = [b"id", b"sel"]
         sel_last_args_idx = 0
         while len(sel_args) < max_method_argument_count.value:
             index = sel.name.find(b":", sel_last_args_idx)
@@ -1131,7 +1121,7 @@ def try_resolve_call_at_current_pc(insn: PwndbgInstruction) -> pwndbg.lib.functi
         fn_rettype = types[0] if len(types) > 0 else None
 
         # Build the function using the information we got.
-        fn_args: List[pwndbg.lib.functions.Argument] = []
+        fn_args: list[pwndbg.lib.functions.Argument] = []
         fn_args_unk_count = 0
         for arg_i in range(max(len(types) - 1, len(sel_args))):
             if arg_i < len(sel_args):

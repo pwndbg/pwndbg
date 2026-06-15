@@ -4,11 +4,10 @@ import contextlib
 import enum
 import sys
 from asyncio import CancelledError
+from collections.abc import Callable
+from collections.abc import Coroutine
 from typing import Any
 from typing import BinaryIO
-from typing import Callable
-from typing import Coroutine
-from typing import List
 
 import lldb
 
@@ -36,39 +35,32 @@ class EventHandler:
         """
         This function is called when a process is created or attached to.
         """
-        pass
 
     def suspended(self, cause: lldb.SBEvent):
         """
         This function is called when the execution of a process is suspended.
         """
-        pass
 
     def resumed(self):
         """
         This function is called when the execution of a process is resumed.
         """
-        pass
 
     def exited(self):
         """
         This function is called when a process terminates or is detached from.
         """
-        pass
 
     def modules_loaded(self):
         """
         This function is called when a new modules have been loaded.
         """
-        pass
 
 
 class _PollResult:
     """
     Base class for results of the run loop.
     """
-
-    pass
 
 
 class _PollResultTimedOut(_PollResult):
@@ -109,15 +101,11 @@ class LaunchResult:
     Base class for results of launch operations.
     """
 
-    pass
-
 
 class LaunchResultSuccess(LaunchResult):
     """
     Indicates that the process was fully launched or attached to.
     """
-
-    pass
 
 
 class LaunchResultEarlyExit(LaunchResult):
@@ -126,16 +114,12 @@ class LaunchResultEarlyExit(LaunchResult):
     exited immediately, with no stop events.
     """
 
-    pass
-
 
 class LaunchResultConnected(LaunchResult):
     """
     Indicates that there has been a successful connection to a remote
     debugserver, but that no process is being debugged yet.
     """
-
-    pass
 
 
 class LaunchResultError(LaunchResult):
@@ -186,6 +170,10 @@ class ProcessDriver:
     Drives the execution of a process, responding to its events and handling its
     I/O, and exposes a simple synchronous interface to the REPL interface.
 
+    # Signal Handler Safety
+    With few exceptions, no method in this class is safe to call during signal
+    handlers. Exceptions are always explicitly noted as such.
+
     # IODriver State Machine
     Because LLDB can make Python code from Pwndbg execute while an I/O driver is
     active, and having the I/O driver active while Pwndbg is running leads to
@@ -216,6 +204,9 @@ class ProcessDriver:
     _io_driver_state: _IODriverState
     "Whether the I/O driver is currently running"
 
+    _is_core_file: bool
+    "Whether the current live process is actually a core file"
+
     def __init__(self, event_handler: EventHandler, debug=False):
         self.io = None
         self.process = None
@@ -227,6 +218,7 @@ class ProcessDriver:
         self._in_run_until_next_stop = 0
         self._in_run_coroutine = 0
         self._io_driver_state = _IODriverState.STOPPED
+        self._is_core_file = False
 
     def __enter__(self) -> ProcessDriver:
         return self
@@ -265,9 +257,43 @@ class ProcessDriver:
         """
         return self.process is not None
 
+    def is_core_file(self) -> bool:
+        """
+        Whether this driver's process is a core file.
+
+        Core file processes don't support changes to the lifetime of the process.
+        """
+        return self._is_core_file
+
+    def kill(self) -> lldb.SBError:
+        """
+        Kills the currently running process.
+        """
+        assert self.has_process(), "called kill() on a driver with no process"
+        with self._suspend_interrupts():
+            e = self.process.Kill()
+            if not e.success:
+                return e
+
+            # Callers expect the process to have already been dropped by the
+            # time this method returns, so we must drive the process to
+            # completion.
+            #
+            # By the time we start driving, there might be pending stop events
+            # that aren't necessarily the ones singnaling the termination of
+            # the inferior. We keep calling _run_until_next_stop until it sees
+            # that the process has been killed, which also clears driver state
+            # for us automatically.
+            while self.has_process():
+                self._run_until_next_stop()
+
+            return lldb.SBError()
+
     def interrupt(self, in_lldb_command_handler: bool = False) -> None:
         """
         Interrupts the currently running process or command.
+
+        This method may be called during a signal handler.
         """
         if not self.has_process():
             return
@@ -300,7 +326,7 @@ class ProcessDriver:
             raise UserCancelledError("user-requested cancellation")
 
     @contextlib.contextmanager
-    def suspend_interrupts(self, interrupt: Callable[[], None] | None = None):
+    def _suspend_interrupts(self, interrupt: Callable[[], None] | None = None):
         """
         Sometimes it's necessary to guard against interruption by
         self.interrupt, especially when being interrupted would lead to bad
@@ -342,10 +368,7 @@ class ProcessDriver:
         """
         Stops the IODriver handling I/O from the process.
         """
-        assert (
-            self._io_driver_state == _IODriverState.PAUSED
-            or self._io_driver_state == _IODriverState.RUNNING
-        )
+        assert self._io_driver_state in (_IODriverState.PAUSED, _IODriverState.RUNNING)
 
         if self._io_driver_state == _IODriverState.PAUSED:
             # Not invalid, but currently a NOP. See pause_io_if_running()
@@ -405,6 +428,8 @@ class ProcessDriver:
         will only start running after the start event is observed.
         """
 
+        assert not self._is_core_file, "_run_until_next_stop is not valid for core files"
+
         # If `only_if_started` is set, we defer the starting of the I/O driver
         # to the moment the start event is observed. Otherwise, we just start it
         # immediately.
@@ -421,7 +446,7 @@ class ProcessDriver:
 
             result = None
             last_event = None
-            delay_until_io_stopped: List[Callable[[], None]] = []
+            delay_until_io_stopped: list[Callable[[], None]] = []
             while True:
                 event = lldb.SBEvent()
                 if not self.listener.WaitForEvent(timeout_time, event):
@@ -475,17 +500,17 @@ class ProcessDriver:
                             result = _PollResultStopped(event)
                             break
 
-                        if new_state == lldb.eStateRunning or new_state == lldb.eStateStepping:
+                        if new_state in (lldb.eStateRunning, lldb.eStateStepping):
                             running = True
                             # Start the I/O driver here if its start got deferred
                             # because of `only_if_started` being set.
                             if only_if_started and with_io:
                                 self._start_io_driver()
 
-                        if (
-                            new_state == lldb.eStateExited
-                            or new_state == lldb.eStateCrashed
-                            or new_state == lldb.eStateDetached
+                        if new_state in (
+                            lldb.eStateExited,
+                            lldb.eStateCrashed,
+                            lldb.eStateDetached,
                         ):
                             # Nothing else for us to do here. Clear our internal
                             # references to the process, fire the exit event, and leave.
@@ -536,6 +561,7 @@ class ProcessDriver:
         Continues execution of the process this object is driving, and returns
         whenever the process stops.
         """
+        assert not self._is_core_file, "cont is not valid for core files"
         assert self.has_process(), "called cont() on a driver with no process"
 
         self.eh.resumed()
@@ -548,7 +574,7 @@ class ProcessDriver:
         """
         assert self.has_process(), "called run_lldb_command() on a driver with no process"
 
-        with self.suspend_interrupts():
+        with self._suspend_interrupts():
             ret = lldb.SBCommandReturnObject()
             self.process.GetTarget().GetDebugger().GetCommandInterpreter().HandleCommand(
                 command, ret
@@ -588,7 +614,27 @@ class ProcessDriver:
                 #
                 # TODO/FIXME: Find a way to trigger the continued event before the process is resumed in LLDB
 
-                if not start_expected:
+                if self._is_core_file:
+                    # LLDB simply doesn't support continuing core file processes.
+                    # If we get here, either LLDB has completely lost it, or we
+                    # don't know how to handle this kind of command. Bail.
+                    assert not start_expected, "LLDB seemingly continued a core file process"
+
+                    # Because we don't have an event source, we can't directly
+                    # know if the process has been killed by the user. So, we
+                    # manually check against the state of the process after
+                    # every command.
+                    self.debug_print(
+                        f"Core File: Process state after command is {self.process.state:#x}"
+                    )
+                    if not self.process.IsValid() or self.process.state == lldb.eStateExited:
+                        self.process = None
+                        self._is_core_file = False
+                        self.debug_print("exited()")
+                        self.eh.exited()
+                        self.debug_print("Core File: Finished debugging core file")
+
+                elif not start_expected:
                     # Even if the current process has not been resumed, LLDB might
                     # have posted process events for us to handle. Do so now, but
                     # stop right away if there is nothing for us in the listener.
@@ -605,6 +651,7 @@ class ProcessDriver:
         process in this driver. Returns `True` if the coroutine ran to completion,
         and `False` if it was cancelled.
         """
+        assert not self._is_core_file, "run_coroutine is not valid for core files"
         try:
             return self._run_coroutine(coroutine)
         except CancelledError:
@@ -617,10 +664,11 @@ class ProcessDriver:
         This loop may be spuriously cancelled. We handle that in run_coroutine().
         """
 
+        assert not self._is_core_file, "_run_coroutine is not valid for core files"
         assert self.has_process(), "called run_coroutine() on a driver with no process"
 
         self.debug_print("Coroutine: Starting")
-        exceptions: List[BaseException] = []
+        exceptions: list[BaseException] = []
 
         def queue_cancel():
             self.debug_print("Coroutine: Queueing up user cancellation exception")
@@ -649,7 +697,7 @@ class ProcessDriver:
 
             # Being interrupted here would be bad for keeping the state of the
             # process consistent.
-            with self.suspend_interrupts(interrupt=queue_cancel):
+            with self._suspend_interrupts(interrupt=queue_cancel):
                 if isinstance(step, YieldSingleStep):
                     self.debug_print("Coroutine: Performing ExecutionController.single_step()")
                     # Pick the currently selected thread and step it forward by one
@@ -725,13 +773,13 @@ class ProcessDriver:
                             # [3]: https://discourse.llvm.org/t/sbthread-isstopped-always-returns-false-on-linux/36944/5
 
                             bpwp_id = None
-                            if thread.GetStopReason() == lldb.eStopReasonBreakpoint and isinstance(
-                                stop, lldb.SBBreakpoint
-                            ):
-                                bpwp_id = thread.GetStopReasonDataAtIndex(0)
-                            elif (
-                                thread.GetStopReason() == lldb.eStopReasonWatchpoint
-                                and isinstance(stop, lldb.SBWatchpoint)
+                            if (
+                                thread.GetStopReason() == lldb.eStopReasonBreakpoint
+                                and isinstance(stop, lldb.SBBreakpoint)
+                                or (
+                                    thread.GetStopReason() == lldb.eStopReasonWatchpoint
+                                    and isinstance(stop, lldb.SBWatchpoint)
+                                )
                             ):
                                 bpwp_id = thread.GetStopReasonDataAtIndex(0)
 
@@ -816,8 +864,8 @@ class ProcessDriver:
 
     def _launch_remote(
         self,
-        env: List[str],
-        args: List[str],
+        env: list[str],
+        args: list[str],
         working_dir: str | None,
         extra_flags: int,
     ) -> lldb.SBError:
@@ -849,8 +897,8 @@ class ProcessDriver:
         self,
         target: lldb.SBTarget,
         io: IODriver,
-        env: List[str],
-        args: List[str],
+        env: list[str],
+        args: list[str],
         working_dir: str | None,
         extra_flags: int,
     ) -> lldb.SBError:
@@ -906,8 +954,8 @@ class ProcessDriver:
         self,
         target: lldb.SBTarget,
         io: IODriver,
-        env: List[str],
-        args: List[str],
+        env: list[str],
+        args: list[str],
         working_dir: str | None,
         disable_aslr: bool,
     ) -> LaunchResult:
@@ -926,9 +974,55 @@ class ProcessDriver:
             if isinstance(result, LaunchResultError):
                 result.disconnected = True
             return result
-        else:
-            self._prepare_listener_for(target)
-            return self._enter(self._launch_local, target, io, env, args, working_dir, extra_flags)
+        self._prepare_listener_for(target)
+        return self._enter(self._launch_local, target, io, env, args, working_dir, extra_flags)
+
+    def launch_core_file(self, target: lldb.SBTarget, core: str) -> LaunchResult:
+        """
+        Launches the given core file and puts the process driver into core file
+        mode.
+
+        In core file mode, using lifetime-related functionality - continuing,
+        running coroutines, etc. - is forbidden. Core file mode ends when the
+        process exits.
+
+        Fires the created() and suspended() events.
+        """
+
+        # The _enter machinery runs the event loop as part of initializing the
+        # new process. We don't want that here. Processes built by LoadCore
+        # don't broadcast lifetime events, and using _run_until_next_stop when
+        # there's nothing to listen to is iffy at best.
+
+        error = lldb.SBError()
+        self.process = target.LoadCore(core, error)
+
+        if not error.success:
+            self.process = None
+            return LaunchResultError(error, False)
+
+        assert self.process.IsValid()
+        self.debug_print("Core File: Loaded")
+        self.debug_print("Core File: All events will be simulated by ProcessDriver")
+
+        # Enter core file mode, disabling all lifetime controls in the process
+        # driver, as well as the event loop. This ensures that the driver won't
+        # get stuck trying to either control or handle events from a process
+        # that does not support it.
+        self._is_core_file = True
+
+        # Still fire the created event as normal. Process objects based on core
+        # files are created in the stopped state, and stay in it for the
+        # duration of their lifetimes.
+        #
+        # From the point of view of the rest of pwndbg, this is no different
+        # from firing the event after having run _wait_until_next_stop.
+        self.debug_print("Core File: created()")
+        self.eh.created()
+        self.debug_print("Core File: suspended(None)")
+        self.eh.suspended(None)
+
+        return LaunchResultSuccess()
 
     def attach(self, target: lldb.SBTarget, info: lldb.SBAttachInfo) -> LaunchResult:
         """
@@ -942,9 +1036,8 @@ class ProcessDriver:
             if isinstance(result, LaunchResultError):
                 result.disconnected = True
             return result
-        else:
-            self._prepare_listener_for(target)
-            return self._enter(self._attach_local, target, info)
+        self._prepare_listener_for(target)
+        return self._enter(self._attach_local, target, info)
 
     def connect(self, target: lldb.SBTarget, io: IODriver, url: str, plugin: str) -> LaunchResult:
         """

@@ -1,0 +1,5 @@
+# version 1
+
+set highlight-color bold,green
+
+# vim: ft=gdb

@@ -10,3 +10,7 @@ nav:
   - common-pitfalls.md
   - improving-annotations.md
   - making-a-gif.md
+  - testing-crossarch.md
+  - libc-provider.md
+  - allocator.md
+  - stacked-pr.md

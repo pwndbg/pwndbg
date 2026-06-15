@@ -6,16 +6,11 @@ standardized interface to registers like "sp" and "pc".
 from __future__ import annotations
 
 import itertools
+from collections import OrderedDict
 from collections import defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Dict
-from typing import Iterator
-from typing import List
-from typing import OrderedDict
 from typing import Protocol
-from typing import Set
-from typing import Tuple
-from typing import Union
 
 from typing_extensions import override
 
@@ -48,10 +43,10 @@ class BitFlags(VisitableRegister):
     #   - aarch64_cpsr_flags is used for "cpsr", "spsr_el1", "spsr_el2", "spsr_el3"
     #   - aarch64_sctlr_flags is used for "sctlr", "sctlr_el2", "sctlr_el3"
     regname: str
-    flags: OrderedDict[str, Union[int, Tuple[int, int]]]
+    flags: OrderedDict[str, int | tuple[int, int]]
     value: int
 
-    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = []):
+    def __init__(self, flags: list[tuple[str, int | tuple[int, int]]] = []):
         self.regname = ""
         self.flags = OrderedDict()
         for name, bits in flags:
@@ -118,9 +113,9 @@ class SegmentRegisters(VisitableRegister):
     Represents the x86 segment register set
     """
 
-    regs: List[str]
+    regs: list[str]
 
-    def __init__(self, regs: List[str]):
+    def __init__(self, regs: list[str]):
         self.regs = regs
 
     @override
@@ -138,16 +133,16 @@ class KernelRegisterSet:
     segments: SegmentRegisters
 
     # Control registers (cr0, cr3, cr4)
-    controls: Dict[str, BitFlags | AddressingRegister]
+    controls: dict[str, BitFlags | AddressingRegister]
 
     # Model specific registers
-    msrs: Dict[str, BitFlags | AddressingRegister]
+    msrs: dict[str, BitFlags | AddressingRegister]
 
     def __init__(
         self,
         segments: SegmentRegisters,
-        controls: Dict[str, BitFlags | AddressingRegister] = {},
-        msrs: Dict[str, BitFlags | AddressingRegister] = {},
+        controls: dict[str, BitFlags | AddressingRegister] = {},
+        msrs: dict[str, BitFlags | AddressingRegister] = {},
     ):
         self.segments = segments
         self.controls = controls
@@ -192,37 +187,37 @@ class RegisterSet:
     frame: str | None = None
     """Frame pointer register"""
 
-    retaddr: Tuple[str, ...]
+    retaddr: tuple[str, ...]
     """Return address register"""
 
-    flags: Dict[str, BitFlags]
+    flags: dict[str, BitFlags]
     """Maps name of flag register (eflags, cpsr) to a structure detailing what the bits mean"""
 
-    gpr: Tuple[str, ...]
+    gpr: tuple[str, ...]
     """List of native-size general-purpose registers"""
 
-    misc: Tuple[str, ...]
+    misc: tuple[str, ...]
     """List of miscellaneous, valid registers"""
 
-    args: Tuple[str, ...]
+    args: tuple[str, ...]
     """Register-based arguments for most common ABI"""
 
     retval: str | None
     """Return value register"""
 
-    common: List[str] = []
+    common: list[str] = []
     """Common registers which should be displayed in the register context"""
 
     kernel: KernelRegisterSet | None
     """Extra registers for kernel debugging"""
 
-    all: Set[str]
+    all: set[str]
     """All valid registers"""
 
-    reg_definitions: Dict[str, Reg]
+    reg_definitions: dict[str, Reg]
     """Map of register name to Reg objects containing information on the register"""
 
-    full_register_lookup: Dict[str, Reg]
+    full_register_lookup: dict[str, Reg]
     """
     Map of register name to the full register it resides in.
     Example mapping: "eax" -> Reg("rax")
@@ -230,7 +225,7 @@ class RegisterSet:
     A full size register maps to itself.
     """
 
-    special_aliases: Dict[str, str]
+    special_aliases: dict[str, str]
     """
     Contains two values:
     - "sp" -> stack pointer register name
@@ -242,12 +237,12 @@ class RegisterSet:
         pc: Reg = Reg("pc"),
         stack: Reg = Reg("sp"),
         frame: Reg | None = None,
-        retaddr: Tuple[Reg, ...] = (),
-        flags: Dict[str, BitFlags] = {},
-        extra_flags: Dict[str, BitFlags] = {},
-        gpr: Tuple[Reg, ...] = (),
-        misc: Tuple[str, ...] = (),
-        args: Tuple[str, ...] = (),
+        retaddr: tuple[Reg, ...] = (),
+        flags: dict[str, BitFlags] = {},
+        extra_flags: dict[str, BitFlags] = {},
+        gpr: tuple[Reg, ...] = (),
+        misc: tuple[str, ...] = (),
+        args: tuple[str, ...] = (),
         kernel: KernelRegisterSet | None = None,
         retval: str | None = None,
     ) -> None:
@@ -263,7 +258,7 @@ class RegisterSet:
         self.retval = retval
         self.kernel = kernel
 
-        all_subregisters: List[str] = []
+        all_subregisters: list[str] = []
 
         self.reg_definitions = {}
         self.full_register_lookup = {}
@@ -297,7 +292,7 @@ class RegisterSet:
         # we must write the flags register after PC, and the stack pointer after the flags register.
         # Otherwise, the values will be clobbered
         # https://github.com/pwndbg/pwndbg/pull/2337
-        self.emulated_regs_order: List[UnicornRegisterWrite] = []
+        self.emulated_regs_order: list[UnicornRegisterWrite] = []
 
         # Avoid duplicates
         seen_emulated_register: set[str] = set()
@@ -311,7 +306,7 @@ class RegisterSet:
             self.gpr,
         ):
             if regname and regname not in seen_emulated_register:
-                emu_reg = UnicornRegisterWrite(regname, True if regname in flags else False)
+                emu_reg = UnicornRegisterWrite(regname, regname in flags)
                 self.emulated_regs_order.append(emu_reg)
                 seen_emulated_register.add(regname)
 
@@ -399,7 +394,7 @@ class PseudoEmulatedRegisterFile:
         # Definition of the register we are writing
         write_reg_def = self.register_set.reg_definitions.get(reg)
         if write_reg_def is None:
-            return None
+            return
 
         register_bit_offset = write_reg_def.offset * 8
         written_register_size = (
@@ -480,7 +475,7 @@ class PseudoEmulatedRegisterFile:
         # Definition of the register we are invalidating
         written_reg_def = self.register_set.reg_definitions.get(reg)
         if written_reg_def is None:
-            return None
+            return
 
         register_bit_offset = written_reg_def.offset * 8
         written_register_size = (
@@ -720,6 +715,7 @@ x86flags = {
             ("IF", 9),
             ("DF", 10),
             ("OF", 11),
+            ("IOPL", (12, 13)),
             ("AC", 18),
         ]
     )
@@ -1280,7 +1276,48 @@ s390x = RegisterSet(
     retval="r2",
 )
 
-reg_sets: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
+hexagon = RegisterSet(
+    stack=Reg("sp"),
+    frame=Reg("fp"),
+    retaddr=(Reg("lr"),),
+    gpr=(
+        Reg("r0"),
+        Reg("r1"),
+        Reg("r2"),
+        Reg("r3"),
+        Reg("r4"),
+        Reg("r5"),
+        Reg("r6"),
+        Reg("r7"),
+        Reg("r8"),
+        Reg("r9"),
+        Reg("r10"),
+        Reg("r11"),
+        Reg("r12"),
+        Reg("r13"),
+        Reg("r14"),
+        Reg("r15"),
+        Reg("r16"),
+        Reg("r17"),
+        Reg("r18"),
+        Reg("r19"),
+        Reg("r20"),
+        Reg("r21"),
+        Reg("r22"),
+        Reg("r23"),
+        Reg("r24"),
+        Reg("r25"),
+        Reg("r26"),
+        Reg("r27"),
+        Reg("r28"),
+        Reg("r29"),
+        Reg("r30"),
+        Reg("r31"),
+    ),
+)
+
+
+reg_sets: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "i386": i386,
     "i8086": i386,
     "x86-64": amd64,
@@ -1294,4 +1331,5 @@ reg_sets: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "powerpc": powerpc,
     "loongarch64": loongarch64,
     "s390x": s390x,
+    "hexagon": hexagon,
 }

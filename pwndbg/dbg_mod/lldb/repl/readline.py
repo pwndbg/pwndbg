@@ -10,12 +10,25 @@ import contextlib
 import functools
 import os.path
 import sys
-from typing import Callable
+from collections.abc import Callable
 from typing import ParamSpec
 from typing import TypeVar
 
 if sys.platform != "win32":
-    import gnureadline as readline
+    try:
+        import gnureadline as readline
+    except ImportError:
+        import readline
+
+        backend = None
+        if sys.version_info >= (3, 13):
+            backend = readline.backend
+
+        if backend != "readline":
+            info_msg = "INFO: gnureadline is not installed, for best REPL experience please install gnureadline"
+            if sys.stdout.isatty():
+                info_msg = f"\x1b[90m{info_msg}\x1b[0m"
+            print(info_msg)
 else:
     import readline
 

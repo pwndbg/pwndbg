@@ -33,30 +33,59 @@ def fixup_paths(src_root: Path, venv_path: Path):
     # sys.prefix must be changed to point to the virtual environment.
     # This is what python expect: https://docs.python.org/3/library/sys.html#sys.prefix
     sys.prefix = str(venv_path)
+    sys.exec_prefix = str(venv_path)
+
+
+def is_system_installation(src_root: Path) -> bool:
+    # NOTE: Keep this in sync with `pwndbginit.common.is_system_installation`.
+    # It is intentionally duplicated here so that `gdbinit.py` does not import the
+    # `pwndbginit` package before `fixup_paths()` has corrected `sys.path`. Otherwise,
+    # a system-wide Pwndbg installation (e.g. an Arch `pwndbg` package in the global
+    # site-packages) could shadow the source checkout that is being sourced, leading
+    # to a confusing mix of modules loaded from two different locations. See:
+    # https://github.com/pwndbg/pwndbg/issues/3963
+    #
+    # If pwndbg is installed in `/venv/lib/pythonX.Y/site-packages/pwndbg/`,
+    # the `.pwndbg_root` file will not exist because `src_root` will point to the
+    # `/venv/lib/pythonX.Y/site-packages/` directory, not the original source directory.
+    #
+    # However, if pwndbg is installed in editable mode (our recommended way), this file
+    # will exist, and the condition will be False, allowing auto-update.
+    return not (src_root / ".pwndbg_root").exists()
 
 
 def get_venv_path(src_root: Path):
     venv_path_env = os.environ.get("PWNDBG_VENV_PATH")
     if venv_path_env:
         return Path(venv_path_env).expanduser().resolve()
-    else:
-        return src_root / ".venv"
+
+    # Handle case when `gdbinit.py` is running from inside venv, eg: `venv/share/pwndbg/gdbinit.py`
+    # See, example usage: https://github.com/pwndbg/pwndbg/pull/3737
+    if (
+        src_root.parent.name == "share"
+        and src_root.name == "pwndbg"
+        and (src_root / "../../pyvenv.cfg").exists()
+    ):
+        return src_root.parent.parent
+
+    return src_root / ".venv"
 
 
 def main() -> None:
+    # Check if pwndbg was already loaded from `pwndbg` binary
+    if "pwndbg" in sys.modules and hasattr(sys.modules["pwndbg"], "_is_loaded_from_pwndbg"):
+        print(
+            "\033[90m~/.gdbinit: Skipped loading Pwndbg from `source path/gdbinit.py` - already loaded.\033[0m",
+            flush=True,
+        )
+        return
+
     src_root = Path(__file__).parent.resolve()
 
-    skip_venv = False
-    try:
-        # This can fail if Pwndbg is not installed to system site-packages
-        # on our regular virtualenv setup
-        from pwndbginit.common import is_system_installation
-
-        # If Pwndbg is installed by distro package manager, skip virtualenv check
-        if is_system_installation(src_root):
-            skip_venv = True
-    except ImportError:
-        pass
+    # If Pwndbg is installed by a distro package manager, skip the virtualenv check.
+    # `is_system_installation` is inlined (not imported from `pwndbginit`) on purpose so
+    # we don't import the `pwndbginit` package before `fixup_paths()` fixes `sys.path`.
+    skip_venv = is_system_installation(src_root)
 
     if not skip_venv:
         venv_path = get_venv_path(src_root)

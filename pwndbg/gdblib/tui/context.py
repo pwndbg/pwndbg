@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Callable
-from typing import List
-from typing import Pattern
+from collections.abc import Callable
+from re import Pattern
 
 import gdb
 
@@ -28,10 +27,10 @@ like the "disasm" or "stack" windows.
 
 
 class ContextTUIWindow:
-    _tui_window: "gdb.TuiWindow"
+    _tui_window: gdb.TuiWindow
     _section: str
-    _lines: List[str]
-    _blank_line_lengths: List[int]
+    _lines: list[str]
+    _blank_line_lengths: list[int]
     _longest_line: int
     _before_prompt_listener: Callable[[None], object]
     _vscroll_start: int
@@ -42,9 +41,9 @@ class ContextTUIWindow:
     _enabled: bool
 
     _static_enabled: bool = True
-    _context_windows: List[ContextTUIWindow] = []
+    _context_windows: list[ContextTUIWindow] = []
 
-    def __init__(self, tui_window: "gdb.TuiWindow", section: str) -> None:
+    def __init__(self, tui_window: gdb.TuiWindow, section: str) -> None:
         self._tui_window = tui_window
         self._section = section
         self._tui_window.title = section
@@ -166,10 +165,9 @@ class ContextTUIWindow:
                 if not ContextTUIWindow._static_enabled and pwndbg.dbg.selected_inferior().alive():
                     context()
                 ContextTUIWindow._static_enabled = True
-        else:
-            if self._enabled:
-                self._disable()
-                ContextTUIWindow._static_enabled = False
+        elif self._enabled:
+            self._disable()
+            ContextTUIWindow._static_enabled = False
         return is_valid
 
     def _ansi_substr(self, line: str, start_char: int, end_char: int) -> str:
@@ -219,8 +217,8 @@ class ContextTUIWindow:
     # https://github.com/pwndbg/pwndbg/issues/2654
     if gdb_version < (16, 3):
         ___ansi_substr = _ansi_substr
-        _ansi_substr = (
-            lambda *a, **kw: ContextTUIWindow.___ansi_substr(*a, **kw)
+        _ansi_substr = lambda *a, **kw: (
+            ContextTUIWindow.___ansi_substr(*a, **kw)
             .replace("\x1b[39m", "\x1b[0m")
             .replace("\x1b[49m", "\x1b[0m")
             .replace("\x1b[39;49m", "\x1b[0m")
@@ -233,8 +231,8 @@ if hasattr(gdb, "register_window_type"):
     ]
     for section_name in sections:
         # https://github.com/python/mypy/issues/12557
-        target_func: Callable[..., gdb._Window] = (
-            lambda window, section_name=section_name: ContextTUIWindow(window, section_name)
+        target_func: Callable[..., gdb._Window] = lambda window, section_name=section_name: (
+            ContextTUIWindow(window, section_name)
         )
         gdb.register_window_type(
             "pwndbg_" + section_name,

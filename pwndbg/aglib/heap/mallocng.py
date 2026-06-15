@@ -6,25 +6,21 @@ https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng
 from __future__ import annotations
 
 from enum import Enum
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 from typing_extensions import override
 
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.heap.heap
-import pwndbg.aglib.memory as memory
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.auxv
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.search
+from pwndbg.aglib import memory
+from pwndbg.color import message
 
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L14
 # Slot granularity.
@@ -35,7 +31,7 @@ IB: int = 4
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L12
 # Describes the possible sizes a slot can be. These are `/ UNIT`.
 # fmt: off
-size_classes: List[int] = [
+size_classes: list[int] = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 20,
     25, 31, 36, 42, 50, 63, 72, 84, 102, 127, 146,
     170, 204, 255, 292, 340, 409, 511, 584, 682, 818,
@@ -158,30 +154,30 @@ class Slot:
         self.p: int = p
 
         # == The p header fields.
-        self._offset: int = None
+        self._offset: int | None = None
         # p[-3]. Stores lot's of different kinds of
         # information.
-        self._pn3: int = None
-        self._idx: int = None
-        self._reserved_hd: int = None
-        self._big_offset_check: int = None
+        self._pn3: int | None = None
+        self._idx: int | None = None
+        self._reserved_hd: int | None = None
+        self._big_offset_check: int | None = None
         # ==
 
         # == The footer fields.
-        self._reserved_ft: int = None
+        self._reserved_ft: int | None = None
         # ==
 
         # == The start header fields.
-        self._start: int = None
-        self._cyclic_offset: int = None
+        self._start: int | None = None
+        self._cyclic_offset: int | None = None
         # start[-3]. Stores whether we are cyclic.
-        self._startn3: int = None
+        self._startn3: int | None = None
         # ==
 
-        self._reserved: int = None
-        self._group: Group = None
-        self._meta: Meta = None
-        self._slot_state: SlotState = None
+        self._reserved: int | None = None
+        self._group: Group | None = None
+        self._meta: Meta | None = None
+        self._slot_state: SlotState | None = None
 
     def preload(self) -> None:
         """
@@ -494,7 +490,7 @@ class Slot:
             # the meta if the state is ALLOCATED.
             # We will do a heuristic check that should be good in most cases.
 
-            meta_says: SlotState = None
+            meta_says: SlotState | None = None
             try:
                 meta_says = self.meta.slotstate_at_index(self.idx)
             except pwndbg.dbg_mod.Error:
@@ -504,16 +500,15 @@ class Slot:
 
             if meta_says is not None:
                 self._slot_state = meta_says
+            # When a slot is freed, its p[-3] gets set to 0xFF so the
+            # offset to group start (and by extension, meta) is unrecoverable.
+            # We will check for this, although musl only ever sets this
+            # and never uses this as a source of truth.
+            elif self.pn3 == 0xFF:
+                # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L112
+                self._slot_state = SlotState.FREED
             else:
-                # When a slot is freed, its p[-3] gets set to 0xFF so the
-                # offset to group start (and by extension, meta) is unrecoverable.
-                # We will check for this, although musl only ever sets this
-                # and never uses this as a source of truth.
-                if self.pn3 == 0xFF:
-                    # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L112
-                    self._slot_state = SlotState.FREED
-                else:
-                    self._slot_state = SlotState.AVAIL
+                self._slot_state = SlotState.AVAIL
 
         return self._slot_state
 
@@ -550,22 +545,22 @@ class Slot:
     # constructors..
 
     @classmethod
-    def from_p(cls, p: int) -> "Slot":
+    def from_p(cls, p: int) -> Slot:
         return cls(p)
 
     @classmethod
-    def from_start(cls, start: int) -> "Slot":
+    def from_start(cls, start: int) -> Slot:
         # We need to check if we are cyclic or not.
         # See is_cyclic() and cyclic_offset() logic.
         sn3 = memory.u8(start - 3)
         if sn3 == 224:
             off = memory.u16(start - 2)
             obj = cls(start + off * UNIT)
-            obj._sn3 = sn3
+            obj._startn3 = sn3
         else:
             # freed / avail slots will also go into this branch.
             obj = cls(start)
-            obj._sn3 = obj._pn3 = sn3
+            obj._startn3 = obj._pn3 = sn3
 
         obj._start = start
 
@@ -626,17 +621,17 @@ class Meta:
     def __init__(self, addr: int) -> None:
         self.addr: int = addr
 
-        self._prev: int = None
-        self._next: int = None
-        self._mem: int = None
-        self._avail_mask: int = None
-        self._freed_mask: int = None
-        self._last_idx: int = None
-        self._freeable: int = None
-        self._sizeclass: int = None
-        self._maplen: int = None
+        self._prev: int | None = None
+        self._next: int | None = None
+        self._mem: int | None = None
+        self._avail_mask: int | None = None
+        self._freed_mask: int | None = None
+        self._last_idx: int | None = None
+        self._freeable: int | None = None
+        self._sizeclass: int | None = None
+        self._maplen: int | None = None
 
-        self._stride: int = None
+        self._stride: int | None = None
 
     def preload(self) -> None:
         """
@@ -802,12 +797,11 @@ class Meta:
         if self._stride is None:
             if not self.last_idx and self.maplen:
                 self._stride = self.maplen * 4096 - UNIT
+            elif self.sizeclass < len(size_classes):
+                self._stride = UNIT * size_classes[self.sizeclass]
             else:
-                if self.sizeclass < len(size_classes):
-                    self._stride = UNIT * size_classes[self.sizeclass]
-                else:
-                    # The meta is corrupted.
-                    self._stride = -1
+                # The meta is corrupted.
+                self._stride = -1
 
         return self._stride
 
@@ -879,10 +873,9 @@ class Meta:
         me = 1 << idx
         if self.freed_mask & me:
             return SlotState.FREED
-        elif self.avail_mask & me:
+        if self.avail_mask & me:
             return SlotState.AVAIL
-        else:
-            return SlotState.ALLOCATED
+        return SlotState.ALLOCATED
 
     @staticmethod
     def sizeof() -> int:
@@ -992,10 +985,10 @@ class MallocContext:
         self.meta_area_head: int = 0
         self.meta_area_tail: int = 0
         self.avail_meta_areas: int = 0
-        self.active: List[int] = []
-        self.usage_by_class: List[int] = []
-        self.unmap_seq: List[int] = []
-        self.bounces: List[int] = []
+        self.active: list[int] = []
+        self.usage_by_class: list[int] = []
+        self.unmap_seq: list[int] = []
+        self.bounces: list[int] = []
         self.seq: int = 0
         self.brk: int = 0
 
@@ -1123,8 +1116,8 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         self.finished_init: bool = False
 
         self.ctx_addr: int = 0
-        self.ctx: Optional[MallocContext] = None
-        self.has_debug_syms: bool = False
+        self.ctx: MallocContext | None = None
+        self.has_internal_syms: bool = False
 
     def init_if_needed(self) -> bool:
         """
@@ -1144,12 +1137,13 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             # Whoever called init_if_needed() needs to use the Mallocng
             # class, which needs an up-to-date view of __malloc_context,
             # so we will update it here.
+            assert self.ctx is not None, "Init was finished but self.ctx is not initialized?"
             self.ctx.load()
             return True
 
         self.ctx_addr = 0
         self.ctx = None
-        self.has_debug_syms = False
+        self.has_internal_syms = False
 
         # We will go in optimistically, and let set_ctx_addr() potentially
         # prove us wrong.
@@ -1167,15 +1161,16 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         """
         uint64size = pwndbg.aglib.typeinfo.uint64.sizeof
 
-        self.ctx_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
-        if self.ctx_addr is not None:
-            self.has_debug_syms = True
+        ctx_addr_maybe: int | None = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
+        if ctx_addr_maybe is not None:
+            self.ctx_addr = ctx_addr_maybe
+            self.has_internal_syms = True
             self.ctx = MallocContext(self.ctx_addr)
             return
 
         # No debug information :(
         self.ctx_addr = 0
-        self.has_debug_syms = False
+        self.has_internal_syms = False
 
         # We will find the __malloc_context object by searching memory for
         # the secret.
@@ -1194,18 +1189,20 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # (structures copying the secret). We want it either from the libc.so
         # mapping (if musl is dynamically linked) or the executable's
         # mapping (if musl is statically linked).
-        possible: List[Tuple[int, str]] = []
+        possible: list[tuple[int, str]] = []
         thread_stacks = pwndbg.aglib.stack.get().values()
 
         for sm in secret_matches:
             if any(sm in stack_page for stack_page in thread_stacks):
                 continue
 
-            mapping_name = pwndbg.aglib.vmmap.find(sm).objfile
-            if "[heap" in mapping_name:
+            mapping = pwndbg.aglib.vmmap.find(sm)
+            if mapping is None:
+                continue
+            if "[heap" in mapping.objfile:
                 continue
 
-            possible.append((sm, mapping_name))
+            possible.append((sm, mapping.objfile))
 
         if not possible:
             print(message.error("Couldn't find __malloc_context, even with heuristic."))
@@ -1228,8 +1225,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         self.ctx_addr = addr
                         self.ctx = maybe_ctx
                         return
-                    else:
-                        known_invalid.add(addr)
+                    known_invalid.add(addr)
 
             for addr, mapname in possible:
                 if addr in known_invalid:
@@ -1238,19 +1234,13 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 # It is probably better for this matching to be overly eager than overly restrictive,
                 # we can fix it later if we ever actually encounter false positives.
                 # The .startswith() logic is there for CTF-type setups when the libc/ld is in the same folder as the binary.
-                if (
-                    "/libc" in mapname
-                    or "/ld-" in mapname
-                    or mapname.startswith("libc")
-                    or mapname.startswith("ld-")
-                ):
+                if "/libc" in mapname or "/ld-" in mapname or mapname.startswith(("libc", "ld-")):
                     maybe_ctx = MallocContext(addr)
                     if maybe_ctx.looks_valid():
                         self.ctx_addr = addr
                         self.ctx = maybe_ctx
                         return
-                    else:
-                        known_invalid.add(addr)
+                    known_invalid.add(addr)
 
             print(
                 message.warn(
@@ -1296,13 +1286,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 )
             )
 
-    @override
-    def libc_has_debug_syms(self) -> bool:
-        return self.has_debug_syms
-
     def find_slot(
         self, address: int, metadata: bool = False, shallow: bool = False
-    ) -> Tuple[Optional[GroupedSlot], Optional[Slot]]:
+    ) -> tuple[GroupedSlot | None, Slot | None]:
         """
         Get the slot which contains this address.
 
@@ -1319,9 +1305,12 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         Returns (None, None) if nothing is found.
         """
+        if self.ctx is None:
+            raise AssertionError("You didn't initialize ng.")
+
         metadata_offset = IB if metadata else 0
         # The group which contains a slot which contains `address`.
-        hit_group: Optional[Group] = None
+        hit_group: Group | None = None
 
         meta_area_addr = self.ctx.meta_area_head
         while meta_area_addr:
@@ -1343,7 +1332,15 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     if not meta.mem:
                         # Skip unused metas.
                         continue
+                except pwndbg.dbg_mod.Error as e:
+                    print(
+                        message.error(
+                            f"Mallocng.containing: Could not read/parse meta.({e}), skipping it.."
+                        )
+                    )
+                    continue
 
+                try:
                     group = Group(meta.mem)
                     group.set_meta(meta)
 
@@ -1374,9 +1371,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             return None, None
 
         # Need to read memory for the .contains_group() check.
-        hit_slot: Optional[Slot] = None
+        hit_slot: Slot | None = None
         # Contains extra information.
-        hit_grouped_slot: Optional[GroupedSlot] = None
+        hit_grouped_slot: GroupedSlot | None = None
 
         if shallow:
             backup_addr = hit_group.addr
@@ -1453,10 +1450,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         found, _ = self.find_slot(address, metadata, shallow)
         if found is None:
             return 0
-        else:
-            return found.start
+        return found.start
 
-    def get_free_metas(self) -> Dict[int, Tuple[int, Meta]]:
+    def get_free_metas(self) -> dict[int, tuple[int, Meta]]:
         """
         Get all free metas by traversing the ctx.free_meta_head doubly
         linked list. Map them to their index in the list.
@@ -1468,6 +1464,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         Returns:
             A dictionary that maps: meta address -> (meta index in list, Meta object).
         """
+        if self.ctx is None:
+            raise AssertionError("You didn't initialize ng.")
+
         if self.ctx.free_meta_head == 0:
             return {}
 
@@ -1478,7 +1477,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # We could check for everything, but mallocng doesn't so lets not.
 
         start_meta = Meta(self.ctx.free_meta_head)
-        meta_dict: Dict[int, Tuple[int, Meta]] = {start_meta.addr: (0, start_meta)}
+        meta_dict: dict[int, tuple[int, Meta]] = {start_meta.addr: (0, start_meta)}
 
         idx = 1
         cur_meta = Meta(start_meta.next)
@@ -1494,6 +1493,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         """
         Checks whether a meta is available.
         """
+        if self.ctx is None:
+            raise AssertionError("You didn't initialize ng.")
+
         # It seems all available metas are contiguous.
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L109
         return (

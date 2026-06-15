@@ -3,9 +3,11 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.shellcode
+import pwndbg.aglib.vmmap
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.memory
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -53,7 +55,7 @@ def prot_str_to_val(protstr: str) -> int:
             if k in protstr:
                 prot_int |= v
         return prot_int
-    elif all(x in "RWX" for x in protstr):
+    if all(x in "RWX" for x in protstr):
         prot_int = 0
         for c in protstr:
             if c == "R":
@@ -63,11 +65,10 @@ def prot_str_to_val(protstr: str) -> int:
             elif c == "X":
                 prot_int |= 4
         return prot_int
-    else:
-        try:
-            return int(protstr, 0)
-        except ValueError:
-            raise ValueError("Invalid protection string passed into mprotect")
+    try:
+        return int(protstr, 0)
+    except ValueError:
+        raise ValueError("Invalid protection string passed into mprotect")
 
 
 def prot_val_to_str(protval: int) -> str:
@@ -105,5 +106,13 @@ def mprotect(addr, length, prot) -> None:
             ec, "SYS_mprotect", aligned, int(length) + orig_addr - aligned, int(prot_int)
         )
         print(f"mprotect returned {ret}")
+
+        if pwndbg.aglib.vmmap.cache_status_text() is not None:
+            print(
+                message.warn(
+                    "vmmap cache is on and was not cleared; "
+                    "run `vmmap --refresh` to pick up the permission change."
+                )
+            )
 
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)

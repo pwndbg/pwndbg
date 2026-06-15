@@ -1,17 +1,14 @@
 from __future__ import annotations
 
+import builtins
 import ctypes
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Tuple
-from typing import Type
 from typing import cast
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.glibc
+import pwndbg.libc
 from pwndbg.lib.ctypes import Structure
 
 
@@ -24,11 +21,15 @@ def request2size(req: int) -> int:
 def fastbin_index(size: int) -> int:
     if pwndbg.aglib.arch.ptrsize == 8:
         return (size >> 4) - 2
-    else:
-        return (size >> 3) - 2
+    return (size >> 3) - 2
 
 
-GLIBC_VERSION = pwndbg.glibc.get_version()
+# Operating under the assumption that the pwndbg/libc/ code can figure out
+# that we are using glibc with at least as good accuracy as the ptmalloc code.
+assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
+
+# NOTE: these should be lazily evaluated
+GLIBC_VERSION = pwndbg.libc.version()
 # TODO: Move these heap constants and macros to elsewhere, because pwndbg/aglib/heap/ptmalloc.py also uses them, we are duplicating them here.
 SIZE_SZ = pwndbg.aglib.arch.ptrsize
 MINSIZE = pwndbg.aglib.arch.ptrsize * 4
@@ -39,7 +40,7 @@ if pwndbg.aglib.arch.name == "i386" and GLIBC_VERSION >= (2, 26):
 else:
     # See https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/generic/malloc-alignment.h#L27
     long_double_alignment = pwndbg.aglib.typeinfo.lookup_types("long double").alignof
-    MALLOC_ALIGN = long_double_alignment if 2 * SIZE_SZ < long_double_alignment else 2 * SIZE_SZ
+    MALLOC_ALIGN = max(2 * SIZE_SZ, long_double_alignment)
 
 MALLOC_ALIGN_MASK = MALLOC_ALIGN - 1
 MAX_FAST_SIZE = 80 * SIZE_SZ // 4
@@ -48,7 +49,7 @@ BINMAPSIZE = 4
 TCACHE_SMALL_BINS = 64
 TCACHE_LARGE_BINS = 12
 TCACHE_MAX_BINS = TCACHE_SMALL_BINS + TCACHE_LARGE_BINS
-NFASTBINS = fastbin_index(request2size(MAX_FAST_SIZE)) + 1
+NFASTBINS = 0 if GLIBC_VERSION >= (2, 43) else fastbin_index(request2size(MAX_FAST_SIZE)) + 1
 
 if pwndbg.aglib.arch.ptrsize == 4:
     PTR = ctypes.c_uint32
@@ -57,12 +58,13 @@ else:
     PTR = ctypes.c_uint64  # type: ignore[misc]
     SIZE_T = ctypes.c_uint64  # type: ignore[misc]
 
+DEFAULT_THP_MODE = 0x3
 DEFAULT_TOP_PAD = 131072
 DEFAULT_MMAP_MAX = 65536
 DEFAULT_MMAP_THRESHOLD = 128 * 1024
 DEFAULT_TRIM_THRESHOLD = 128 * 1024
 DEFAULT_PAGE_SIZE = 4096
-TCACHE_FILL_COUNT = 7
+TCACHE_FILL_COUNT = 16 if GLIBC_VERSION >= (2, 43) else 7
 MAX_TCACHE_SMALL_SIZE = (TCACHE_SMALL_BINS - 1) * MALLOC_ALIGN + MINSIZE - SIZE_SZ
 
 
@@ -94,11 +96,11 @@ C2GDB_MAPPING = {
 
 # Use correct endian for the dictionary keys
 if pwndbg.aglib.arch.endian == "little":
-    C2GDB_MAPPING: Dict[Type[ctypes.c_char], pwndbg.dbg_mod.Type] = {  # type: ignore[no-redef]
+    C2GDB_MAPPING: dict[type[ctypes.c_char], pwndbg.dbg_mod.Type] = {  # type: ignore[no-redef]
         k.__ctype_le__: v for k, v in C2GDB_MAPPING.items()
     }
 else:
-    C2GDB_MAPPING: Dict[Type[ctypes.c_char], pwndbg.dbg_mod.Type] = {  # type: ignore[no-redef]
+    C2GDB_MAPPING: dict[type[ctypes.c_char], pwndbg.dbg_mod.Type] = {  # type: ignore[no-redef]
         k.__ctype_be__: v for k, v in C2GDB_MAPPING.items()
     }
 
@@ -133,7 +135,7 @@ class FakeGDBField:
 
 class CStruct2GDB:
     code = pwndbg.dbg_mod.TypeCode.STRUCT
-    _c_struct: Type[ctypes.Structure]
+    _c_struct: builtins.type[ctypes.Structure]
 
     def __init__(self, address: int) -> None:
         self.address = address
@@ -198,11 +200,11 @@ class CStruct2GDB:
         return cls
 
     @classmethod
-    def fields(cls) -> List[FakeGDBField]:
+    def fields(cls) -> list[FakeGDBField]:
         """
         Return fields of the struct to make it compatible with the `pwndbg.dbg_mod.Type` interface.
         """
-        fake_gdb_fields: List[FakeGDBField] = []
+        fake_gdb_fields: list[FakeGDBField] = []
         for f in cls._c_struct._fields_:
             field_name = f[0]
             field_type = f[1]
@@ -217,7 +219,7 @@ class CStruct2GDB:
         return fake_gdb_fields
 
     @classmethod
-    def keys(cls) -> List[str]:
+    def keys(cls) -> list[str]:
         """
         Return a list of the names of the fields in the struct to make it compatible with the `pwndbg.dbg_mod.Type` interface.
         """
@@ -236,7 +238,7 @@ class CStruct2GDB:
         """
         return getattr(cls._c_struct, field).offset
 
-    def items(self) -> Tuple[Tuple[Any, Any], ...]:
+    def items(self) -> tuple[tuple[Any, Any], ...]:
         """
         Returns a tuple of (field name, field value) pairs.
         """
@@ -443,14 +445,78 @@ class c_malloc_state_2_27(Structure):
     ]
 
 
+class c_malloc_state_2_43(Structure):
+    """
+    This class represents malloc_state struct for GLIBC >= 2.43 as a ctypes struct.
+
+    https://github.com/bminor/glibc/blob/glibc-2.43/malloc/malloc.c#L1724 (doesn't exist yet)
+
+
+    struct malloc_state
+    {
+      /* Serialize access.  */
+      __libc_lock_define (, mutex);
+
+      /* Flags  */
+      int flags;
+
+      /* Base of the topmost chunk -- not otherwise kept in a bin */
+      mchunkptr top;
+
+      /* The remainder from the most recent split of a small request */
+      mchunkptr last_remainder;
+
+      /* Normal bins packed as described above */
+      mchunkptr bins[NBINS * 2 - 2];
+
+      /* Bitmap of bins */
+      unsigned int binmap[BINMAPSIZE];
+
+      /* Linked list */
+      struct malloc_state *next;
+
+      /* Linked list for free arenas.  Access to this field is serialized
+         by free_list_lock in arena.c.  */
+      struct malloc_state *next_free;
+
+      /* Number of threads attached to this arena.  0 if the arena is on
+         the free list.  Access to this field is serialized by
+         free_list_lock in arena.c.  */
+      INTERNAL_SIZE_T attached_threads;
+
+      /* Memory allocated from the system in this arena.  */
+      INTERNAL_SIZE_T system_mem;
+      INTERNAL_SIZE_T max_system_mem;
+    };
+    """
+
+    _fields_ = [
+        ("mutex", ctypes.c_int32),
+        ("flags", ctypes.c_int32),
+        ("top", c_pvoid),
+        ("last_remainder", c_pvoid),
+        ("bins", c_pvoid * (NBINS * 2 - 2)),
+        ("binmap", ctypes.c_int32 * BINMAPSIZE),
+        ("next", c_pvoid),
+        ("next_free", c_pvoid),
+        ("attached_threads", c_size_t),
+        ("system_mem", c_size_t),
+        ("max_system_mem", c_size_t),
+    ]
+
+
 class MallocState(CStruct2GDB):
     """
     This class represents malloc_state struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
-    if GLIBC_VERSION >= (2, 27):
+    glibc_version = pwndbg.libc.version()
+
+    if glibc_version >= (2, 43):
+        _c_struct = c_malloc_state_2_43
+    elif glibc_version >= (2, 27):
         _c_struct = c_malloc_state_2_27
-    elif GLIBC_VERSION >= (2, 23):
+    elif glibc_version >= (2, 23):
         _c_struct = c_malloc_state_2_26
     else:
         _c_struct = c_malloc_state_2_12
@@ -486,12 +552,51 @@ class c_heap_info(Structure):
     ]
 
 
+class c_heap_info_2_43(Structure):
+    """
+    This class represents heap_info struct as a ctypes struct.
+
+    https://github.com/bminor/glibc/blob/glibc-2.34/malloc/arena.c#L53
+
+    typedef struct _heap_info
+    {
+        mstate ar_ptr; /* Arena for this heap. */
+        struct _heap_info *prev; /* Previous heap. */
+        size_t size;   /* Current size in bytes. */
+        size_t mprotect_size; /* Size in bytes that has been mprotected
+                                PROT_READ|PROT_WRITE.  */
+        size_t pagesize; /* Page size used when allocating the arena.  */
+        /* Make sure the following data is properly aligned, particularly
+           that sizeof (heap_info) + 2 * SIZE_SZ is a multiple of
+           MALLOC_ALIGNMENT. */
+        /* Make sure the following data is properly aligned, particularly
+            that sizeof (heap_info) + 2 * SIZE_SZ is a multiple of
+            MALLOC_ALIGNMENT. */
+        char pad[-3 * SIZE_SZ & MALLOC_ALIGN_MASK];
+    } heap_info;
+    """
+
+    _fields_ = [
+        ("ar_ptr", c_pvoid),
+        ("prev", c_pvoid),
+        ("size", c_size_t),
+        ("mprotect_size", c_size_t),
+        ("pagesize", c_size_t),
+        ("pad", ctypes.c_uint8 * (-3 * SIZE_SZ & MALLOC_ALIGN_MASK)),
+    ]
+
+
 class HeapInfo(CStruct2GDB):
     """
     This class represents heap_info struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
-    _c_struct = c_heap_info
+    glibc_version = pwndbg.libc.version()
+
+    if glibc_version >= (2, 43):
+        _c_struct = c_heap_info_2_43
+    else:
+        _c_struct = c_heap_info
     sizeof = ctypes.sizeof(_c_struct)
 
 
@@ -1024,12 +1129,91 @@ class c_malloc_par_2_42(Structure):
     ]
 
 
+class c_malloc_par_2_43(Structure):
+    """
+    This class represents the malloc_par struct for GLIBC >= 2.43 as a ctypes struct.
+
+    https://elixir.bootlin.com/glibc/glibc-2.43/source/malloc/malloc.c#L1864 (doesn't exist yet)
+
+    struct malloc_par
+    {
+      /* Tunable parameters */
+      unsigned long trim_threshold;
+      INTERNAL_SIZE_T top_pad;
+      INTERNAL_SIZE_T mmap_threshold;
+      INTERNAL_SIZE_T arena_test;
+      INTERNAL_SIZE_T arena_max;
+
+      /* Transparent Large Page support.  */
+      enum malloc_thp_mode_t thp_mode;
+      INTERNAL_SIZE_T thp_pagesize;
+      /* A value different than 0 means to align mmap allocation to hp_pagesize
+         add hp_flags on flags.  */
+      INTERNAL_SIZE_T hp_pagesize;
+      int hp_flags;
+
+      /* Memory map support */
+      int n_mmaps;
+      int n_mmaps_max;
+      int max_n_mmaps;
+      /* the mmap_threshold is dynamic, until the user sets
+         it manually, at which point we need to disable any
+         dynamic behavior. */
+      int no_dyn_threshold;
+
+      /* Statistics */
+      INTERNAL_SIZE_T mmapped_mem;
+      INTERNAL_SIZE_T max_mmapped_mem;
+
+      /* First address handed out by MORECORE/sbrk.  */
+      char *sbrk_base;
+
+    #if USE_TCACHE
+      /* Maximum number of small buckets to use.  */
+      size_t tcache_small_bins;
+      size_t tcache_max_bytes;
+      /* Maximum number of chunks in each bucket.  */
+      size_t tcache_count;
+      /* Maximum number of chunks to remove from the unsorted list, which
+         aren't used to prefill the cache.  */
+      size_t tcache_unsorted_limit;
+    #endif
+    };
+
+    """
+
+    _fields_ = [
+        ("trim_threshold", c_size_t),
+        ("top_pad", c_size_t),
+        ("mmap_threshold", c_size_t),
+        ("arena_test", c_size_t),
+        ("arena_max", c_size_t),
+        ("thp_mode", ctypes.c_int32),
+        ("thp_pagesize", c_size_t),
+        ("hp_pagesize", c_size_t),
+        ("hp_flags", ctypes.c_int32),
+        ("n_mmaps", ctypes.c_int32),
+        ("n_mmaps_max", ctypes.c_int32),
+        ("max_n_mmaps", ctypes.c_int32),
+        ("no_dyn_threshold", ctypes.c_int32),
+        ("mmapped_mem", c_size_t),
+        ("max_mmapped_mem", c_size_t),
+        ("sbrk_base", c_pvoid),
+        ("tcache_small_bins", c_size_t),
+        ("tcache_max_bytes", c_size_t),
+        ("tcache_count", c_size_t),
+        ("tcache_unsorted_limit", c_size_t),
+    ]
+
+
 class MallocPar(CStruct2GDB):
     """
     This class represents the malloc_par struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
-    if GLIBC_VERSION >= (2, 42):
+    if GLIBC_VERSION >= (2, 43):
+        _c_struct = c_malloc_par_2_43
+    elif GLIBC_VERSION >= (2, 42):
         _c_struct = c_malloc_par_2_42
     elif GLIBC_VERSION >= (2, 35):
         _c_struct = c_malloc_par_2_35
@@ -1067,10 +1251,10 @@ DEFAULT_MP_.n_mmaps_max = DEFAULT_MMAP_MAX
 DEFAULT_MP_.mmap_threshold = DEFAULT_MMAP_THRESHOLD
 DEFAULT_MP_.trim_threshold = DEFAULT_TRIM_THRESHOLD
 DEFAULT_MP_.arena_test = 2 if pwndbg.aglib.arch.ptrsize == 4 else 8
-if (MallocPar._c_struct != c_malloc_par_2_23) and (MallocPar._c_struct != c_malloc_par_2_12):
+if MallocPar._c_struct not in (c_malloc_par_2_23, c_malloc_par_2_12):
     # the only difference between 2.23 and the rest is the lack of tcache
     DEFAULT_MP_.tcache_count = TCACHE_FILL_COUNT
-    if MallocPar._c_struct == c_malloc_par_2_42:
+    if MallocPar._c_struct in (c_malloc_par_2_42, c_malloc_par_2_43):
         DEFAULT_MP_.tcache_small_bins = TCACHE_SMALL_BINS
         DEFAULT_MP_.tcache_max_bytes = (
             MAX_TCACHE_SMALL_SIZE + SIZE_SZ + MALLOC_ALIGN_MASK
@@ -1081,3 +1265,6 @@ if (MallocPar._c_struct != c_malloc_par_2_23) and (MallocPar._c_struct != c_mall
         DEFAULT_MP_.tcache_max_bytes = MAX_TCACHE_SMALL_SIZE
 if MallocPar._c_struct == c_malloc_par_2_12:
     DEFAULT_MP_.pagesize = DEFAULT_PAGE_SIZE
+
+if MallocPar._c_struct == c_malloc_par_2_43:
+    DEFAULT_MP_.thp_mode = DEFAULT_THP_MODE

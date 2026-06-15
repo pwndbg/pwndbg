@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from typing import Dict
-from typing import Iterator
-from typing import List
-from typing import Union
+from collections.abc import Iterator
 
 import pwndbg.aglib
 import pwndbg.aglib.file
@@ -15,12 +12,12 @@ import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.memory as mem_color
 import pwndbg.commands
+import pwndbg.lib.got
 import pwndbg.lib.memory
 import pwndbg.wrappers.checksec
-import pwndbg.wrappers.readelf
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-from pwndbg.wrappers.readelf import RelocationType
+from pwndbg.lib.got import RelocationType
 
 parser = argparse.ArgumentParser(
     description="Show the state of the Global Offset Table.",
@@ -59,14 +56,14 @@ parser.add_argument(
     parser,
     category=CommandCategory.LINUX,
     examples="""
-> got
+>got
     Print all writable GOT entries in the executable.
-> got -r puts
+>got -r puts
     Print all GOT entries that contain the string "puts".
-> got -p libc
+>got -p libc
     Print all writable GOT entries used by libc. (And any other loaded
     object files that contain the string "libc" in their path).
-> got -ra
+>got -ra
     Print all GOT entries in the address space.
 """,
 )
@@ -118,11 +115,11 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
 
     relro_status = pwndbg.wrappers.checksec.relro_status(local_path)
     pie_status = pwndbg.wrappers.checksec.pie_status(local_path)
-    got_entry = pwndbg.wrappers.readelf.get_got_entry(local_path)
+    got_entry = pwndbg.lib.got.get_got_entry(local_path)
 
     # The following code is inspired by the "got" command of https://github.com/bata24/gef/blob/dev/gef.py by @bata24, thank you!
     # TODO/FIXME: Maybe a -v option to show more information will be better
-    outputs: List[Dict[str, Union[str, int]]] = []
+    outputs: list[dict[str, str | int]] = []
     if path == pwndbg.aglib.proc.exe():
         bin_base_offset = pwndbg.aglib.proc.binary_base_addr() if "PIE enabled" in pie_status else 0
     else:
@@ -130,38 +127,30 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
         assert page is not None, f"unable to find vmmap entry for objfile: {path}"
         bin_base_offset = page.start
 
-    # Parse the output of readelf line by line
-    for category, lines in got_entry.items():
-        for line in lines:
-            # There are 5 fields in the output of readelf:
-            # "Offset", "Info", "Type", "Sym. Value", and "Symbol's Name"
-            # We only care about "Offset", "Sym. Value" and "Symbol's Name" here
-            offset, _, _, *rest = line.split()[:5]
-            if len(rest) < 2:
-                # "Sym. Value" or "Symbol's Name" are not present in this case
-                # The output of readelf might look like this (missing both value and name):
-                # 00004e88  00000008 R_386_RELATIVE
-                # or something like this (only missing name):
-                # 00000000001ec018  0000000000000025 R_X86_64_IRELATIVE                        a0480
-                # TODO: Is it possible that we are missing the value but not the name?
-                value = rest[0] if rest else ""
-                name = ""
-            else:
-                # Every fields are present in this case
-                # The output of readelf might look like this:
-                # 00000000001ec030  0000020a00000007 R_X86_64_JUMP_SLOT     000000000009ae80 realloc@@GLIBC_2.2.5 + 0
-                value, name = rest
-            address = int(offset, 16) + bin_base_offset
+    # Process each GOT relocation entry
+    for category, entries in got_entry.items():
+        for entry in entries:
+            offset = entry["offset"]
+            value = entry["value"]
+            name = entry["name"]
+
+            # Type narrowing assertions
+            assert isinstance(offset, int)
+            assert isinstance(value, int)
+            assert isinstance(name, str)
+
+            address = offset + bin_base_offset
             # TODO/FIXME: This check might not work correctly if we failed to get the correct vmmap result
             if not accept_readonly and not pwndbg.aglib.vmmap.find(address).write:
                 continue
             if not name and category == RelocationType.IRELATIVE:
-                # TODO/FIXME: I don't know the naming logic behind this yet, I'm just modifying @bata24's code here :p
-                # We might need to add some comments here to explain the logic in the future, and also fix it if something wrong
+                # I'm not entirely sure why this naming logic exists, but I'm preserving
+                # the behavior from the original implementation (credit to @bata24).
+                # If we figure out the "why" later, we should update this comment!
                 if pwndbg.aglib.arch.name == "i386":
                     name = "*ABS*"
                 else:
-                    name = f"*ABS*+0x{int(value, 16):x}"
+                    name = f"*ABS*+0x{value:x}"
             if symbol_filter not in name:
                 continue
             outputs.append(

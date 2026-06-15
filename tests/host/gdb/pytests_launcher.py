@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import sys
+from collections.abc import Callable
+from collections.abc import Coroutine
 from pathlib import Path
 from typing import Any
-from typing import Callable
-from typing import Coroutine
-from typing import Dict
-from typing import List
 
 import coverage
 import gdb
@@ -17,64 +16,92 @@ from ... import host
 
 
 class _GDBController(host.Controller):
-    async def launch(
-        self, binary_path: Path, args: List[str] = [], env: Dict[str, str] = {}
-    ) -> None:
+    def _gdb_execute(self, command: str) -> None:
+        """Execute a GDB command and print the command to output."""
+        print(f"pwndbg> {command}")
+        gdb.execute(command)
+
+    def _show_context(self) -> None:
+        """
+        Display context after stops during tests.
+
+        We run the context command directly instead of using prompt_hook()
+        because prompt_hook() also fires events via after_reload(), which
+        can cause event handlers to trigger multiple times.
+        """
+        self._gdb_execute("context")
+
+    async def launch(self, binary: Path, args: list[str] = [], env: dict[str, str] = {}) -> None:
         """
         Launch the given binary.
 
         GDB hides the asynchronous heavy lifting from us, so this call is
         synchronous.
         """
-        if not os.path.exists(binary_path):
-            pytest.skip(f"{os.path.basename(binary_path)} does not exist. Platform not supported.")
+        if not os.path.exists(binary):
+            pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
 
         os.environ["PWNDBG_IN_TEST"] = "1"
-        gdb.execute(f"file {binary_path}")
-        gdb.execute("set exception-verbose on")
-        gdb.execute("set width 80")
-        gdb.execute("set context-reserve-lines never")
+        self._gdb_execute(f"file {binary}")
+        self._gdb_execute("set exception-verbose on")
+        self._gdb_execute("set width 80")
+        self._gdb_execute("set context-reserve-lines never")
         os.environ["COLUMNS"] = "80"
         for k, v in env.items():
-            gdb.execute(f"set environment {k}={v}")
-        gdb.execute("starti " + " ".join(args))
+            self._gdb_execute(f"set environment {k}={v}")
+        # Clear breakpoints from any prior launch. The debugger abstraction
+        # layer sets breakpoints by resolved address (not by symbol name), so
+        # GDB won't re-resolve them on relaunch. With ASLR, stale address
+        # breakpoints point to invalid memory and cause "Cannot access memory"
+        # errors on starti.
+        self._gdb_execute("delete breakpoints")
+        self._gdb_execute("starti " + " ".join(args))
+        self._show_context()
 
     async def cont(self) -> None:
-        gdb.execute("continue")
+        self._gdb_execute("continue")
+        self._show_context()
 
     async def execute(self, command: str) -> None:
         from pwndbg.dbg_mod import Error
 
         try:
-            gdb.execute(command)
+            self._gdb_execute(command)
         except gdb.error as e:
             raise Error(e)
 
     async def execute_and_capture(self, command: str) -> str:
-        return gdb.execute(command, to_string=True)
+        print(f"pwndbg> {command}")
+        result = gdb.execute(command, to_string=True)
+        print(result)
+        return result
 
     async def step_instruction(self) -> None:
-        gdb.execute("stepi")
+        self._gdb_execute("stepi")
+        self._show_context()
 
     async def finish(self) -> None:
-        gdb.execute("finish")
+        self._gdb_execute("finish")
+        self._show_context()
 
     async def select_thread(self, tid: int) -> None:
-        gdb.execute(f"thread {tid}")
+        self._gdb_execute(f"thread {tid}")
 
     async def disable_debuginfod(self) -> None:
-        gdb.execute("set debug-file-directory")
-        gdb.execute("set debuginfod enabled off")
+        self._gdb_execute("set debug-file-directory")
+        self._gdb_execute("set debuginfod enabled off")
+
+    async def generate_core_file(self, path: Path) -> None:
+        self._gdb_execute(f"generate-core-file {path}")
+        self._gdb_execute(f"core-file {path}")
 
 
 def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> None:
     # The GDB controller is entirely synchronous, so keep advancing the
     # corountine unconditionally until it ends..
     coroutine = outer(_GDBController())
-    try:
+    with contextlib.suppress(StopIteration):
         coroutine.send(None)
-    except StopIteration:
-        pass
 
 
 host.start = _start

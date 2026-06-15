@@ -19,7 +19,7 @@ def build_id() -> str:
 
         commit_id = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
-        return "build: %s" % commit_id.decode("utf-8").strip("\n")
+        return "build: {}".format(commit_id.decode("utf-8").strip("\n"))
 
     except (OSError, subprocess.CalledProcessError):
         # OSError -> no git in $PATH
@@ -27,7 +27,7 @@ def build_id() -> str:
         return ""
 
 
-__version__ = "2025.10.20"
+__version__ = "2026.02.18"
 
 b_id = build_id()
 

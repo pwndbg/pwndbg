@@ -1,25 +1,23 @@
 from __future__ import annotations
 
 import bisect
-from typing import List
-from typing import Set
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.memory
+import pwndbg.aglib.qemu
 import pwndbg.aglib.stack
-import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
+from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
-explored_pages: List[pwndbg.lib.memory.Page] = []
+explored_pages: list[pwndbg.lib.memory.Page] = []
 
 # List of custom pages that can be managed manually by vmmap_* commands family
-custom_pages: List[pwndbg.lib.memory.Page] = []
+custom_pages: list[pwndbg.lib.memory.Page] = []
 
 auto_explore = pwndbg.config.add_param(
     "auto-explore-pages",
@@ -33,7 +31,7 @@ This command can cause errors.
 )
 
 
-_warn_cache: Set[int] = set()
+_warn_cache: set[int] = set()
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
@@ -41,12 +39,12 @@ def clear_warn_cache():
     _warn_cache.clear()
 
 
-def get_custom_pages() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def get_custom_pages() -> tuple[pwndbg.lib.memory.Page, ...]:
     """
     Returns a tuple of `Page` objects representing the memory mappings of the
     target, sorted by virtual address ascending.
     """
-    pages: List[pwndbg.lib.memory.Page] = [*explored_pages, *custom_pages]
+    pages: list[pwndbg.lib.memory.Page] = [*explored_pages, *custom_pages]
     pages.sort()
     return tuple(pages)
 
@@ -96,11 +94,14 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
                 print(
                     message.warn(
                         f"Warning: Avoided exploring possible address {address_maybe:#x}.\n"
-                        f"You can explicitly explore it with `vmmap-explore {page_start:#x}`"
+                        f"You can explicitly explore it with `vmmap-explore {page_start:#x}` or disable automatic exploration with `set auto-explore-pages no`."
                     )
                 )
+                if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.memory.is_kernel(page_start):
+                    print(message.error("Likely a pagescan bug, please report."))
+
         return None
-    elif auto_explore.value == "no":
+    if auto_explore.value == "no":
         return None
 
     address_maybe = pwndbg.lib.memory.page_align(address_maybe)

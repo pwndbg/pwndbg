@@ -6,7 +6,7 @@ usage: libcinfo [-h]
 
 ```
 
-Show libc version and link to its sources
+Show various information about the currently used libc
 ### Optional arguments
 
 |Short|Long|Help|

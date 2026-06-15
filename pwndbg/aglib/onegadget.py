@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import ctypes
 import hashlib
-import os
 import re
 import subprocess
 from enum import Enum
+from pathlib import Path
 from typing import Any
-from typing import Dict
-from typing import Tuple
 
 from tabulate import tabulate
 
@@ -16,13 +14,13 @@ import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
-import pwndbg.glibc
 import pwndbg.lib.cache
 import pwndbg.lib.tempfile
+import pwndbg.libc
 from pwndbg.color import colorize
-from pwndbg.color import generateColorFunction
+from pwndbg.color import generate_color_function
+from pwndbg.color import message
 
 ADDRESS_WRITABLE_PATTERN = re.compile(r"address(?:es)? (.*) (?:is|are) writable")
 WRITABLE_COLON_PATTERN = re.compile(r"writable: (.*)")
@@ -44,18 +42,18 @@ CAST_DEREF_MAPPING = {
     "(s64)": pwndbg.aglib.memory.s64,
 }
 CAST_MAPPING = {
-    "(u16)": lambda x: ctypes.c_uint16(x).value,
-    "(s16)": lambda x: ctypes.c_int16(x).value,
-    "(u32)": lambda x: ctypes.c_uint32(x).value,
-    "(s32)": lambda x: ctypes.c_int32(x).value,
-    "(u64)": lambda x: ctypes.c_uint64(x).value,
-    "(s64)": lambda x: ctypes.c_int64(x).value,
+    "(u16)": ctypes.c_uint16,
+    "(s16)": ctypes.c_int16,
+    "(u32)": ctypes.c_uint32,
+    "(s32)": ctypes.c_int32,
+    "(u64)": ctypes.c_uint64,
+    "(s64)": ctypes.c_int64,
 }
 ONEGADGET_COLOR = {
     "light_green": lambda x: colorize(x, "\x1b[38;5;82m"),
     "light_purple": lambda x: colorize(x, "\x1b[38;5;153m"),
 }
-ONEGADGET_CACHEDIR = pwndbg.lib.tempfile.cachedir("onegadget")
+ONEGADGET_CACHEDIR: Path = pwndbg.lib.tempfile.cachedir("onegadget")
 
 
 class CheckSatResult(Enum):
@@ -67,20 +65,18 @@ class CheckSatResult(Enum):
         return self.name
 
     def __and__(self, other: CheckSatResult) -> CheckSatResult:
-        if self == CheckSatResult.UNSAT or other == CheckSatResult.UNSAT:
-            return CheckSatResult.UNSAT
-        elif self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
-            return CheckSatResult.UNKNOWN
-        else:
-            return CheckSatResult.SAT
+        if UNSAT in (self, other):
+            return UNSAT
+        if UNKNOWN in (self, other):
+            return UNKNOWN
+        return SAT
 
     def __or__(self, other: CheckSatResult) -> CheckSatResult:
-        if self == CheckSatResult.SAT or other == CheckSatResult.SAT:
-            return CheckSatResult.SAT
-        elif self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
-            return CheckSatResult.UNKNOWN
-        else:
-            return CheckSatResult.UNSAT
+        if SAT in (self, other):
+            return SAT
+        if UNKNOWN in (self, other):
+            return UNKNOWN
+        return UNSAT
 
 
 SAT = CheckSatResult.SAT
@@ -96,9 +92,9 @@ class Lambda:
     """
 
     def __init__(self, obj: str | Lambda) -> None:
-        self.immi = 0
+        self.immi: int = 0
         self.obj = obj
-        self.deref_count = 0
+        self.deref_count: int = 0
 
     def __add__(self, other: int) -> Lambda:
         if not isinstance(other, int):
@@ -143,7 +139,7 @@ class Lambda:
                 #       |                       ^~~~~~~~~
                 #  while parsing (u64)xmm0 >> 64 for argv[1]
 
-                bits = pwndbg.aglib.arch.ptrsize * 8
+                bits = pwndbg.aglib.arch.ptrbits
                 if XMM_SHIFT in obj:
                     obj = obj.replace(XMM_SHIFT + str(bits), f".v{128 // bits}_int{bits}[1]")
                 else:
@@ -191,13 +187,16 @@ class Lambda:
         self.deref_count -= 1
         return self
 
-    def evaluate(self, context: Dict[Any, Any]) -> int | Lambda:
+    def evaluate(self, context: dict[Any, Any]) -> int | Lambda:
         if self.deref_count > 0 or (self.obj and self.obj not in context):
             raise ValueError(f"Can't eval {self}")
         return context[self.obj] + self.immi
 
     @staticmethod
-    def parse(argument: str, predefined: Dict[Any, Any] = {}) -> int | Lambda:
+    def parse(argument: str, predefined: dict[Any, Any] | None = None) -> int | Lambda:
+        if predefined is None:
+            predefined = {}
+
         if not argument or argument == "!":
             return 0
         try:
@@ -224,7 +223,7 @@ class Lambda:
         return obj
 
     @staticmethod
-    def mem_obj(arg: str) -> Tuple[str, int]:
+    def mem_obj(arg: str) -> tuple[str, int]:
         tokens = re.split(r"[+\-]", arg)
         if len(tokens) == 1:
             return tokens[0], 0
@@ -233,12 +232,8 @@ class Lambda:
         raise ValueError(f"Unsupported instruction argument: {arg}")
 
 
-def colorize_reg(x: object) -> str:
-    return generateColorFunction("light_green", ONEGADGET_COLOR)(x)
-
-
-def colorize_integer(x: object) -> str:
-    return generateColorFunction("light_purple", ONEGADGET_COLOR)(x)
+colorize_reg = generate_color_function("light_green", ONEGADGET_COLOR)
+colorize_integer = generate_color_function("light_purple", ONEGADGET_COLOR)
 
 
 def colorize_psuedo_code(code: str) -> str:
@@ -261,6 +256,7 @@ def colorize_psuedo_code(code: str) -> str:
     return output
 
 
+# TODO: move this somewhere else e.g. a utils.py or sth
 def compute_file_hash(filename: str) -> str:
     """
     Compute the MD5 hash of the file, return the hash
@@ -276,21 +272,20 @@ def run_onegadget() -> str:
     """
     Run onegadget and return the output
     """
-    libc_path = pwndbg.aglib.file.get_file(pwndbg.glibc.get_libc_filename_from_info_sharedlibrary())
-    # We need cache because onegadget might be slow
-    cache_file = os.path.join(ONEGADGET_CACHEDIR, compute_file_hash(libc_path))
-    if os.path.exists(cache_file):
-        # Cache hit
-        with open(cache_file) as f:
-            return f.read()
-    # Cache miss
+    libc_path = pwndbg.aglib.file.get_file(str(pwndbg.libc.filepath()))
+
+    # we cache because onegadget might be slow
+    cache_file = ONEGADGET_CACHEDIR / compute_file_hash(libc_path)
+    if cache_file.exists():
+        return cache_file.read_text()
+
     output = subprocess.check_output(["one_gadget", "--level=100", libc_path], text=True)
     with open(cache_file, "w") as f:
         f.write(output)
     return output
 
 
-def parse_expression(expr: str) -> Tuple[int | None, str, str | None]:
+def parse_expression(expr: str) -> tuple[int | None, str, str | None]:
     """
     Parse expression, return the result, colorized string and error message
     """
@@ -317,7 +312,7 @@ def parse_expression(expr: str) -> Tuple[int | None, str, str | None]:
                 result = CAST_DEREF_MAPPING[cast](addr)
             else:
                 addr = int(pwndbg.dbg.selected_inferior().evaluate_expression(gdb_expr))
-                result = CAST_MAPPING[cast](addr)
+                result = CAST_MAPPING[cast](addr).value
         else:
             addr = int(pwndbg.dbg.selected_inferior().evaluate_expression(gdb_expr))
             result = addr
@@ -327,7 +322,7 @@ def parse_expression(expr: str) -> Tuple[int | None, str, str | None]:
         return None, f"{cast}{lambda_expr.color_str}", str(e)
 
 
-def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
+def check_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
     """
     Check argv that's on the stack, return the result and the message
     """
@@ -357,8 +352,7 @@ def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
             if n > 1 and "-c" in exprs[n - 1]:
                 output_msg += f'argv[{n}] = {color_str} = NULL, {color_str} can\'t be NULL because argv[{n - 1}] = "-c"\n'
                 return UNSAT, output_msg
-            else:
-                output_msg += f"argv[{n}] = {color_str} = NULL\n"
+            output_msg += f"argv[{n}] = {color_str} = NULL\n"
             if n > 1:
                 return UNKNOWN, output_msg
             return SAT, output_msg
@@ -379,7 +373,7 @@ def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
     return SAT, output_msg
 
 
-def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
+def check_non_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
     """
     Check argv that's not on the stack, return the result and the message
     """
@@ -402,9 +396,8 @@ def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
             if n > 1:
                 output_msg += f"argv[{n}] is NULL, {color_str} might be a valid argv\n"
                 return UNKNOWN, output_msg
-            else:
-                # {whatever_but_readable, NULL} is always a valid argv
-                output_msg += f"argv[{n}] is NULL, {color_str} is a valid argv\n"
+            # {whatever_but_readable, NULL} is always a valid argv
+            output_msg += f"argv[{n}] is NULL, {color_str} is a valid argv\n"
             return SAT, output_msg
         page = pwndbg.aglib.vmmap.find(argv_n)
         if page is None or not page.read:
@@ -414,7 +407,7 @@ def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
         n += 1
 
 
-def check_argv(expr: str) -> Tuple[CheckSatResult, str]:
+def check_argv(expr: str) -> tuple[CheckSatResult, str]:
     """
     Check argv, return the result and the message
     """
@@ -423,7 +416,7 @@ def check_argv(expr: str) -> Tuple[CheckSatResult, str]:
     return check_non_stack_argv(expr)
 
 
-def check_envp(expr: str) -> Tuple[bool, str]:
+def check_envp(expr: str) -> tuple[bool, str]:
     """
     Check envp, return the result and the message
     """
@@ -459,7 +452,7 @@ def check_envp(expr: str) -> Tuple[bool, str]:
         n += 1
 
 
-def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
+def check_constraint(constraint: str) -> tuple[CheckSatResult, str]:
     """
     Parse constraint, return the result and the message
     """
@@ -467,9 +460,9 @@ def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
     if CONSTRAINT_SEPARATOR in constraint:
         final_result = UNSAT
         for sub_constraint in constraint.split(CONSTRAINT_SEPARATOR):
-            result, msg = check_constraint(sub_constraint)
+            result1, msg = check_constraint(sub_constraint)
             output_msg += msg
-            final_result = final_result | result
+            final_result = final_result | result1
             if final_result == SAT:
                 return SAT, output_msg
         return final_result, output_msg
@@ -542,7 +535,7 @@ def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
         expr = IS_GOT_ADDRESS_PATTERN.match(constraint).group(1)
         result, color_str, err = parse_expression(expr)
         if err is None:
-            got_plt_address = pwndbg.glibc.get_section_address_by_name(".got.plt")
+            got_plt_address = pwndbg.libc.section_address_by_name(".got.plt")
             passed = result == got_plt_address
             output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}the GOT address ({got_plt_address:#x}) of libc\n"
         else:
@@ -589,11 +582,11 @@ def check_gadget(
         output_msg += verbose_msg
     output_msg += tabulate(result_list, headers=["Result", "Constraint"], tablefmt="grid") + "\n"
 
-    if is_valid_gadget == SAT:
-        print(output_msg)
-    elif is_valid_gadget == UNSAT and show_unsat:
-        print(output_msg)
-    elif is_valid_gadget == UNKNOWN and not no_unknown:
+    if (
+        (is_valid_gadget == SAT)
+        or (is_valid_gadget == UNSAT and show_unsat)
+        or (is_valid_gadget == UNKNOWN and not no_unknown)
+    ):
         print(output_msg)
 
     return is_valid_gadget
@@ -601,7 +594,7 @@ def check_gadget(
 
 def find_gadgets(
     show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False
-) -> Dict[CheckSatResult, int]:
+) -> dict[CheckSatResult, int]:
     """
     Find gadgets by parsing the output of onegadget, return there's any valid gadget
     """

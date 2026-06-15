@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import re
+from enum import Enum
 from random import choice
-from typing import List
 
 from pwndbg.color import message
 
 # GDB specific tips
-GDB_TIPS: List[str] = [
+GDB_TIPS: list[str] = [
     "GDB's `apropos <topic>` command displays all registered commands that are related to the given <topic>",
     "GDB's `follow-fork-mode` parameter can be used to set whether to trace parent or child after fork() calls. Pwndbg sets it to child by default",
     'Use GDB\'s `dprintf` command to print all calls to given function. E.g. `dprintf malloc, "malloc(%p)\\n", (void*)$rdi` will print all malloc calls',
@@ -20,7 +20,7 @@ GDB_TIPS: List[str] = [
 ]
 
 # Pwndbg specific tips
-PWNDBG_TIPS: List[str] = [
+PWNDBG_TIPS: list[str] = [
     "If you want Pwndbg to clear screen on each command (but still save previous output in history) use `set context-clear-screen on`",
     "The `set show-flags on` setting will display CPU flags register in the regs context panel",
     "GDB and Pwndbg parameters can be shown or set with `show <param>` and `set <param> <value>` GDB commands",
@@ -53,10 +53,27 @@ PWNDBG_TIPS: List[str] = [
     "Use `hi` to see if a an address belongs to a glibc heap chunk",
     "Use `contextprev` and `contextnext` to display a previous context output again without scrolling",
     "Try splitting the context output into multiple TUI windows using `layout pwndbg` (`tui disable` or `ctrl-x + a` to go back to CLI mode)",
+    # Decompiler integration
+    "Pwndbg integrates with IDA, Binary Ninja, Ghidra and angr-management decompilers. Use `di install ida|binja|ghidra|angr` to install the plugin and `di connect` to start the integration",
+    "When the decompiler integration is enabled, Pwndbg shows the decompiled code in its context",
+    "Once `di sync` has been run, decompiled symbols are usable in expressions: `print decompiled_func` or `print $decompiled_var`",
+    # Smart navigation / stepping
+    "Use `xuntil <addr|symbol>` to run until a specified address - like a one-shot temporary breakpoint",
+    "Use `nextcall`, `nextret`, `nextjmp` or `nextsyscall` to advance execution to the next call/ret/jump/syscall instruction",
+    "Use `stepret` and `stepsyscall` to step into functions until a `ret` or `syscall` instruction is hit",
+    # Breakpoints / start
+    "Use `breakrva <offset>` to break at a relative offset into the binary - much easier than computing PIE addresses by hand",
+    "Use `attachp <name|pid|args|/dev/...>` to attach to a process by name or args (instead of running `pidof` in another terminal to run `attach <pid|dev>`)",
+    # Memory / analysis
+    "Use `xinfo <addr>` to show what mapping, file and the offset in there an address belongs to",
+    "Use `search` to find bytes/strings/ints/pointers in the process memory. See `search --help` for filters or examples",
+    "Use `p2p <mapping1> <mapping2>` to find pointer chains from one mapping to another (e.g. stack -> heap, libc -> stack)",
+    "Use `cyclic <len>` to generate a De Bruijn pattern and `cyclic -l <value>` to look up an offset - perfect for buffer-overflow offset finding",
+    "Pwndbg's `hexdump` colorizes by byte type and lets you re-run with no args to keep dumping forward",
 ]
 
 # LLDB specific tips
-LLDB_TIPS: List[str] = [
+LLDB_TIPS: list[str] = [
     "Use LLDB's `help <command>` to get detailed help on any command",
     "LLDB's `expr` command lets you evaluate expressions in the current frame context",
     "Use `frame variable` (or `fr v`) to show all variables in the current frame",
@@ -80,25 +97,37 @@ LLDB_TIPS: List[str] = [
 ]
 
 
-def get_tip_of_the_day() -> str:
+def get_tip_of_the_day(debugger_type: int) -> str:
     """
     Returns a random tip based on the current debugger type.
+
+    You should pass in pwndbg.dbg.name().value .
     """
-    return choice(get_all_tips())
+    return choice(get_all_tips(debugger_type))
 
 
-def get_all_tips() -> List[str]:
+def get_all_tips(debugger_type: int) -> list[str]:
     """
     Returns all tips applicable to the current debugger.
-    """
-    import pwndbg.dbg_mod
 
-    if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.GDB:
-        return GDB_TIPS + PWNDBG_TIPS
-    elif pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.LLDB:
-        return LLDB_TIPS + PWNDBG_TIPS
-    else:
-        return PWNDBG_TIPS
+    You should pass in pwndbg.dbg.name().value .
+    """
+
+    # Needs to mirror pwndbg/dbg_mod/__init__.py:DebuggerType
+    class DebuggerType(Enum):
+        GDB = 1
+        LLDB = 2
+
+    valid_values = [e.value for e in DebuggerType]
+    assert debugger_type in valid_values
+
+    match debugger_type:
+        case DebuggerType.GDB.value:
+            return GDB_TIPS + PWNDBG_TIPS
+        case DebuggerType.LLDB.value:
+            return LLDB_TIPS + PWNDBG_TIPS
+        case _:
+            return PWNDBG_TIPS
 
 
 def color_tip(tip: str) -> str:

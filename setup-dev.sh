@@ -91,7 +91,6 @@ install_apt() {
         curl \
         wget \
         build-essential \
-        gdb \
         gdb-multiarch \
         parallel \
         qemu-system-x86 \
@@ -140,13 +139,10 @@ EOF
     sudo pacman -Syu --noconfirm || true
     sudo pacman -S --needed --noconfirm \
         nasm \
-        gcc \
         glibc-debug \
         lib32-glibc \
-        curl \
-        wget \
         base-devel \
-        gdb \
+        wget \
         parallel \
         musl
 
@@ -158,13 +154,10 @@ EOF
 install_dnf() {
     sudo dnf upgrade || true
     sudo dnf install -y \
-        make \
         nasm \
-        gcc \
         curl \
         wget \
         musl-gcc \
-        g++ \
         parallel \
         qemu-system-x86 \
         qemu-system-arm \
@@ -191,18 +184,18 @@ install_jemalloc() {
     else
         echo "Jemalloc not found in system. Downloading, configuring, building, and installing..."
 
-        # Install jemalloc version 5.3.0
-        JEMALLOC_TAR_URL="https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2"
-        JEMALLOC_TAR_SHA256="2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa"
-        JEMALLOC_TAR_PATH="/tmp/jemalloc-5.3.0.tar.bz2"
-        JEMALLOC_EXTRACT_PATH="/tmp/jemalloc-5.3.0"
+        # Install jemalloc version 5.3.1
+        JEMALLOC_TAR_URL="https://github.com/jemalloc/jemalloc/releases/download/5.3.1/jemalloc-5.3.1.tar.bz2"
+        JEMALLOC_TAR_SHA256="3826bc80232f22ed5c4662f3034f799ca316e819103bdc7bb99018a421706f92"
+        JEMALLOC_TAR_PATH="/tmp/jemalloc-5.3.1.tar.bz2"
+        JEMALLOC_EXTRACT_PATH="/tmp/jemalloc-5.3.1"
 
         # Check if jemalloc tarball already exists and has the correct checksum
         if [ -f "${JEMALLOC_TAR_PATH}" ]; then
             ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
             if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
                 echo "Jemalloc tarball exists but has incorrect checksum. Re-downloading..."
-                curl --location --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
+                curl --fail --location --retry 3 --retry-connrefused --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
                 ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
                 if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
                     echo "Jemalloc binary checksum mismatch after re-download."
@@ -215,7 +208,7 @@ install_jemalloc() {
             fi
         else
             echo "Downloading jemalloc..."
-            curl --location --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
+            curl --fail --location --retry 3 --retry-connrefused --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
             ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
             if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
                 echo "Jemalloc binary checksum mismatch"
@@ -234,7 +227,9 @@ install_jemalloc() {
         fi
 
         pushd "${JEMALLOC_EXTRACT_PATH}"
-        ./configure
+        # jemalloc's C++ integration (jemalloc_cpp.cpp) fails to build against newer
+        # libstdc++ (e.g. Arch's GCC), and pwndbg's tests don't use it, so disable it.
+        ./configure --disable-cxx
         make
         sudo make install
         popd

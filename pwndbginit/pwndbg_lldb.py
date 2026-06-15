@@ -8,18 +8,16 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
+from collections.abc import Coroutine
 from typing import Any
-from typing import Callable
-from typing import Coroutine
-from typing import List
-from typing import Tuple
 
 
-def find_lldb_version() -> Tuple[int, ...]:
+def find_lldb_version() -> tuple[int, ...]:
     """
     Parses the version string given to us by the LLDB executable.
     """
-    lldb = subprocess.run(["lldb", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    lldb = subprocess.run(["lldb", "--version"], capture_output=True)
     if lldb.returncode != 0:
         print(f"Could not find the LLDB Python Path: {lldb.stderr!r}", file=sys.stderr)
         sys.exit(1)
@@ -33,7 +31,7 @@ def find_lldb_python_path() -> str:
     """
     Finds the Python path pointed to by the LLDB executable.
     """
-    lldb = subprocess.run(["lldb", "-P"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    lldb = subprocess.run(["lldb", "-P"], capture_output=True)
     if lldb.returncode != 0:
         print(f"Could not find the LLDB Python Path: {lldb.stderr!r}", file=sys.stderr)
         sys.exit(1)
@@ -169,24 +167,23 @@ def main() -> None:
             print("warn: '--wait-for' has no effect when used with '--attach-pid'")
 
         startup.append(f'process attach --pid "{args.attach_pid}"')
-    else:
-        if args.wait_for:
-            # Ideally, we would have `ArgumentParser` do this for us, but
-            # nesting argument groups has been deprecated since Python 3.11, and
-            # the deprecation message suggests it was never even supported in
-            # the first place :/
-            print(
-                "error: '--wait-for' must be used in combination with either '--attach-name' or '--attach-pid'"
-            )
-            parser.print_usage()
-            sys.exit(1)
+    elif args.wait_for:
+        # Ideally, we would have `ArgumentParser` do this for us, but
+        # nesting argument groups has been deprecated since Python 3.11, and
+        # the deprecation message suggests it was never even supported in
+        # the first place :/
+        print(
+            "error: '--wait-for' must be used in combination with either '--attach-name' or '--attach-pid'"
+        )
+        parser.print_usage()
+        sys.exit(1)
 
     if (args.attach_pid is not None or args.attach_name is not None) and args.target:
         print(
             "warn: have both a target and an attach request, your target may be overwritten on attach"
         )
 
-    def drive(startup: List[str] | None):
+    def drive(startup: list[str] | None):
         async def drive(c):
             from pwndbg.dbg_mod.lldb.repl import PwndbgController
             from pwndbg.dbg_mod.lldb.repl import UserCancelledError

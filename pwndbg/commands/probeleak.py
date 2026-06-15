@@ -95,21 +95,25 @@ which points to a libc rwx page.
 )
 @pwndbg.commands.OnlyWhenRunning
 def probeleak(
-    address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None
+    address: int,
+    count: int = 0x40,
+    max_distance: int = 0x0,
+    point_to: str | None = None,
+    max_ptrs: int = 0,
+    flags: str | None = None,
 ) -> None:
     address = int(address)
     address &= pwndbg.aglib.arch.ptrmask
     ptrsize = pwndbg.aglib.arch.ptrsize
     count = max(int(count), ptrsize)
-    off_zeros = int(math.ceil(math.log(count, 2) / 4))
+    off_zeros = int(math.ceil(math.log2(count) / 4))
     if flags is not None:
         require_flags = flags_str2int(flags)
 
     if count > address > 0x10000:  # in case someone puts in an end address and not a count (smh)
         print(
             message.warn(
-                "Warning: you gave an end address, not a count. Subtracting 0x%x from the count."
-                % (address)
+                f"Warning: you gave an end address, not a count. Subtracting 0x{address:x} from the count."
             )
         )
         count -= address
@@ -130,7 +134,7 @@ def probeleak(
 
     found = False
     find_cnt = 0
-    for i in range(0, len(data) - ptrsize + 1):
+    for i in range(len(data) - ptrsize + 1):
         p = pwndbg.aglib.arch.unpack(data[i : i + ptrsize])
         page = find_module(p, max_distance)
         if page:
@@ -147,23 +151,16 @@ def probeleak(
                 mod_name = "[anon]"
 
             if p >= page.end:
-                right_text = "({}) {} + 0x{:x} + 0x{:x} (outside of the page)".format(
-                    page.permstr,
-                    mod_name,
-                    page.memsz,
-                    p - page.end,
-                )
+                right_text = f"({page.permstr}) {mod_name} + 0x{page.memsz:x} + 0x{p - page.end:x} (outside of the page)"
             elif p < page.start:
-                right_text = "({}) {} - 0x{:x} (outside of the page)".format(
-                    page.permstr,
-                    mod_name,
-                    page.start - p,
+                right_text = (
+                    f"({page.permstr}) {mod_name} - 0x{page.start - p:x} (outside of the page)"
                 )
             else:
                 right_text = f"({page.permstr}) {mod_name} + 0x{p - page.start:x}"
 
-            offset_text = "0x%0*x" % (off_zeros, i)
-            p_text = "0x%0*x" % (int(ptrsize * 2), p)
+            offset_text = f"0x{i:0{off_zeros}x}"
+            p_text = f"0x{p:0{int(ptrsize * 2)}x}"
             text = f"{offset_text}: {mem_color.get(p, text=p_text)} = {mem_color.get(p, text=right_text)}"
 
             symbol = pwndbg.aglib.symbol.resolve_addr(p)

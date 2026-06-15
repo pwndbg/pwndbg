@@ -5,7 +5,6 @@ import binascii
 import codecs
 import os
 import struct
-from typing import Set
 
 import pwndbg
 import pwndbg.aglib
@@ -22,7 +21,7 @@ from pwndbg.commands import CommandCategory
 if pwndbg.dbg.is_gdblib_available():
     import gdb
 
-saved: Set[int] = set()
+saved: set[int] = set()
 
 
 def print_search_hit(address: int) -> None:
@@ -149,8 +148,7 @@ parser.add_argument(
     "--save",
     action="store_true",
     default=None,
-    help="Save results for further searches with --next. Default comes from config %r"
-    % auto_save.name,
+    help=f"Save results for further searches with --next. Default comes from config {auto_save.name!r}",
 )
 parser.add_argument(
     "--no-save", action="store_false", default=None, dest="save", help="Invert --save"
@@ -272,13 +270,13 @@ def search(
         mappings = [m for m in mappings if mapping_name in m.objfile]
 
     if not mappings:
-        print(message.error("Could not find mapping %r" % mapping_name))
+        print(message.error(f"Could not find mapping {mapping_name!r}"))
         return
 
     # Output appropriate messages based on the detected search type for better clarity
     if is_pointer:
         print("Searching for a pointer-width integer: " + repr(value))
-    elif type == "word" or type == "short":
+    elif type in {"word", "short"}:
         print("Searching for a 2-byte integer: " + repr(value))
     elif type == "dword":
         print("Searching for a 4-byte integer: " + repr(value))
@@ -308,7 +306,7 @@ def search(
                     print_search_hit(addr)
                 i += 1
 
-        print("Search found %d items" % i)
+        print(f"Search found {i} items")
         saved = new_saved
         return
 
@@ -317,22 +315,23 @@ def search(
         saved = set()
 
     # Perform the search
-    i = 0
-    for address in pwndbg.search.search(
-        value,
-        mappings=mappings,
-        executable=executable,
-        writable=writable,
-        step=step,
-        aligned=aligned,
-        limit=limit,
+    for i, address in enumerate(
+        pwndbg.search.search(
+            value,
+            mappings=mappings,
+            executable=executable,
+            writable=writable,
+            step=step,
+            aligned=aligned,
+            limit=limit,
+        )
     ):
         if save:
             saved.add(address)
         if asmbp:
             if pwndbg.dbg.is_gdblib_available():
                 # set breakpoint on the instruction
-                gdb.Breakpoint("*%#x" % address, temporary=False)
+                gdb.Breakpoint(f"*{address:#x}", temporary=False)
             else:
                 print(
                     f"Breakpoints are not supported outside of GDB yet, would be set at {address:#x}"
@@ -340,4 +339,3 @@ def search(
 
         if not trunc_out or i < 20:
             print_search_hit(address)
-        i += 1

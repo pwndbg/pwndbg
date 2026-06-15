@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Optional
 
 import pwndbg
 import pwndbg.commands
 import pwndbg.lib.config as cfg
 
 
-def pget(name: str) -> Optional[pwndbg.lib.config.Parameter]:
+def pget(name: str) -> pwndbg.lib.config.Parameter | None:
     """
     Retrieves a parameter with a given name.
     """
@@ -39,7 +38,7 @@ def parse_value(param: pwndbg.lib.config.Parameter, expression: str) -> Any:
     if param_class == cfg.PARAM_BOOLEAN:
         if expression == "on":
             return True
-        elif expression == "off":
+        if expression == "off":
             return False
         raise InvalidParse("expected 'on' or 'off'")
 
@@ -62,7 +61,7 @@ def parse_value(param: pwndbg.lib.config.Parameter, expression: str) -> Any:
         # in the string, while at the same time resolving all escape sequences
         # in the original string.
         return expression.encode("ascii", "backslashreplace").decode("unicode_escape")
-    elif param_class == cfg.PARAM_ZUINTEGER or param_class == cfg.PARAM_ZUINTEGER_UNLIMITED:
+    elif param_class in (cfg.PARAM_ZUINTEGER, cfg.PARAM_ZUINTEGER_UNLIMITED):
         try:
             value = int(expression, 0)
             if value < 0:
@@ -81,9 +80,9 @@ def parse_value(param: pwndbg.lib.config.Parameter, expression: str) -> Any:
     elif param_class == cfg.PARAM_AUTO_BOOLEAN:
         if expression == "on":
             return True
-        elif expression == "off":
+        if expression == "off":
             return False
-        elif expression == "auto":
+        if expression == "auto":
             return None
         raise InvalidParse("expected 'on', 'off', or 'auto'")
     elif param_class == cfg.PARAM_INTEGER:

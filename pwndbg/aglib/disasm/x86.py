@@ -1,26 +1,24 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
-from typing import Tuple
 
-from capstone import *  # noqa: F403
-from capstone.x86 import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.x86 import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.memory as mem_color
-import pwndbg.color.message as message
-import pwndbg.integration
-from pwndbg.aglib.disasm.arch import memory_or_register_assign
-from pwndbg.aglib.disasm.arch import register_assign
+import pwndbg.dintegration
+from pwndbg.aglib.disasm.assistant import memory_or_register_assign
+from pwndbg.aglib.disasm.assistant import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.color import message
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -38,6 +36,63 @@ X86_MATH_INSTRUCTIONS = {
     X86_INS_OR: "|",
 }
 
+
+def CF_BIT(eflags: int) -> bool:
+    return bool(eflags & (1 << 0))
+
+
+def PF_BIT(eflags: int) -> bool:
+    return bool(eflags & (1 << 2))
+
+
+def ZF_BIT(eflags: int) -> bool:
+    return bool(eflags & (1 << 6))
+
+
+def SF_BIT(eflags: int) -> bool:
+    return bool(eflags & (1 << 7))
+
+
+def OF_BIT(eflags: int) -> bool:
+    return bool(eflags & (1 << 11))
+
+
+CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
+    X86_INS_CMOVA: lambda eflags: not (CF_BIT(eflags) or ZF_BIT(eflags)),
+    X86_INS_CMOVAE: lambda eflags: not CF_BIT(eflags),
+    X86_INS_CMOVB: lambda eflags: CF_BIT(eflags),
+    X86_INS_CMOVBE: lambda eflags: CF_BIT(eflags) or ZF_BIT(eflags),
+    X86_INS_CMOVE: lambda eflags: ZF_BIT(eflags),
+    X86_INS_CMOVG: lambda eflags: not ZF_BIT(eflags) and (SF_BIT(eflags) == OF_BIT(eflags)),
+    X86_INS_CMOVGE: lambda eflags: SF_BIT(eflags) == OF_BIT(eflags),
+    X86_INS_CMOVL: lambda eflags: SF_BIT(eflags) != OF_BIT(eflags),
+    X86_INS_CMOVLE: lambda eflags: ZF_BIT(eflags) or (SF_BIT(eflags) != OF_BIT(eflags)),
+    X86_INS_CMOVNE: lambda eflags: not ZF_BIT(eflags),
+    X86_INS_CMOVNO: lambda eflags: not OF_BIT(eflags),
+    X86_INS_CMOVNP: lambda eflags: not PF_BIT(eflags),
+    X86_INS_CMOVNS: lambda eflags: not SF_BIT(eflags),
+    X86_INS_CMOVO: lambda eflags: OF_BIT(eflags),
+    X86_INS_CMOVP: lambda eflags: PF_BIT(eflags),
+    X86_INS_CMOVS: lambda eflags: SF_BIT(eflags),
+    X86_INS_JA: lambda eflags: not (CF_BIT(eflags) or ZF_BIT(eflags)),
+    X86_INS_JAE: lambda eflags: not CF_BIT(eflags),
+    X86_INS_JB: lambda eflags: CF_BIT(eflags),
+    X86_INS_JBE: lambda eflags: CF_BIT(eflags) or ZF_BIT(eflags),
+    X86_INS_JE: lambda eflags: ZF_BIT(eflags),
+    X86_INS_JG: lambda eflags: not ZF_BIT(eflags) and (SF_BIT(eflags) == OF_BIT(eflags)),
+    X86_INS_JGE: lambda eflags: SF_BIT(eflags) == OF_BIT(eflags),
+    X86_INS_JL: lambda eflags: SF_BIT(eflags) != OF_BIT(eflags),
+    X86_INS_JLE: lambda eflags: ZF_BIT(eflags) or (SF_BIT(eflags) != OF_BIT(eflags)),
+    X86_INS_JNE: lambda eflags: not ZF_BIT(eflags),
+    X86_INS_JNO: lambda eflags: not OF_BIT(eflags),
+    X86_INS_JNP: lambda eflags: not PF_BIT(eflags),
+    X86_INS_JNS: lambda eflags: not SF_BIT(eflags),
+    X86_INS_JO: lambda eflags: OF_BIT(eflags),
+    X86_INS_JP: lambda eflags: PF_BIT(eflags),
+    X86_INS_JS: lambda eflags: SF_BIT(eflags),
+}
+
+
 # Capstone operand type for x86 is capstone.x86.X86Op
 # This type has a .size field, which indicates the operand read/write size in bytes
 # Ex: dword ptr [RDX] has size = 4
@@ -47,13 +102,13 @@ X86_MATH_INSTRUCTIONS = {
 
 # This class handles enhancement for x86 and x86_64. This is because Capstone itself
 # represents both architectures using the same class
-class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     supports_manual_emulation = True
 
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
             X86_INS_MOV: self.handle_mov,
             X86_INS_MOVABS: self.handle_mov,
@@ -177,7 +232,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     left.str,
                     mem_color.get_address_or_symbol(
                         right.before_value_resolved,
-                        pwndbg.integration.manager.get_stack_var_dict_all(),
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
                     ),
                     left.type == CS_OP_MEM,
                 )
@@ -186,7 +241,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     right.str,
                     mem_color.get_address_or_symbol(
                         left.before_value_resolved,
-                        pwndbg.integration.manager.get_stack_var_dict_all(),
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
                     ),
                     right.type == CS_OP_MEM,
                 )
@@ -208,7 +263,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     reg_operand.str,
                     mem_color.get_address_and_symbol(
                         reg_operand.after_value,
-                        pwndbg.integration.manager.get_stack_var_dict_all(),
+                        pwndbg.dintegration.manager.get_stack_var_dict_all(),
                     ),
                 )
             elif pc_is_at_instruction:
@@ -218,7 +273,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     instruction.annotation = register_assign(
                         reg_operand.str,
                         mem_color.get_address_and_symbol(
-                            value, pwndbg.integration.manager.get_stack_var_dict_all()
+                            value, pwndbg.dintegration.manager.get_stack_var_dict_all()
                         ),
                     )
                 except Exception:
@@ -251,7 +306,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 operand.str,
                 mem_color.get_address_and_symbol(
                     operand.after_value_resolved,
-                    pwndbg.integration.manager.get_stack_var_dict_all(),
+                    pwndbg.dintegration.manager.get_stack_var_dict_all(),
                 ),
                 operand.type == CS_OP_MEM,
             )
@@ -272,8 +327,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         if operand.type == CS_OP_MEM:
             return self._read_memory(value, operand.cs_op.size, instruction, emu)
-        else:
-            return super()._resolve_used_value(value, instruction, operand, emu)
+        return super()._resolve_used_value(value, instruction, operand, emu)
 
     @override
     def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
@@ -283,8 +337,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             # Ex: lea    rax, [rip + 0xd55]
             # We can reason RIP no matter the current pc
             return instruction.address + instruction.size
-        else:
-            return super()._read_register(instruction, operand_id, emu)
+        return super()._read_register(instruction, operand_id, emu)
 
     @override
     def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
@@ -321,6 +374,16 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+
+        if X86_INS_LJMP == instruction.id:
+            target_cs = instruction.operands[0].before_value
+            target_eip = instruction.operands[1].before_value
+
+            if target_cs is None or target_eip is None:
+                return super()._resolve_target(instruction, emu)
+
+            return target_cs * 0x10 + target_eip
+
         # Only handle 'ret', otherwise fallback to default implementation
         if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
             return super()._resolve_target(instruction, emu)
@@ -343,62 +406,23 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNCONDITIONAL
+
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.id)
+        if condition_resolver is None:
+            return InstructionCondition.UNCONDITIONAL
 
         efl = self._read_register_name(instruction, "eflags", emu)
         if efl is None:
             # We can't reason about the value of flags register
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNDETERMINED_CONDITIONAL
 
-        cf = efl & (1 << 0)
-        pf = efl & (1 << 2)
-        # af = efl & (1 << 4)
-        zf = efl & (1 << 6)
-        sf = efl & (1 << 7)
-        of = efl & (1 << 11)
+        conditional = condition_resolver(efl)
 
-        conditional = {
-            X86_INS_CMOVA: not (cf or zf),
-            X86_INS_CMOVAE: not cf,
-            X86_INS_CMOVB: cf,
-            X86_INS_CMOVBE: cf or zf,
-            X86_INS_CMOVE: zf,
-            X86_INS_CMOVG: not zf and (sf == of),
-            X86_INS_CMOVGE: sf == of,
-            X86_INS_CMOVL: sf != of,
-            X86_INS_CMOVLE: zf or (sf != of),
-            X86_INS_CMOVNE: not zf,
-            X86_INS_CMOVNO: not of,
-            X86_INS_CMOVNP: not pf,
-            X86_INS_CMOVNS: not sf,
-            X86_INS_CMOVO: of,
-            X86_INS_CMOVP: pf,
-            X86_INS_CMOVS: sf,
-            X86_INS_JA: not (cf or zf),
-            X86_INS_JAE: not cf,
-            X86_INS_JB: cf,
-            X86_INS_JBE: cf or zf,
-            X86_INS_JE: zf,
-            X86_INS_JG: not zf and (sf == of),
-            X86_INS_JGE: sf == of,
-            X86_INS_JL: sf != of,
-            X86_INS_JLE: zf or (sf != of),
-            X86_INS_JNE: not zf,
-            X86_INS_JNO: not of,
-            X86_INS_JNP: not pf,
-            X86_INS_JNS: not sf,
-            X86_INS_JO: of,
-            X86_INS_JP: pf,
-            X86_INS_JS: sf,
-        }.get(instruction.id, None)
-
-        if conditional is None:
-            return InstructionCondition.UNDETERMINED
-
-        return InstructionCondition.TRUE if bool(conditional) else InstructionCondition.FALSE
+        return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
     @override
-    def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> Tuple[str, str]:
+    def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> tuple[str, str]:
         # Since this class handles both x86 and x86_64, we need to choose the correct
         # syscall arch depending on the instruction being executed.
 

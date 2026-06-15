@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import Optional
-from typing import Tuple
 
 import pwndbg.aglib
 import pwndbg.aglib.asm
@@ -29,7 +27,7 @@ X86_MSRS = {
 COMMON_MSRS = {"i386": X86_MSRS, "x86-64": X86_MSRS}
 
 
-def parse_msr(msr: str, arch: str) -> Optional[int]:
+def parse_msr(msr: str, arch: str) -> int | None:
     # first try to parse MSR name, then as int/hex
     if (val := COMMON_MSRS.get(arch, {}).get(msr.upper())) is not None:
         return val
@@ -41,7 +39,7 @@ def parse_msr(msr: str, arch: str) -> Optional[int]:
         return None
 
 
-def parse_range(msr_range: str, arch: str) -> Optional[Tuple[int, int]]:
+def parse_range(msr_range: str, arch: str) -> tuple[int, int] | None:
     bounds = msr_range.split("-")
     if len(bounds) != 2:
         return None
@@ -84,7 +82,7 @@ def x86_msr_write(msr: int, write_value: int) -> None:
 def msr_read(msr: int) -> None:
     arch = pwndbg.aglib.arch.name
 
-    if arch == "i386" or arch == "x86-64":
+    if arch in {"i386", "x86-64"}:
         x86_msr_read(msr)
     else:
         print(f"{arch} not supported")
@@ -93,7 +91,7 @@ def msr_read(msr: int) -> None:
 def msr_write(msr: int, write_value: int) -> None:
     arch = pwndbg.aglib.arch.name
 
-    if arch == "i386" or arch == "x86-64":
+    if arch in {"i386", "x86-64"}:
         x86_msr_write(msr, write_value)
     else:
         print(f"{arch} not supported")
@@ -143,10 +141,10 @@ parser.add_argument(
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 def msr(
-    msr: Optional[str] = None,
-    write: Optional[int] = None,
+    msr: str | None = None,
+    write: int | None = None,
     list_msr=False,
-    msr_range: Optional[str] = None,
+    msr_range: str | None = None,
 ) -> None:
     arch = pwndbg.aglib.arch.name
 

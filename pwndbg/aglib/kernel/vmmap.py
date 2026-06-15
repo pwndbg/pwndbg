@@ -1,15 +1,7 @@
 from __future__ import annotations
 
-import os
-import random
-import string
-import subprocess
 import sys
-import tempfile
-from typing import List
-from typing import Tuple
 
-from pt.machine import Machine
 from pt.pt import PageTableDump
 from pt.pt_aarch64_parse import PT_Aarch64_Backend
 from pt.pt_riscv64_parse import PT_RiscV64_Backend
@@ -18,163 +10,108 @@ from pt.pt_x86_64_parse import PT_x86_64_Backend
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.ktask
+import pwndbg.aglib.kernel.paging
+import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
-import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
+import pwndbg.lib.err
 import pwndbg.lib.memory
+from pwndbg.color import message
 from pwndbg.lib.memory import Page
 
 
-class KernelVmmap:
-    def __init__(self, pages: Tuple[Page, ...]):
-        self.pages = pages
-        self.sections = None
-        self.pi = pwndbg.aglib.kernel.arch_paginginfo()
-        if self.pi:
-            self.sections = self.pi.markers()
-        self.adjust()
-
-    def get_name(self, addr: int) -> str:
-        if addr is None or self.sections is None:
-            return None
-        for i in range(len(self.sections) - 1):
-            name, cur = self.sections[i]
-            _, next = self.sections[i + 1]
-            if cur is None or next is None or name is None:
-                continue
-            if cur <= addr < next:
-                return name
+def _get_name(
+    sections: tuple[tuple[str | None, int | None], ...] | None, addr: int | None
+) -> str | None:
+    if addr is None or sections is None:
         return None
+    for i in range(len(sections) - 1):
+        name, cur = sections[i]
+        _, next = sections[i + 1]
+        if cur is None or next is None or name is None:
+            continue
+        if cur <= addr < next:
+            return name
+    return None
 
-    def adjust(self):
-        if self.pi is None or self.pages is None or len(self.pages) == 0:
-            return
-        for i, page in enumerate(self.pages):
-            name = self.get_name(page.start)
+
+def _apply_address_markers(pages: tuple[Page, ...]) -> None:
+    pi = pwndbg.aglib.kernel.arch_paginginfo()
+    if pi and pages:
+        sections = pi.markers()
+        # this is needed for context annotations
+        for i, page in enumerate(pages):
+            name = _get_name(sections, page.start)
             if name is not None:
                 page.objfile = name
-        self.handle_user_pages()
-        self.pi.handle_kernel_pages(self.pages)
-        self.handle_offsets()
-
-    def handle_user_pages(self):
-        base_offset = self.pages[0].start
-        for i in range(len(self.pages)):
-            page = self.pages[i]
-            if page.objfile != self.pi.USERLAND:
-                break
-            diff = page.start - base_offset
-            if diff > 0x100000:
-                if diff > 0x100000000000:
-                    if page.execute:
-                        page.objfile = "userland [library]"
-                    elif page.rw:
-                        page.objfile = "userland [stack]"
-                else:
-                    page.objfile = "userland [heap]"
-            else:
-                # page.objfile += f"_{hex(i)[2:]}"
-                base_offset = page.start
-
-    def handle_offsets(self):
-        prev_objfile, base = "", 0
-        for page in self.pages:
-            # the check on KERNELRO is to make getting offsets for symbols such as `init_creds` more convinient
-            if page.objfile != self.pi.KERNELRO and prev_objfile != page.objfile:
-                prev_objfile = page.objfile
-                base = page.start
-            page.offset = page.start - base
-            if len(hex(page.offset)) > 9:
-                page.offset = 0
+        pi.handle_kernel_pages(pages)
 
 
-# Most of QemuMachine code was inherited from gdb-pt-dump thanks to Martin Radev (@martinradev)
-# on the MIT license, see:
-# https://github.com/martinradev/gdb-pt-dump/blob/21158ac3f9b36d0e5e0c86193e0ef018fc628e74/pt_gdb/pt_gdb.py#L11-L80
-class QemuMachine(Machine):
-    def __init__(self):
-        super().__init__()
-        self.file = None
-        self.pid = QemuMachine.get_qemu_pid()
-        self.file = os.open(f"/proc/{self.pid}/mem", os.O_RDONLY)
+def _handle_page_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
+    # only handle_offsets when invoked through vmmap command
+    kernelrw = (
+        pwndbg.aglib.kernel.paging.ArchPagingInfo.KERNELRO,
+        pwndbg.aglib.kernel.paging.ArchPagingInfo.KERNELBSS,
+    )
+    prev_objfile, base = "", 0
+    for page in pages.ranges():
+        # the check on kernelrw is to make getting offsets for symbols such as `init_creds` more convinient
+        if page.objfile not in kernelrw and (not prev_objfile or prev_objfile != page.objfile):
+            prev_objfile = page.objfile
+            base = page.start
+        page.offset = page.start - base
+        if len(hex(page.offset)) > 9:
+            page.offset = 0
 
-    def __del__(self):
-        if self.file:
-            os.close(self.file)
 
-    @staticmethod
-    def search_pids_for_file(pids: List[str], filename: str) -> str | None:
-        for pid in pids:
-            fd_dir = f"/proc/{pid}/fd"
-            try:
-                for fd in os.listdir(fd_dir):
-                    if os.readlink(f"{fd_dir}/{fd}") == filename:
-                        return pid
-            except FileNotFoundError:
-                # Either the process has gone or fds are changing, not our pid
-                pass
-            except PermissionError:
-                # Evade processes owned by other users
-                pass
+def _get_kernel_stacks() -> list[tuple[int, int, str]]:
+    stacks = []
+    for task in pwndbg.commands.ktask.get_ktasks():
+        for thread in task.threads:
+            if thread.stack:
+                stacks.append((thread.stack, thread.pid, thread.name))
+    return stacks
 
-        return None
 
-    @staticmethod
-    def get_qemu_pid():
-        try:
-            out = subprocess.check_output(["pgrep", "qemu-system"], encoding="utf8")
-            pids = out.strip().split("\n")
-
-            if len(pids) == 1:
-                return int(pids[0], 10)
-        except subprocess.CalledProcessError:
-            # If no process with the name `qemu-system` is found, fallback to alternative methods,
-            # as the binary name may vary (e.g., `qemu_system`).
-            pass
-
-        # We add a chardev file backend (we dont add a fronted, so it doesn't affect
-        # the guest). We can then look through proc to find which process has the file
-        # open. This approach is agnostic to namespaces (pid, network and mount).
-        chardev_id = "gdb-pt-dump" + "-" + "".join(random.choices(string.ascii_letters, k=16))
-        with tempfile.NamedTemporaryFile() as tmpf:
-            pwndbg.dbg.selected_inferior().send_monitor(
-                f"chardev-add file,id={chardev_id},path={tmpf.name}"
-            )
-            pid_found = QemuMachine.search_pids_for_file(pids, tmpf.name)
-            pwndbg.dbg.selected_inferior().send_monitor(f"chardev-remove {chardev_id}")
-
-        if not pid_found:
-            raise ProcessLookupError("Could not find qemu-system pid")
-
-        return int(pid_found, 10)
-
-    def read_physical_memory(self, physical_address: int, length: int) -> bytes:
-        res = pwndbg.dbg.selected_inferior().send_monitor(f"gpa2hva {hex(physical_address)}")
-
-        # It's not possible to pread large sizes, so let's break the request
-        # into a few smaller ones.
-        max_block_size = 1024 * 1024 * 256
-        try:
-            hva = int(res.split(" ")[-1], 16)
-            data = b""
-            for offset in range(0, length, max_block_size):
-                length_to_read = min(length - offset, max_block_size)
-                block = os.pread(self.file, length_to_read, hva + offset)
-                data += block
-            return data
-        except Exception as e:
-            msg = f"Physical address ({hex(physical_address)}, +{hex(length)}) is not accessible. Reason: {e}. gpa2hva result: {res}"
-            raise OSError(msg)
-
-    def read_register(self, register_name: str) -> int:
-        if register_name.startswith("$"):
-            register_name = register_name[1:]
-
-        return int(pwndbg.aglib.regs.read_reg(register_name))
+def _handle_user_stack_and_filepaths(pages: pwndbg.dbg_mod.MemoryMap) -> None:
+    task = pwndbg.aglib.kernel.current_task()
+    if task is None:
+        return
+    task = pwndbg.commands.ktask.Kthread(task)
+    user_stack = task.user_stack
+    for page in pages.ranges():
+        if pwndbg.aglib.memory.is_kernel(page.start):
+            break
+        file = pwndbg.aglib.kernel.ktask.resolve_addr_if_file(task.mm, page.start)
+        if file:
+            page.objfile = file
+        if user_stack and user_stack in page:
+            page.objfile = "userland [stack]"
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
+def annotate(pages: pwndbg.dbg_mod.MemoryMap) -> None:
+    try:
+        pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo()
+    except (pwndbg.lib.err.TypeNotRecoveredError, AttributeError):
+        return
+    _handle_user_stack_and_filepaths(pages)
+    _handle_page_offsets(pages)
+    stacks = _get_kernel_stacks()
+    if not stacks:
+        return
+    for page in pages.ranges():
+        for stack, pid, name in stacks:
+            if stack in page:
+                # not starting with [stack is intentional
+                page.objfile += f" [pid {pid}: {name}]"
+                break
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def kernel_vmmap_via_page_tables() -> tuple[Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -182,34 +119,15 @@ def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
         # QemuMachine requires access to /proc/{qemu-pid}/mem, which is only available on Linux
         return ()
 
-    try:
-        machine_backend = QemuMachine()
-    except PermissionError:
-        print(
-            message.error(
-                "Permission error when attempting to parse page tables with gdb-pt-dump.\n"
-                "Either change the kernel-vmmap setting, re-run GDB as root, or disable "
-                "`ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`)"
-            )
-        )
-        return ()
-    except ProcessLookupError:
-        print(
-            message.error(
-                "Could not find the PID for process named `qemu-system`.\n"
-                "This might happen if pwndbg is running on a different machine than `qemu-system`,\n"
-                "or if the `qemu-system` binary has a different name."
-            )
-        )
+    machine_backend = pwndbg.aglib.qemu.get_qemu_machine(True)
+    if machine_backend is None:
         return ()
 
     arch: str = pwndbg.aglib.arch.name
     ptrsize: int = pwndbg.aglib.arch.ptrsize
     if arch == "aarch64":
         arch_backend = PT_Aarch64_Backend(machine_backend)
-    elif arch == "i386":
-        arch_backend = PT_x86_64_Backend(machine_backend)
-    elif arch == "x86-64":
+    elif arch in {"x86-64", "i386"}:
         arch_backend = PT_x86_64_Backend(machine_backend)
     elif arch == "rv64":
         arch_backend = PT_RiscV64_Backend(machine_backend)
@@ -230,7 +148,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
     p = PageTableDump(machine_backend, arch_backend)
     pages = p.arch_backend.parse_tables(p.cache, p.parser.parse_args(""))
 
-    retpages: List[Page] = []
+    retpages: list[Page] = []
     for page in pages:
         start = page.va
         size = page.page_size
@@ -279,13 +197,10 @@ def _parser_mem_info_line_x86(line: str) -> Page | None:
     if end - start != size and monitor_info_mem_not_warned:
         print(
             message.warn(
-                (
-                    "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
-                    "that end-start==size failed. The values are:\n"
-                    "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
-                    "Note that this warning will not show up again in this Pwndbg/GDB session."
-                )
-                % (end, start, size, end - start)
+                "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
+                "that end-start==size failed. The values are:\n"
+                f"end={end:#x}; start={start:#x}; size={size:#x}; end-start={end - start:#x}\n"
+                "Note that this warning will not show up again in this Pwndbg/GDB session."
             )
         )
         monitor_info_mem_not_warned = False
@@ -326,7 +241,7 @@ def _parser_mem_info_line_riscv64(line: str) -> Page | None:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_monitor_info_mem() -> Tuple[Page, ...]:
+def kernel_vmmap_via_monitor_info_mem() -> tuple[Page, ...]:
     """
     Returns Linux memory maps information by parsing `monitor info mem` output
     from QEMU kernel GDB stub.
@@ -366,7 +281,7 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[Page, ...]:
         )
         return ()
 
-    pages: List[Page] = []
+    pages: list[Page] = []
     for line in monitor_info_mem.splitlines():
         try:
             page = parser_func(line)
@@ -398,20 +313,27 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_pages() -> Tuple[Page, ...]:
-    mode = kernel_vmmap_mode
-    if mode == "page-tables" and pwndbg.aglib.arch.name in ("rv32", "rv64"):
+def kernel_vmmap_pages() -> tuple[Page, ...]:
+    mode = str(kernel_vmmap_mode)
+    arch_name = pwndbg.aglib.arch.name
+    if mode == "page-tables" and arch_name not in ("x86-64", "aarch64"):
         # TODO: remove this by implementing `RiscvPagingInfo`, `RiscvOps`, etc
-        print(message.warn("`page-tables` unsupported for riscv, defaulting to `monitor info mem`"))
+        print(
+            message.warn(
+                f"`kernel-vmmap = {mode}` unsupported for {arch_name}, defaulting to `monitor`"
+            )
+        )
         mode = "monitor"
     match mode:
         case "page-tables":
             # has the user set the pgd with kcurrent?
             # None if not which gets properly handled
-            entry = pwndbg.commands.kcurrent.KCURRENT_PGD
-            if entry and pwndbg.aglib.memory.is_kernel(entry):
-                entry = pwndbg.aglib.kernel.virt_to_phys(entry)
-            return pwndbg.aglib.kernel.pagetable_scan(entry)
+            entry = None
+            if (kcurrent := pwndbg.commands.kcurrent.get_kcurrent()) is not None:
+                entry = kcurrent.pgd
+            if pwndbg.aglib.memory.is_kernel(entry):
+                entry = pwndbg.aglib.kernel.pagewalk(entry, virt=False).phys
+            return pwndbg.aglib.kernel.pagescan(entry)
         case "pt-dump":
             return kernel_vmmap_via_page_tables()
         case "monitor":
@@ -419,7 +341,7 @@ def kernel_vmmap_pages() -> Tuple[Page, ...]:
     return ()
 
 
-def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap() -> tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -433,14 +355,14 @@ def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
         return ()
 
     pages = kernel_vmmap_pages()
-    kv = KernelVmmap(pages)
+    _apply_address_markers(pages)
     if kernel_vmmap_mode == "monitor" and pwndbg.aglib.arch.name == "x86-64":
         # TODO: check version here when QEMU displays the x bit for x64
         # see: https://github.com/pwndbg/pwndbg/pull/3020#issuecomment-2914573242
         for page in pages:
-            if page.objfile == kv.pi.ESPSTACK:
+            if page.objfile == pwndbg.aglib.kernel.paging.ArchPagingInfo.ESPSTACK:
                 continue
-            entry = pwndbg.aglib.kernel.pagewalk(page.start)[0].entry
+            entry = pwndbg.aglib.kernel.pagewalk(page.start).entry
             if entry and entry >> 63 == 0:
                 page.flags |= 1
 

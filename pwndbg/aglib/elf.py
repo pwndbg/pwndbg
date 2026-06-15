@@ -12,13 +12,9 @@ import ctypes
 import importlib
 import subprocess
 import sys
-import tempfile
-from typing import Dict
-from typing import List
 from typing import NamedTuple
-from typing import Tuple
+from typing import TypeAlias
 from typing import TypeVar
-from typing import Union
 
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
@@ -34,7 +30,7 @@ import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.auxv
-import pwndbg.lib
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.elftypes
@@ -42,6 +38,7 @@ import pwndbg.lib.memory
 import pwndbg.lib.zig
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
+from pwndbg.lib import Status
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -56,9 +53,9 @@ class ELFInfo(NamedTuple):
     ELF metadata and structures.
     """
 
-    header: Dict[str, int | str]
-    sections: List[Dict[str, int | str]]
-    segments: List[Dict[str, int | str]]
+    header: dict[str, int | str]
+    sections: list[dict[str, int | str]]
+    segments: list[dict[str, int | str]]
 
     @property
     def is_pic(self) -> bool:
@@ -69,8 +66,8 @@ class ELFInfo(NamedTuple):
         return self.is_pic
 
 
-Ehdr = Union[pwndbg.lib.elftypes.Elf32_Ehdr, pwndbg.lib.elftypes.Elf64_Ehdr]
-Phdr = Union[pwndbg.lib.elftypes.Elf32_Phdr, pwndbg.lib.elftypes.Elf64_Phdr]
+Ehdr: TypeAlias = pwndbg.lib.elftypes.Elf32_Ehdr | pwndbg.lib.elftypes.Elf64_Ehdr
+Phdr: TypeAlias = pwndbg.lib.elftypes.Elf32_Phdr | pwndbg.lib.elftypes.Elf64_Phdr
 
 
 @pwndbg.dbg.event_handler(EventType.START)
@@ -82,7 +79,6 @@ def update() -> None:
 
     except ImportError:
         print(message.warn("Failed to reload pwndbg.lib.elftypes"))
-        pass
 
     if pwndbg.aglib.arch.ptrsize == 4:
         Ehdr = pwndbg.lib.elftypes.Elf32_Ehdr
@@ -96,8 +92,8 @@ def update() -> None:
 
 T = TypeVar(
     "T",
-    Union[pwndbg.lib.elftypes.Elf32_Ehdr, pwndbg.lib.elftypes.Elf64_Ehdr],
-    Union[pwndbg.lib.elftypes.Elf32_Phdr, pwndbg.lib.elftypes.Elf64_Phdr],
+    pwndbg.lib.elftypes.Elf32_Ehdr | pwndbg.lib.elftypes.Elf64_Ehdr,
+    pwndbg.lib.elftypes.Elf32_Phdr | pwndbg.lib.elftypes.Elf64_Phdr,
 )
 
 
@@ -160,14 +156,14 @@ def get_elf_info_rebased(filepath: str, vaddr: int) -> ELFInfo:
     headers = dict(raw_info.header)
     headers["e_entry"] += load  # type: ignore[operator]
 
-    segments: List[Dict[str, int | str]] = []
+    segments: list[dict[str, int | str]] = []
     for seg in raw_info.segments:
         s = dict(seg)
         for vaddr_attr in ["p_vaddr", "x_vaddr_mem_end", "x_vaddr_file_end"]:
             s[vaddr_attr] += load  # type: ignore[operator]
         segments.append(s)
 
-    sections: List[Dict[str, int | str]] = []
+    sections: list[dict[str, int | str]] = []
     for sec in raw_info.sections:
         s = dict(sec)
         for vaddr_attr in ["sh_addr", "x_addr_mem_end", "x_addr_file_end"]:
@@ -206,19 +202,19 @@ def get_containing_sections(elf_filepath: str, elf_loadaddr: int, vaddr: int):
     return sections
 
 
-def get_vmlinux_unrand_base(elf_filepath: str):
+def get_vmlinux_unrand_base(elf_filepath: str) -> int | None:
     elf = get_elf_info(elf_filepath)
     for seg in elf.segments:
         if seg["p_type"] == "PT_LOAD":
-            return seg["p_vaddr"]
+            return int(seg["p_vaddr"])
     return None
 
 
-def dump_section_by_name(
+def section_by_name(
     filepath: str, section_name: str, try_local_path: bool = False
-) -> Tuple[int, int, bytes] | None:
+) -> tuple[int, int, bytes] | None:
     """
-    Dump the content of a section from an ELF file, return the start address, size and content.
+    Return the content of a section from an ELF file, as a (start address, size, content) tuple.
     """
     # TODO: We should have some cache mechanism or something at `pndbg.aglib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
     local_path = pwndbg.aglib.file.get_file(filepath, try_local_path=try_local_path)
@@ -229,11 +225,12 @@ def dump_section_by_name(
         return (section["sh_addr"], section["sh_size"], section.data()) if section else None
 
 
-def dump_relocations_by_section_name(
+def relocations_by_section_name(
     filepath: str, section_name: str, try_local_path: bool = False
-) -> Tuple[Relocation, ...] | None:
+) -> tuple[Relocation, ...]:
     """
-    Dump the relocation entries of a section from an ELF file, return a generator of Relocation objects.
+    Return the relocation entries of a section from an ELF file as a (possibly empty)
+    tuple of Relocation objects.
     """
     # TODO: We should have some cache mechanism or something at `pndbg.aglib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
     local_path = pwndbg.aglib.file.get_file(filepath, try_local_path=try_local_path)
@@ -242,7 +239,7 @@ def dump_relocations_by_section_name(
         elffile = ELFFile(f)
         section = elffile.get_section_by_name(section_name)
         if section is None or not isinstance(section, RelocationSection):
-            return None
+            return ()
         return tuple(section.iter_relocations())
 
 
@@ -253,8 +250,7 @@ def exe() -> Ehdr | None:
     Return a loaded ELF header object pointing to the Ehdr of the
     main executable.
     """
-    e = entry()
-    if e:
+    if e := entry():
         return load(e)
     return None
 
@@ -265,13 +261,11 @@ def entry() -> int:
     """
     Return the address of the entry point for the main executable.
     """
-    entry = pwndbg.auxv.get().AT_ENTRY
-    if entry:
+    if entry := pwndbg.auxv.get().AT_ENTRY:
         return entry
 
     inf = pwndbg.dbg.selected_inferior()
-    entry = inf.main_module_entry()
-    if entry:
+    if entry := inf.main_module_entry():
         return entry
 
     # Try common names
@@ -298,7 +292,7 @@ def reset_ehdr_type_loaded() -> None:
     ehdr_type_loaded = 0
 
 
-def get_ehdr(pointer: int) -> Tuple[int | None, Ehdr | None]:
+def get_ehdr(pointer: int) -> tuple[int | None, Ehdr | None]:
     """
     Returns an ehdr object for the ELF pointer points into.
 
@@ -348,7 +342,9 @@ def get_ehdr(pointer: int) -> Tuple[int | None, Ehdr | None]:
     ei_class = pwndbg.aglib.memory.byte(base + 4)
 
     # Find out where the section headers start
-    Elfhdr: Elf32_Ehdr | Elf64_Ehdr | None = read(Ehdr, base)  # type: ignore[type-var]
+    Elfhdr: pwndbg.lib.elftypes.Elf32_Ehdr | pwndbg.lib.elftypes.Elf64_Ehdr | None = read(
+        Ehdr, base
+    )  # type: ignore[type-var]
     return ei_class, Elfhdr
 
 
@@ -383,13 +379,13 @@ def iter_phdrs(ehdr: Ehdr):
     first_phdr = phdr.address
     PhdrType = phdr.type
 
-    for i in range(0, phnum):
+    for i in range(phnum):
         p_phdr = int(first_phdr + (i * phentsize))
         p_phdr = read(PhdrType, p_phdr)
         yield p_phdr
 
 
-def map(pointer: int, objfile: str = "") -> Tuple[pwndbg.lib.memory.Page, ...]:
+def map(pointer: int, objfile: str = "") -> tuple[pwndbg.lib.memory.Page, ...]:
     """
     Given a pointer into an ELF module, return a list of all loaded
     sections in the ELF.
@@ -413,7 +409,7 @@ def map(pointer: int, objfile: str = "") -> Tuple[pwndbg.lib.memory.Page, ...]:
     return map_inner(ei_class, ehdr, objfile)
 
 
-def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> tuple[pwndbg.lib.memory.Page, ...]:
     if not ehdr:
         return ()
 
@@ -427,7 +423,7 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memor
     # Entries are processed in-order so that later entries
     # which change page permissions (e.g. PT_GNU_RELRO) will
     # override their small subset of address space.
-    pages: List[pwndbg.lib.memory.Page] = []
+    pages: list[pwndbg.lib.memory.Page] = []
     for phdr in iter_phdrs(ehdr):
         memsz = int(phdr.p_memsz)
 
@@ -482,7 +478,7 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memor
 
     # Fill in any gaps with no-access pages.
     # This is what the linker does, and what all the '---p' pages are.
-    gaps: List[pwndbg.lib.memory.Page] = []
+    gaps: list[pwndbg.lib.memory.Page] = []
     for i in range(len(pages) - 1):
         a, b = pages[i : i + 2]
         a_end = a.vaddr + a.memsz
@@ -506,68 +502,42 @@ gcc_compiler_path = pwndbg.config.add_param(
 )
 
 
-def compile_with_flags(gcc_extra_flags):
+def compile_with_flags(compiler_flags: list[str]) -> Status:
+    """
+    Compile a C program.
+
+    If the `gcc_compiler_path` argument is set, gcc will be used, otherwise
+    zig (the python package) will be used.
+
+    Arguments:
+        compiler_flags: The flags to pass to the compiler, including the input and
+            output files.
+
+    Returns:
+        A status object carrying an error message if compilation failed.
+    """
     if gcc_compiler_path != "":
-        compiler_flags = [gcc_compiler_path]
+        compiler_cmdline = [str(gcc_compiler_path)]
     else:
         try:
-            compiler_flags = pwndbg.lib.zig.flags(pwndbg.aglib.arch)
+            compiler_cmdline = pwndbg.lib.zig.flags(pwndbg.aglib.arch)
         except ValueError as exception:
-            print(message.error(exception))
-            return False
+            return Status.fail(str(exception))
 
-    gcc_cmd = compiler_flags + gcc_extra_flags
+    gcc_cmd: list[str] = compiler_cmdline + compiler_flags
 
     try:
-        subprocess.run(gcc_cmd, check=True, text=True)
-        return True
+        # capture_output=True makes it so the compilation errors are not instantly
+        # dumped to the user, but are in the CalledProcessError object.
+        # https://docs.python.org/3/library/subprocess.html#subprocess.run:~:text=stdout%20and%20stderr%20if%20they%20were%20captured
+        subprocess.run(gcc_cmd, check=True, text=True, capture_output=True)
+        return Status()
     except subprocess.CalledProcessError as exception:
-        print(message.error(exception))
-        print(
-            message.error(
-                f"Failed to compile {gcc_extra_flags[0]}. Please fix any compilation errors there may be."
-            )
+        return Status.fail(
+            str(exception)
+            + f"\nStdout: {exception.stdout}"
+            + f"\nStderr: {exception.stderr}"
+            + f"\nFailed to compile {compiler_flags[0]}. Please fix any compilation errors there may be."
         )
     except Exception as exception:
-        print(message.error(exception))
-        print(message.error("An error occured while generating the debug symbols."))
-    return False
-
-
-def create_blank_elf():
-    try:
-        import lief
-    except ImportError:
-        print(
-            message.error(
-                "lief python package is not installed (this will be auto-installed with next version of Pwndbg; for now, you can install it manually in the Pwndbg venv)."
-            )
-        )
-        return None
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".S")
-    tmp.write(b".global _start\n_start:\nnop")
-    tmp.flush()
-    _, output_path = tempfile.mkstemp(prefix="blank-", suffix=".dbg")
-
-    gcc_extra_flags = [
-        tmp.name,
-        "-nostdlib",
-        "--static",
-        "-o",
-        output_path,
-    ]
-
-    if not compile_with_flags(gcc_extra_flags):
-        return None
-
-    blank_elf = lief.ELF.parse(output_path)
-    if blank_elf is None:
-        print(message.error("failed to parse blank elf"))
-        return
-
-    for s in blank_elf.symbols:
-        blank_elf.remove_symtab_symbol(s)
-
-    blank_elf.write(output_path)
-
-    return output_path
+        return Status.fail(str(exception) + "\nAn error occurred while compiling.")

@@ -1,17 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
 
-from capstone import *  # noqa: F403
-from capstone.aarch64 import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.aarch64 import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 import pwndbg.lib.disasm.helpers as bit_math
-from pwndbg.aglib.disasm.arch import register_assign
+from pwndbg.aglib.disasm.assistant import register_assign
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -24,7 +23,7 @@ if TYPE_CHECKING:
 
 # Negative size indicates signed read
 # None indicates the read size depends on the target register
-AARCH64_SINGLE_LOAD_INSTRUCTIONS: Dict[int, int | None] = {
+AARCH64_SINGLE_LOAD_INSTRUCTIONS: dict[int, int | None] = {
     AARCH64_INS_LDRB: 1,
     AARCH64_INS_ALIAS_LDRB: 1,
     AARCH64_INS_LDURB: 1,
@@ -65,7 +64,7 @@ AARCH64_SINGLE_LOAD_INSTRUCTIONS: Dict[int, int | None] = {
 }
 
 # None indicates that the write size depends on the source register
-AARCH64_SINGLE_STORE_INSTRUCTIONS: Dict[int, int | None] = {
+AARCH64_SINGLE_STORE_INSTRUCTIONS: dict[int, int | None] = {
     AARCH64_INS_STRB: 1,
     AARCH64_INS_ALIAS_STRB: 1,
     AARCH64_INS_STURB: 1,
@@ -140,7 +139,7 @@ AARCH64_EMULATED_ANNOTATIONS = CONDITIONAL_SELECT_INSTRUCTIONS | {
 AARCH64_CONSTANT_SHIFTS = {AARCH64_SFT_LSL, AARCH64_SFT_LSR, AARCH64_SFT_ASR, AARCH64_SFT_ROR}
 
 # Parameters to each function: (value, shift_amt, bit_width)
-AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
+AARCH64_BIT_SHIFT_MAP: dict[int, Callable[[int, int, int], int]] = {
     AARCH64_SFT_LSL: bit_math.logical_shift_left,
     AARCH64_SFT_LSR: bit_math.logical_shift_right,
     AARCH64_SFT_ASR: bit_math.arithmetic_shift_right,
@@ -151,11 +150,13 @@ AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
 # These are "Extend" operations - https://devblogs.microsoft.com/oldnewthing/20220728-00/?p=106912
 # They take in a number, extract a byte, halfword, or word,
 # and perform a zero- or sign-extend operation.
-AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
+AARCH64_EXTEND_MAP: dict[int, Callable[[int], int]] = {
     AARCH64_EXT_UXTB: lambda x: x & ((1 << 8) - 1),
     AARCH64_EXT_UXTH: lambda x: x & ((1 << 16) - 1),
     AARCH64_EXT_UXTW: lambda x: x & ((1 << 32) - 1),
-    AARCH64_EXT_UXTX: lambda x: x,  # UXTX has no effect. It extracts 64-bits from a 64-bit register.
+    AARCH64_EXT_UXTX: lambda x: (
+        x
+    ),  # UXTX has no effect. It extracts 64-bits from a 64-bit register.
     AARCH64_EXT_SXTB: lambda x: bit_math.to_signed(x, 8),
     AARCH64_EXT_SXTH: lambda x: bit_math.to_signed(x, 16),
     AARCH64_EXT_SXTW: lambda x: bit_math.to_signed(x, 32),
@@ -238,11 +239,11 @@ def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
 
 
-class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
             AARCH64_INS_MOV: self._common_move_annotator,
             AARCH64_INS_ALIAS_MOV: self._common_move_annotator,
@@ -343,17 +344,13 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
             instruction.annotation = register_assign(result_operand.str, telescope)
 
     @override
-    def _prepare(
-        self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator
-    ) -> None:
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
             instruction.groups.remove(CS_GRP_CALL)
 
     @override
-    def _condition(
-        self, instruction: PwndbgInstruction, emu: Emulator
-    ) -> pwndbg.aglib.disasm.arch.InstructionCondition:
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         # In ARM64, only branches have the conditional code in the instruction,
         # as opposed to ARM32 which allows most instructions to be conditional
         if instruction.id == AARCH64_INS_B:
@@ -410,7 +407,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
             if (val := instruction.operands[-1].before_value) is not None:
                 return val & pwndbg.aglib.arch.ptrmask
             return None
-        elif instruction.id in (AARCH64_INS_RET, AARCH64_INS_ALIAS_RET):
+        if instruction.id in (AARCH64_INS_RET, AARCH64_INS_ALIAS_RET):
             # If this is a ret WITHOUT an operand, it means we should read from the LR/x30 register
             return super()._read_register_name(instruction, "lr", emu)
 
@@ -483,7 +480,9 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
         return 32 if instruction.cs_insn.reg_name(op.reg)[0] == "w" else 64
 
     @override
-    def _parse_immediate(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
+    def _parse_immediate(
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+    ) -> int | None:
         """
         In AArch64, there can be an optional shift applied to constants, typically only a `LSL #12`
 

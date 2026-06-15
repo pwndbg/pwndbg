@@ -2,7 +2,7 @@
 # kbpf
 
 ```text
-usage: kbpf [-h] [-v] [-p] [-m]
+usage: kbpf [-h] [-v] [-b NTH] [-p] [-m]
 
 ```
 
@@ -13,6 +13,7 @@ Prints information about the linux kernel bpf progs and maps.
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 |-v|--verbose|Increase the verbosity. (default: 0)|
+|-b|--break|Break at the start of the nth JIT compiled ebpf prog.|
 |-p|--progs|Print progs|
 |-m|--maps|Print maps|
 

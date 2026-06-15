@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import List
 
 import gdb
 
@@ -31,7 +30,7 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PROCESS)
 @pwndbg.commands.OnlyWhenRunning
-def killthreads(thread_ids: List[int] | None = None, all: bool = False) -> None:
+def killthreads(thread_ids: list[int] | None = None, all: bool = False) -> None:
     if len(thread_ids) == 0 and not all:
         print(message.error("No thread IDs or --all flag specified"))
         return
@@ -58,7 +57,7 @@ def killthreads(thread_ids: List[int] | None = None, all: bool = False) -> None:
                     return
         for thread_id in thread_ids:
             gdb.execute(f"thread {thread_id}", to_string=True)
-            try:
+            try:  # noqa: SIM105
                 gdb.execute("call (void) pthread_exit(0)", to_string=True)
             except gdb.error:
                 # gdb will throw an error, because the thread dies during the call, which is expected

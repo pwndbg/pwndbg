@@ -7,22 +7,23 @@ displays GPT-3's response to that question to the user.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import pprint
 import re
-from typing import List
+from contextlib import suppress
 
 import gdb
 
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.nearpc
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
 import pwndbg.lib.strings
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 pwndbg.config.add_param(
@@ -75,8 +76,8 @@ pwndbg.config.add_param(
     "whether to show how many tokens are used with each OpenAI API call",
 )
 
-last_question: List[str] = []
-last_answer: List[str] = []
+last_question: list[str] = []
+last_answer: list[str] = []
 last_pc = None
 last_command = None
 dummy = False
@@ -93,7 +94,6 @@ def _requests():
 def set_dummy_mode(d=True) -> None:
     global dummy
     dummy = d
-    return
 
 
 def get_openai_api_key():
@@ -104,8 +104,7 @@ def get_openai_api_key():
         print(message.warn("Setting OpenAI API key from OPENAI_API_KEY environment variable."))
         pwndbg.config.ai_openai_api_key.value = key
         return key
-    else:
-        return pwndbg.config.ai_openai_api_key.value
+    return pwndbg.config.ai_openai_api_key.value
 
 
 def get_anthropic_api_key():
@@ -118,8 +117,7 @@ def get_anthropic_api_key():
         )
         pwndbg.config.ai_anthropic_api_key.value = key
         return key
-    else:
-        return pwndbg.config.ai_anthropic_api_key.value
+    return pwndbg.config.ai_anthropic_api_key.value
 
 
 def get_ollama_endpoint():
@@ -130,8 +128,7 @@ def get_ollama_endpoint():
         print(message.warn("Setting Ollama Endpoint from OLLAMA_ENDPOINT environment variable."))
         pwndbg.config.ai_ollama_endpoint.value = endpoint
         return endpoint
-    else:
-        return pwndbg.config.ai_ollama_endpoint.value
+    return pwndbg.config.ai_ollama_endpoint.value
 
 
 def build_prompt(question, command=None):
@@ -184,17 +181,13 @@ def build_context_prompt_body():
     ## Next, let's get the registers
     regs_rows = pwndbg.commands.context.get_regs()
     regs = "\n".join(regs_rows)
+
     flags = None
-    try:
-        flags = gdb.execute("info registers eflags", to_string=True)  # arch neutral would be nice
-    except Exception:
-        pass
-    if flags:
+    with suppress(Exception):
+        # arch neutral would be nice
+        flags = gdb.execute("info registers eflags", to_string=True)
         # just grab what's bewteen the square brackets
-        try:
-            flags = re.search(r"\[(.*)\]", flags).group(1)
-        except Exception:
-            pass
+        flags = re.search(r"\[(.*)\]", flags).group(1)
 
     ## Finally, let's get the stack
     stack_rows = pwndbg.commands.telescope.telescope(
@@ -209,10 +202,8 @@ def build_context_prompt_body():
     local_vars = None
     ## and source information, if available
     source = ""
-    try:
+    with contextlib.suppress(gdb.error):
         source = gdb.execute("list *$pc", to_string=True)
-    except gdb.error:
-        pass
     ## Now, let's build the prompt
     prompt = "Consider the following context in the GDB debugger:\n"
 
@@ -369,18 +360,17 @@ def query(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
         if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)
         return query_ollama(prompt, model, max_tokens, temperature)
-    elif "turbo" in model or model.startswith("gpt-4"):
+    if "turbo" in model or model.startswith("gpt-4"):
         if isinstance(prompt, str):
             prompt = [{"role": "user", "content": prompt}]
         return query_openai_chat(prompt, model, max_tokens, temperature)
-    elif model.startswith("claude"):
+    if model.startswith("claude"):
         if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)
         return query_anthropic(prompt, model, max_tokens, temperature)
-    else:
-        if isinstance(prompt, list):
-            prompt = flatten_prompt(prompt)
-        return query_openai_completions(prompt, model, max_tokens, temperature)
+    if isinstance(prompt, list):
+        prompt = flatten_prompt(prompt)
+    return query_openai_completions(prompt, model, max_tokens, temperature)
 
 
 def query_anthropic(prompt, model="claude-v1", max_tokens=100, temperature=0.0):

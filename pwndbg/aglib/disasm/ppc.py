@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import Callable
-from typing import Dict
+from collections.abc import Callable
 
-from capstone import *  # noqa: F403
-from capstone.ppc_const import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.ppc_const import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
@@ -48,39 +47,39 @@ def is_branch_taken(cr: int, ctr: int, bi: int, bo: int) -> bool | None:
     if (bo & 0b11110) == 0b00000:  # 0000x
         ctr -= 1
         return ctr != 0 and not condition
-    elif (bo & 0b11110) == 0b00010:  # 0001x
+    if (bo & 0b11110) == 0b00010:  # 0001x
         ctr -= 1
         return ctr == 0 and not condition
-    elif (bo & 0b11100) == 0b00100:  # 001xx
+    if (bo & 0b11100) == 0b00100:  # 001xx
         return not condition
-    elif (bo & 0b11110) == 0b01000:  # 0100x
+    if (bo & 0b11110) == 0b01000:  # 0100x
         ctr -= 1
         return ctr != 0 and condition
-    elif (bo & 0b11110) == 0b01010:  # 0101x
+    if (bo & 0b11110) == 0b01010:  # 0101x
         ctr -= 1
         return ctr == 0 and condition
-    elif (bo & 0b11100) == 0b01100:  # 011xx
+    if (bo & 0b11100) == 0b01100:  # 011xx
         return condition
-    elif (bo & 0b10110) == 0b10000:  # 1x00x
+    if (bo & 0b10110) == 0b10000:  # 1x00x
         ctr -= 1
         return ctr != 0
-    elif (bo & 0b10110) == 0b10010:  # 1x01x
+    if (bo & 0b10110) == 0b10010:  # 1x01x
         ctr -= 1
         return ctr == 0
-    elif (bo & 0b10100) == 0b10100:  # 1x1xx
+    if (bo & 0b10100) == 0b10100:  # 1x1xx
         return True
 
     # This case should never be reached
     return None
 
 
-class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     saved_ctr: int | None = None
 
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {}
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {}
 
     @override
     def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -95,23 +94,23 @@ class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        cr = self._read_register_name(instruction, "cr", emu)
-
-        if cr is None or self.saved_ctr is None:
-            # We can't reason about the value of cr register
-            return InstructionCondition.UNDETERMINED
-
         if instruction.id in POWERPC_CONDITIONAL_BRANCHES:
+            cr = self._read_register_name(instruction, "cr", emu)
+
+            if cr is None or self.saved_ctr is None:
+                # We can't reason about the value of cr register
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+
             is_taken = is_branch_taken(
                 cr, self.saved_ctr, instruction.cs_insn.bc.bi, instruction.cs_insn.bc.bo
             )
 
             if is_taken is None:
-                return InstructionCondition.UNDETERMINED
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
 
             return InstructionCondition.TRUE if is_taken else InstructionCondition.FALSE
 
-        return InstructionCondition.UNDETERMINED
+        return InstructionCondition.UNCONDITIONAL
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):

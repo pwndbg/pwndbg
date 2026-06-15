@@ -28,7 +28,7 @@ install_apt() {
 
 install_dnf() {
     sudo dnf update || true
-    sudo dnf -y install git gdb gdb-gdbserver python3-devel
+    sudo dnf -y install git gdb gdb-gdbserver python3-devel gcc g++ make patch ncurses-devel
     sudo dnf -y debuginfo-install glibc
 }
 
@@ -74,13 +74,7 @@ install_pacman() {
     if [[ "$answer" == "y" ]]; then
         sudo pacman -Syu || true
     fi
-    sudo pacman -S --noconfirm --needed git gdb python which debuginfod curl
-    if [ -z "$UPDATE_MODE" ]; then
-        if ! grep -qs "^set debuginfod enabled on" ~/.gdbinit; then
-            echo "set debuginfod enabled on" >> ~/.gdbinit
-            echo "[*] Added 'set debuginfod enabled on' to ~/.gdbinit"
-        fi
-    fi
+    sudo pacman -S --noconfirm --needed git gdb python which debuginfod curl gcc make patch
 }
 
 install_freebsd() {
@@ -214,8 +208,13 @@ source ${PWNDBG_VENV_PATH}/bin/activate
 pip install uv
 
 # Install dependencies
+# No need to install vendored GDB / LLDB since they won't be used
+# with this setup.
 echo "Installing dependencies.."
-uv sync --extra gdb --extra lldb --quiet
+# Build pwndbg without isolation (using the pre-installed build backend) so this
+# works offline; scoped here so other `uv sync` calls (docs, lint) keep isolation.
+uv sync --no-install-project --group build
+uv sync --no-build-isolation-package pwndbg
 
 if [ -z "$UPDATE_MODE" ]; then
     if grep -qs '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
@@ -225,6 +224,7 @@ if [ -z "$UPDATE_MODE" ]; then
         echo "source $PWD/gdbinit.py" >> ~/.gdbinit
         echo "[*] Added 'source $PWD/gdbinit.py' to ~/.gdbinit so that Pwndbg will be loaded on every launch of GDB."
     fi
-    echo "Please set the PWNDBG_NO_AUTOUPDATE environment variable to any value"
-    echo "to disable the automatic updating of dependencies when Pwndbg is loaded."
 fi
+
+echo "Set the PWNDBG_NO_AUTOUPDATE environment variable to any value"
+echo "to disable the automatic updating of dependencies when Pwndbg is loaded."

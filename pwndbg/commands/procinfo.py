@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import contextlib
 import shlex
 import string
 
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
+import pwndbg.aglib.remote
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.lib.cache
 import pwndbg.lib.net
+import pwndbg.lib.proc_fd
+import pwndbg.lib.sock_diag
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -97,6 +101,73 @@ def netlink(tid: int):
     return pwndbg.lib.net.netlink(data)
 
 
+def _augment_unix_peers(connections: list[pwndbg.lib.net.inode]) -> None:
+    """Attach peer-process info to UnixSocket entries when running locally.
+
+    SOCK_DIAG and /proc/*/fd are kernel-local: for any non-local target the
+    answers would describe the wrong machine, so we silently skip.
+    """
+    unix_socks = [c for c in connections if isinstance(c, pwndbg.lib.net.UnixSocket)]
+    if not unix_socks:
+        return
+    if pwndbg.aglib.remote.is_remote():
+        return
+
+    peers = pwndbg.lib.sock_diag.get_unix_peers()
+    if not peers:
+        return
+
+    peer_inodes: set[int] = set()
+    for u in unix_socks:
+        peer = peers.get(u.inode) if u.inode is not None else None
+        if peer:
+            u.peer_inode = peer
+            peer_inodes.add(peer)
+
+    if not peer_inodes:
+        return
+
+    owners = pwndbg.lib.sock_diag.find_socket_inode_owners(peer_inodes)
+    for u in unix_socks:
+        if u.peer_inode and u.peer_inode in owners:
+            pid, fd, comm = owners[u.peer_inode]
+            u.peer_pid = pid
+            u.peer_fd = fd
+            u.peer_comm = comm or None
+
+
+def _augment_pipes(pipes: list[pwndbg.lib.proc_fd.Pipe], self_pid: int) -> None:
+    """Fill in mode and peer endpoints for each Pipe entry, when running locally.
+
+    Pipe peer info comes from walking /proc/*/fd on the local kernel; for a
+    remote target this would describe the wrong machine, so we silently skip.
+    """
+    if not pipes:
+        return
+    if pwndbg.aglib.remote.is_remote():
+        return
+
+    inodes = {p.inode for p in pipes if p.inode is not None}
+    if not inodes:
+        return
+
+    endpoints = pwndbg.lib.proc_fd.find_pipe_endpoints(inodes)
+
+    for pipe_obj in pipes:
+        if pipe_obj.inode is None:
+            continue
+        eps = endpoints.get(pipe_obj.inode, [])
+        for ep_pid, ep_fd, _comm, mode in eps:
+            if ep_pid == self_pid and ep_fd == pipe_obj.fd:
+                pipe_obj.mode = mode
+                break
+        pipe_obj.peers = [
+            (ep_pid, ep_fd, comm, mode)
+            for (ep_pid, ep_fd, comm, mode) in eps
+            if not (ep_pid == self_pid and ep_fd == pipe_obj.fd)
+        ]
+
+
 class Process:
     def __init__(self, pid=None, tid=None) -> None:
         if pid is None:
@@ -111,7 +182,7 @@ class Process:
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def selinux(self) -> str:
-        path = "/proc/%i/task/%i/attr/current" % (self.pid, self.tid)
+        path = f"/proc/{self.pid}/task/{self.tid}/attr/current"
         try:
             raw = pwndbg.aglib.file.get(path)
             return raw.decode().rstrip("\x00").strip()
@@ -134,7 +205,7 @@ class Process:
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def status(self):
-        raw = pwndbg.aglib.file.get("/proc/%i/task/%i/status" % (self.pid, self.tid))
+        raw = pwndbg.aglib.file.get(f"/proc/{self.pid}/task/{self.pid}/status")
 
         status = {}
         for line in raw.splitlines():
@@ -155,10 +226,8 @@ class Process:
 
             # bit fields
             if set(v) < set(string.hexdigits) and len(v) == 16:
-                try:
+                with contextlib.suppress(AttributeError):
                     v = int(v, 16)
-                except AttributeError:
-                    pass
 
             # vm stats
             elif v.endswith(" kB"):
@@ -192,7 +261,7 @@ class Process:
         fds = {}
 
         for i in range(self.fdsize):
-            link = pwndbg.aglib.file.readlink("/proc/%i/fd/%i" % (pwndbg.aglib.proc.pid(), i))
+            link = pwndbg.aglib.file.readlink(f"/proc/{pwndbg.aglib.proc.pid()}/fd/{i}")
 
             if link:
                 fds[i] = link
@@ -223,6 +292,28 @@ class Process:
                         x.fd = fd
                         result.append(x)
 
+        _augment_unix_peers(result)
+        return tuple(result)
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def pipes(self) -> tuple[pwndbg.lib.proc_fd.Pipe, ...]:
+        """Pipe FDs (anonymous pipe(2)) with read/write end + peer info."""
+        result: list[pwndbg.lib.proc_fd.Pipe] = []
+        prefix = "pipe:["
+        for fd, path in self.open_files.items():
+            if not path.startswith(prefix):
+                continue
+            try:
+                inode = int(path[len(prefix) : -1])
+            except ValueError:
+                continue
+            p = pwndbg.lib.proc_fd.Pipe()
+            p.inode = inode
+            p.fd = fd
+            result.append(p)
+
+        _augment_pipes(result, self.pid)
         return tuple(result)
 
 
@@ -249,7 +340,7 @@ def procinfo() -> None:
             )
         )
     exe = pwndbg.auxv.get().AT_EXECFN
-    print("%-10s %r" % ("exe", exe))
+    print(f"{'exe':<10} {exe!r}")
 
     proc = Process()
 
@@ -257,32 +348,32 @@ def procinfo() -> None:
     if not proc.status:
         return
 
-    print("%-10s %s" % ("cmdline", proc.cmdline))
-
-    print("%-10s %s" % ("cwd", proc.cwd))
+    print(f"{'cmdline':<10} {proc.cmdline}")
+    print(f"{'cwd':<10} {proc.cwd}")
 
     files = dict(proc.open_files)
 
     for c in proc.connections:
         files[c.fd] = str(c)
 
-    print("%-10s %s" % ("pid", proc.pid))
-    print("%-10s %s" % ("tid", proc.tid))
+    for p in proc.pipes:
+        if p.fd is not None:
+            files[p.fd] = str(p)
 
-    # Indicate if the process is restricted by SELinux policies
-    if proc.selinux != "" and proc.selinux != "unconfined":
-        print("%-10s %s" % ("selinux", proc.selinux))
+    print(f"{'pid':<10} {proc.pid}")
+    print(f"{'tid':<10} {proc.tid}")
 
-    print("%-10s %s" % ("ppid", proc.ppid))
+    if proc.selinux and proc.selinux != "unconfined":
+        print(f"{'selinux':<10} {proc.selinux}")
 
-    print("%-10s %s" % ("uid", proc.uid))
-    print("%-10s %s" % ("gid", proc.gid))
-    print("%-10s %s" % ("groups", proc.groups))
+    print(f"{'ppid':<10} {proc.ppid}")
+    print(f"{'uid':<10} {proc.uid}")
+    print(f"{'gid':<10} {proc.gid}")
+    print(f"{'groups':<10} {proc.groups}")
 
     for fd, path in files.items():
         if not set(path) < set(string.printable):
             path = repr(path)
-
-        print("%-10s %s" % ("fd[%i]" % fd, path))
+        print(f"{f'fd[{fd}]':<10} {path}")
 
     return

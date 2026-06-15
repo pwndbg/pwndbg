@@ -5,26 +5,25 @@ from dataclasses import dataclass
 from dataclasses import field
 from enum import Enum
 from enum import auto
-from typing import List
 from typing import Literal
 
-from capstone import CS_MODE_MICRO
-from capstone import CS_MODE_MIPS1
-from capstone import CS_MODE_MIPS2
-from capstone import CS_MODE_MIPS3
-from capstone import CS_MODE_MIPS4
-from capstone import CS_MODE_MIPS5
-from capstone import CS_MODE_MIPS32
-from capstone import CS_MODE_MIPS32R2
-from capstone import CS_MODE_MIPS32R3
-from capstone import CS_MODE_MIPS32R5
-from capstone import CS_MODE_MIPS32R6
-from capstone import CS_MODE_MIPS64
-from capstone import CS_MODE_MIPS64R2
-from capstone import CS_MODE_MIPS64R3
-from capstone import CS_MODE_MIPS64R5
-from capstone import CS_MODE_MIPS64R6
-from capstone import CS_MODE_NANOMIPS
+from capstone6pwndbg import CS_MODE_MICRO
+from capstone6pwndbg import CS_MODE_MIPS1
+from capstone6pwndbg import CS_MODE_MIPS2
+from capstone6pwndbg import CS_MODE_MIPS3
+from capstone6pwndbg import CS_MODE_MIPS4
+from capstone6pwndbg import CS_MODE_MIPS5
+from capstone6pwndbg import CS_MODE_MIPS32
+from capstone6pwndbg import CS_MODE_MIPS32R2
+from capstone6pwndbg import CS_MODE_MIPS32R3
+from capstone6pwndbg import CS_MODE_MIPS32R5
+from capstone6pwndbg import CS_MODE_MIPS32R6
+from capstone6pwndbg import CS_MODE_MIPS64
+from capstone6pwndbg import CS_MODE_MIPS64R2
+from capstone6pwndbg import CS_MODE_MIPS64R3
+from capstone6pwndbg import CS_MODE_MIPS64R5
+from capstone6pwndbg import CS_MODE_MIPS64R6
+from capstone6pwndbg import CS_MODE_NANOMIPS
 
 # Names of arches that Pwndbg supports
 # The names that GDB/LLDB recognize are converted to a name in this list
@@ -42,6 +41,7 @@ PWNDBG_SUPPORTED_ARCHITECTURES_TYPE = Literal[
     "powerpc",
     "loongarch64",
     "s390x",
+    "hexagon",
 ]
 
 PWNDBG_SUPPORTED_ARCHITECTURES: list[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE] = list(
@@ -122,4 +122,4 @@ class ArchDefinition:
     """Pointer size in bytes"""
     endian: Literal["little", "big"]
     platform: Platform
-    attributes: List[ArchAttribute] = field(default_factory=list)
+    attributes: list[ArchAttribute] = field(default_factory=list)

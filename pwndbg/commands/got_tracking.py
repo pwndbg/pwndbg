@@ -3,14 +3,13 @@ from __future__ import annotations
 import argparse
 import re
 from typing import Any
-from typing import Dict
 
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.got
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
@@ -27,8 +26,7 @@ def columns(rows, colors=None) -> None:
         if len(rows[i]) == 0:
             continue
         for j in range(len(col_max)):
-            if len(rows[i][j]) > col_max[j]:
-                col_max[j] = len(rows[i][j])
+            col_max[j] = max(col_max[j], len(rows[i][j]))
 
     for i in range(len(rows)):
         if len(rows[i]) == 0:
@@ -148,7 +146,7 @@ def got_report(soname=".*", writable=False, fnname=".*") -> None:
     )
     print()
 
-    per_object: Dict[Any, Any] = {}
+    per_object: dict[Any, Any] = {}
     for _, (tracker, patcher) in pwndbg.gdblib.got.all_tracked_entries():
         objname = tracker.link_map_entry.name()
         if objname == b"":

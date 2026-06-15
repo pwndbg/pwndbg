@@ -38,7 +38,10 @@ JEMALLOC_CFLAGS := $(shell $(PKG_CONFIG) --cflags jemalloc)
 JEMALLOC_LIBS   := $(shell $(PKG_CONFIG) --libs jemalloc)
 endif
 
-HAVE_MUSL := $(shell command -v $(firstword $(MUSLCC)) >/dev/null 2>&1 && echo yes || echo no)
+# musl is "available" only if musl-gcc actually compiles+links a trivial program.
+# Some distros (e.g. Arch) ship a musl-gcc whose spec is broken against the current
+# GCC, so an existence check alone is not enough.
+HAVE_MUSL := $(shell printf 'int main(void){return 0;}' | $(MUSLCC) -x c -o /dev/null - >/dev/null 2>&1 && echo yes || echo no)
 
 ifeq ($(DEBUG), 1)
 CFLAGS         +=      -DDEBUG=1 -ggdb -O0 -gdwarf-4
@@ -64,10 +67,10 @@ endif
 
 ALL_MUSL_TARGETS :=
 ifeq ($(HAVE_MUSL),yes)
-ALL_MUSL_TARGETS += heap_musl_dyn.native.out heap_musl_static.native.out
+ALL_MUSL_TARGETS += heap_musl_dyn.native.out heap_musl_static.native.out heap_musl_static_stripped.native.out
 endif
 
-CUSTOM_TARGETS = heap_find_fake_fast.native.out reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out symbol_1600_and_752.native.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_musl_dyn.native.out heap_musl_static.native.out gosample.i386.out gosample.x86-64.out
+CUSTOM_TARGETS = heap_find_fake_fast.native.out reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out symbol_1600_and_752.native.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_musl_dyn.native.out heap_musl_static.native.out heap_musl_static_stripped.native.out gosample.i386.out gosample.x86-64.out
 NATIVE_CUSTOM_TARGETS  := $(filter %.native.out %.$(HOST_ARCH).out %.$(HOST_ARCH_32).out,$(CUSTOM_TARGETS))
 
 ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(NATIVE_CUSTOM_TARGETS) \
@@ -189,12 +192,24 @@ heap_musl_static.native.out: heap_musl.native.c
 	@echo "[+] Building '$@'"
 	${MUSLCC} -g3 -O0 -static -o $@ $?
 
+# Same as above but with debug info stripped (keeping the symbol table).
+# Used by the musl detection test so that has_debug_info() is consistently
+# False across distros. On Fedora 43, -g3 caused struct __ptcb to appear in
+# debug info, while on other distros it didn't.
+heap_musl_static_stripped.native.out: heap_musl.native.c
+	@echo "[+] Building '$@'"
+	${MUSLCC} -g3 -O0 -static -o $@ $?
+	strip --strip-debug $@
+
 else
 
 heap_musl_dyn.native.out: heap_musl.native.c
 	@echo "[!] Skip '$@'"
 
 heap_musl_static.native.out: heap_musl.native.c
+	@echo "[!] Skip '$@'"
+
+heap_musl_static_stripped.native.out: heap_musl.native.c
 	@echo "[!] Skip '$@'"
 
 $(info [!] musl compiler not found ($(MUSLCC)) – skipping musl targets)
@@ -288,4 +303,11 @@ canary.i386.out: canary.i386.c
 	${ZIGCC} \
 	${CFLAGS} \
 	-target x86-linux-gnu \
+	-o $@ $?
+
+pku.i386.out: pku.x86_64.c
+	@echo "[+] Building '$@'"
+	${ZIGCC} \
+	${CFLAGS} \
+	-target x86_64-linux-gnu \
 	-o $@ $?

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from collections.abc import Sequence
 from typing import Any
-from typing import Callable
-from typing import Sequence
 
 import pwndbg.color
 from pwndbg import config
@@ -18,7 +18,7 @@ class ColorParameter(Parameter):
         self.update_color_function()
 
     def update_color_function(self):
-        self.color_function = pwndbg.color.generateColorFunction(self.value)
+        self.color_function = pwndbg.color.generate_color_function(self.value)
 
 
 def add_param(

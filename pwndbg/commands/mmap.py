@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import argparse
-from typing import Union
 
 import pwndbg.aglib
 import pwndbg.aglib.shellcode
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.memory
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -108,7 +107,7 @@ def flag_str_to_val(flagstr):
     return flag_int
 
 
-def parse_str_or_int(val: Union[str, int], parser):
+def parse_str_or_int(val: str | int, parser):
     """
     Try parsing a string with one of the parsers above or by converting it to
     an int, or passes the value through if it is already an integer.
@@ -118,11 +117,10 @@ def parse_str_or_int(val: Union[str, int], parser):
         if candidate != 0:
             return candidate
         return int(val, 0)
-    elif isinstance(val, int):
+    if isinstance(val, int):
         return val
-    else:
-        # Getting here is a bug, we shouldn't be seeing other types at all.
-        raise TypeError(f"invalid type for value: {type(val)}")
+    # Getting here is a bug, we shouldn't be seeing other types at all.
+    raise TypeError(f"invalid type for value: {type(val)}")
 
 
 @pwndbg.commands.Command(
@@ -255,5 +253,13 @@ using the address {aligned_addr:#x} instead.\
         )
 
         print(f"mmap syscall returned {pointer:#x}")
+
+        if pwndbg.aglib.vmmap.cache_status_text() is not None:
+            print(
+                message.warn(
+                    "vmmap cache is on and was not cleared; "
+                    "run `vmmap --refresh` to pick up the new mapping."
+                )
+            )
 
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
