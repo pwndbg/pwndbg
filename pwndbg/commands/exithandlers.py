@@ -135,7 +135,7 @@ def exithandlers() -> None:
         num_handlers = pwndbg.aglib.memory.read_pointer_width(
             exit_function_list + pwndbg.aglib.arch.ptrsize
         )
-        for i in range(num_handlers)[::-1]:
+        for i in reversed(range(num_handlers)):
             struct_base = exit_function_list + pwndbg.aglib.arch.ptrsize * (2 + 4 * i)
             flavor = pwndbg.aglib.memory.read_pointer_width(struct_base)
             fn = ptr_demangle(
