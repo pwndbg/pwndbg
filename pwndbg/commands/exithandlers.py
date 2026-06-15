@@ -6,6 +6,7 @@ import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.tls
+import pwndbg.chain
 import pwndbg.color.memory
 import pwndbg.color.message
 import pwndbg.commands
@@ -52,12 +53,12 @@ def _exit_function_to_string(addr: int, flavor: int, fn: int, arg: int, dso_hand
             flavor_str = "unknown"
 
     string = f"{pwndbg.color.memory.get(addr)} [{flavor_str} ({flavor})]"
+    decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
     if flavor_str in {"ef_on", "ef_cxa", "ef_at", "unknown"}:
-        decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
         fn_str = pwndbg.color.memory.get_address_and_symbol(fn, decomp_stack_vars)
         string += f": {fn_str}"
     if flavor_str in {"ef_on", "ef_cxa", "unknown"}:
-        string += f" [arg = {pwndbg.color.memory.get(arg)}"
+        string += f" [arg = {pwndbg.chain.format(arg)}"
     if flavor_str in {"ef_cxa", "unknown"}:
         string += f", dso_handle = {pwndbg.color.memory.get(dso_handle)}]"
     return string
