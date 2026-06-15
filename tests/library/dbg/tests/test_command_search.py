@@ -54,7 +54,8 @@ async def test_command_search_limit_single_page(ctrl: Controller) -> None:
         # was: if line.startswith("[anon_"):
         # TLS region is now labeled [tls] instead of [anon_...] (see PR #3969)
         if line.startswith(("[anon_", "[tls]")):
-            result_value = line.split(" ")[2]
+            # use split() without args to handle variable whitespace between columns
+            result_value = line.split()[2]
             break
 
     assert result_value == hex(SEARCH_PATTERN)
@@ -96,7 +97,8 @@ async def test_command_search_alignment(ctrl: Controller) -> None:
         # was: if line.startswith("[anon_"):
         # TLS region is now labeled [tls] instead of [anon_...] (see PR #3969)
         if line.startswith(("[anon_", "[tls]")):
-            result_address = line.split(" ")[1]
+            # use split() without args to handle variable whitespace between columns
+            result_address = line.split()[1]
             assert int(result_address, 16) % alignment == 0
 
 
