@@ -94,9 +94,14 @@ def _get_exit_funcs_from_emulator() -> int | None:
         if abi is None:
             print(pwndbg.color.message.error("arch.function_abi is None"))
             return None
-        exit_funcs_ptr = emulator.read_register(abi.register_arguments[1])
+        second_arg_reg = abi.register_arguments[1]
+        exit_funcs_ptr = emulator.read_register(second_arg_reg)
         if exit_funcs_ptr is None:
-            print(pwndbg.color.message.error("Failed to read RSI register"))
+            print(
+                pwndbg.color.message.error(
+                    f"Failed to read second argument register ({second_arg_reg})"
+                )
+            )
             return None
     return exit_funcs_ptr
 
