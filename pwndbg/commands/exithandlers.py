@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import typing
+from dataclasses import dataclass
 
 from pwnlib.util.fiddling import ror
 from pwnlib.util.packing import u32
@@ -19,7 +20,45 @@ import pwndbg.dintegration
 import pwndbg.emu.emulator
 
 
-def ptr_demangle(pointer_guard: int, ptr: int) -> int:
+@dataclass
+class _ExitFunctionEntry:
+    addr: int
+    flavor: int
+    fn: int
+    arg: int
+    dso_handle: int
+
+    def __str__(self) -> str:
+        match self.flavor:
+            case 0:
+                flavor_str = "ef_free"
+            case 1:
+                flavor_str = "ef_us"
+            case 2:
+                flavor_str = "ef_on"
+            case 3:
+                flavor_str = "ef_at"
+            case 4:
+                flavor_str = "ef_cxa"
+            case _:
+                flavor_str = "unknown"
+
+        string = f"{pwndbg.color.memory.get(self.addr)} [{flavor_str} ({self.flavor})]"
+        if flavor_str in {"ef_on", "ef_cxa", "ef_at", "unknown"}:
+            decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
+            fn_str = pwndbg.color.memory.get_address_and_symbol(self.fn, decomp_stack_vars)
+            string += f": {fn_str}"
+        if flavor_str in {"ef_on", "ef_cxa", "unknown"}:
+            string += f" [arg = {pwndbg.chain.format(self.arg)}"
+        if flavor_str in {"ef_cxa", "unknown"}:
+            string += f", dso_handle = {pwndbg.color.memory.get(self.dso_handle)}]"
+        elif flavor_str == "ef_on":
+            string += "]"
+
+        return string
+
+
+def _ptr_demangle(pointer_guard: int, ptr: int) -> int:
     if pwndbg.aglib.arch.name in {"x86-64", "i386"}:
         return (
             typing.cast(int, ror(ptr, pwndbg.aglib.arch.ptrsize * 2 + 1, pwndbg.aglib.arch.ptrbits))
@@ -50,43 +89,13 @@ def _get_pointer_guard() -> int | None:
                 )
             )
             return None
-        return int(pwndbg.aglib.memory.read_pointer_width(int(pointer_chk_guard)))
+        return pwndbg.aglib.memory.read_pointer_width(int(pointer_chk_guard))
     print(
         pwndbg.color.message.error(
             f"Don't know how to get pointer_guard on {pwndbg.aglib.arch.name}"
         )
     )
     return None
-
-
-def _exit_function_to_string(addr: int, flavor: int, fn: int, arg: int, dso_handle: int) -> str:
-    match flavor:
-        case 0:
-            flavor_str = "ef_free"
-        case 1:
-            flavor_str = "ef_us"
-        case 2:
-            flavor_str = "ef_on"
-        case 3:
-            flavor_str = "ef_at"
-        case 4:
-            flavor_str = "ef_cxa"
-        case _:
-            flavor_str = "unknown"
-
-    string = f"{pwndbg.color.memory.get(addr)} [{flavor_str} ({flavor})]"
-    if flavor_str in {"ef_on", "ef_cxa", "ef_at", "unknown"}:
-        decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
-        fn_str = pwndbg.color.memory.get_address_and_symbol(fn, decomp_stack_vars)
-        string += f": {fn_str}"
-    if flavor_str in {"ef_on", "ef_cxa", "unknown"}:
-        string += f" [arg = {pwndbg.chain.format(arg)}"
-    if flavor_str in {"ef_cxa", "unknown"}:
-        string += f", dso_handle = {pwndbg.color.memory.get(dso_handle)}]"
-    elif flavor_str == "ef_on":
-        string += "]"
-
-    return string
 
 
 def _get_exit_funcs_from_emulator() -> int | None:
@@ -128,6 +137,40 @@ def _get_exit_funcs_from_emulator() -> int | None:
     return exit_funcs_ptr
 
 
+def _list_exit_handlers(pointer_guard: int, exit_funcs: int) -> list[_ExitFunctionEntry]:
+    handlers: list[_ExitFunctionEntry] = []
+    cur_exit_function_list = exit_funcs
+    while True:
+        if cur_exit_function_list == 0:
+            break
+        num_handlers = pwndbg.aglib.memory.read_pointer_width(
+            cur_exit_function_list + pwndbg.aglib.arch.ptrsize
+        )
+        for i in reversed(range(num_handlers)):
+            exit_function_struct_base = cur_exit_function_list + pwndbg.aglib.arch.ptrsize * (
+                2 + 4 * i
+            )
+            flavor = pwndbg.aglib.memory.read_pointer_width(exit_function_struct_base)
+            fn = _ptr_demangle(
+                pointer_guard,
+                pwndbg.aglib.memory.read_pointer_width(
+                    exit_function_struct_base + pwndbg.aglib.arch.ptrsize
+                ),
+            )
+            arg = pwndbg.aglib.memory.read_pointer_width(
+                exit_function_struct_base + pwndbg.aglib.arch.ptrsize * 2
+            )
+            dso_handle = pwndbg.aglib.memory.read_pointer_width(
+                exit_function_struct_base + pwndbg.aglib.arch.ptrsize * 3
+            )
+            handlers.append(
+                _ExitFunctionEntry(exit_function_struct_base, flavor, fn, arg, dso_handle)
+            )
+        # update to cur_exit_function_list->next
+        cur_exit_function_list = pwndbg.aglib.memory.read_pointer_width(cur_exit_function_list)
+    return handlers
+
+
 parser = argparse.ArgumentParser(description="List currently registered glibc exit handlers.")
 
 
@@ -148,34 +191,9 @@ def exithandlers() -> None:
     if exit_funcs_ptr is None:
         print(pwndbg.color.message.error("Failed to get address of __exit_funcs"))
         return
-    exit_funcs_ptr = int(exit_funcs_ptr)
-    exit_function_list = pwndbg.aglib.memory.read_pointer_width(exit_funcs_ptr)
-    print(f"__exit_funcs: {pwndbg.color.memory.get(exit_function_list)}")
+    exit_funcs = pwndbg.aglib.memory.read_pointer_width(int(exit_funcs_ptr))
+    print(f"__exit_funcs: {pwndbg.color.memory.get(exit_funcs)}")
     print("Registered handlers:")
-    exit_handlers = []
-    # traverses a linked list of exit_function_list structs
-    while True:
-        if exit_function_list == 0:
-            break
-        num_handlers = pwndbg.aglib.memory.read_pointer_width(
-            exit_function_list + pwndbg.aglib.arch.ptrsize
-        )
-        for i in reversed(range(num_handlers)):
-            struct_base = exit_function_list + pwndbg.aglib.arch.ptrsize * (2 + 4 * i)
-            flavor = pwndbg.aglib.memory.read_pointer_width(struct_base)
-            fn = ptr_demangle(
-                pointer_guard,
-                pwndbg.aglib.memory.read_pointer_width(struct_base + pwndbg.aglib.arch.ptrsize),
-            )
-            arg = pwndbg.aglib.memory.read_pointer_width(
-                struct_base + pwndbg.aglib.arch.ptrsize * 2
-            )
-            dso_handle = pwndbg.aglib.memory.read_pointer_width(
-                struct_base + pwndbg.aglib.arch.ptrsize * 3
-            )
-            exit_handlers.append((struct_base, flavor, fn, arg, dso_handle))
-        # update current to exit_function_list->next
-        exit_function_list = pwndbg.aglib.memory.read_pointer_width(exit_function_list)
-
-    for func in exit_handlers:
-        print(_exit_function_to_string(*func))
+    exit_handlers = _list_exit_handlers(pointer_guard, exit_funcs)
+    for entry in exit_handlers:
+        print(str(entry))
