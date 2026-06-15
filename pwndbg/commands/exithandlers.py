@@ -21,10 +21,6 @@ def rol(val: int, amount: int) -> int:
     ) & pwndbg.aglib.arch.ptrmask
 
 
-def ptr_mangle(cookie: int, ptr: int) -> int:
-    return rol(ptr ^ cookie, pwndbg.aglib.arch.ptrsize * 2 + 1)
-
-
 def ptr_demangle(cookie: int, ptr: int) -> int:
     return (rol(ptr, -(pwndbg.aglib.arch.ptrsize * 2 + 1)) ^ cookie) & pwndbg.aglib.arch.ptrmask
 
