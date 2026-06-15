@@ -53,8 +53,8 @@ async def test_command_search_limit_single_page(ctrl: Controller) -> None:
     for line in result_str.split("\n"):
         # was: if line.startswith("[anon_"):
         # TLS region is now labeled [tls] instead of [anon_...] (see PR #3969)
-        if line.startswith("[anon_") or line.startswith("[tls]"):
-            result_value = line.split()[2]
+        if line.startswith(("[anon_", "[tls]")):
+            result_value = line.split(" ")[2]
             break
 
     assert result_value == hex(SEARCH_PATTERN)
@@ -95,8 +95,8 @@ async def test_command_search_alignment(ctrl: Controller) -> None:
     for line in result_str.split("\n"):
         # was: if line.startswith("[anon_"):
         # TLS region is now labeled [tls] instead of [anon_...] (see PR #3969)
-        if line.startswith("[anon_") or line.startswith("[tls]"):
-            result_address = line.split()[1]
+        if line.startswith(("[anon_", "[tls]")):
+            result_address = line.split(" ")[1]
             assert int(result_address, 16) % alignment == 0
 
 
@@ -113,7 +113,7 @@ async def test_command_search_step(ctrl: Controller) -> None:
     for line in result_str.split("\n"):
         # was: if line.startswith("[anon_"):
         # TLS region is now labeled [tls] instead of [anon_...] (see PR #3969)
-        if line.startswith("[anon_") or line.startswith("[tls]"):
+        if line.startswith(("[anon_", "[tls]")):
             result_count += 1
 
     # We allocate 0x100000 bytes
@@ -132,7 +132,7 @@ async def test_command_search_byte_width(ctrl: Controller) -> None:
     for line in result_str.split("\n"):
         # was: if line.startswith("[anon_"):
         # TLS region is now labeled [tls] instead of [anon_...] (see PR #3969)
-        if line.startswith("[anon_") or line.startswith("[tls]"):
+        if line.startswith(("[anon_", "[tls]")):
             result_count += 1
 
     assert result_count > 0x100
@@ -150,7 +150,7 @@ async def test_command_search_word_width(ctrl: Controller) -> None:
     for line in result_str.split("\n"):
         # was: if line.startswith("[anon_"):
         # TLS region is now labeled [tls] instead of [anon_...] (see PR #3969)
-        if line.startswith("[anon_") or line.startswith("[tls]"):
+        if line.startswith(("[anon_", "[tls]")):
             result_count += 1
 
     assert result_count > 0x100
@@ -168,7 +168,7 @@ async def test_command_search_dword_width(ctrl: Controller) -> None:
     for line in result_str.split("\n"):
         # was: if line.startswith("[anon_"):
         # TLS region is now labeled [tls] instead of [anon_...] (see PR #3969)
-        if line.startswith("[anon_") or line.startswith("[tls]"):
+        if line.startswith(("[anon_", "[tls]")):
             result_count += 1
 
     assert result_count > 0x100
@@ -186,7 +186,7 @@ async def test_command_search_qword_width(ctrl: Controller) -> None:
     for line in result_str.split("\n"):
         # was: if line.startswith("[anon_"):
         # TLS region is now labeled [tls] instead of [anon_...] (see PR #3969)
-        if line.startswith("[anon_") or line.startswith("[tls]"):
+        if line.startswith(("[anon_", "[tls]")):
             result_count += 1
 
     assert result_count > 0x100
