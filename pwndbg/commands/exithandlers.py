@@ -4,6 +4,7 @@ import argparse
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.tls
 import pwndbg.chain
@@ -22,19 +23,35 @@ def rol(val: int, amount: int) -> int:
 
 
 def ptr_demangle(cookie: int, ptr: int) -> int:
-    return (rol(ptr, -(pwndbg.aglib.arch.ptrsize * 2 + 1)) ^ cookie) & pwndbg.aglib.arch.ptrmask
+    if pwndbg.aglib.arch.name in {"x86-64", "i386"}:
+        return (rol(ptr, -(pwndbg.aglib.arch.ptrsize * 2 + 1)) ^ cookie) & pwndbg.aglib.arch.ptrmask
+    return ptr ^ cookie
 
 
 def _get_cookie() -> int | None:
-    tls_addr = (
-        pwndbg.aglib.tls.find_address_with_register()
-        or pwndbg.aglib.tls.find_address_with_pthread_self()
-    )
-    if tls_addr is None:
-        print(pwndbg.color.message.error("Failed to get TLS address"))
-        return None
-    tls_cookie_offset = pwndbg.aglib.arch.ptrsize * 6
-    return pwndbg.aglib.memory.read_pointer_width(tls_addr + tls_cookie_offset)
+    if pwndbg.aglib.arch.name in {"x86-64", "i386"}:
+        tls_addr = (
+            pwndbg.aglib.tls.find_address_with_register()
+            or pwndbg.aglib.tls.find_address_with_pthread_self()
+        )
+        if tls_addr is None:
+            print(pwndbg.color.message.error("Failed to get TLS address"))
+            return None
+        tls_cookie_offset = pwndbg.aglib.arch.ptrsize * 6
+        return pwndbg.aglib.memory.read_pointer_width(tls_addr + tls_cookie_offset)
+    if pwndbg.aglib.arch.name in {"aarch64", "arm"}:
+        pointer_chk_guard = pwndbg.aglib.symbol.lookup_symbol(
+            "__pointer_chk_guard"
+        ) or pwndbg.aglib.symbol.lookup_symbol("__pointer_chk_guard_local")
+        if pointer_chk_guard is None:
+            print(
+                pwndbg.color.message.error(
+                    "Could not find __pointer_chk_guard or __pointer_chk_guard_local symbols"
+                )
+            )
+            return None
+        cookie = pwndbg.aglib.memory.read_pointer_width(int(pointer_chk_guard))
+        return int(cookie)
 
 
 def _exit_function_to_string(addr: int, flavor: int, fn: int, arg: int, dso_handle: int) -> str:
@@ -113,6 +130,7 @@ parser = argparse.ArgumentParser(description="List currently registered glibc ex
     parser, category=pwndbg.commands.CommandCategory.LINUX, aliases=["exitfuncs"]
 )
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.aglib.proc.OnlyWithArch(["x86-64", "i386", "aarch64", "arm"])
 def exithandlers() -> None:
     cookie = _get_cookie()
     if cookie is None:
