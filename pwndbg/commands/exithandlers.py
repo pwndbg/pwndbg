@@ -153,6 +153,7 @@ def exithandlers() -> None:
     print(f"__exit_funcs: {pwndbg.color.memory.get(exit_function_list)}")
     print("Registered handlers:")
     exit_handlers = []
+    # traverses a linked list of exit_function_list structs
     while True:
         if exit_function_list == 0:
             break
@@ -173,6 +174,7 @@ def exithandlers() -> None:
                 struct_base + pwndbg.aglib.arch.ptrsize * 3
             )
             exit_handlers.append((struct_base, flavor, fn, arg, dso_handle))
+        # update current to exit_function_list->next
         exit_function_list = pwndbg.aglib.memory.read_pointer_width(exit_function_list)
 
     for func in exit_handlers:
