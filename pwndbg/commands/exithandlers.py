@@ -100,7 +100,9 @@ def _get_exit_funcs_from_emulator() -> int | None:
 parser = argparse.ArgumentParser(description="List currently registered glibc exit handlers.")
 
 
-@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.LINUX)
+@pwndbg.commands.Command(
+    parser, category=pwndbg.commands.CommandCategory.LINUX, aliases=["exitfuncs"]
+)
 @pwndbg.commands.OnlyWhenRunning
 def exithandlers() -> None:
     cookie = _get_cookie()
