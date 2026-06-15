@@ -201,6 +201,50 @@ def _get_tls_dtor_list_offset_from_emulator_i386(
         emulator.single_step()
 
 
+def _get_tls_dtor_list_offset_from_emulator_aarch64(
+    emulator: pwndbg.emu.emulator.Emulator,
+) -> int | None:
+    while True:
+        inst = pwndbg.aglib.disasm.disassembly.get(emulator.pc(), 1)
+        if len(inst) < 1:
+            print(pwndbg.color.message.error("Failed to disassemble __call_tls_dtors"))
+            return None
+        inst = inst[0]
+        if inst.mnemonic.lower() == "mrs" and "tpidr_el0" in inst.cs_insn.op_str.lower():
+            _, written = inst.cs_insn.regs_access()
+            written_names = [str(inst.cs_insn.reg_name(r)) for r in written]
+            if len(written_names) < 1:
+                print(
+                    pwndbg.color.message.error(
+                        "Failed to get write operand for mrs tpidr_el0 instruction"
+                    )
+                )
+                return None
+            tls_base_reg = written_names[0]
+            emulator.update_pc(inst.next)  # unicorn seems to not like emulating mrs
+            # continue until something like ldr ... [tls, offset]
+            while True:
+                inst = pwndbg.aglib.disasm.disassembly.get(emulator.pc(), 1)
+                if len(inst) < 1:
+                    print(pwndbg.color.message.error("Failed to disassemble __call_tls_dtors"))
+                    return None
+                inst = inst[0]
+                read, _ = inst.cs_insn.regs_access()
+                read_names = [str(inst.cs_insn.reg_name(r)) for r in read]
+                if len(read_names) == 2 and tls_base_reg in read_names:
+                    tls_base_reg_idx = read_names.index(tls_base_reg)
+                    offset_reg = read_names[(tls_base_reg_idx + 1) % 2]
+                    offset = emulator.read_register(offset_reg)
+                    if offset is None:
+                        print(
+                            pwndbg.color.message.error(f"Failed to read offset from {offset_reg}")
+                        )
+                        return None
+                    return typing.cast(int, u64(p64(offset, sign="unsigned"), sign="signed"))
+                emulator.single_step()
+        emulator.single_step()
+
+
 def _get_tls_dtor_list_from_emulator() -> int | None:
     call_tls_dtors = pwndbg.aglib.symbol.lookup_symbol("__call_tls_dtors")
     if call_tls_dtors is None:
@@ -221,6 +265,8 @@ def _get_tls_dtor_list_from_emulator() -> int | None:
             offset = _get_tls_dtor_list_offset_from_emulator_x86_64(emulator)
         case "i386":
             offset = _get_tls_dtor_list_offset_from_emulator_i386(emulator)
+        case "aarch64":
+            offset = _get_tls_dtor_list_offset_from_emulator_aarch64(emulator)
 
     if offset is None:
         print(
