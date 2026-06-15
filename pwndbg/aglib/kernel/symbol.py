@@ -501,8 +501,7 @@ class x86_64Symbols(ArchSymbols):
         disass = self.disass(self.node_data_heuristic_func)
         if not disass:
             return None
-        result = self.qword_op_reg_memoff(disass, op="mov", sign="-")
-        if result is not None:
+        if (result := self.qword_op_reg_memoff(disass, op="mov", sign="-")) is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
@@ -516,11 +515,9 @@ class x86_64Symbols(ArchSymbols):
         disass = self.disass(self.per_cpu_offset_heuristic_func)
         if not disass:
             return None
-        result = self.qword_op_reg_memoff(disass, op="add", sign="-")
-        if result is not None:
+        if (result := self.qword_op_reg_memoff(disass, op="add", sign="-")) is not None:
             return result
-        result = self.qword_mov_reg_const(disass)
-        if result is not None:
+        if (result := self.qword_mov_reg_const(disass)) is not None:
             return result
         return self.qword_mov_reg_ripoff(disass)
 
@@ -535,8 +532,7 @@ class x86_64Symbols(ArchSymbols):
         disass = self.disass(self.db_list_heuristic_func)
         if not disass:
             return None
-        result = self.qword_mov_reg_const(disass)
-        if result is not None:
+        if (result := self.qword_mov_reg_const(disass)) is not None:
             return result - offset
         return None
 
@@ -544,8 +540,7 @@ class x86_64Symbols(ArchSymbols):
         disass = self.disass(self.map_idr_heuristic_func)
         if not disass:
             return None
-        result = self.qword_mov_reg_const(disass, nth=1)
-        if result is not None:
+        if (result := self.qword_mov_reg_const(disass, nth=1)) is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
@@ -553,8 +548,7 @@ class x86_64Symbols(ArchSymbols):
         disass = self.disass(self.prog_idr_heuristic_func)
         if not disass:
             return None
-        result = self.qword_mov_reg_const(disass, nth=1)
-        if result is not None:
+        if (result := self.qword_mov_reg_const(disass, nth=1)) is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
