@@ -4,6 +4,7 @@ import argparse
 import typing
 
 from pwnlib.util.fiddling import ror
+from pwnlib.util.packing import u32
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
@@ -107,7 +108,7 @@ def _get_exit_funcs_from_emulator() -> int | None:
         if exit_funcs_ptr_bytes is None:
             print(pwndbg.color.message.error("Failed to read &__exit_funcs from stack"))
             return None
-        exit_funcs_ptr = int.from_bytes(exit_funcs_ptr_bytes, "little")
+        exit_funcs_ptr = typing.cast(int, u32(exit_funcs_ptr_bytes, "little"))
 
     else:
         emulator.until_jump(int(exit_addr))
