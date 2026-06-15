@@ -102,7 +102,7 @@ parser = argparse.ArgumentParser(description="List currently registered glibc ex
 
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
-def exit_handlers() -> None:
+def exithandlers() -> None:
     cookie = _get_cookie()
     print(f"PTR_MANGLE cookie: {pwndbg.color.message.notice(hex(cookie))}")
     exit_funcs_ptr = (
