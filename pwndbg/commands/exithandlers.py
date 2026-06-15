@@ -5,9 +5,10 @@ import typing
 from dataclasses import dataclass
 
 from pwnlib.util.fiddling import ror
-from pwnlib.util.packing import u32
+from pwnlib.util.packing import p64, u32, u64
 
 import pwndbg.aglib
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
@@ -55,6 +56,22 @@ class _ExitFunctionEntry:
         elif flavor_str == "ef_on":
             string += "]"
 
+        return string
+
+
+@dataclass
+class _TlsDtorEntry:
+    address: int
+    func: int
+    obj: int
+    map: int
+
+    def __str__(self) -> str:
+        decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
+        string = f"{pwndbg.color.memory.get(self.address)}: "
+        string += pwndbg.color.memory.get_address_and_symbol(self.func, decomp_stack_vars)
+        string += f" [obj = {pwndbg.chain.format(self.obj)}"
+        string += f", map = {pwndbg.color.memory.get(self.map)}]"
         return string
 
 
@@ -137,6 +154,49 @@ def _get_exit_funcs_from_emulator() -> int | None:
     return exit_funcs_ptr
 
 
+def _get_tls_dtor_list_from_emulator() -> int | None:
+    call_tls_dtors = pwndbg.aglib.symbol.lookup_symbol("__call_tls_dtors")
+    tls_addr = (
+        pwndbg.aglib.tls.find_address_with_register()
+        or pwndbg.aglib.tls.find_address_with_pthread_self()
+    )
+    if call_tls_dtors is None:
+        print(pwndbg.color.message.error("Failed to get address of __call_tls_dtors"))
+        return None
+    emulator = pwndbg.emu.emulator.Emulator()
+    emulator.update_pc(int(call_tls_dtors))
+    if pwndbg.aglib.arch.name == "x86-64":
+        while True:
+            inst_addr, _ = emulator.single_step()
+            if inst_addr is None:
+                print(
+                    pwndbg.color.message.error(
+                        f"Emulator failed to execute __call_tls_dtors instruction at {hex(emulator.pc())}"
+                    )
+                )
+                return None
+            inst = pwndbg.aglib.disasm.disassembly.get(inst_addr, 1, emulator)
+            if len(inst) < 1:
+                print(pwndbg.color.message.error("Failed to disassemble __call_tls_dtors"))
+                return None
+            inst = inst[0]
+            read, _ = inst.cs_insn.regs_access()
+            read_names: list[str] = [str(inst.cs_insn.reg_name(r)) for r in read]
+            if len(read_names) != 2:
+                continue
+            try:
+                fs_idx = read_names.index("fs")
+            except ValueError:
+                continue
+            offset_reg = read_names[(fs_idx + 1) % 2]
+            offset = emulator.read_register(offset_reg)
+            if offset is None:
+                print(pwndbg.color.message.error(f"Failed to read offset from {offset_reg}"))
+                return None
+            offset = u64(p64(offset, sign="unsigned"), sign="signed")
+            return tls_addr + offset
+
+
 def _list_exit_handlers(pointer_guard: int, exit_funcs: int) -> list[_ExitFunctionEntry]:
     handlers: list[_ExitFunctionEntry] = []
     cur_exit_function_list = exit_funcs
@@ -171,6 +231,20 @@ def _list_exit_handlers(pointer_guard: int, exit_funcs: int) -> list[_ExitFuncti
     return handlers
 
 
+def _list_tls_dtors(pointer_guard: int, tls_dtor_list: int) -> list[_TlsDtorEntry]:
+    cur_tls_dtor = pwndbg.aglib.memory.read_pointer_width(tls_dtor_list)
+    dtors: list[_TlsDtorEntry] = []
+    while cur_tls_dtor != 0:
+        func = _ptr_demangle(pointer_guard, pwndbg.aglib.memory.read_pointer_width(cur_tls_dtor))
+        obj = pwndbg.aglib.memory.read_pointer_width(cur_tls_dtor + pwndbg.aglib.arch.ptrsize)
+        map = pwndbg.aglib.memory.read_pointer_width(cur_tls_dtor + pwndbg.aglib.arch.ptrsize * 2)
+        dtors.append(_TlsDtorEntry(cur_tls_dtor, func, obj, map))
+        cur_tls_dtor = pwndbg.aglib.memory.read_pointer_width(
+            cur_tls_dtor + pwndbg.aglib.arch.ptrsize * 3
+        )
+    return dtors
+
+
 parser = argparse.ArgumentParser(description="List currently registered glibc exit handlers.")
 
 
@@ -192,8 +266,20 @@ def exithandlers() -> None:
         print(pwndbg.color.message.error("Failed to get address of __exit_funcs"))
         return
     exit_funcs = pwndbg.aglib.memory.read_pointer_width(int(exit_funcs_ptr))
-    print(f"__exit_funcs: {pwndbg.color.memory.get(exit_funcs)}")
-    print("Registered handlers:")
+    print(f"\n__exit_funcs: {pwndbg.color.memory.get(exit_funcs)}")
+    print("Registered __exit_funcs handlers:")
     exit_handlers = _list_exit_handlers(pointer_guard, exit_funcs)
     for entry in exit_handlers:
         print(str(entry))
+
+    tls_dtor_list = (
+        pwndbg.aglib.symbol.lookup_symbol("tls_dtor_list") or _get_tls_dtor_list_from_emulator()
+    )
+    if tls_dtor_list is None:
+        print(pwndbg.color.message.error("Failed to locate tls_dtor_list"))
+        return
+    print(f"\ntls_dtor_list: {pwndbg.color.memory.get(tls_dtor_list)}")
+    tls_dtors = _list_tls_dtors(pointer_guard, int(tls_dtor_list))
+    print("Registered tls_dtor handlers:")
+    for dtor in tls_dtors:
+        print(str(dtor))
