@@ -262,7 +262,7 @@ def _get_tls_dtor_list_offset_from_emulator_x86_64(
     while True:
         inst = pwndbg.aglib.disasm.disassembly.get_one_instruction(emulator.pc())
         if inst is None:
-            print(message.error("Failed to disassembly __call_tls_dtors"))
+            print(message.error("Failed to disassemble __call_tls_dtors"))
             return None
         read, _ = inst.cs_insn.regs_access()
         read_names: list[str] = [str(inst.cs_insn.reg_name(r)) for r in read]
