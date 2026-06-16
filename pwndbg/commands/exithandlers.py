@@ -22,6 +22,7 @@ import pwndbg.color.memory
 import pwndbg.commands
 import pwndbg.dintegration
 import pwndbg.emu.emulator
+import pwndbg.libc
 from pwndbg.color import message
 
 
@@ -362,6 +363,10 @@ parser = argparse.ArgumentParser(description="List currently registered glibc ex
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "i386", "aarch64", "arm"])
 def exithandlers() -> None:
+    libc_type = pwndbg.libc.which()
+    if libc_type not in {pwndbg.libc.LibcType.GLIBC, pwndbg.libc.LibcType.UNKNOWN}:
+        print(f"exithandlers is not implemented for libc type '{libc_type.value}'")
+        return
     pointer_guard = _get_pointer_guard()
     if pointer_guard is None:
         print(message.error("Failed to get pointer_guard"))
