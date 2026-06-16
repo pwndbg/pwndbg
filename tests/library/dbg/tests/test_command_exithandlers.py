@@ -48,8 +48,8 @@ async def test_command_exithandlers(ctrl: Controller) -> None:
     deadbeef_cxa_entry = out_lines[exit_funcs_start + 2]
     assert out_lines[exit_funcs_start + 3] == dl_fini_handler_line
     assert "[ef_on (2)]" in system_entry
-    assert "'/bin/whoami'" in system_entry  # arg
-    assert "(system)" in system_entry  # symbol
+    assert "'/bin/whoami'" in system_entry  # arg chain
+    assert "(system" in system_entry  # allows (system), (system@plt), (system@plt.got), etc
     if (system_symbol := pwndbg.aglib.symbol.lookup_symbol("system")) is not None:
         assert hex(int(system_symbol)) in system_entry
     assert "[ef_cxa (4)]" in deadbeef_cxa_entry
