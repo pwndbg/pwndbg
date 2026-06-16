@@ -80,12 +80,19 @@ class _TlsDtorEntry:
 
 
 def _ptr_demangle(pointer_guard: int, ptr: int) -> int:
+    # list of PTR_DEMANGLE macros: https://elixir.bootlin.com/glibc/glibc-2.43.9000/A/ident/PTR_DEMANGLE
     if pwndbg.aglib.arch.name in {"x86-64", "i386"}:
+        # https://elixir.bootlin.com/glibc/glibc-2.43.9000/source/sysdeps/unix/sysv/linux/x86_64/pointer_guard.h#L63
         return (
             typing.cast(int, ror(ptr, pwndbg.aglib.arch.ptrsize * 2 + 1, pwndbg.aglib.arch.ptrbits))
             ^ pointer_guard
         ) & pwndbg.aglib.arch.ptrmask
-    return ptr ^ pointer_guard
+    if pwndbg.aglib.arch.name in {"aarch64", "arm", "sparc", "powerpc", "loongarch64", "s390x"}:
+        # https://elixir.bootlin.com/glibc/glibc-2.43.9000/source/sysdeps/arm/pointer_guard.h#L63
+        return ptr ^ pointer_guard
+    # all other archictectures use the generic implementation:
+    # https://elixir.bootlin.com/glibc/glibc-2.43.9000/source/sysdeps/generic/pointer_guard.h#L26
+    return ptr
 
 
 def _get_pointer_guard() -> int | None:
