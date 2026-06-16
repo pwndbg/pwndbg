@@ -63,6 +63,62 @@ class _ExitFunctionEntry:
 
         return string
 
+    @staticmethod
+    def read(addr: int, pointer_guard: int) -> _ExitFunctionEntry:
+        # https://elixir.bootlin.com/glibc/glibc-2.43/source/stdlib/exit.h#L34
+        # always assume the cxa variant to simply things, as this is the largest and the field types match anyway
+        # struct exit_function
+        # {
+        #   long int flavor
+        #   union
+        #     {
+        #       ...
+        #       struct
+        #         {
+        #           void (*fn) (void *arg, int status);
+        #           void *arg;
+        #           void *dso_handle;
+        #         } cxa;
+        #     } func;
+        # };
+        flavor_offset = 0
+        fn_offset = (
+            flavor_offset
+            + pwndbg.aglib.typeinfo.long.sizeof
+            + (pwndbg.aglib.arch.ptrsize - pwndbg.aglib.typeinfo.long.sizeof)  # padding
+        )
+        arg_offset = fn_offset + pwndbg.aglib.arch.ptrsize
+        dso_offset = arg_offset + pwndbg.aglib.arch.ptrsize
+        if (debug_type := pwndbg.aglib.typeinfo.lookup_types("exit_function")) is not None:
+            flavor_offset = debug_type.offsetof("flavor") or flavor_offset
+            # offsetof *should* recursively search union members
+            fn_offset = debug_type.offsetof("fn") or fn_offset
+            arg_offset = debug_type.offsetof("arg") or arg_offset
+            dso_offset = debug_type.offsetof("dso_handle") or dso_offset
+
+        flavor = pwndbg.aglib.memory.readtype(pwndbg.aglib.typeinfo.long, addr + flavor_offset)
+        fn = _ptr_demangle(
+            pointer_guard,
+            pwndbg.aglib.memory.read_pointer_width(addr + fn_offset),
+        )
+        arg = pwndbg.aglib.memory.read_pointer_width(addr + arg_offset)
+        dso_handle = pwndbg.aglib.memory.read_pointer_width(addr + dso_offset)
+        return _ExitFunctionEntry(addr, flavor, fn, arg, dso_handle)
+
+    @staticmethod
+    def size() -> int:
+        if (debug_type := pwndbg.aglib.typeinfo.lookup_types("exit_function")) is not None:
+            return debug_type.sizeof
+        flavor_offset = 0
+        fn_offset = (
+            flavor_offset
+            + pwndbg.aglib.typeinfo.long.sizeof
+            + (pwndbg.aglib.arch.ptrsize - pwndbg.aglib.typeinfo.long.sizeof)  # padding
+        )
+        arg_offset = fn_offset + pwndbg.aglib.arch.ptrsize
+        dso_offset = arg_offset + pwndbg.aglib.arch.ptrsize
+        return dso_offset + pwndbg.aglib.arch.ptrsize
+
 
 @dataclass
 class _TlsDtorEntry:
@@ -70,6 +126,7 @@ class _TlsDtorEntry:
     func: int
     obj: int
     map: int
+    next: int
 
     def __str__(self) -> str:
         decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
@@ -78,6 +135,33 @@ class _TlsDtorEntry:
         string += f" [obj = {pwndbg.chain.format(self.obj)}"
         string += f", map = {pwndbg.color.memory.get(self.map)}]"
         return string
+
+    @staticmethod
+    def read(addr: int, pointer_guard: int) -> _TlsDtorEntry:
+        # https://elixir.bootlin.com/glibc/glibc-2.43/source/stdlib/cxa_thread_atexit_impl.c#L82
+        # struct dtor_list
+        # {
+        #   dtor_func func;
+        #   void *obj;
+        #   struct link_map *map;
+        #   struct dtor_list *next;
+        # };
+        func_offset = 0
+        obj_offset = func_offset + pwndbg.aglib.arch.ptrsize
+        map_offset = obj_offset + pwndbg.aglib.arch.ptrsize
+        next_offset = map_offset + pwndbg.aglib.arch.ptrsize
+        if (debug_type := pwndbg.aglib.typeinfo.lookup_types("dtor_list")) is not None:
+            func_offset = debug_type.offsetof("func") or func_offset
+            obj_offset = debug_type.offsetof("obj") or obj_offset
+            map_offset = debug_type.offsetof("map") or map_offset
+            next_offset = debug_type.offsetof("next") or next_offset
+        func = _ptr_demangle(
+            pointer_guard, pwndbg.aglib.memory.read_pointer_width(addr + func_offset)
+        )
+        obj = pwndbg.aglib.memory.read_pointer_width(addr + obj_offset)
+        map = pwndbg.aglib.memory.read_pointer_width(addr + map_offset)
+        next = pwndbg.aglib.memory.read_pointer_width(addr + next_offset)
+        return _TlsDtorEntry(addr, func, obj, map, next)
 
 
 def _ptr_demangle(pointer_guard: int, ptr: int) -> int:
@@ -108,10 +192,13 @@ def _get_pointer_guard() -> int | None:
 
         # https://elixir.bootlin.com/glibc/glibc-2.43/source/sysdeps/x86_64/nptl/tls.h#L42
         # https://elixir.bootlin.com/glibc/glibc-2.43/source/sysdeps/i386/nptl/tls.h#L33
-        tcbhead_t = pwndbg.aglib.typeinfo.lookup_types("tcbhead_t")
         # 5 pointers + 1 int + padding
-        pointer_guard_offset = pwndbg.aglib.arch.ptrsize * 6
-        if tcbhead_t is not None:
+        pointer_guard_offset = (
+            pwndbg.aglib.typeinfo.sint.sizeof
+            + (pwndbg.aglib.arch.ptrsize - pwndbg.aglib.typeinfo.sint.sizeof)  # padding
+            + pwndbg.aglib.arch.ptrsize * 5
+        )
+        if (tcbhead_t := pwndbg.aglib.typeinfo.lookup_types("tcbhead_t")) is not None:
             pointer_guard_offset = tcbhead_t.offsetof("pointer_guard") or pointer_guard_offset
         return pwndbg.aglib.memory.read_pointer_width(tls_addr + pointer_guard_offset)
 
@@ -308,49 +395,61 @@ def _get_tls_dtor_list_from_emulator() -> int | None:
 
 def _list_exit_handlers(pointer_guard: int, exit_funcs: int) -> list[_ExitFunctionEntry]:
     handlers: list[_ExitFunctionEntry] = []
+    # https://elixir.bootlin.com/glibc/glibc-2.43/source/stdlib/exit.h#L55
+    # struct exit_function_list
+    # {
+    #   struct exit_function_list *next;
+    #   size_t idx;
+    #   struct exit_function fns[32];
+    # };
+    next_offset = 0
+    idx_offset = pwndbg.aglib.arch.ptrsize
+    fns_offset = idx_offset + pwndbg.aglib.typeinfo.size_t.sizeof
+    if (debug_type := pwndbg.aglib.typeinfo.lookup_types("exit_function_list")) is not None:
+        next_offset = debug_type.offsetof("next") or next_offset
+        idx_offset = debug_type.offsetof("idx") or idx_offset
+        fns_offset = debug_type.offsetof("fns") or fns_offset
+
+    # this implements the loop in https://elixir.bootlin.com/glibc/glibc-2.43/source/stdlib/exit.c#L59
     cur_exit_function_list = exit_funcs
     while True:
         if cur_exit_function_list == 0:
             break
-        num_handlers = pwndbg.aglib.memory.read_pointer_width(
-            cur_exit_function_list + pwndbg.aglib.arch.ptrsize
+        idx = pwndbg.aglib.memory.readtype(
+            pwndbg.aglib.typeinfo.size_t, cur_exit_function_list + idx_offset
         )
-        for i in reversed(range(num_handlers)):
-            exit_function_struct_base = cur_exit_function_list + pwndbg.aglib.arch.ptrsize * (
-                2 + 4 * i
-            )
-            flavor = pwndbg.aglib.memory.read_pointer_width(exit_function_struct_base)
-            fn = _ptr_demangle(
-                pointer_guard,
-                pwndbg.aglib.memory.read_pointer_width(
-                    exit_function_struct_base + pwndbg.aglib.arch.ptrsize
-                ),
-            )
-            arg = pwndbg.aglib.memory.read_pointer_width(
-                exit_function_struct_base + pwndbg.aglib.arch.ptrsize * 2
-            )
-            dso_handle = pwndbg.aglib.memory.read_pointer_width(
-                exit_function_struct_base + pwndbg.aglib.arch.ptrsize * 3
-            )
+        for i in reversed(range(idx)):
             handlers.append(
-                _ExitFunctionEntry(exit_function_struct_base, flavor, fn, arg, dso_handle)
+                _ExitFunctionEntry.read(
+                    cur_exit_function_list + fns_offset + _ExitFunctionEntry.size() * i,
+                    pointer_guard,
+                )
             )
         # update to cur_exit_function_list->next
-        cur_exit_function_list = pwndbg.aglib.memory.read_pointer_width(cur_exit_function_list)
+        cur_exit_function_list = pwndbg.aglib.memory.read_pointer_width(
+            cur_exit_function_list + next_offset
+        )
     return handlers
 
 
 def _list_tls_dtors(pointer_guard: int, tls_dtor_list: int) -> list[_TlsDtorEntry]:
-    cur_tls_dtor = pwndbg.aglib.memory.read_pointer_width(tls_dtor_list)
     dtors: list[_TlsDtorEntry] = []
+    func_offset = 0
+    obj_offset = func_offset + pwndbg.aglib.arch.ptrsize
+    map_offset = obj_offset + pwndbg.aglib.arch.ptrsize
+    next_offset = map_offset + pwndbg.aglib.arch.ptrsize
+    dtor_list_type = pwndbg.aglib.typeinfo.lookup_types("dtor_list")
+    if dtor_list_type is not None:
+        func_offset = dtor_list_type.offsetof("func") or func_offset
+        obj_offset = dtor_list_type.offsetof("obj") or obj_offset
+        map_offset = dtor_list_type.offsetof("map") or map_offset
+        next_offset = dtor_list_type.offsetof("next") or next_offset
+
+    cur_tls_dtor = pwndbg.aglib.memory.read_pointer_width(tls_dtor_list)
     while cur_tls_dtor != 0:
-        func = _ptr_demangle(pointer_guard, pwndbg.aglib.memory.read_pointer_width(cur_tls_dtor))
-        obj = pwndbg.aglib.memory.read_pointer_width(cur_tls_dtor + pwndbg.aglib.arch.ptrsize)
-        map = pwndbg.aglib.memory.read_pointer_width(cur_tls_dtor + pwndbg.aglib.arch.ptrsize * 2)
-        dtors.append(_TlsDtorEntry(cur_tls_dtor, func, obj, map))
-        cur_tls_dtor = pwndbg.aglib.memory.read_pointer_width(
-            cur_tls_dtor + pwndbg.aglib.arch.ptrsize * 3
-        )
+        entry = _TlsDtorEntry.read(cur_tls_dtor, pointer_guard)
+        dtors.append(entry)
+        cur_tls_dtor = entry.next
     return dtors
 
 
