@@ -16,6 +16,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.tls
+import pwndbg.aglib.typeinfo
 import pwndbg.chain
 import pwndbg.color.memory
 import pwndbg.commands
@@ -88,7 +89,7 @@ def _ptr_demangle(pointer_guard: int, ptr: int) -> int:
 
 
 def _get_pointer_guard() -> int | None:
-    if pwndbg.aglib.arch.name in {"x86-64", "i386"}:
+    if pwndbg.aglib.arch.name in {"x86-64", "i386"}:  # x86 stores pointer_guard in TLS
         tls_addr = (
             pwndbg.aglib.tls.find_address_with_register()
             or pwndbg.aglib.tls.find_address_with_pthread_self()
@@ -96,9 +97,17 @@ def _get_pointer_guard() -> int | None:
         if tls_addr is None:
             print(message.error("Failed to get TLS address"))
             return None
+
+        # https://elixir.bootlin.com/glibc/glibc-2.43.9000/source/sysdeps/x86_64/nptl/tls.h#L42
+        # https://elixir.bootlin.com/glibc/glibc-2.43.9000/source/sysdeps/i386/nptl/tls.h#L33
+        tcbhead_t = pwndbg.aglib.typeinfo.lookup_types("tcbhead_t")
+        # 5 pointers + 1 int + padding
         pointer_guard_offset = pwndbg.aglib.arch.ptrsize * 6
+        if tcbhead_t is not None:
+            pointer_guard_offset = tcbhead_t.offsetof("pointer_guard") or pointer_guard_offset
         return pwndbg.aglib.memory.read_pointer_width(tls_addr + pointer_guard_offset)
-    if pwndbg.aglib.arch.name in {"aarch64", "arm"}:
+
+    if pwndbg.aglib.arch.name in {"aarch64", "arm"}:  # arm stores it in __pointer_chk_guard(_local)
         pointer_chk_guard = pwndbg.aglib.symbol.lookup_symbol(
             "__pointer_chk_guard"
         ) or pwndbg.aglib.symbol.lookup_symbol("__pointer_chk_guard_local")
