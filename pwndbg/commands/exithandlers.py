@@ -213,7 +213,10 @@ def _get_pointer_guard() -> int | None:
                 )
             )
             return None
-        return pwndbg.aglib.memory.read_pointer_width(int(pointer_chk_guard))
+        # pointer_chk_guard is a uintptr_t so cast symbol addr to uint **
+        return int(
+            pointer_chk_guard.cast(pwndbg.aglib.typeinfo.uint.pointer().pointer()).dereference()
+        )
     print(message.error(f"Don't know how to get pointer_guard on {pwndbg.aglib.arch.name}"))
     return None
 
