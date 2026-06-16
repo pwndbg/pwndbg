@@ -375,8 +375,11 @@ def exithandlers() -> None:
         return
     exit_funcs = pwndbg.aglib.memory.read_pointer_width(int(exit_funcs_ptr))
     print(f"\n__exit_funcs: {pwndbg.color.memory.get(exit_funcs)}")
-    print("Registered __exit_funcs handlers:")
     exit_handlers = _list_exit_handlers(pointer_guard, exit_funcs)
+    if len(exit_handlers) == 0:
+        print("No __exit_funcs handlers registered.")
+        return
+    print("Registered __exit_funcs handlers:")
     for entry in exit_handlers:
         print(str(entry))
 
@@ -388,6 +391,9 @@ def exithandlers() -> None:
         return
     print(f"\ntls_dtor_list: {pwndbg.color.memory.get(tls_dtor_list)}")
     tls_dtors = _list_tls_dtors(pointer_guard, int(tls_dtor_list))
-    print("Registered tls_dtor handlers:")
-    for dtor in tls_dtors:
-        print(str(dtor))
+    if len(tls_dtors) == 0:
+        print("No tls_dtor handlers registered.")
+    else:
+        print("Registered tls_dtor handlers:")
+        for dtor in tls_dtors:
+            print(str(dtor))
