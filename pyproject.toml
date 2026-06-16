@@ -19,7 +19,7 @@ dependencies = [
     # We install uv to the venv
     "uv>=0.11.17",
     # Optional? only for 'ipi' command
-    "ipython>=8.37.0,<9",
+    "ipython>=8.39.0,<9",
     # Optional? only for 'ropgadget' command
     "ropgadget==7.6",
     # Optional? only for 'ai' commands
