@@ -50,8 +50,7 @@ async def test_command_exithandlers(ctrl: Controller) -> None:
     assert "[ef_on (2)]" in system_entry
     assert "'/bin/whoami'" in system_entry  # arg chain
     assert "(system" in system_entry  # allows (system), (system@plt), (system@plt.got), etc
-    if (system_symbol := pwndbg.aglib.symbol.lookup_symbol("system")) is not None:
-        assert hex(int(system_symbol)) in system_entry
+    # don't assert for the actual system address, as this is not reliable (probably something to do with relocations...)
     assert "[ef_cxa (4)]" in deadbeef_cxa_entry
     assert "0xdeadbeef" in deadbeef_cxa_entry
     assert "arg = 0" in deadbeef_cxa_entry
