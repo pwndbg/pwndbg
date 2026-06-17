@@ -417,7 +417,7 @@ class ArchSymbols:
         return NeedLookup
 
     # using symbols usually yield incorrect results
-    @kernel_symbol_func(prefer_symbol=True)
+    @kernel_symbol_func(prefer_symbol=False)
     def current_task(self) -> type[NeedLookup]:
         return NeedLookup
 
