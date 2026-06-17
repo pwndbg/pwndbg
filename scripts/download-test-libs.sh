@@ -10,7 +10,10 @@ FORCE_BUILD=0
 case "${2:-}" in
     "") ;;
     --build) FORCE_BUILD=1 ;;
-    *) echo "FATAL: unknown option '${2}' (expected --build)" >&2; exit 1 ;;
+    *)
+        echo "FATAL: unknown option '${2}' (expected --build)" >&2
+        exit 1
+        ;;
 esac
 
 case "${LIBC}" in
