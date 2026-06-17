@@ -140,7 +140,9 @@ else
 ALL_GLIBC_VERSION_TARGETS :=
 endif
 
+# Versions come from the build-<version> stages in Dockerfile.musl-test-libs (the source of truth).
 MUSL_TEST_VERSIONS := $(shell sed -n 's/^FROM base-builder AS build-\([0-9][0-9.]*\).*/\1/p' $(PWD)/../../../Dockerfile.musl-test-libs)
+# Add a binary by creating <stem>.native.c and listing it here; add a version via a Dockerfile stage.
 MUSL_HEAP_BINARIES := heap_musl
 
 AVAILABLE_MUSL_VERSIONS := $(foreach ver,$(MUSL_TEST_VERSIONS),\
