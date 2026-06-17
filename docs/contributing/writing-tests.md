@@ -151,7 +151,7 @@ Where possible we avoid bespoke per-version tests and instead run the existing d
 - **glibc** (2.35-2.43): version detection; the heap commands (allocator, bins, `malloc-chunk`, `dt`, `find-fake-fast`) via debug symbols; the forced-heuristic path; and a no-symbol heuristic run against a fully stripped libc.
 - **musl** (1.1.24-1.2.6): detection and exact version, static (where the mallocng fingerprint exists) and dynamic, plus the full `test_mallocng.py` suite.
 
-**Adding or removing a glibc or musl version touches two files:** add (or remove) the `FROM base-builder AS build-<version>` stage and its scratch-stage `COPY` line(s) in the relevant `Dockerfile.*-test-libs`, and pin the new release tarball's sha256 in `scripts/build-one-<libc>.sh`.
+**Adding or removing a glibc or musl version is a one-file change** in the relevant `Dockerfile.*-test-libs`: add (or remove) the `FROM base-builder AS build-<version>` stage, its `RUN` line (which passes the release tarball's sha256), and its scratch-stage `COPY` line(s).
 
 **Running locally** (needs Docker):
 

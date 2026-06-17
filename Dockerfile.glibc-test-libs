@@ -30,33 +30,33 @@ COPY scripts/build-one-glibc.sh /build-one-glibc.sh
 RUN chmod +x /build-one-glibc.sh
 
 # Build each glibc version in a separate stage for caching. (stages don't invalidate each other like layers do)
-# Add new versions here and in ./scripts/build-one-glibc.sh
+# Add a version here only: a stage + its RUN (with the tarball sha256) and the two COPY lines below.
 FROM base-builder AS build-2.35
-RUN /build-one-glibc.sh 2.35
+RUN /build-one-glibc.sh 2.35 3e8e0c6195da8dfbd31d77c56fb8d99576fb855fafd47a9e0a895e51fd5942d4
 
 FROM base-builder AS build-2.36
-RUN /build-one-glibc.sh 2.36
+RUN /build-one-glibc.sh 2.36 02efa6ffbbaf3e10e88f16818a862608d04b0ef838c66f6025ae120530792c9c
 
 FROM base-builder AS build-2.37
-RUN /build-one-glibc.sh 2.37
+RUN /build-one-glibc.sh 2.37 811f19f9200118ff94ede28a6e12307584152cdcbf3d366cd729ea2f855db255
 
 FROM base-builder AS build-2.38
-RUN /build-one-glibc.sh 2.38
+RUN /build-one-glibc.sh 2.38 16e51e0455e288f03380b436e41d5927c60945abd86d0c9852b84be57dd6ed5e
 
 FROM base-builder AS build-2.39
-RUN /build-one-glibc.sh 2.39
+RUN /build-one-glibc.sh 2.39 97f84f3b7588cd54093a6f6389b0c1a81e70d99708d74963a2e3eab7c7dc942d
 
 FROM base-builder AS build-2.40
-RUN /build-one-glibc.sh 2.40
+RUN /build-one-glibc.sh 2.40 2abc038f5022949cb67e996c3cae0e7764f99b009f0b9b7fd954dfc6577b599e
 
 FROM base-builder AS build-2.41
-RUN /build-one-glibc.sh 2.41
+RUN /build-one-glibc.sh 2.41 c7be6e25eeaf4b956f5d4d56a04d23e4db453fc07760f872903bb61a49519b80
 
 FROM base-builder AS build-2.42
-RUN /build-one-glibc.sh 2.42
+RUN /build-one-glibc.sh 2.42 d4468d3e3267068c1b0623ca6424aac9a28766df774c8d8fb4978127fca7125a
 
 FROM base-builder AS build-2.43
-RUN /build-one-glibc.sh 2.43
+RUN /build-one-glibc.sh 2.43 e1e622cbd635019090fa23260e5d9ec219b12f97ae7ae02f033d4ae42cf2c004
 
 FROM scratch
 COPY --from=build-2.35 /glibcs/2.35 /glibcs/2.35

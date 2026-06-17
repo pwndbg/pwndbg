@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-VERSION="${1:?Usage: $0 <musl-version>}"
+VERSION="${1:?Usage: $0 <musl-version> <sha256>}"
+SHA256="${2:?Usage: $0 <musl-version> <sha256>}"
 
 case "$(uname -m)" in
     x86_64) MUSL_LD="ld-musl-x86_64.so.1" ;;
@@ -27,20 +28,6 @@ wget -q --https-only --retry-connrefused --retry-on-host-error --waitretry=15 --
     exit 4
 }
 
-# Add new versions here and as a stage in Dockerfile.musl-test-libs.
-case "${VERSION}" in
-    1.1.24) SHA256=1370c9a812b2cf2a7d92802510cca0058cc37e66a7bedd70051f0a34015022a3 ;;
-    1.2.1) SHA256=68af6e18539f646f9c41a3a2bb25be4a5cfa5a8f65f0bb647fd2bbfdf877e84b ;;
-    1.2.2) SHA256=9b969322012d796dc23dda27a35866034fa67d8fb67e0e2c45c913c3d43219dd ;;
-    1.2.3) SHA256=7d5b0b6062521e4627e099e4c9dc8248d32a30285e959b7eecaa780cf8cfd4a4 ;;
-    1.2.4) SHA256=7a35eae33d5372a7c0da1188de798726f68825513b7ae3ebe97aaaa52114f039 ;;
-    1.2.5) SHA256=a9a118bbe84d8764da0ea0d28b3ab3fae8477fc7e4085d90102b8596fc7c75e4 ;;
-    1.2.6) SHA256=d585fd3b613c66151fc3249e8ed44f77020cb5e6c1e635a616d3f9f82460512a ;;
-    *)
-        echo "FATAL: no known sha256 for musl ${VERSION}; add it to build-one-musl.sh"
-        exit 1
-        ;;
-esac
 echo "${SHA256}  ${TARBALL}" | sha256sum -c - || {
     echo "FATAL: musl ${VERSION} sha256 mismatch"
     exit 1
