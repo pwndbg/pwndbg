@@ -2,9 +2,16 @@
 
 set -euo pipefail
 
-LIBC="${1:?Usage: $0 <glibc|musl>}"
+LIBC="${1:?Usage: $0 <glibc|musl> [--build]}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+FORCE_BUILD=0
+case "${2:-}" in
+    "") ;;
+    --build) FORCE_BUILD=1 ;;
+    *) echo "FATAL: unknown option '${2}' (expected --build)" >&2; exit 1 ;;
+esac
 
 case "${LIBC}" in
     glibc)
@@ -55,17 +62,22 @@ have_all() {
     done
 }
 
-if have_all; then
+if [ "${FORCE_BUILD}" = 0 ] && have_all; then
     echo "All ${LIBC} test artifacts already present in ${DEST}/"
     exit 0
 fi
 
-if docker pull "${IMAGE}"; then
-    IMG="${IMAGE}"
-else
-    echo "Image ${IMAGE} unavailable, building locally (this may take a while)..."
+if [ "${FORCE_BUILD}" = 1 ]; then
+    echo "Building ${LIBC} test-libs image locally (this may take a while)..."
     docker buildx build -f "${DOCKERFILE}" -t "${LIBC}-test-libs:local" --load "${REPO_ROOT}"
     IMG="${LIBC}-test-libs:local"
+elif docker pull "${IMAGE}"; then
+    IMG="${IMAGE}"
+else
+    echo "ERROR: could not pull ${IMAGE} and --build was not passed." >&2
+    echo "Re-run with --build to build the image locally:" >&2
+    echo "  $0 ${LIBC} --build" >&2
+    exit 1
 fi
 
 CID=$(docker create --entrypoint=/ "${IMG}")
@@ -103,7 +115,7 @@ for ver in "${VERSIONS[@]}"; do
 done
 if "${missing}"; then
     echo "ERROR: some ${LIBC} artifacts are missing." >&2
-    echo "If you added a version, the pulled image won't have it; build it easily locally by running:" >&2
-    echo "  ${LIBC^^}_IMAGE=${LIBC}-test-libs:local $0 ${LIBC}" >&2
+    echo "If you added a version, the pulled image won't have it; build it locally with:" >&2
+    echo "  $0 ${LIBC} --build" >&2
     exit 1
 fi
