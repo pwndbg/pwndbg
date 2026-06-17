@@ -42,13 +42,13 @@ jobs:
               - 'pwndbg/commands/mallocng.py'
               - 'pwndbg/commands/dt.py'
               - 'pwndbg/commands/__init__.py'
-              - 'tests/library/dbg/tests/test_heap*'
+              - 'tests/library/dbg/tests/test_glibc*'
+              - 'tests/library/dbg/tests/test_heap_glibc_versions*'
               - 'tests/library/dbg/tests/test_musl*'
               - 'tests/library/dbg/tests/test_mallocng*'
-              - 'tests/library/dbg/tests/test_find_fake_fast*'
               - 'tests/library/dbg/tests/test_command_dt*'
               - 'tests/library/dbg/tests/__init__.py'
-              - 'tests/binaries/host/makefile'
+              - 'tests/binaries/host/Makefile'
               - 'tests/binaries/host/heap_malloc_chunk.native.c'
               - 'tests/binaries/host/heap_malloc_chunk_dump.native.c'
               - 'tests/binaries/host/heap_bins.native.c'
@@ -85,7 +85,7 @@ jobs:
             dockerfile: Dockerfile.glibc-test-libs
             artifact_dir: glibcs
             sentinel: ld-linux-x86-64.so.2
-            test_filter: "test_heap|test_find_fake_fast|test_command_dt"
+            test_filter: "test_glibc|test_heap_glibc_versions|test_command_dt"
           - libc: glibc
             arch: aarch64
             runs_on: ubuntu-24.04-arm
@@ -93,7 +93,7 @@ jobs:
             dockerfile: Dockerfile.glibc-test-libs
             artifact_dir: glibcs
             sentinel: ld-linux-aarch64.so.1
-            test_filter: "test_heap|test_find_fake_fast|test_command_dt"
+            test_filter: "test_glibc|test_heap_glibc_versions|test_command_dt"
           - libc: musl
             arch: x86-64
             runs_on: ubuntu-latest

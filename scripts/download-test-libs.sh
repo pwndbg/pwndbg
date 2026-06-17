@@ -25,6 +25,7 @@ case "$(uname -m)" in
     aarch64) GLIBC_LD="ld-linux-aarch64.so.1" ;;
     *) GLIBC_LD="ld-linux-x86-64.so.2" ;;
 esac
+
 DOCKERFILE="${REPO_ROOT}/Dockerfile.${LIBC}-test-libs"
 DEST="${REPO_ROOT}/tests/binaries/host/${DIR}"
 
