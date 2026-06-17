@@ -49,7 +49,9 @@ async def test_command_exithandlers(ctrl: Controller) -> None:
     assert out_lines[exit_funcs_start + 3] == dl_fini_handler_line
     assert "[ef_on (2)]" in system_entry
     assert "'/bin/whoami'" in system_entry  # arg chain
-    assert "(system" in system_entry  # allows (system), (system@plt), (system@plt.got), etc
+    assert (
+        "(system" in system_entry or "(__libc_system" in system_entry
+    )  # no closing brace to allow @plt, @plt.got, etc
     # don't assert for the actual system address, as this is not reliable (probably something to do with relocations...)
     assert "[ef_cxa (4)]" in deadbeef_cxa_entry
     assert "0xdeadbeef" in deadbeef_cxa_entry
