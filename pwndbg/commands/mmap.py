@@ -5,10 +5,10 @@ import argparse
 import pwndbg.aglib
 import pwndbg.aglib.shellcode
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.memory
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -253,5 +253,13 @@ using the address {aligned_addr:#x} instead.\
         )
 
         print(f"mmap syscall returned {pointer:#x}")
+
+        if pwndbg.aglib.vmmap.cache_status_text() is not None:
+            print(
+                message.warn(
+                    "vmmap cache is on and was not cleared; "
+                    "run `vmmap --refresh` to pick up the new mapping."
+                )
+            )
 
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)

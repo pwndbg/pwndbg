@@ -17,6 +17,7 @@ from collections.abc import Generator
 from collections.abc import Iterator
 from collections.abc import Sequence
 from contextlib import contextmanager
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 from typing import Literal
@@ -27,11 +28,11 @@ import lldb
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.path
+from pwndbg.color import message
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import selection
 from pwndbg.lib import TypeNotFoundError
@@ -145,10 +146,8 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
             raise pwndbg.dbg_mod.Error(f"Symbol {name!r} contains invalid characters")
 
         value = None
-        try:
+        with suppress(pwndbg.dbg_mod.Error):
             value = self.evaluate_expression(f"&{name}")
-        except pwndbg.dbg_mod.Error:
-            pass
 
         if value is None:
             # Fallback because `evaluate_expression` may fail to resolve symbols for TLS variables.
@@ -923,8 +922,6 @@ class YieldSingleStep:
     be yielded by the async function with access to an execution controller, and
     caught and hanlded by the event loop in the LLDB Pwndbg CLI.
     """
-
-    pass
 
 
 class LLDBExecutionController(pwndbg.dbg_mod.ExecutionController):
@@ -1739,7 +1736,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
                     # LLDB lacks support for types in symbols
                     # So we have manually find types
-                    cast_type = variables_types.get((resolved_addr, sym_name), None)
+                    cast_type = variables_types.get((resolved_addr, sym_name))
                     if cast_type is not None:
                         # Detect if we have proper symbol by size, we can't do better here
                         if cast_type.sizeof != resolved_size:
@@ -1796,7 +1793,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             raise RuntimeError(
                 "SBTarget::GetByteOrder() != SBProcess::GetByteOrder(). We don't know how to handle that"
             )
-        if endian0 != lldb.eByteOrderLittle and endian0 != lldb.eByteOrderBig:
+        if endian0 not in (lldb.eByteOrderLittle, lldb.eByteOrderBig):
             raise RuntimeError("We only support little and big endian systems")
         if endian0 == lldb.eByteOrderInvalid:
             raise RuntimeError("Byte order is invalid")
@@ -1842,10 +1839,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
             if any(has_xpsr):
                 arch_name = "armcm"
-        elif arch_name == "arm64":
-            # Apple uses a different name for AArch64 than we do.
-            arch_name = "aarch64"
-        elif arch_name == "arm64e":
+        elif arch_name in {"arm64", "arm64e"}:
             # Apple uses a different name for AArch64 than we do.
             arch_name = "aarch64"
         elif arch_name == "riscv32":
@@ -2150,7 +2144,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.module = module
         self.debugger = debugger
 
-        self.debug = kwargs["debug"] if "debug" in kwargs else False
+        self.debug = kwargs.get("debug", False)
 
         from pwndbg.aglib import load_aglib
 
@@ -2496,7 +2490,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         if flavor == "default":
             flavor = "intel"
 
-        if flavor != "att" and flavor != "intel":
+        if flavor not in {"att", "intel"}:
             raise pwndbg.dbg_mod.Error(f"unrecognized disassembly flavor '{flavor}'")
 
         literal: Literal["att", "intel"] = flavor

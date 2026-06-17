@@ -15,8 +15,8 @@ from capstone6pwndbg import *  # noqa: F403
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.disasm.aarch64
-import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.disasm.arm
+import pwndbg.aglib.disasm.assistant
 import pwndbg.aglib.disasm.loongarch64
 import pwndbg.aglib.disasm.mips
 import pwndbg.aglib.disasm.ppc
@@ -27,8 +27,8 @@ import pwndbg.aglib.memory
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
 import pwndbg.lib.config
-from pwndbg.aglib.disasm.arch import DEBUG_ENHANCEMENT
-from pwndbg.aglib.disasm.arch import DisassemblyAssistant
+from pwndbg.aglib.disasm.assistant import DEBUG_ENHANCEMENT
+from pwndbg.aglib.disasm.assistant import DisassemblyAssistant
 from pwndbg.aglib.disasm.instruction import ManualPwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstructionImpl
@@ -38,6 +38,8 @@ from pwndbg.dbg_mod import EventType
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 CapstoneSyntax = {"intel": CS_OPT_SYNTAX_INTEL, "att": CS_OPT_SYNTAX_ATT}
+
+CAPSTONE_SYNTAX_OPTIONS_MASK = CS_OPT_SYNTAX_INTEL | CS_OPT_SYNTAX_ATT
 
 force_register_alias = pwndbg.config.add_param(
     "disasm-reg-alias",
@@ -215,6 +217,7 @@ def get_disassembler(cs_info: tuple[int, int]) -> Cs:
         cs.syntax = CapstoneSyntax[flavor]
         if force_register_alias:
             cs.syntax |= CS_OPT_SYNTAX_CS_REG_ALIAS
+        cs.syntax |= CS_OPT_SYNTAX_NO_ALIAS_TEXT_COMPRESSED
     except CsError:
         pass
     cs.detail = True
@@ -319,7 +322,7 @@ def get_one_instruction(
     if cs_info is None:
         instr = ManualPwndbgInstruction(address, padding)
         if enhance:
-            pwndbg.aglib.disasm.arch.basic_enhance(instr)
+            pwndbg.aglib.disasm.assistant.basic_enhance(instr)
         return instr
 
     md = get_disassembler(cs_info)
@@ -397,7 +400,7 @@ def one_with_config():
     """
     result = near(
         pwndbg.aglib.regs.pc,
-        emulate=bool(not pwndbg.config.emulate == "off"),
+        emulate=bool(pwndbg.config.emulate != "off"),
         show_prev_insns=False,
     )
     if result:
@@ -679,6 +682,7 @@ ALL_DISASSEMBLY_ASSISTANTS: dict[
     PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Callable[[], DisassemblyAssistant]
 ] = {
     "aarch64": lambda: pwndbg.aglib.disasm.aarch64.AArch64DisassemblyAssistant("aarch64"),
+    "i8086": lambda: pwndbg.aglib.disasm.x86.X86DisassemblyAssistant("i8086"),
     "i386": lambda: pwndbg.aglib.disasm.x86.X86DisassemblyAssistant("i386"),
     "x86-64": lambda: pwndbg.aglib.disasm.x86.X86DisassemblyAssistant("x86-64"),
     "arm": lambda: pwndbg.aglib.disasm.arm.ArmDisassemblyAssistant("arm", "cpsr"),

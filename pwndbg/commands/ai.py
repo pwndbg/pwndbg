@@ -7,21 +7,23 @@ displays GPT-3's response to that question to the user.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import pprint
 import re
+from contextlib import suppress
 
 import gdb
 
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.nearpc
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
 import pwndbg.lib.strings
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 pwndbg.config.add_param(
@@ -92,7 +94,6 @@ def _requests():
 def set_dummy_mode(d=True) -> None:
     global dummy
     dummy = d
-    return
 
 
 def get_openai_api_key():
@@ -180,17 +181,13 @@ def build_context_prompt_body():
     ## Next, let's get the registers
     regs_rows = pwndbg.commands.context.get_regs()
     regs = "\n".join(regs_rows)
+
     flags = None
-    try:
-        flags = gdb.execute("info registers eflags", to_string=True)  # arch neutral would be nice
-    except Exception:
-        pass
-    if flags:
+    with suppress(Exception):
+        # arch neutral would be nice
+        flags = gdb.execute("info registers eflags", to_string=True)
         # just grab what's bewteen the square brackets
-        try:
-            flags = re.search(r"\[(.*)\]", flags).group(1)
-        except Exception:
-            pass
+        flags = re.search(r"\[(.*)\]", flags).group(1)
 
     ## Finally, let's get the stack
     stack_rows = pwndbg.commands.telescope.telescope(
@@ -205,10 +202,8 @@ def build_context_prompt_body():
     local_vars = None
     ## and source information, if available
     source = ""
-    try:
+    with contextlib.suppress(gdb.error):
         source = gdb.execute("list *$pc", to_string=True)
-    except gdb.error:
-        pass
     ## Now, let's build the prompt
     prompt = "Consider the following context in the GDB debugger:\n"
 

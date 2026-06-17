@@ -89,8 +89,6 @@ class UserCancelledError(CancelledError):
     that is used in these conditions.
     """
 
-    pass
-
 
 def print_error(msg: str, *args):
     """
@@ -259,8 +257,6 @@ class YieldInteractive:
     """
     Prompt the user for the next command.
     """
-
-    pass
 
 
 class PwndbgController:
@@ -1031,7 +1027,7 @@ def target_create_regular(args: Any, dbg: LLDB) -> None:
         )
         return
 
-    if args.platform and args.platform not in {"qemu-user"}:
+    if args.platform and args.platform != "qemu-user":
         print_error("Pwndbg does currently support platforms: qemu-user")
         return
 
@@ -1152,8 +1148,7 @@ def process_launch(
     result = driver.launch(
         target,
         io_driver,
-        [f"{name}={value}" for name, value in os.environ.items()]
-        + (args.environment if args.environment else []),
+        [f"{name}={value}" for name, value in os.environ.items()] + (args.environment or []),
         launch_args,
         os.getcwd(),
         args.disable_aslr,

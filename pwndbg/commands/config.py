@@ -9,7 +9,7 @@ import argparse
 import pwndbg
 import pwndbg.commands
 import pwndbg.lib.config
-from pwndbg.color import generateColorFunction
+from pwndbg.color import generate_color_function
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import hint
@@ -91,8 +91,8 @@ def display_config(
             # Only the theme scope should use ColorParameter
             assert scope == Scope.theme
 
-            value = generateColorFunction(v.value)(v.value)
-            default = generateColorFunction(v.default)(v.default)
+            value = generate_color_function(v.value)(v.value)
+            default = generate_color_function(v.default)(v.default)
         else:
             value = v.pretty()
             default = v.pretty_default()

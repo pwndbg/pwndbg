@@ -306,7 +306,7 @@ class RegisterSet:
             self.gpr,
         ):
             if regname and regname not in seen_emulated_register:
-                emu_reg = UnicornRegisterWrite(regname, True if regname in flags else False)
+                emu_reg = UnicornRegisterWrite(regname, regname in flags)
                 self.emulated_regs_order.append(emu_reg)
                 seen_emulated_register.add(regname)
 
@@ -394,7 +394,7 @@ class PseudoEmulatedRegisterFile:
         # Definition of the register we are writing
         write_reg_def = self.register_set.reg_definitions.get(reg)
         if write_reg_def is None:
-            return None
+            return
 
         register_bit_offset = write_reg_def.offset * 8
         written_register_size = (
@@ -475,7 +475,7 @@ class PseudoEmulatedRegisterFile:
         # Definition of the register we are invalidating
         written_reg_def = self.register_set.reg_definitions.get(reg)
         if written_reg_def is None:
-            return None
+            return
 
         register_bit_offset = written_reg_def.offset * 8
         written_register_size = (
@@ -715,6 +715,7 @@ x86flags = {
             ("IF", 9),
             ("DF", 10),
             ("OF", 11),
+            ("IOPL", (12, 13)),
             ("AC", 18),
         ]
     )
@@ -1275,6 +1276,47 @@ s390x = RegisterSet(
     retval="r2",
 )
 
+hexagon = RegisterSet(
+    stack=Reg("sp"),
+    frame=Reg("fp"),
+    retaddr=(Reg("lr"),),
+    gpr=(
+        Reg("r0"),
+        Reg("r1"),
+        Reg("r2"),
+        Reg("r3"),
+        Reg("r4"),
+        Reg("r5"),
+        Reg("r6"),
+        Reg("r7"),
+        Reg("r8"),
+        Reg("r9"),
+        Reg("r10"),
+        Reg("r11"),
+        Reg("r12"),
+        Reg("r13"),
+        Reg("r14"),
+        Reg("r15"),
+        Reg("r16"),
+        Reg("r17"),
+        Reg("r18"),
+        Reg("r19"),
+        Reg("r20"),
+        Reg("r21"),
+        Reg("r22"),
+        Reg("r23"),
+        Reg("r24"),
+        Reg("r25"),
+        Reg("r26"),
+        Reg("r27"),
+        Reg("r28"),
+        Reg("r29"),
+        Reg("r30"),
+        Reg("r31"),
+    ),
+)
+
+
 reg_sets: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "i386": i386,
     "i8086": i386,
@@ -1289,4 +1331,5 @@ reg_sets: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "powerpc": powerpc,
     "loongarch64": loongarch64,
     "s390x": s390x,
+    "hexagon": hexagon,
 }

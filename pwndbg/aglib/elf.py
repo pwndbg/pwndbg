@@ -31,7 +31,6 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.auxv
 import pwndbg.dbg_mod
-import pwndbg.lib
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.elftypes
@@ -80,7 +79,6 @@ def update() -> None:
 
     except ImportError:
         print(message.warn("Failed to reload pwndbg.lib.elftypes"))
-        pass
 
     if pwndbg.aglib.arch.ptrsize == 4:
         Ehdr = pwndbg.lib.elftypes.Elf32_Ehdr
@@ -252,8 +250,7 @@ def exe() -> Ehdr | None:
     Return a loaded ELF header object pointing to the Ehdr of the
     main executable.
     """
-    e = entry()
-    if e:
+    if e := entry():
         return load(e)
     return None
 
@@ -264,13 +261,11 @@ def entry() -> int:
     """
     Return the address of the entry point for the main executable.
     """
-    entry = pwndbg.auxv.get().AT_ENTRY
-    if entry:
+    if entry := pwndbg.auxv.get().AT_ENTRY:
         return entry
 
     inf = pwndbg.dbg.selected_inferior()
-    entry = inf.main_module_entry()
-    if entry:
+    if entry := inf.main_module_entry():
         return entry
 
     # Try common names
@@ -347,7 +342,9 @@ def get_ehdr(pointer: int) -> tuple[int | None, Ehdr | None]:
     ei_class = pwndbg.aglib.memory.byte(base + 4)
 
     # Find out where the section headers start
-    Elfhdr: Elf32_Ehdr | Elf64_Ehdr | None = read(Ehdr, base)  # type: ignore[type-var]
+    Elfhdr: pwndbg.lib.elftypes.Elf32_Ehdr | pwndbg.lib.elftypes.Elf64_Ehdr | None = read(
+        Ehdr, base
+    )  # type: ignore[type-var]
     return ei_class, Elfhdr
 
 
@@ -382,7 +379,7 @@ def iter_phdrs(ehdr: Ehdr):
     first_phdr = phdr.address
     PhdrType = phdr.type
 
-    for i in range(0, phnum):
+    for i in range(phnum):
         p_phdr = int(first_phdr + (i * phentsize))
         p_phdr = read(PhdrType, p_phdr)
         yield p_phdr

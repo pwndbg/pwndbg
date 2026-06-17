@@ -9,11 +9,11 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
 import pwndbg.aglib.symbol
 import pwndbg.arguments
-import pwndbg.color as color
-import pwndbg.color.message as message
 import pwndbg.commands.context
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
+from pwndbg import color
+from pwndbg.color import message
 from pwndbg.dbg_mod import BreakpointLocation
 from pwndbg.dbg_mod import DebuggerType
 

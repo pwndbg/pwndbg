@@ -6,11 +6,11 @@ import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib
 import pwndbg.lib.cache
 from pwndbg.aglib.kernel.macros import for_each_entry
+from pwndbg.color import message
 
 
 class mod_mem_type(Enum):
@@ -219,7 +219,7 @@ def all_modules_kallsyms() -> list[tuple[str, int, str]]:
     result = []
     if pwndbg.aglib.typeinfo.load("struct module") is not None:
         for module in module_list_with_typeinfo():
-            if module.type.has_field("kallsyms"):
+            if module.dereference().type.has_field("kallsyms"):
                 kallsyms = int(module["kallsyms"])
                 result += parse_module_kallsyms(kallsyms)
         return result

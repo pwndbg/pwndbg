@@ -31,8 +31,8 @@ import pwndbg.aglib.vmmap
 import pwndbg.color.syntax_highlight
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
-import pwndbg.lib.pretty_print as pretty_print
 from pwndbg.color import message
+from pwndbg.lib import pretty_print
 
 # Note that XML RPC cannot send 64-bit ints (it is capped at 32 bits).
 # We hope that rebased integers will never be more than 32-bits. If need be,
@@ -243,6 +243,8 @@ class DecompilerConnection:
         else:
             self._binary_base_addr = start_addr
 
+        print(f"Decompiled program found @ {start_addr:#x} ({path}).")
+
     def addr_to_mapped(self, rel_addr: int) -> int:
         """
         Takes an address relative to the image/file base and
@@ -314,7 +316,7 @@ class DecompilerConnection:
 
         answer: dict[str, Any] = cast(dict[str, Any], self.server.decompile(rel_addr))
 
-        if answer["decompilation"] is None:
+        if answer["decompilation"] is None or answer["decompilation"] == "":
             # Assuming all the other fields are as well
             return None
 
@@ -778,7 +780,7 @@ class IntegrationManager:
         res = f"{name}: {ver}"
         # Add all other auxiliary information, no matter what it is.
         for key, value in versions.items():
-            if key == "name" or key == "version":
+            if key in {"name", "version"}:
                 continue
             res += f"\n{name} {key}: {value}"
 

@@ -14,7 +14,6 @@ import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.context as ctx_color
 import pwndbg.color.memory as mem_color
-import pwndbg.color.message as message
 import pwndbg.color.syntax_highlight as H
 import pwndbg.dintegration
 import pwndbg.lib.config
@@ -24,6 +23,7 @@ from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import boolean_to_instruction_condition
+from pwndbg.color import message
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.regs import PseudoEmulatedRegisterFile
 
@@ -301,7 +301,7 @@ class DisassemblyAssistant:
         The goal of this function is to set the `annotation` field of the instruction,
         which is the string to be printed in a disasm view.
         """
-        return None
+        return
 
     def _enhance_operands(
         self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
@@ -404,22 +404,22 @@ class DisassemblyAssistant:
 
     # Delegates to "read_register", which takes Capstone ID for register.
     def _parse_register(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
     ) -> int | None:
-        reg = operand.reg
+        reg = op.reg
         return self._read_register(instruction, reg, emu)
 
     # Determine memory address of operand (Ex: in x86, mov rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
     # Subclasses override for specific architectures
     def _parse_memory(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
     ) -> int | None:
         return None
 
     def _parse_immediate(
-        self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
-    ):
-        return operand.imm
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+    ) -> int | None:
+        return op.imm
 
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
@@ -436,7 +436,7 @@ class DisassemblyAssistant:
 
     # Read register by its name
     def _read_register_name(
-        self, instruction: PwndbgInstruction, regname: str, emu: Emulator
+        self, instruction: PwndbgInstruction, regname: str, emu: Emulator | None
     ) -> int | None:
         if emu:
             # Will read the value of register from the emulator
@@ -490,7 +490,7 @@ class DisassemblyAssistant:
         if value is None:
             return None
 
-        if operand.type == CS_OP_REG or operand.type == CS_OP_IMM:
+        if operand.type in (CS_OP_REG, CS_OP_IMM):
             return value
         if operand.type == CS_OP_MEM:
             # Assume that we are reading ptrsize - subclasses should override this function
@@ -622,12 +622,12 @@ class DisassemblyAssistant:
 
     def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if CS_GRP_INT not in instruction.groups:
-            return None
+            return
 
         syscall_arch, syscall_register = self._get_syscall_arch_info(instruction)
 
         if syscall_arch is None:
-            return None
+            return
 
         instruction.syscall = self._read_register_name(instruction, syscall_register, emu)
         if instruction.syscall is not None:
@@ -650,20 +650,22 @@ class DisassemblyAssistant:
         """
         Sets the `condition` of the instruction
 
-        If the instruction is always executed unconditionally, or we cannot reason about the instruction,
-        the value of the field is `InstructionCondition.UNDETERMINED`.
+        If the instruction is always executed unconditionally, the value is set to `InstructionCondition.UNCONDITIONAL`
+        This is the default value if not otherwise specified.
 
         If the instruction is executed conditionally, and we can be absolutely
         sure that it will be executed, the value of the field is `InstructionCondition.TRUE`.
 
-        In all other cases, it is set to `InstructionCondition.FALSE`.
+        If it's conditional, and the condition is false, it is set to `InstructionCondition.FALSE`.
+
+        If it's conditional but we cannot reason about if the condition is true, it is set to `InstructionCondition.UNDETERMINED_CONDITIONAL`.
         """
 
         instruction.condition = self._condition(instruction, emu)
 
     # Subclasses should override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        return InstructionCondition.UNDETERMINED
+        return InstructionCondition.UNCONDITIONAL
 
     def _enhance_next(
         self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
@@ -739,7 +741,7 @@ class DisassemblyAssistant:
         # in case we didn't manually determine the condition.
         if (
             jump_emu
-            and instruction.condition == InstructionCondition.UNDETERMINED
+            and instruction.condition == InstructionCondition.UNDETERMINED_CONDITIONAL
             and instruction.is_conditional_jump
         ):
             # At this point we know the emulator was used to determine
@@ -980,17 +982,18 @@ class DisassemblyAssistant:
                 # and we are not emulating. This means we cannot savely dereference if PC is not at the current instruction address,
                 # because the the memory address could have been written to by the time the instruction executes
                 telescope_print = None
+            elif signed and read_size != target_size and len(telescope_addresses) == 2:
+                # We sign extend the value, then convert it back to the unsigned bit representation
+                final_value = bit_math.to_signed(telescope_addresses[1], read_size * 8) & (
+                    (1 << (target_size * 8)) - 1
+                )
+                # If it's a signed read that required extension, it will just be a number with no special symbol/color needed
+                telescope_print = hex(final_value)
             else:
-                if signed and read_size != target_size and len(telescope_addresses) == 2:
-                    # We sign extend the value, then convert it back to the unsigned bit representation
-                    final_value = bit_math.to_signed(telescope_addresses[1], read_size * 8) & (
-                        (1 << (target_size * 8)) - 1
-                    )
-                    # If it's a signed read that required extension, it will just be a number with no special symbol/color needed
-                    telescope_print = hex(final_value)
-                else:
-                    # Start showing at dereferenced address, hence the [1:]
-                    telescope_print = f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
+                # Start showing at dereferenced address, hence the [1:]
+                telescope_print = (
+                    f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
+                )
 
             instruction.annotation = f"{dest_str}, {source_str}"
 

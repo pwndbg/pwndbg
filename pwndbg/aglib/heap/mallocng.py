@@ -12,15 +12,15 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.heap.heap
-import pwndbg.aglib.memory as memory
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.auxv
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.search
+from pwndbg.aglib import memory
+from pwndbg.color import message
 
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L14
 # Slot granularity.
@@ -500,16 +500,15 @@ class Slot:
 
             if meta_says is not None:
                 self._slot_state = meta_says
+            # When a slot is freed, its p[-3] gets set to 0xFF so the
+            # offset to group start (and by extension, meta) is unrecoverable.
+            # We will check for this, although musl only ever sets this
+            # and never uses this as a source of truth.
+            elif self.pn3 == 0xFF:
+                # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L112
+                self._slot_state = SlotState.FREED
             else:
-                # When a slot is freed, its p[-3] gets set to 0xFF so the
-                # offset to group start (and by extension, meta) is unrecoverable.
-                # We will check for this, although musl only ever sets this
-                # and never uses this as a source of truth.
-                if self.pn3 == 0xFF:
-                    # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L112
-                    self._slot_state = SlotState.FREED
-                else:
-                    self._slot_state = SlotState.AVAIL
+                self._slot_state = SlotState.AVAIL
 
         return self._slot_state
 
@@ -798,12 +797,11 @@ class Meta:
         if self._stride is None:
             if not self.last_idx and self.maplen:
                 self._stride = self.maplen * 4096 - UNIT
+            elif self.sizeclass < len(size_classes):
+                self._stride = UNIT * size_classes[self.sizeclass]
             else:
-                if self.sizeclass < len(size_classes):
-                    self._stride = UNIT * size_classes[self.sizeclass]
-                else:
-                    # The meta is corrupted.
-                    self._stride = -1
+                # The meta is corrupted.
+                self._stride = -1
 
         return self._stride
 
@@ -1236,12 +1234,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 # It is probably better for this matching to be overly eager than overly restrictive,
                 # we can fix it later if we ever actually encounter false positives.
                 # The .startswith() logic is there for CTF-type setups when the libc/ld is in the same folder as the binary.
-                if (
-                    "/libc" in mapname
-                    or "/ld-" in mapname
-                    or mapname.startswith("libc")
-                    or mapname.startswith("ld-")
-                ):
+                if "/libc" in mapname or "/ld-" in mapname or mapname.startswith(("libc", "ld-")):
                     maybe_ctx = MallocContext(addr)
                     if maybe_ctx.looks_valid():
                         self.ctx_addr = addr

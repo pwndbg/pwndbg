@@ -14,7 +14,9 @@ import gdb
 
 import pwndbg.aglib.argv
 import pwndbg.aglib.elf
+import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
+import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
 import pwndbg.dbg_mod
 from pwndbg.lib.common import hex2ptr_common
@@ -324,3 +326,123 @@ def gsbase(offset: gdb.Value = gdb.Value(0)) -> int:
     if pwndbg.aglib.arch.name not in ("i386", "x86-64"):
         raise gdb.GdbError("This function is only valid on i386 and x86-64.")
     return pwndbg.aglib.regs.gsbase + int(offset)
+
+
+@GdbFunction(only_when_running=True)
+def v2p(vaddr: gdb.Value) -> int:
+    """
+    Convert a virtual address to a physical address.
+
+    Only when kernel debugging with QEMU.
+
+    Example:
+    Get the kmem_cache of a random heap object (`0xffff88800555c000` here) manually (pretty much `slab contains`).
+    ```
+    pwndbg> p ((struct slab*)({$obj=0xffff88800555c000,$tpage=((struct page*)vmemmap_base+($v2p($obj)>>12)),$tpage->compound_head&1?$tpage->compound_head^1:$tpage}[2]))->slab_cache
+    $33 = (struct kmem_cache *) 0xffff888006552e00
+    ```
+    """
+    # Copied from pwndbg.commands.v2p().
+    if not pwndbg.aglib.qemu.is_qemu_kernel():
+        raise gdb.GdbError("This function is only valid when debugging the Linux kernel in QEMU.")
+    if not pwndbg.aglib.kernel.has_debug_symbols():
+        raise gdb.GdbError(
+            "This function may only be run when debugging a Linux kernel with symbols."
+        )
+    if not pwndbg.aglib.kernel.paging_enabled():
+        raise gdb.GdbError("This command may only be run when paging is enabled.")
+    if pwndbg.aglib.arch.name not in ("x86-64", "aarch64"):
+        raise gdb.GdbError("This function is only valid on x86-64 and aarch64.")
+
+    vaddr_int: int = int(vaddr)
+    result = pwndbg.aglib.kernel.pagewalk(vaddr_int)
+    entry, paddr = result.entry, result.phys
+    if not entry or paddr is None:
+        raise gdb.GdbError("Virtual to physical address failed, unmapped virtual address?")
+
+    return paddr
+
+
+@GdbFunction(only_when_running=True)
+def p2v(paddr: gdb.Value) -> int:
+    """
+    Convert a physical address to a virtual (physmap) address.
+
+    Only when kernel debugging with QEMU.
+
+    Example:
+    ```
+    # A heap allocated object is already in physmap.
+    pwndbg> p $v2p(0xffff8880055eb000)
+    $9 = 0x55eb000
+    pwndbg> p $p2v($9)
+    $10 = 0xffff8880055eb000
+    ```
+    A kernel .text pointer has multiple virtual address mappings, the one in physmap
+    is returned.
+    ```
+    pwndbg> p $p2v($v2p(0xffffffff81cfd5b5))
+    $11 = 0xffff888001cfd5b5
+    pwndbg> vmmap $11
+    ► 0xffff888001000000 0xffff888002bf4000 r--p  1bf4000 1000000 physmap +0xcfd5b5
+    ```
+    """
+    # Copied from pwndbg.commands.p2v().
+    if not pwndbg.aglib.qemu.is_qemu_kernel():
+        raise gdb.GdbError("This function is only valid when debugging the Linux kernel in QEMU.")
+    if not pwndbg.aglib.kernel.has_debug_symbols():
+        raise gdb.GdbError(
+            "This function may only be run when debugging a Linux kernel with symbols."
+        )
+    if not pwndbg.aglib.kernel.paging_enabled():
+        raise gdb.GdbError("This command may only be run when paging is enabled.")
+    if pwndbg.aglib.arch.name not in ("x86-64", "aarch64"):
+        raise gdb.GdbError("This function is only valid on x86-64 and aarch64.")
+
+    paddr_int: int = int(paddr)
+    vaddr = pwndbg.aglib.kernel.phys_to_virt(paddr_int)
+    if vaddr is None:
+        raise gdb.GdbError("Physical to virtual address failed, invalid physical address?")
+
+    return vaddr
+
+
+@GdbFunction(only_when_running=True)
+def percpu(addr: gdb.Value, cpu: gdb.Value = gdb.Value(-1)) -> gdb.Value:
+    """
+    Resolve a Linux kernel per-cpu pointer to its absolute virtual address.
+
+    The kernel keeps per-cpu data (`DEFINE_PER_CPU` / `alloc_percpu`) so that
+    each CPU has its own private copy of a variable, which avoids locking and
+    cache-line bouncing. A `__percpu` pointer is therefore not directly
+    dereferenceable: it is a base/offset that must be combined with a given
+    CPU's per-cpu offset (`__per_cpu_offset[cpu]`) to obtain the real address.
+    That is exactly what the kernel's `per_cpu_ptr(ptr, cpu)` / `this_cpu_ptr(ptr)`
+    macros do, and what this function reproduces:
+
+        result = addr + __per_cpu_offset[cpu]
+
+    If `cpu` is omitted (or -1), the currently running CPU is used.
+
+    References (Linux kernel):
+    - https://docs.kernel.org/core-api/this_cpu_ops.html
+    - include/linux/percpu-defs.h  (per_cpu_ptr, this_cpu_ptr)
+    - mm/percpu.c                  (the per-cpu allocator)
+
+    Only valid when kernel debugging; requires the `__per_cpu_offset` symbol.
+    Tested on x86-64 Linux 7.1.
+
+    Example:
+    ```
+    pwndbg> p $percpu(&some_percpu_var)
+    pwndbg> p $percpu(&some_percpu_var, 2)
+    pwndbg> p *$percpu(cache->cpu_slab)
+    ```
+    """
+    from pwndbg.dbg_mod.gdb import GDBValue
+
+    cpu = int(cpu)
+    result = pwndbg.aglib.kernel.per_cpu(GDBValue(addr), cpu if cpu >= 0 else None)
+    if result is None:
+        raise gdb.GdbError("__per_cpu_offset not found")
+    return dbg_value_to_gdb(result)

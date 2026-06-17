@@ -129,7 +129,7 @@ def underline(x: str) -> str:
 
 
 def colorize(x: str, color: str) -> str:
-    return color + terminateWith(str(x), color) + NORMAL
+    return color + terminate_with(str(x), color) + NORMAL
 
 
 def nocolor(x: str, color: str) -> str:
@@ -159,12 +159,11 @@ def _disable_colors_trigger():
         if not hasattr(colorize, "original_code"):
             colorize.original_code = colorize.__code__
         colorize.__code__ = nocolor.__code__
-    else:
-        if hasattr(colorize, "original_code"):
-            colorize.__code__ = colorize.original_code
+    elif hasattr(colorize, "original_code"):
+        colorize.__code__ = colorize.original_code
 
 
-def generateColorFunctionInner(
+def generate_color_function_inner(
     old: Callable[[object], str], new: Callable[[str], str]
 ) -> Callable[[object], str]:
     def wrapper(text: object) -> str:
@@ -196,8 +195,8 @@ class ColorConfig:
         raise AttributeError(f"ColorConfig object for {self._namespace} has no attribute '{attr}'")
 
 
-def generateColorFunction(
-    config: str | Parameter, _globals: dict[str, Callable[[str], str]] = globals()
+def generate_color_function(
+    config: str | Parameter, _locals: dict[str, Callable[[str], str]] = locals()
 ) -> Callable[[object], str]:
     # the `config` here may be a config Parameter object
     # and if we run with disable_colors or if the config value
@@ -211,7 +210,10 @@ def generateColorFunction(
 
     for color in config.split(","):
         func_name = color.lower().replace("-", "_")
-        function = generateColorFunctionInner(function, _globals[func_name])
+        fn = _locals.get(func_name)
+        assert fn is not None, f"Invalid colour {color}"
+        assert callable(fn), f"Invalid colour {color}"
+        function = generate_color_function_inner(function, fn)
     return function
 
 
@@ -219,7 +221,7 @@ def strip(x: str) -> str:
     return re.sub("\x1b\\[[\\d;]+m", "", x)
 
 
-def terminateWith(x: str, color: str) -> str:
+def terminate_with(x: str, color: str) -> str:
     return x.replace("\x1b[0m", NORMAL + color)
 
 

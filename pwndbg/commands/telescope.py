@@ -34,6 +34,11 @@ skip_repeating_values_minimum = pwndbg.config.add_param(
     3,
     "minimum amount of repeated values before skipping lines",
 )
+pad_leading_zeroes = pwndbg.config.add_param(
+    "telescope-pad-leading-zeroes",
+    False,
+    "align all integers to pointer-width by front-padding them with zeroes",
+)
 print_framepointer_offset = pwndbg.config.add_param(
     "telescope-framepointer-offset",
     True,
@@ -100,23 +105,35 @@ parser.add_argument(
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def telescope(
-    address=None, count=telescope_lines, to_string=False, reverse=False, frame=False, inverse=False
+    address: int | None = None,
+    count: int = int(telescope_lines),
+    to_string: bool = False,
+    reverse: bool = False,
+    frame: bool = False,
+    inverse: bool = False,
+    repeat: bool = False,
 ):
     """
     Recursively dereferences pointers starting at the specified address
     ($sp by default)
+
+    If either of `telescope.repeat` (set by the command invocation logic when the user
+    re-runs the command) or `repeat` (set only by functions which use `telescope()` like an
+    API (like `context`) (which they probably shouldn't)) is set, `telescope()` will continue
+    from the last printed address (see also #3900).
     """
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
-    if telescope.repeat:
+
+    if telescope.repeat or repeat:
         address = telescope.last_address + ptrsize
         telescope.offset += 1
     else:
         telescope.offset = 0
 
-    address = address if address else pwndbg.aglib.regs.sp
+    address = address or pwndbg.aglib.regs.sp
     if address is None:
         print("Cannot display stack frame because stack pointer is unavailable")
-        return
+        return None
 
     address = int(address) & pwndbg.aglib.arch.ptrmask
     input_address = address
@@ -137,19 +154,19 @@ def telescope(
     if frame:
         if not pwndbg.aglib.regs.frame:
             print("The frame register is not defined for this architecture.")
-            return
+            return None
         sp = pwndbg.aglib.regs.sp
         bp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame)
         if sp > bp:
             print("Cannot display stack frame because base pointer is below stack pointer")
-            return
+            return None
 
         for page in pwndbg.aglib.vmmap.get():
             if sp in page and bp not in page:
                 print(
                     "Cannot display stack frame because base pointer is not on the same page with stack pointer"
                 )
-                return
+                return None
 
         address = sp
         count = int((bp - sp) / ptrsize) + 1
@@ -239,7 +256,7 @@ def telescope(
         line = T.offset(f"{idx_offset:02x}{delimiter}{line_offset:04x}{separator}") + " ".join(
             (
                 regs_or_frame_offset(addr, bp, regs, longest_regs),
-                pwndbg.chain.format(addr),
+                pwndbg.chain.format(addr, respect_ptrwidth=bool(pad_leading_zeroes)),
             )
         )
 
@@ -270,11 +287,16 @@ def telescope(
 
 def regs_or_frame_offset(addr: int, bp: int | None, regs: dict[int, str], longest_regs: int) -> str:
     # bp only set if print_framepointer_offset=True
-    if bp is None or regs[addr] or not -0xFFF <= addr - bp <= 0xFFF:
+    if bp is None or regs[addr] or not -0xFFFF <= addr - bp <= 0xFFFF:
         # We do .rjust(3) because some arches have two-letter registers.
         return " " + T.register(regs[addr].ljust(longest_regs).rjust(3))
-    # If offset to frame pointer as hex fits in hex 3 digits, print it
-    return ("%+04x" % (addr - bp)).ljust(longest_regs + 1)
+    # Print offset to frame pointer
+    offset = addr - bp
+    if abs(offset) < 0x1000:
+        offset_str = f"{offset:+04x}"
+    else:
+        offset_str = f"{offset:+05x}"
+    return offset_str.ljust(longest_regs + 1)
 
 
 parser = argparse.ArgumentParser(
@@ -312,9 +334,12 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def stack(count, offset, frame, inverse) -> None:
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
-    telescope.repeat = stack.repeat
     telescope(
-        address=pwndbg.aglib.regs.sp + offset * ptrsize, count=count, frame=frame, inverse=inverse
+        address=pwndbg.aglib.regs.sp + offset * ptrsize,
+        count=count,
+        frame=frame,
+        inverse=inverse,
+        repeat=stack.repeat,
     )
 
 
@@ -335,8 +360,11 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def stackf(count, offset) -> None:
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
-    telescope.repeat = stack.repeat
-    telescope(address=pwndbg.aglib.regs.sp + offset * ptrsize, count=count, frame=True)
+    telescope(
+        address=pwndbg.aglib.regs.sp + offset * ptrsize,
+        count=count,
+        frame=True,
+    )
 
 
 telescope.last_address = 0

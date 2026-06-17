@@ -3,11 +3,13 @@ from __future__ import annotations
 import pytest
 
 from ....host import Controller
+from . import break_at_sym
 from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
 HEAP_VIS = get_binary("heap_vis.native.out")
+HEAP_2_43 = get_binary("heap_glibc2.43.native.out")
 
 
 @pwndbg_test
@@ -15,6 +17,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.memory
     import pwndbg.aglib.vmmap
+    import pwndbg.libc
 
     # Disable collapsible output for existing test expectations
     await ctrl.execute("set vis-skip-repeating-val off")
@@ -23,6 +26,9 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
+
+    if pwndbg.libc.version() >= (2, 43):
+        pytest.skip("Test is not applicable above glibc 2.43")
 
     # TODO/FIXME: Shall we have a standard method to do this kind of filtering?
     # Note that we have `pages_filter` in pwndbg/pwndbg/commands/vmmap.py heh
@@ -200,8 +206,10 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
     # The tcache chunks have two fields: next and key
     # We are fetching it from the glibc's TLS tcache variable :)
-    tcache_next = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[0]->next"))
-    tcache_key = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[0]->key"))
+    frame = pwndbg.dbg.selected_frame()
+    assert frame
+    tcache_next = int(frame.evaluate_expression("tcache->entries[0]->next"))
+    tcache_key = int(frame.evaluate_expression("tcache->entries[0]->key"))
 
     tcache_hexdump = await hexdump_16B("tcache->entries[0]")
     freed_chunk = (
@@ -306,3 +314,101 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
     del collapsed_result
     del full_result_no_collapse
+
+
+@pwndbg_test
+async def test_vis_heap_chunk_command_2_43(ctrl: Controller) -> None:
+    import pwndbg.aglib
+    import pwndbg.aglib.memory
+    import pwndbg.aglib.vmmap
+    import pwndbg.libc
+    from pwndbg.commands.ptmalloc2 import bin_ascii
+
+    # Disable collapsible output for existing test expectations
+    await ctrl.execute("set vis-skip-repeating-val off")
+
+    await ctrl.launch(HEAP_2_43, env={"GLIBC_TUNABLES": "glibc.malloc.tcache_max=0x1000"})
+    break_at_sym("break_step")
+    await ctrl.cont()
+
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
+    if pwndbg.libc.version() < (2, 43):
+        pytest.skip("Test is not applicable below glibc 2.43")
+
+    # TODO/FIXME: Shall we have a standard method to do this kind of filtering?
+    # Note that we have `pages_filter` in pwndbg/pwndbg/commands/vmmap.py heh
+    heap_page = next(page for page in pwndbg.aglib.vmmap.get() if page.objfile == "[heap]")
+
+    first_chunk_size = pwndbg.aglib.memory.u64(heap_page.start + pwndbg.aglib.arch.ptrsize)
+
+    def sz_class(size: int) -> int:
+        return 1 << size.bit_length()
+
+    # Just a sanity check...
+    assert (heap_page.start & 0xFFF) == 0
+
+    result = (await ctrl.execute_and_capture("vis-heap-chunk 1")).splitlines()
+
+    # We will use `heap_addr` variable to fill in proper addresses below
+    heap_addr = heap_page.start
+
+    def heap_iter(offset: int = 0x10) -> int:
+        nonlocal heap_addr
+        heap_addr += offset
+        return heap_addr
+
+    frame = pwndbg.dbg.selected_frame()
+    assert frame
+    chunk1_next = int(frame.evaluate_expression("tcache->entries[65]->next"))
+    tcache_key = int(frame.evaluate_expression("tcache->entries[65]->key"))
+
+    def hexdump_line(qword1: int = 0, qword2: int = 0) -> str:
+        from pwnlib.util.packing import p64
+
+        return f"{qword1:#018x}\t{qword2:#018x}\t{bin_ascii(p64(qword1) + p64(qword2))}"
+
+    expected1 = [
+        f"{heap_iter(0):#x}\t{hexdump_line(0, first_chunk_size)}",
+        f"{heap_iter():#x}\t{hexdump_line(chunk1_next, tcache_key)}\t <-- tcachebins[{sz_class(first_chunk_size):#x}][0/2]",
+        *[f"{heap_iter():#x}\t{hexdump_line()}" for _ in range(first_chunk_size // 16 - 2)],
+        f"{heap_iter():#x}\t{0:#018x}\t                  \t........",
+    ]
+    assert result == expected1
+
+    result = (await ctrl.execute_and_capture("vis-heap-chunk")).splitlines()
+
+    frame = pwndbg.dbg.selected_frame()
+    assert frame
+    tcache64 = int(frame.evaluate_expression("tcache->entries[64]"))
+    tcache65 = int(frame.evaluate_expression("tcache->entries[65]"))
+    top_size = pwndbg.aglib.memory.u64(int(frame.evaluate_expression("main_arena.top")) + 8)
+
+    def pack2x4(wordl1: int, wordl2: int, wordl3: int, wordl4: int) -> int:
+        return wordl1 | wordl2 << 16 | wordl3 << 32 | wordl4 << 48
+
+    slots_qword = pack2x4(0x10, 0x10, 0x10, 0x10)
+
+    chunk2_size: int
+    chunk3_size: int
+    expected = [
+        *expected1[:-1],
+        f"{heap_iter(0):#x}\t{hexdump_line(0, (chunk2_size := pwndbg.aglib.memory.u64(heap_iter(8))))}",
+        f"{heap_iter(8):#x}\t{hexdump_line(heap_iter(0) >> 12, tcache_key)}\t <-- tcachebins[{sz_class(chunk2_size):#x}][1/2]",
+        *[f"{heap_iter():#x}\t{hexdump_line()}" for _ in range(chunk2_size // 16 - 2)],
+        f"{heap_iter():#x}\t{hexdump_line(0, (chunk3_size := pwndbg.aglib.memory.u64(heap_iter(8))))}",
+        f"{heap_iter(8):#x}\t{hexdump_line(heap_iter(0) >> 12, tcache_key)}\t <-- tcachebins[{sz_class(chunk3_size):#x}][0/1]",
+        *[f"{heap_iter():#x}\t{hexdump_line()}" for _ in range(chunk3_size // 16 - 2)],
+        f"{heap_iter():#x}\t{hexdump_line(0, 0x301)}",  # tcache metadata
+        *[f"{heap_iter():#x}\t{hexdump_line(slots_qword, slots_qword)}" for _ in range(8)],
+        f"{heap_iter():#x}\t{hexdump_line(pack2x4(15, 14, 16, 16), slots_qword)}",
+        f"{heap_iter():#x}\t{hexdump_line(slots_qword, 0)}",
+        *[f"{heap_iter():#x}\t{hexdump_line()}" for _ in range(0x1F)],
+        f"{heap_iter():#x}\t{hexdump_line(0, tcache64)}",
+        f"{heap_iter():#x}\t{hexdump_line(tcache65, 0)}",
+        *[f"{heap_iter():#x}\t{hexdump_line()}" for _ in range(4)],
+        f"{heap_iter():#x}\t{hexdump_line(0, top_size)}\t <-- Top chunk",
+    ]
+
+    assert result == expected

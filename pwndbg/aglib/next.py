@@ -6,6 +6,7 @@ instruction of some type (call, branch, etc.)
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from itertools import chain
 
 from capstone6pwndbg import CS_GRP_INT
@@ -124,14 +125,16 @@ async def break_next_branch(
     """
     ins = next_branch(address, including_current=including_current)
 
+    if not ins:
+        return None
+
     inf = pwndbg.dbg.selected_inferior()
-    if ins:
-        # If the branch we found was not at the current program counter, we should step to it.
-        # Otherwise, return the current instruction.
-        if ins.address != pwndbg.aglib.regs.pc:
-            with inf.break_at(BreakpointLocation(ins.address), internal=True) as bp:
-                await ec.cont(bp)
-        return ins
+    # If the branch we found was not at the current program counter, we should step to it.
+    # Otherwise, return the current instruction.
+    if ins.address != pwndbg.aglib.regs.pc:
+        with inf.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+            await ec.cont(bp)
+    return ins
 
 
 async def break_next_interrupt(
@@ -144,12 +147,40 @@ async def break_next_interrupt(
     If no such interrupt exists or a jump is in the way, return None.
     """
     ins = next_int(address, honor_current_branch=honor_current_branch)
-    proc = pwndbg.dbg.selected_inferior()
-    if ins:
-        with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
-            await ec.cont(bp)
-        return ins
+    if not ins:
+        return None
 
+    inf = pwndbg.dbg.selected_inferior()
+    with inf.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+        await ec.cont(bp)
+    return ins
+
+
+async def break_next_interrupt_filtered(
+    ec: pwndbg.dbg_mod.ExecutionController,
+    predicate: Callable[[], bool],
+    address: int | None = None,
+    honor_current_branch: bool = False,
+) -> PwndbgInstruction | None:
+    """
+    Break at the next interrupt in the current basic block if it matches the predicate.
+
+    This behaves exactly like break_next_interrupt (stops at basic block boundaries,
+    does not follow branches), but additionally checks the predicate after stopping
+    at the interrupt instruction.
+    """
+    ins: PwndbgInstruction | None = next_int(address, honor_current_branch=honor_current_branch)
+    if not ins:
+        return None
+
+    inf = pwndbg.dbg.selected_inferior()
+    with inf.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+        await ec.cont(bp)
+    try:
+        if predicate():
+            return ins
+    except Exception:
+        pass
     return None
 
 
@@ -159,7 +190,7 @@ async def break_next_call(ec: pwndbg.dbg_mod.ExecutionController, symbol_regex=N
     while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
         if pwndbg.aglib.proc.stopped_with_signal():
-            return
+            return None
 
         ins = await break_next_branch(ec)
 
@@ -186,7 +217,7 @@ async def break_next_ret(ec: pwndbg.dbg_mod.ExecutionController, address=None):
     while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
         if pwndbg.aglib.proc.stopped_with_signal():
-            return
+            return None
 
         ins = await break_next_branch(ec, address)
 
@@ -207,7 +238,7 @@ async def break_on_next_matching_instruction(
     if mnemonic is None and op_str is None:
         return False
 
-    proc = pwndbg.dbg.selected_inferior()
+    inf = pwndbg.dbg.selected_inferior()
     while pwndbg.aglib.proc.alive():
         ins = next_matching_until_branch(mnemonic=mnemonic, op_str=op_str)
         if ins is not None:
@@ -215,23 +246,23 @@ async def break_on_next_matching_instruction(
                 # Only set breakpoints at a different PC location, otherwise we
                 # will continue until we hit a breakpoint that's not related to
                 # this opeeration, or the program halts.
-                with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+                with inf.break_at(BreakpointLocation(ins.address), internal=True) as bp:
                     await ec.cont(bp)
                 return ins
             # We don't want to be spinning in place, nudge execution forward
             # and try again.
-            pass
         else:
             # Move to the next branch instruction.
             nb = next_branch(pwndbg.aglib.regs.pc, including_current=True)
-            if nb is not None:
-                if nb.address != pwndbg.aglib.regs.pc:
-                    # Stop right at the next branch instruction.
-                    with proc.break_at(BreakpointLocation(nb.address), internal=True) as bp:
-                        await ec.cont(bp)
-                else:
-                    # Nudge execution so we take the branch we're on top of.
-                    pass
+            if nb is None:
+                continue
+            if nb.address != pwndbg.aglib.regs.pc:
+                # Stop right at the next branch instruction.
+                with inf.break_at(BreakpointLocation(nb.address), internal=True) as bp:
+                    await ec.cont(bp)
+            else:
+                # Nudge execution so we take the branch we're on top of.
+                pass
 
         if pwndbg.aglib.proc.alive():
             await ec.single_step()
@@ -281,6 +312,6 @@ async def break_on_next(ec: pwndbg.dbg_mod.ExecutionController, address=None) ->
     address = address or pwndbg.aglib.regs.pc
     ins = pwndbg.aglib.disasm.disassembly.one(address)
 
-    proc = pwndbg.dbg.selected_inferior()
-    with proc.break_at(BreakpointLocation(ins.address + ins.size), internal=True) as bp:
+    inf = pwndbg.dbg.selected_inferior()
+    with inf.break_at(BreakpointLocation(ins.address + ins.size), internal=True) as bp:
         await ec.cont(bp)

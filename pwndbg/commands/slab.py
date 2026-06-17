@@ -15,7 +15,6 @@ import pwndbg
 import pwndbg.aglib.kernel.slab
 import pwndbg.aglib.memory
 import pwndbg.color
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 from pwndbg.aglib.kernel.slab import CpuCache
@@ -23,6 +22,7 @@ from pwndbg.aglib.kernel.slab import Freelist
 from pwndbg.aglib.kernel.slab import NodeCache
 from pwndbg.aglib.kernel.slab import Slab
 from pwndbg.aglib.kernel.slab import find_containing_slab_cache
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.exception import IndentContextManager
 
@@ -307,7 +307,7 @@ def slab_contains(address: str) -> None:
 
     addr = None
     try:
-        addr = int(pwndbg.dbg.selected_frame().evaluate_expression(address))
+        addr = int(pwndbg.dbg.selected_frame().evaluate_expression(address)) & ((1 << 64) - 1)
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"Could not parse '{address}'"))
         print(message.error(f"Message: {e}"))
@@ -318,7 +318,6 @@ def slab_contains(address: str) -> None:
         assert base and slab_cache, "cannot find the kmem_cache the address belongs to."
         addr = base + ((addr - base) // slab_cache.size) * slab_cache.size
         indent.print(f"{addr:#x} @", message.hint(f"{slab_cache.name}"))
-        desc = "[inactive]"
         inuse = f"[something went wrong: {hex(addr)}]"
         slab = slab_cache.find_containing_slab(addr)
         if slab:
@@ -327,15 +326,19 @@ def slab_contains(address: str) -> None:
             elif addr in slab.objects:
                 inuse = "in-use"
             if slab.is_active:
-                if slab.is_cpu:
-                    desc = f"[active, cpu {slab.cpu_cache.cpu}]"
+                location = f"active, cpu {slab.cpu_cache.cpu}"
+            elif slab.is_cpu:
+                location = f"partial, cpu {slab.cpu_cache.cpu}"
             else:
-                if slab.is_cpu:
-                    desc = f"[partial, cpu {slab.cpu_cache.cpu}]"
-                else:
-                    desc = f"[partial, node {slab.node_cache.node}]"
+                location = f"partial, node {slab.node_cache.node}"
+            if slab.inuse == slab.object_count:
+                objcnt = "full"
+            else:
+                objcnt = f"{slab.inuse}/{slab.object_count} in-use"
+            desc = f"[{location}, {objcnt}]"
         else:
             inuse = "in-use"
+            desc = "[inactive, full]"
         indent.print("slab:", message.hint(f"{hex(base)}"), desc)
         indent.print("status:", message.hint(inuse))
     except Exception as e:

@@ -18,7 +18,7 @@ class ColorParameter(Parameter):
         self.update_color_function()
 
     def update_color_function(self):
-        self.color_function = pwndbg.color.generateColorFunction(self.value)
+        self.color_function = pwndbg.color.generate_color_function(self.value)
 
 
 def add_param(

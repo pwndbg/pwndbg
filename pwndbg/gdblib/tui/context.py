@@ -165,10 +165,9 @@ class ContextTUIWindow:
                 if not ContextTUIWindow._static_enabled and pwndbg.dbg.selected_inferior().alive():
                     context()
                 ContextTUIWindow._static_enabled = True
-        else:
-            if self._enabled:
-                self._disable()
-                ContextTUIWindow._static_enabled = False
+        elif self._enabled:
+            self._disable()
+            ContextTUIWindow._static_enabled = False
         return is_valid
 
     def _ansi_substr(self, line: str, start_char: int, end_char: int) -> str:
@@ -218,8 +217,8 @@ class ContextTUIWindow:
     # https://github.com/pwndbg/pwndbg/issues/2654
     if gdb_version < (16, 3):
         ___ansi_substr = _ansi_substr
-        _ansi_substr = (
-            lambda *a, **kw: ContextTUIWindow.___ansi_substr(*a, **kw)
+        _ansi_substr = lambda *a, **kw: (
+            ContextTUIWindow.___ansi_substr(*a, **kw)
             .replace("\x1b[39m", "\x1b[0m")
             .replace("\x1b[49m", "\x1b[0m")
             .replace("\x1b[39;49m", "\x1b[0m")
@@ -232,8 +231,8 @@ if hasattr(gdb, "register_window_type"):
     ]
     for section_name in sections:
         # https://github.com/python/mypy/issues/12557
-        target_func: Callable[..., gdb._Window] = (
-            lambda window, section_name=section_name: ContextTUIWindow(window, section_name)
+        target_func: Callable[..., gdb._Window] = lambda window, section_name=section_name: (
+            ContextTUIWindow(window, section_name)
         )
         gdb.register_window_type(
             "pwndbg_" + section_name,

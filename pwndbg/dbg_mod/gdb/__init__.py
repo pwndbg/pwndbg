@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from collections.abc import Sequence
 from contextlib import contextmanager
 from contextlib import nullcontext
+from contextlib import suppress
 from os import environ
 from pathlib import Path
 from random import randint
@@ -21,13 +22,14 @@ import gdb.types
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.color.message as message
+import pwndbg.aglib.remote
 import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.path
+from pwndbg.color import message
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import selection
@@ -728,18 +730,17 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
                 if stop_addr > addr:
                     return self.read_memory(addr, stop_addr - addr)
-            else:
-                # Handle the case of remote debugging, where GDB's remote protocol
-                # returns the start address as the failed read address instead of the stop address.
-                # This is a limitation in how GDB handles the remote protocol, and while it could
-                # be fixed, it currently behaves this way.
-                #
-                # To work around this, we perform a binary search in the `_find_memory_last_readable` method
-                # to find the correct stop address that avoids the failure.
-                #
-                # For local debugging, this issue does not occur, and we proceed with the normal flow.
-                if (stop_addr := self._find_memory_last_readable(addr, count)) > 0:
-                    return self.read_memory(addr, stop_addr - addr + 1)
+            # Handle the case of remote debugging, where GDB's remote protocol
+            # returns the start address as the failed read address instead of the stop address.
+            # This is a limitation in how GDB handles the remote protocol, and while it could
+            # be fixed, it currently behaves this way.
+            #
+            # To work around this, we perform a binary search in the `_find_memory_last_readable` method
+            # to find the correct stop address that avoids the failure.
+            #
+            # For local debugging, this issue does not occur, and we proceed with the normal flow.
+            elif (stop_addr := self._find_memory_last_readable(addr, count)) > 0:
+                return self.read_memory(addr, stop_addr - addr + 1)
 
             raise pwndbg.dbg_mod.Error(e)
 
@@ -799,7 +800,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     )
                     break
                 start = None
-                pass
 
             if start is None:
                 break
@@ -827,11 +827,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
             if step > 0:
                 start = pwndbg.lib.memory.round_down(start, step) + step
+            elif align > 1:
+                start = pwndbg.lib.memory.round_up(start + len(pattern), align)
             else:
-                if align > 1:
-                    start = pwndbg.lib.memory.round_up(start + len(pattern), align)
-                else:
-                    start += len(pattern)
+                start += len(pattern)
 
     @override
     def is_remote(self) -> bool:
@@ -871,8 +870,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         if pwndbg.aglib.file.is_vfile_qemu_user_bug():
             with open(local_path, "wb") as fp:
                 try:
-                    for data in pwndbg.aglib.file.vfile_readfile(remote_path):
-                        fp.write(data)
+                    fp.writelines(pwndbg.aglib.file.vfile_readfile(remote_path))
                     return
                 except OSError as e:
                     raise pwndbg.dbg_mod.Error(
@@ -959,7 +957,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         block = gdb.block_for_pc(address)
 
         if block is not None:
-            # Final the top-level function that this block resides it
+            # Find the top-level function that this block resides in
             while block.superblock is not None and block.superblock.function is not None:
                 block = block.superblock
 
@@ -1033,7 +1031,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 elif match == "riscv":
                     # If GDB doesn't detect the width, it will just say `riscv`.
                     match = "rv64"
-                elif match == "iwmmxt" or match == "iwmmxt2" or match == "xscale":
+                elif match in {"iwmmxt", "iwmmxt2", "xscale"}:
                     match = "arm"
                 elif match == "rs6000":
                     # The RS/6000 architecture is compatible with the PowerPC common
@@ -1728,7 +1726,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         set backtrace past-main on
         set step-mode on
         set print pretty on
-        set debuginfod enabled on
+        set output-radix 16
         handle SIGALRM nostop print nopass
         handle SIGBUS  stop   print nopass
         handle SIGPIPE nostop print nopass
@@ -1738,11 +1736,13 @@ class GDB(pwndbg.dbg_mod.Debugger):
         for line in pre_commands.strip().splitlines():
             gdb.execute(line)
 
+        # debuginfod may not be compiled in (e.g. bare-metal cross GDB)
+        with suppress(gdb.error):
+            gdb.execute("set debuginfod enabled on")
+
         # This may throw an exception, see pwndbg/pwndbg#27
-        try:
+        with suppress(gdb.error):
             gdb.execute("set disassembly-flavor intel")
-        except gdb.error:
-            pass
 
         from pwndbg.gdblib.tui import setup as tui_setup
 
@@ -1913,11 +1913,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         for line in command_list:
             line = line.strip()
             # Skip non-command entries
-            if (
-                not line
-                or line.startswith("Command class:")
-                or line.startswith("Unclassified commands")
-            ):
+            if not line or line.startswith(("Command class:", "Unclassified commands")):
                 continue
             command = line.split()[0]
             existing_commands.add(command)
@@ -2018,7 +2014,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
             else:
                 raise pwndbg.dbg_mod.Error(e)
 
-        if flavor != "att" and flavor != "intel":
+        if flavor not in {"att", "intel"}:
             raise pwndbg.dbg_mod.Error(f"unrecognized disassembly flavor '{flavor}'")
 
         literal: Literal["att", "intel"] = flavor

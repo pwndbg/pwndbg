@@ -8,6 +8,7 @@ from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
+from pwndbg.color import gray
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color import theme
@@ -29,9 +30,12 @@ config_branch_off = theme.add_param(
 )
 
 
-# Returns colorized instructions assembly and operands, and checkmark if branch is taken
-#  Example: `✔ je     _IO_file_xsputn+341`. Inline symbol replacements made. No annotation or branch targets shown.
-def one_instruction(ins: PwndbgInstruction) -> str:
+def one_instruction(ins: PwndbgInstruction, linear: bool) -> str:
+    """
+    Returns colorized instructions assembly and operands, and checkmark if branch is taken
+
+    Example: `✔ je     _IO_file_xsputn+341`. Inline symbol replacements made. No annotation or branch targets shown.
+    """
     asm = ins.asm_string
 
     # Highlight the current line if enabled
@@ -44,11 +48,15 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     if is_call_or_jump:
         asm = asm.replace(ins.mnemonic, c.branch(ins.mnemonic), 1)
 
+    if linear:
+        asm = f"  {asm}"
     # If we know the conditional is taken, mark it as taken.
-    if ins.condition == InstructionCondition.TRUE or ins.is_conditional_jump_taken:
+    elif ins.condition == InstructionCondition.TRUE or ins.is_conditional_jump_taken:
         asm = on(f"{config_branch_on} ") + asm
     elif ins.condition == InstructionCondition.FALSE:
         asm = off(f"{config_branch_off} ") + asm
+    elif ins.condition == InstructionCondition.UNDETERMINED_CONDITIONAL:
+        asm = gray("? ") + asm
     else:
         asm = f"  {asm}"
 
@@ -62,7 +70,7 @@ WHITESPACE_LIMIT = 20
 # To making the padding visually nicer, the following padding scheme is used for annotations:
 # All instructions in a group will have the same amount of left-adjusting spaces, so they are aligned.
 # A group is defined as a sequence of instructions surrounded by instructions that can change the instruction pointer.
-def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]:
+def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool) -> list[str]:
     result: list[str] = []
 
     cur_padding_len = None
@@ -77,7 +85,9 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
 
     current_group: list[int] = []
 
-    for i, (ins, asm) in enumerate(zip(instructions, (one_instruction(i) for i in instructions))):
+    for i, (ins, asm) in enumerate(
+        zip(instructions, (one_instruction(i, linear) for i in instructions))
+    ):
         if ins.has_jump_target:
             sym = ins.target_string
 
@@ -103,16 +113,15 @@ def instructions_and_padding(instructions: list[PwndbgInstruction]) -> list[str]
             elif cur_padding_len - raw_len < MIN_SPACING:
                 # Annotations are getting too close to the disasm, push them to the right again
                 cur_padding_len = raw_len + MIN_SPACING
-            else:
-                # This path allows the padding to be smaller again
-                # If the instruction has too much whitespace, put the annotation more to the left
-                # Make sure there is an instruction after this one, and it's not a branch. Otherwise, maintain current indentation.
-                if (
-                    i < len(instructions) - 1
-                    and not instructions[i + 1].has_jump_target
-                    and cur_padding_len - raw_len > WHITESPACE_LIMIT
-                ):
-                    cur_padding_len = raw_len + MIN_SPACING
+            # This path allows the padding to be smaller again
+            # If the instruction has too much whitespace, put the annotation more to the left
+            # Make sure there is an instruction after this one, and it's not a branch. Otherwise, maintain current indentation.
+            elif (
+                i < len(instructions) - 1
+                and not instructions[i + 1].has_jump_target
+                and cur_padding_len - raw_len > WHITESPACE_LIMIT
+            ):
+                cur_padding_len = raw_len + MIN_SPACING
 
             # Give the padding to the instruction, so we can reuse it in the future
             if ins.annotation:

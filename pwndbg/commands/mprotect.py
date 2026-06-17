@@ -3,9 +3,11 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.shellcode
+import pwndbg.aglib.vmmap
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.memory
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -104,5 +106,13 @@ def mprotect(addr, length, prot) -> None:
             ec, "SYS_mprotect", aligned, int(length) + orig_addr - aligned, int(prot_int)
         )
         print(f"mprotect returned {ret}")
+
+        if pwndbg.aglib.vmmap.cache_status_text() is not None:
+            print(
+                message.warn(
+                    "vmmap cache is on and was not cleared; "
+                    "run `vmmap --refresh` to pick up the permission change."
+                )
+            )
 
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)

@@ -23,7 +23,6 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.exception
@@ -31,6 +30,7 @@ import pwndbg.libc
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
+from pwndbg.color import message
 from pwndbg.lib import SymbolNotRecoveredError
 from pwndbg.lib import TypeNotRecoveredError
 
@@ -83,8 +83,6 @@ class InvalidDebuggerError(Exception):
     Raised when a command is called in a debugger for which
     it is disallowed.
     """
-
-    pass
 
 
 class CommandFormatter(argparse.RawDescriptionHelpFormatter):
@@ -456,6 +454,19 @@ class CommandObj:
             pwndbg.exception.handle(self.function.__name__)
             return
 
+        # Check OnlyWhenRunning before argparse so default arguments like
+        # "$sp"/"$rip" don't blow up with cryptic resolution errors when
+        # the program isn't running. Allow -h/--help through so users can
+        # always read command help. See #1462.
+        if "-h" not in arg_list and "--help" not in arg_list:
+            allow_core = getattr(self.function, "_pwndbg_only_when_running_allow_core", None)
+            if allow_core is not None and not (
+                pwndbg.aglib.proc.alive()
+                and not (not allow_core and pwndbg.aglib.proc.is_core_file())
+            ):
+                log.error(f"{func_name(self.function)}: The program is not being run.")
+                return
+
         # Put the arguments through argparse
         try:
             kwargs = vars(self.parser.parse_args(arg_list))
@@ -630,7 +641,7 @@ def fix(
     frame = pwndbg.dbg.selected_frame()
     try:
         target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
-            frame if frame else pwndbg.dbg.selected_inferior()
+            frame or pwndbg.dbg.selected_inferior()
         )
     except pwndbg.dbg_mod.NoInferior:
         raise AssertionError("Reached command expression evaluation with no frame or inferior")
@@ -661,8 +672,7 @@ def fix(
     if frame:
         regs = frame.regs()
         arg = arg.strip()
-        if arg.startswith("$"):
-            arg = arg[1:]
+        arg = arg.removeprefix("$")
         reg = regs.by_name(arg)
         if reg:
             return reg
@@ -841,22 +851,14 @@ def WarnOnKernelConfigRandstruct(function: Callable[P, T]) -> Callable[P, T | No
 
 def OnlyWhenRunning(
     func_when_no_kwargs: Callable[P, T] | None = None, *, allow_core: bool = True
-) -> Callable[[Callable[P, T]], Callable[P, T | None]] | Callable[P, T | None]:
-    def decorator(func: Callable[P, T]) -> Callable[P, T | None]:
-        @functools.wraps(func)
-        def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> T | None:
-            if pwndbg.aglib.proc.alive() and not (
-                not allow_core and pwndbg.aglib.proc.is_core_file()
-            ):
-                return func(*a, **kw)
-            log.error(f"{func_name(func)}: The program is not being run.")
-            return None
-
-        return _OnlyWhenRunning
-
+) -> Callable[[Callable[P, T]], Callable[P, T]] | Callable[P, T]:
+    # CommandObj.invoke reads this attribute before argparse so default
+    # arguments like "$sp"/"$rip" don't blow up with cryptic resolution
+    # errors when the program isn't running. See #1462.
     if func_when_no_kwargs is None:
-        return decorator
-    return decorator(func_when_no_kwargs)
+        return functools.partial(OnlyWhenRunning, allow_core=allow_core)  # type: ignore[return-value]
+    func_when_no_kwargs._pwndbg_only_when_running_allow_core = allow_core  # type: ignore[attr-defined]
+    return func_when_no_kwargs
 
 
 def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
@@ -1007,7 +1009,7 @@ def sloppy_gdb_parse(s: str) -> int | str:
     frame = pwndbg.dbg.selected_frame()
     try:
         target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
-            frame if frame else pwndbg.dbg.selected_inferior()
+            frame or pwndbg.dbg.selected_inferior()
         )
     except pwndbg.dbg_mod.NoInferior:
         raise AssertionError("Reached command expression evaluation with no frame or inferior")

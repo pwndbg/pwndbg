@@ -11,6 +11,7 @@ from pwndbg.commands import CommandCategory
     "Show various information about the currently used libc", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.commands.OnlyWhenUserspace
 def libcinfo() -> None:
     version = pwndbg.libc.facade.version()
     version_str = ".".join(map(str, version))

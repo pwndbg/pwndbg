@@ -6,9 +6,9 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.dmabuf
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 import pwndbg.commands
 from pwndbg.aglib.kernel.macros import for_each_entry
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.exception import IndentContextManager
 

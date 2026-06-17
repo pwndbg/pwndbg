@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import pytest
+
 from ....host import Controller
+from . import break_at_sym
 from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
 BINARY = get_binary("heap_bins.native.out")
+GLIBC_2_43 = get_binary("heap_glibc2.43.native.out")
 
 
 @pwndbg_test
@@ -18,13 +22,18 @@ async def test_heap_bins(ctrl: Controller) -> None:
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
     import pwndbg.aglib.vmmap
+    import pwndbg.libc
     from pwndbg.aglib.heap.ptmalloc import BinType
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     await ctrl.launch(BINARY)
+
     await ctrl.execute("set context-output /dev/null")
     await ctrl.execute("b breakpoint")
     await ctrl.cont()
+
+    if pwndbg.libc.version() >= (2, 43):
+        pytest.skip("Test is not applicable above glibc 2.43")
 
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
@@ -193,6 +202,108 @@ async def test_heap_bins(ctrl: Controller) -> None:
     assert result.bins[largebin_size].is_corrupted
 
     await ctrl.execute("bins")
+
+
+@pwndbg_test
+async def test_heap_bins_2_43(ctrl: Controller) -> None:
+    """
+    Tests pwndbg.aglib.heap bins commands (Only for glibc 2.43+ targets)
+    """
+    import re
+
+    import pwndbg
+    import pwndbg.aglib.heap
+    import pwndbg.aglib.vmmap
+    import pwndbg.libc
+    from pwndbg.aglib.heap.ptmalloc import BinType
+    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+
+    await ctrl.launch(GLIBC_2_43, env={"GLIBC_TUNABLES": "glibc.malloc.tcache_max=0x1000"})
+
+    break_at_sym("break_here")
+    await ctrl.cont()
+
+    if pwndbg.libc.version() < (2, 43):
+        pytest.skip("Test is not applicable below glibc 2.43")
+
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+    bin_pattern = re.compile(r"^([^ ]+)(?: \[ *(\d)+\])?:")
+
+    # check if all bins are empty at first
+    allocator = pwndbg.aglib.heap.current
+    assert allocator is not None
+
+    def verify_match(match: re.Match[str], bin_size: str, bin_count: int | None = None) -> None:
+        groups = match.groups()
+        assert len(groups) == 2
+        assert groups[0] == bin_size
+        if bin_count is None:
+            assert groups[1] is None
+        else:
+            assert int(groups[1]) == bin_count
+
+    result = (await ctrl.execute_and_capture("tcachebins")).splitlines()[1:]
+    assert len(result) == 3
+    matches = [bin_pattern.search(bin_str) for bin_str in result]
+    verify_match(matches[0], "0x60", 1)
+    verify_match(matches[1], "0x400-0x800", 1)
+    verify_match(matches[2], "0x800-0x1000", 2)
+
+    result = (await ctrl.execute_and_capture("smallbins")).splitlines()[1:]
+    assert len(result) == 1
+    matches = [bin_pattern.search(bin_str) for bin_str in result]
+    verify_match(matches[0], "0x120")
+
+    result = (await ctrl.execute_and_capture("largebins")).splitlines()[1:]
+    assert len(result) == 1
+    matches = [bin_pattern.search(bin_str) for bin_str in result]
+    verify_match(matches[0], "0x500-0x530")
+
+    result = (await ctrl.execute_and_capture("unsortedbin")).splitlines()[1:]
+    assert len(result) == 1
+    matches = [bin_pattern.search(bin_str) for bin_str in result]
+    verify_match(matches[0], "all")
+
+    result = allocator.tcachebins()
+    assert result is not None
+    assert result.bin_type == BinType.TCACHE
+    bin = result.bins[0x60]
+    assert bin.count == 1
+    assert len(bin.fd_chain) == bin.count + 1
+    assert pwndbg.aglib.vmmap.find(bin.fd_chain[0])
+    assert bin.fd_chain[-1] == 0
+    bin = result.bins[0x800]
+    assert bin.count == 1
+    assert len(bin.fd_chain) == bin.count + 1
+    assert pwndbg.aglib.vmmap.find(bin.fd_chain[0])
+    assert bin.fd_chain[-1] == 0
+    bin = result.bins[0x1000]
+    assert bin.count == 2
+    assert len(bin.fd_chain) == bin.count + 1
+    assert pwndbg.aglib.vmmap.find(bin.fd_chain[0])
+    assert pwndbg.aglib.vmmap.find(bin.fd_chain[1])
+    assert bin.fd_chain[-1] == 0
+
+    result = allocator.smallbins()
+    assert result is not None
+    assert result.bin_type == BinType.SMALL
+    bin = result.bins[0x120]
+    assert len(bin.fd_chain) == len(bin.bk_chain) == 3
+    assert pwndbg.aglib.vmmap.find(bin.fd_chain[0])
+
+    result = allocator.largebins()
+    assert result is not None
+    assert result.bin_type == BinType.LARGE
+    bin = result.bins[4]
+    assert len(bin.fd_chain) == len(bin.bk_chain) == 3
+    assert pwndbg.aglib.vmmap.find(bin.fd_chain[0])
+
+    result = allocator.unsortedbin()
+    assert result is not None
+    assert result.bin_type == BinType.UNSORTED
+    bin = result.bins["all"]
+    assert len(bin.fd_chain) == len(bin.bk_chain) == 3
+    assert pwndbg.aglib.vmmap.find(bin.fd_chain[0])
 
 
 @pwndbg_test

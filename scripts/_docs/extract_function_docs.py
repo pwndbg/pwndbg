@@ -46,6 +46,7 @@ def sanitize_signature(func_name: str, sig: str) -> str:
         "stack": 0,
         "bss": 0,
         "got": 0,
+        "percpu": -1,
     }
     if func_name in gdb_value_fixups:
         sig = re.sub(

@@ -94,7 +94,11 @@
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
 -  [kmem-trace](kernel/kmem-trace.md) - Trace kernel memory (SLUB and buddy) allocations and frees.
 -  [kmod](kernel/kmod.md) - Displays the loaded Linux kernel modules.
+-  [knamespace](kernel/knamespace.md) - Displays information about the namespcae of a task.
 -  [knft](kernel/knft.md) - Utility for inspecting the kernel netfilter subsystem.
+-  [kseccomp](kernel/kseccomp.md) - Displays information about the seccomp of a user task.
+-  [ksighand](kernel/ksighand.md) - Displays information about the signal handlers of a user task.
+-  [kstack](kernel/kstack.md) - Displays information about the stack of a task.
 -  [ksyscalls](kernel/ksyscalls.md) - Displays Linux syscall table, including names and addresses of syscalls.
 -  [ktask](kernel/ktask.md) - Displays information about kernel tasks.
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).
@@ -146,7 +150,7 @@
 -  [search](memory/search.md) - Search memory for byte sequences, strings, pointers, and integer values.
 -  [telescope](memory/telescope.md) - Recursively dereferences pointers starting at the specified address.
 -  [vmmap-add](memory/vmmap-add.md) - Add virtual memory map page.
--  [vmmap-clear](memory/vmmap-clear.md) - Clear the vmmap cache.
+-  [vmmap-clear](memory/vmmap-clear.md) - Clear custom vmmap entries added by vmmap_add and vmmap_explore and reset caches.
 -  [vmmap-explore](memory/vmmap-explore.md) - Explore a page, trying to guess permissions.
 -  [vmmap](memory/vmmap.md) - Print virtual memory map pages.
 -  [xinfo](memory/xinfo.md) - Shows offsets of the specified address from various useful locations.

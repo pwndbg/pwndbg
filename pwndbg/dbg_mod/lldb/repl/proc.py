@@ -35,39 +35,32 @@ class EventHandler:
         """
         This function is called when a process is created or attached to.
         """
-        pass
 
     def suspended(self, cause: lldb.SBEvent):
         """
         This function is called when the execution of a process is suspended.
         """
-        pass
 
     def resumed(self):
         """
         This function is called when the execution of a process is resumed.
         """
-        pass
 
     def exited(self):
         """
         This function is called when a process terminates or is detached from.
         """
-        pass
 
     def modules_loaded(self):
         """
         This function is called when a new modules have been loaded.
         """
-        pass
 
 
 class _PollResult:
     """
     Base class for results of the run loop.
     """
-
-    pass
 
 
 class _PollResultTimedOut(_PollResult):
@@ -108,15 +101,11 @@ class LaunchResult:
     Base class for results of launch operations.
     """
 
-    pass
-
 
 class LaunchResultSuccess(LaunchResult):
     """
     Indicates that the process was fully launched or attached to.
     """
-
-    pass
 
 
 class LaunchResultEarlyExit(LaunchResult):
@@ -125,16 +114,12 @@ class LaunchResultEarlyExit(LaunchResult):
     exited immediately, with no stop events.
     """
 
-    pass
-
 
 class LaunchResultConnected(LaunchResult):
     """
     Indicates that there has been a successful connection to a remote
     debugserver, but that no process is being debugged yet.
     """
-
-    pass
 
 
 class LaunchResultError(LaunchResult):
@@ -383,10 +368,7 @@ class ProcessDriver:
         """
         Stops the IODriver handling I/O from the process.
         """
-        assert (
-            self._io_driver_state == _IODriverState.PAUSED
-            or self._io_driver_state == _IODriverState.RUNNING
-        )
+        assert self._io_driver_state in (_IODriverState.PAUSED, _IODriverState.RUNNING)
 
         if self._io_driver_state == _IODriverState.PAUSED:
             # Not invalid, but currently a NOP. See pause_io_if_running()
@@ -518,17 +500,17 @@ class ProcessDriver:
                             result = _PollResultStopped(event)
                             break
 
-                        if new_state == lldb.eStateRunning or new_state == lldb.eStateStepping:
+                        if new_state in (lldb.eStateRunning, lldb.eStateStepping):
                             running = True
                             # Start the I/O driver here if its start got deferred
                             # because of `only_if_started` being set.
                             if only_if_started and with_io:
                                 self._start_io_driver()
 
-                        if (
-                            new_state == lldb.eStateExited
-                            or new_state == lldb.eStateCrashed
-                            or new_state == lldb.eStateDetached
+                        if new_state in (
+                            lldb.eStateExited,
+                            lldb.eStateCrashed,
+                            lldb.eStateDetached,
                         ):
                             # Nothing else for us to do here. Clear our internal
                             # references to the process, fire the exit event, and leave.
@@ -791,13 +773,13 @@ class ProcessDriver:
                             # [3]: https://discourse.llvm.org/t/sbthread-isstopped-always-returns-false-on-linux/36944/5
 
                             bpwp_id = None
-                            if thread.GetStopReason() == lldb.eStopReasonBreakpoint and isinstance(
-                                stop, lldb.SBBreakpoint
-                            ):
-                                bpwp_id = thread.GetStopReasonDataAtIndex(0)
-                            elif (
-                                thread.GetStopReason() == lldb.eStopReasonWatchpoint
-                                and isinstance(stop, lldb.SBWatchpoint)
+                            if (
+                                thread.GetStopReason() == lldb.eStopReasonBreakpoint
+                                and isinstance(stop, lldb.SBBreakpoint)
+                                or (
+                                    thread.GetStopReason() == lldb.eStopReasonWatchpoint
+                                    and isinstance(stop, lldb.SBWatchpoint)
+                                )
                             ):
                                 bpwp_id = thread.GetStopReasonDataAtIndex(0)
 

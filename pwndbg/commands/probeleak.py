@@ -106,7 +106,7 @@ def probeleak(
     address &= pwndbg.aglib.arch.ptrmask
     ptrsize = pwndbg.aglib.arch.ptrsize
     count = max(int(count), ptrsize)
-    off_zeros = int(math.ceil(math.log(count, 2) / 4))
+    off_zeros = int(math.ceil(math.log2(count) / 4))
     if flags is not None:
         require_flags = flags_str2int(flags)
 
@@ -134,7 +134,7 @@ def probeleak(
 
     found = False
     find_cnt = 0
-    for i in range(0, len(data) - ptrsize + 1):
+    for i in range(len(data) - ptrsize + 1):
         p = pwndbg.aglib.arch.unpack(data[i : i + ptrsize])
         page = find_module(p, max_distance)
         if page:
