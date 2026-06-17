@@ -56,6 +56,11 @@ def musl_test_versions() -> list[str]:
 
 
 def glibc_version_binaries(stem: str) -> list[tuple[str, Path]]:
+    """(id, path) for each existing build of `stem`; id is "system" or a glibc version.
+
+    e.g. stem="heap_malloc_chunk" -> [("system", heap_malloc_chunk.native.out),
+    ("2.35", heap_malloc_chunk.glibc-2.35.out), ..., ("2.43", heap_malloc_chunk.glibc-2.43.out)].
+    """
     targets = [("system", get_binary(f"{stem}.native.out"))]
     for ver in glibc_test_versions():
         targets.append((ver, get_binary(f"{stem}.glibc-{ver}.out")))
