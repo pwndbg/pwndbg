@@ -311,7 +311,7 @@ dds_parser.add_argument(
 )
 dds_parser.add_argument(
     "count",
-    type=pwndbg.commands.AddressExpr,
+    type=int,
     default=None,
     nargs="?",
     help="The number of pointers to dump.",
@@ -320,7 +320,7 @@ dds_parser.add_argument(
 
 @pwndbg.commands.Command(dds_parser, aliases=["kd", "dps", "dqs"], category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
-def dds(addr, count=None):
+def dds(addr: int, count: int | None = None):
     """
     Dump pointers and symbols at the specified address.
     """

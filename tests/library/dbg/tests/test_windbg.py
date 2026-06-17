@@ -20,6 +20,7 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     """
     import pwndbg
     import pwndbg.aglib
+    from pwndbg.dbg_mod import DebuggerType
 
     await ctrl.launch(MEMORY_BINARY)
 
@@ -235,7 +236,7 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
         assert out_default[:3] == out_3
 
     # Test repeat/Enter behavior by mocking check_repeated to return True (only on GDB)
-    is_gdb = "GDB" in type(ctrl).__name__
+    is_gdb = pwndbg.dbg.name() == DebuggerType.GDB
     if is_gdb:
         out_normal = (await ctrl.execute_and_capture("dds &data 2")).strip().splitlines()
         await ctrl.execute("pi pwndbg.commands.windbg.dds.check_repeated = lambda *a, **kw: True")
