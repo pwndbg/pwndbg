@@ -636,10 +636,12 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def stopped_with_signal(self) -> bool:
+        # FIXME: `info program` is hacky (#3976)
         return "It stopped with signal " in gdb.execute("info program", to_string=True)
 
     @override
     def stopped_at_breakpoint(self) -> bool:
+        # FIXME: `info program` is hacky (#3976)
         gdb_prog: str = gdb.execute("info program", to_string=True)
         # The first happens when e.g. running start
         # ("It stopped at a breakpoint that has since been deleted.")
