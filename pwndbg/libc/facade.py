@@ -18,6 +18,7 @@ import pwndbg.lib.path
 
 from . import glibc
 from . import musl
+from . import bionic
 from . import unknown
 from . import util
 from .dispatch import LibcProvider
@@ -25,7 +26,7 @@ from .dispatch import LibcType
 from .dispatch import LibcURLs
 
 # Order is important.
-_libc_implementations: tuple[LibcProvider, ...] = (glibc, musl, unknown)
+_libc_implementations: tuple[LibcProvider, ...] = (glibc, musl, bionic, unknown)
 
 
 class LibcNotFound(Exception):
