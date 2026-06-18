@@ -365,6 +365,10 @@
          <lastmod>2026-06-18</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/commands/linux_libc_elf/exithandlers/</loc>
+         <lastmod>2026-06-18</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/got/</loc>
          <lastmod>2026-06-18</lastmod>
     </url>
@@ -1362,6 +1366,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/commands/errno/</loc>
+         <lastmod>2026-06-18</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/exithandlers/</loc>
          <lastmod>2026-06-18</lastmod>
     </url>
     <url>
