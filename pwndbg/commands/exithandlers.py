@@ -23,7 +23,9 @@ import pwndbg.commands
 import pwndbg.dintegration
 import pwndbg.emu.emulator
 import pwndbg.libc
+from pwndbg.color import blue
 from pwndbg.color import message
+from pwndbg.dbg_mod import Value
 
 
 @dataclass
@@ -396,7 +398,7 @@ def _get_tls_dtor_list_from_emulator() -> int | None:
     return tls_addr + offset
 
 
-def _list_exit_handlers(pointer_guard: int, exit_funcs: int) -> list[_ExitFunctionEntry]:
+def _list_exit_handlers(pointer_guard: int, initial_struct_addr: int) -> list[_ExitFunctionEntry]:
     handlers: list[_ExitFunctionEntry] = []
     # https://elixir.bootlin.com/glibc/glibc-2.43/source/stdlib/exit.h#L55
     # struct exit_function_list
@@ -414,7 +416,7 @@ def _list_exit_handlers(pointer_guard: int, exit_funcs: int) -> list[_ExitFuncti
         fns_offset = debug_type.offsetof("fns") or fns_offset
 
     # this implements the loop in https://elixir.bootlin.com/glibc/glibc-2.43/source/stdlib/exit.c#L59
-    cur_exit_function_list = exit_funcs
+    cur_exit_function_list = initial_struct_addr
     while True:
         if cur_exit_function_list == 0:
             break
@@ -469,38 +471,53 @@ def exithandlers() -> None:
     if libc_type not in {pwndbg.libc.LibcType.GLIBC, pwndbg.libc.LibcType.UNKNOWN}:
         print(f"exithandlers is not implemented for libc type '{libc_type.value}'")
         return
-    pointer_guard = _get_pointer_guard()
+
+    # Get pointer guard.
+    pointer_guard: int | None = _get_pointer_guard()
     if pointer_guard is None:
         print(message.error("Failed to get pointer_guard"))
-        return
-    print(f"pointer_guard: {message.notice(hex(pointer_guard))}")
-    exit_funcs_ptr = (
+    else:
+        print(f"pointer_guard = {blue(hex(pointer_guard))}")
+
+    # Get exit funcs ptr.
+    exit_funcs_ptr: Value | int | None = (
         pwndbg.aglib.symbol.lookup_symbol("__exit_funcs") or _get_exit_funcs_from_emulator()
     )
+    initial_struct: int | None = None
     if exit_funcs_ptr is None:
         print(message.error("Failed to get address of __exit_funcs"))
-        return
-    exit_funcs = pwndbg.aglib.memory.read_pointer_width(int(exit_funcs_ptr))
-    print(f"\n__exit_funcs: {pwndbg.color.memory.get(exit_funcs)}")
-    exit_handlers = _list_exit_handlers(pointer_guard, exit_funcs)
-    if len(exit_handlers) == 0:
-        print("No __exit_funcs handlers registered.")
-        return
-    print("Registered __exit_funcs handlers:")
-    for entry in exit_handlers:
-        print(str(entry))
+    else:
+        print(f"__exit_funcs  @ {pwndbg.color.memory.get(exit_funcs_ptr)}")
+        initial_struct = pwndbg.aglib.memory.read_pointer_width(int(exit_funcs_ptr))
+        print(f"initial       @ {pwndbg.color.memory.get(initial_struct)}")
 
+    # Get tls dtors ptr.
     tls_dtor_list = (
         pwndbg.aglib.symbol.lookup_symbol("tls_dtor_list") or _get_tls_dtor_list_from_emulator()
     )
     if tls_dtor_list is None:
         print(message.error("Failed to locate tls_dtor_list"))
-        return
-    print(f"\ntls_dtor_list: {pwndbg.color.memory.get(tls_dtor_list)}")
-    tls_dtors = _list_tls_dtors(pointer_guard, int(tls_dtor_list))
-    if len(tls_dtors) == 0:
-        print("No tls_dtor handlers registered.")
     else:
-        print("Registered tls_dtor handlers:")
-        for dtor in tls_dtors:
-            print(str(dtor))
+        print(f"tls_dtor_list @ {pwndbg.color.memory.get(tls_dtor_list)}")
+
+    # Fetch and print exit funcs if we can.
+    print()
+    if pointer_guard is not None and initial_struct is not None:
+        exit_handlers = _list_exit_handlers(pointer_guard, initial_struct)
+        if len(exit_handlers) == 0:
+            print("No __exit_funcs handlers registered.")
+            return
+        print("Registered __exit_funcs handlers:")
+        for entry in exit_handlers:
+            print(str(entry))
+
+    # Fetch and print tls dtors if we can.
+    print()
+    if pointer_guard is not None and tls_dtor_list is not None:
+        tls_dtors = _list_tls_dtors(pointer_guard, int(tls_dtor_list))
+        if len(tls_dtors) == 0:
+            print("No tls_dtor handlers registered.")
+        else:
+            print("Registered tls_dtor handlers:")
+            for dtor in tls_dtors:
+                print(str(dtor))
