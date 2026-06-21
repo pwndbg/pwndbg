@@ -2128,6 +2128,8 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self._exception_relay = None
         self.lldb_python_state_callback = _default_lldb_python_state_callback
         self.should_suspend_ctx = False
+        self._history_list = []
+        self._history_index = 0
 
         import pwndbg
 
@@ -2217,6 +2219,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
                         "Execution state mismatch on command handler"
                     )
 
+            def get_repeat_command(self, command):
+                return f"{name} {command}" if command else name
+
         # LLDB is very particular with the object paths it will accept. It is at
         # its happiest when its pulling objects straight off the module that was
         # first imported with `command script import`, so, we install the class
@@ -2237,9 +2242,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def history(self, last: int = 10) -> list[tuple[int, str]]:
-        # Figure out a way to retrieve history later.
-        # Just need to parse the result of `self.inner.HandleCommand("history")`
-        return []
+        return self._history_list[-last:]
 
     @override
     def commands(self) -> list[str]:
