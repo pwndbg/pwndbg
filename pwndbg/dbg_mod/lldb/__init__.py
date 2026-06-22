@@ -2219,7 +2219,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
                         "Execution state mismatch on command handler"
                     )
 
-            def get_repeat_command(self, command):
+            def get_repeat_command(self, command: str) -> str:
                 return f"{name} {command}" if command else name
 
         # LLDB is very particular with the object paths it will accept. It is at
