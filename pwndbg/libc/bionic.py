@@ -47,15 +47,38 @@ def version(libc_filepath: str) -> tuple[int, ...]:
     return (-1, -1)
 
 def has_internal_symbols(libc_filepath: str) -> bool:
-    return False
+    return (
+        pwndbg.aglib.symbol.lookup_symbol("__libc_globals") is not None
+    )
 
 def has_debug_info() -> bool:
-    return False
+    return (
+        pwndbg.aglib.typeinfo.load("scudo::Chunk::UnpackedHeader") 
+        is not None
+    )
 
 def urls(ver: tuple[int, ...] | None) -> LibcURLs:
+    readable_source = "https://android.googlesource.com/platform/bionic/+/refs/heads/main/libc"
+    
+    if ver is not None and ver[0] > 0:
+        api_level = ver[0]
+        
+        api_branch = {
+            36: "android15-release",
+            35: "android15-release",
+            34: "android14-release",
+            33: "android13-release",
+            31: "android12-release",
+            30: "android11-release",
+            29: "android10-release"
+        }
+        
+        branch = api_branch.get(api_level, "main")
+        readable_source = f"https://android.googlesource.com/platform/bionic/+/refs/heads/{branch}/libc"
+    
     return LibcURLs(
-        versioned_readable_source="",
-        versioned_compressed_source="",
+        versioned_readable_source=readable_source,
+        versioned_compressed_source="https://android.googlesource.com/platform/bionic/+archive/refs/heads/main.tar.gz",
         homepage="https://android.googlesource.com/platform/bionic/",
         git="https://android.googlesource.com/platform/bionic.git" 
     )

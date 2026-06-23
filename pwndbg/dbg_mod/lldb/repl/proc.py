@@ -938,6 +938,14 @@ class ProcessDriver:
         platform_name = target.GetPlatform().GetName()
         if platform_name == "remote-android":
             self.debug_print("Initializing Remote Android Attach, please wait...")
+            
+            # Disable JIT loader to prevent LLDB from hanging on Android
+            # massive amount of JIT compiled Java methods.
+            res = lldb.SBCommandReturnObject()
+            target.GetDebugger().GetCommandInterpreter().HandleCommand(
+                "settings set plugin.jit-loader.gdb.enable off", res
+            )
+            
             # Save the current state to avoid altering global LLDB settings
             old_async = target.GetDebugger().GetAsync()
             
