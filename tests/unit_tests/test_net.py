@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pwndbg.lib.net import _format_netlink_groups
 from pwndbg.lib.net import netlink
+from pwndbg.lib.net import unix
 
 # Sample data based on real /proc/net/netlink output. The header line is
 # always present and is skipped by the parser; subsequent lines describe one
@@ -88,3 +89,18 @@ def test_format_netlink_groups_route_with_unknown_bits() -> None:
 def test_format_netlink_groups_non_route_is_hex() -> None:
     assert _format_netlink_groups(12, 0x140) == "0x140"
     assert _format_netlink_groups(15, 0x1) == "0x1"
+
+
+def test_unix_preserves_carriage_return_in_socket_path() -> None:
+    data = (
+        "Num       RefCount Protocol Flags    Type St Inode Path\n"
+        "0000000000000000: 00000002 00000000 00000000 0002 01 23302 "
+        "@@@@\x9e\x05@@\x01=\r@@@@@@@@\n"
+    )
+
+    sockets = unix(data)
+
+    assert len(sockets) == 1
+    assert sockets[0].inode == 23302
+    assert sockets[0].path == "@@@@\x9e\x05@@\x01=\r@@@@@@@@"
+    assert "\r" in sockets[0].path
