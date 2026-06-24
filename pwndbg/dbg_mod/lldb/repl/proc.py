@@ -358,9 +358,6 @@ class ProcessDriver:
         """
         Starts the IODriver handling I/O from the process.
         """
-        if self._io_driver_state == _IODriverState.RUNNING:
-            return
-        
         assert self._io_driver_state == _IODriverState.STOPPED
         self.io.start(process=self.process)
 
@@ -432,18 +429,17 @@ class ProcessDriver:
         """
 
         assert not self._is_core_file, "_run_until_next_stop is not valid for core files"
-        
-        
+
         # If `only_if_started` is set, we defer the starting of the I/O driver
         # to the moment the start event is observed. Otherwise, we just start it
         # immediately.
         try:
-            if with_io and not only_if_started and self._io_driver_state == _IODriverState.STOPPED:
+            if with_io and not only_if_started:
                 self._start_io_driver()
 
             # Pick the first timeout value.
             timeout_time = first_timeout
-            
+
             # If `only_if_started` is not set, assume the process must have been
             # started by a previous action and is running.
             running = not only_if_started
@@ -459,19 +455,15 @@ class ProcessDriver:
                     )
                     timeout_time = timeout
 
-                    current_state = self.process.GetState()
-                    if current_state in (lldb.eStateAttaching, lldb.eStateConnected):
-                        self.debug_print("Attaching, please wait...")
-                        continue
-
                     # If the process isn't running, we should stop.
                     if not running:
-                        self.debug_print("Waited too long for process to start running, giving up")
+                        self.debug_print(
+                            "Waited too long for process to start running, giving up",
+                        )
                         result = _PollResultTimedOut(last_event)
                         break
 
                     continue
-                    
                 last_event = event
 
                 if self.debug:
@@ -482,8 +474,8 @@ class ProcessDriver:
                         self.debug_print(f"No description for {event}")
 
                 if lldb.SBTarget.EventIsTargetEvent(event):
-                    # Notify the event handler that new modules got loaded in.
                     if event.GetType() == lldb.SBTarget.eBroadcastBitModulesLoaded:
+                        # Notify the event handler that new modules got loaded in.
                         if fire_events:
                             self.eh.modules_loaded()
 
@@ -508,7 +500,7 @@ class ProcessDriver:
                             result = _PollResultStopped(event)
                             break
 
-                        if new_state in (lldb.eStateRunning, lldb.eStateStepping, lldb.eStateConnected):
+                        if new_state in (lldb.eStateRunning, lldb.eStateStepping):
                             running = True
                             # Start the I/O driver here if its start got deferred
                             # because of `only_if_started` being set.
@@ -522,12 +514,33 @@ class ProcessDriver:
                         ):
                             # Nothing else for us to do here. Clear our internal
                             # references to the process, fire the exit event, and leave.
-                            self.debug_print(f"Process exited with state {new_state}")
+                            self.debug_print(
+                                f"Process exited with state {new_state}",
+                            )
                             self.process = None
                             self.listener = None
 
                             if fire_events:
                                 self.eh.exited()
+
+                            if new_state == lldb.eStateExited:
+                                proc = lldb.SBProcess.GetProcessFromEvent(event)
+                                desc = (
+                                    ""
+                                    if not proc.exit_description
+                                    else f" ({proc.exit_description})"
+                                )
+                                delay_until_io_stopped.append(
+                                    lambda: print_info(
+                                        f"process exited with status {proc.exit_state}{desc}"
+                                    )
+                                )
+                            elif new_state == lldb.eStateCrashed:
+                                delay_until_io_stopped.append(lambda: print_info("process crashed"))
+                            elif new_state == lldb.eStateDetached:
+                                delay_until_io_stopped.append(
+                                    lambda: print_info("process detached")
+                                )
 
                             result = _PollResultExited(new_state)
                             break
@@ -537,6 +550,9 @@ class ProcessDriver:
             if isinstance(result, _PollResultExited):
                 self.io.close()
                 self.io = None
+
+        for fn in delay_until_io_stopped:
+            fn()
 
         return result
 
@@ -824,14 +840,15 @@ class ProcessDriver:
             #
             # Ideally with remote targets we would at least keep the connection,
             # but LLDB is rather frail when it comes to preverving it gracefully
-            # across failures, so we always drop everything.            self.process = None
+            # across failures, so we always drop everything.
+            self.process = None
             self.listener = None
+
             return LaunchResultError(error, disconnected=False)
 
         assert self.listener.IsValid()
         assert self.process.IsValid()
 
-        
         result = self._run_until_next_stop(fire_events=False)
         match result:
             case _PollResultExited():
@@ -839,14 +856,8 @@ class ProcessDriver:
             case _PollResultStopped():
                 pass
             case _:
-                raise AssertionError(f"unexpected poll result {type(result)}")  
+                raise AssertionError(f"unexpected poll result {type(result)}")
 
-        if self.process.GetTarget().GetPlatform().GetName() == "remote-android":
-            self.debug_print("Attach successful")
-            self.listener.StartListeningForEvents(
-                self.process.GetTarget().GetBroadcaster(),
-                lldb.SBTarget.eBroadcastBitModulesLoaded,
-            )
         self.eh.created()
 
         return LaunchResultSuccess()
@@ -933,34 +944,10 @@ class ProcessDriver:
         """
         assert self.io is None
         self.io = IODriverPlainText()
+
         error = lldb.SBError()
-
-        platform_name = target.GetPlatform().GetName()
-        if platform_name == "remote-android":
-            self.debug_print("Initializing Remote Android Attach, please wait...")
-            
-            # Disable JIT loader to prevent LLDB from hanging on Android
-            # massive amount of JIT compiled Java methods.
-            res = lldb.SBCommandReturnObject()
-            target.GetDebugger().GetCommandInterpreter().HandleCommand(
-                "settings set plugin.jit-loader.gdb.enable off", res
-            )
-            
-            # Save the current state to avoid altering global LLDB settings
-            old_async = target.GetDebugger().GetAsync()
-            
-            # Set async state True to fix the deadlock
-            target.GetDebugger().SetAsync(True)
-            info.SetWaitForLaunch(False)
-            info.SetListener(self.listener)
-            
-            # Restore the original async state for subsequent commands
-            self.process = target.Attach(info, error)
-            target.GetDebugger().SetAsync(old_async)
-        else:
-            info.SetListener(self.listener)
-            self.process = target.Attach(info, error)
-
+        info.SetListener(self.listener)
+        self.process = target.Attach(info, error)
         return error
 
     def launch(
@@ -1111,4 +1098,4 @@ class ProcessDriver:
                         # to do that manually.
                         return LaunchResultConnected()
                 case _:
-                    raise AssertionError(f"unexpected poll result {type(result)}")  
+                    raise AssertionError(f"unexpected poll result {type(result)}")

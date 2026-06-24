@@ -16,9 +16,9 @@ import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
 import pwndbg.lib.path
 
+from . import bionic
 from . import glibc
 from . import musl
-from . import bionic
 from . import unknown
 from . import util
 from .dispatch import LibcProvider
