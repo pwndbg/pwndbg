@@ -425,9 +425,9 @@ def _list_tls_dtors(pointer_guard: int, tls_dtor_list: int) -> list[_TlsDtorEntr
 
 def _print_exit_handlers(handlers: list[_ExitFunctionEntry]) -> None:
     table = Table.grid()
-    table.add_column()
-    table.add_column()
-    table.add_column()
+    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)
     for handler in handlers:
         sections = []
         match handler.flavor:
@@ -468,9 +468,9 @@ def _print_exit_handlers(handlers: list[_ExitFunctionEntry]) -> None:
 
 def _print_tls_dtors(dtors: list[_TlsDtorEntry]) -> None:
     table = Table.grid()
-    table.add_column()
-    table.add_column()
-    table.add_column()
+    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)
     decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
     for dtor in dtors:
         table.add_row(
