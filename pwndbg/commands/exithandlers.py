@@ -423,7 +423,7 @@ def _list_tls_dtors(pointer_guard: int, tls_dtor_list: int) -> list[_TlsDtorEntr
     return dtors
 
 
-def _print_exit_handlers(handlers: list[_ExitFunctionEntry]):
+def _print_exit_handlers(handlers: list[_ExitFunctionEntry]) -> None:
     table = Table.grid()
     table.add_column()
     table.add_column()
@@ -466,7 +466,7 @@ def _print_exit_handlers(handlers: list[_ExitFunctionEntry]):
     print(pwndbg.rich.rich_to_str(table))
 
 
-def _print_tls_dtors(dtors: list[_TlsDtorEntry]):
+def _print_tls_dtors(dtors: list[_TlsDtorEntry]) -> None:
     table = Table.grid()
     table.add_column()
     table.add_column()
