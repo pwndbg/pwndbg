@@ -103,14 +103,6 @@ class _TlsDtorEntry:
     map: int
     next: int
 
-    def __str__(self) -> str:
-        decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
-        string = f"{pwndbg.color.memory.get(self.address)}: "
-        string += pwndbg.color.memory.get_address_and_symbol(self.func, decomp_stack_vars)
-        string += f" [obj = {pwndbg.chain.format(self.obj)}"
-        string += f", map = {pwndbg.color.memory.get(self.map)}]"
-        return string
-
     @staticmethod
     def read(addr: int, pointer_guard: int) -> _TlsDtorEntry:
         # https://elixir.bootlin.com/glibc/glibc-2.43/source/stdlib/cxa_thread_atexit_impl.c#L82
@@ -432,7 +424,7 @@ def _list_tls_dtors(pointer_guard: int, tls_dtor_list: int) -> list[_TlsDtorEntr
 
 
 def _print_exit_handlers(handlers: list[_ExitFunctionEntry]):
-    table = Table.grid(expand=False)
+    table = Table.grid()
     table.add_column()
     table.add_column()
     table.add_column()
@@ -471,7 +463,22 @@ def _print_exit_handlers(handlers: list[_ExitFunctionEntry]):
         else:
             sections.append("")
         table.add_row(*sections)
-        print(pwndbg.rich.rich_to_str(table))
+    print(pwndbg.rich.rich_to_str(table))
+
+
+def _print_tls_dtors(dtors: list[_TlsDtorEntry]):
+    table = Table.grid()
+    table.add_column()
+    table.add_column()
+    table.add_column()
+    decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
+    for dtor in dtors:
+        table.add_row(
+            f"{pwndbg.color.memory.get(dtor.address)}: ",
+            pwndbg.color.memory.get_address_and_symbol(dtor.func, decomp_stack_vars),
+            f" \\[obj = {pwndbg.chain.format(dtor.obj)}, map = {pwndbg.color.memory.get(dtor.map)}]",
+        )
+    print(pwndbg.rich.rich_to_str(table))
 
 
 parser = argparse.ArgumentParser(description="List currently registered glibc exit handlers.")
@@ -534,5 +541,6 @@ def exithandlers() -> None:
             print("No tls_dtor handlers registered.")
         else:
             print("Registered tls_dtor handlers:")
-            for dtor in tls_dtors:
-                print(str(dtor))
+            _print_tls_dtors(tls_dtors)
+            # for dtor in tls_dtors:
+            #     print(str(dtor))
