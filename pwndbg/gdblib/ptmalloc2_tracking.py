@@ -514,12 +514,13 @@ class ReallocEnterBreakpoint(gdb.Breakpoint):
             # There's no right way to handle realloc(..., 0). C23 says it's
             # undefined behavior, and prior versions say it's implementation-
             # defined. Either way, print a warning and do nothing.
-            ptr_str = self.tracker.colorize_ptr(self.freed_pointer)
+            ptr_str = self.tracker.colorize_ptr(freed_pointer)
             print(
                 message.warn(
                     f"[-] realloc({ptr_str}, {requested_size}) ignored, as realloc(0, ...) is implementation defined"
                 )
             )
+            self.tracker.exit_memory_management()
             return False
 
         if freed_pointer == 0:
@@ -570,8 +571,9 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         malloc()
         self.tracker.exit_memory_management()
 
+        ret_str = self.tracker.colorize_ptr(ret_ptr)
         print(
-            f"[*] realloc({self.freed_str}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
+            f"[*] realloc({self.freed_str}, {self.requested_size}) -> {ret_str}, {chunk.size:#x} bytes real size"
         )
         return False
 
