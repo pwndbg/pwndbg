@@ -463,7 +463,7 @@ def _print_exit_handlers(handlers: list[_ExitFunctionEntry]) -> None:
         else:
             sections.append("")
         table.add_row(*sections)
-    print(pwndbg.rich.rich_to_str(table))
+    print(pwndbg.rich.rich_to_str(table, width=512))  # effectively disable per-cell truncation
 
 
 def _print_tls_dtors(dtors: list[_TlsDtorEntry]) -> None:
@@ -478,7 +478,7 @@ def _print_tls_dtors(dtors: list[_TlsDtorEntry]) -> None:
             pwndbg.color.memory.get_address_and_symbol(dtor.func, decomp_stack_vars),
             f" \\[obj = {pwndbg.chain.format(dtor.obj)}, map = {pwndbg.color.memory.get(dtor.map)}]",
         )
-    print(pwndbg.rich.rich_to_str(table))
+    print(pwndbg.rich.rich_to_str(table, width=512))
 
 
 parser = argparse.ArgumentParser(description="List currently registered glibc exit handlers.")
