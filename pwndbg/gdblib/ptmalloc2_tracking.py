@@ -669,7 +669,7 @@ def in_program_code_stack() -> bool:
 
 def caller_symbol() -> str | None:
     frame = program_caller_frame()
-    return pwndbg.aglib.symbol.resolve_addr(frame.pc()) if frame else None
+    return pwndbg.aglib.symbol.resolve_addr(int(frame.pc())) if frame else None
 
 
 # These variables track the currently installed heap tracker.
