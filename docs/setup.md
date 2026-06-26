@@ -123,7 +123,7 @@ nix shell github:pwndbg/pwndbg#pwndbg-lldb
 ```
 
 ## Manually install the Portable Version
-You can download a portable release on the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases). There are seperate releases for GDB and LLDB. Use the first table to pick the appropriate download for your system architecture. You can then unpack the archive with:
+You can download a portable release on the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases). There are separate releases for GDB and LLDB. Use the first table to pick the appropriate download for your system architecture. You can then unpack the archive with:
 ```{.bash .copy}
 tar -v -xf <archive-name>
 ```
