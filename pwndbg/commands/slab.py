@@ -225,16 +225,12 @@ def print_node_cache(node_cache: NodeCache, verbose: bool) -> None:
     )
     # https://elixir.bootlin.com/linux/v6.13/source/mm/slub.c#L3140
     indent.print(
-        f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(address)} [NUMA node {node}, nr_partial/min_partial: {indent.aux_hex(nr_partial)}/{indent.aux_hex(min_partial)}]:"
+        f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(address)} [NUMA node {node}]:"
     )
     with indent:
         partial_slabs = node_cache.partial_slabs
-        if not partial_slabs:
-            indent.print("Partial Slabs: (none)")
-            return
-
         indent.print(
-            f"{indent.prefix('Partial Slabs')} [nr_partial: {indent.aux_hex(len(partial_slabs))}]"
+            f"{indent.prefix('Partial Slabs')} [nr_partial/min_partial: {indent.aux_hex(nr_partial)}/{indent.aux_hex(min_partial)}]"
         )
         with indent:
             for slab in partial_slabs:
