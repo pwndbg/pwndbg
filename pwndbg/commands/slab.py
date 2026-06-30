@@ -436,9 +436,12 @@ def slab_sheaf(address: str) -> None:
         return
 
     try:
-        # TODO: print which cache the sheaf belongs to
         sheaf_ptr = pwndbg.aglib.memory.get_typed_pointer("struct slab_sheaf", addr)
         slab_cache = SlabCache(sheaf_ptr["cache"])
-        print_sheaf("slab_sheaf", Sheaf(sheaf_ptr, slab_cache), True)
+        indent.print(
+            f"{indent.prefix('Slab Cache')}: {message.hint(slab_cache.name)} "
+            f"@ {indent.addr_hex(slab_cache.address)}"
+        )
+        print_sheaf("Sheaf", Sheaf(sheaf_ptr, slab_cache), True)
     except Exception as e:
         print(message.error(f"could not read a slab sheaf at {addr:#x}: {e}"))
