@@ -213,3 +213,7 @@ def emulate(pc=None, lines=None, reverse=None, total=None, emulate_=True) -> Non
         linear=False,
         no_branch=True,
     )
+
+
+nearpc.repeat = False
+nearpc.next_pc = 0
