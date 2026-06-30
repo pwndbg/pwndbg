@@ -142,7 +142,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
             pass
 
         # FIXME: how to sanitize symbol name better?
-        if not re.match(r"^[a-zA-Z0-9_.:@*/$() ,~<>&]+$", name):
+        if not re.match(r"^[a-zA-Z0-9_.:@*/$() ,~<>]+$", name):
             raise pwndbg.dbg_mod.Error(f"Symbol {name!r} contains invalid characters")
 
         value = None
