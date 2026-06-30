@@ -219,7 +219,7 @@ def print_sheaves(sheaves: PercpuSheaves, verbose: bool) -> None:
         print_sheaf("main", sheaves.main, verbose)
         print_sheaf("spare", sheaves.spare, verbose)
         print_sheaf("rcu_free", sheaves.rcu_free, verbose)
-        indent.print()
+    indent.print()
 
 
 def print_cpu_cache(cpu_cache: CpuCache, verbose: bool, active: bool, partial: bool) -> None:
@@ -267,7 +267,7 @@ def print_node_cache(node_cache: NodeCache, verbose: bool) -> None:
     )
     # https://elixir.bootlin.com/linux/v6.13/source/mm/slub.c#L3140
     indent.print(
-        f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(address)} [NUMA node {node}, nr_partial/min_partial: {indent.aux_hex(nr_partial)}/{indent.aux_hex(min_partial)}]:"
+        f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(address)} [NODE {node}, nr_partial/min_partial: {indent.aux_hex(nr_partial)}/{indent.aux_hex(min_partial)}]:"
     )
     with indent:
         partial_slabs = node_cache.partial_slabs
@@ -281,6 +281,7 @@ def print_node_cache(node_cache: NodeCache, verbose: bool) -> None:
         with indent:
             for slab in partial_slabs:
                 print_slab(slab, verbose)
+    indent.print()
 
 
 def slab_info(
