@@ -18,11 +18,11 @@ import pwndbg.color
 import pwndbg.commands
 import pwndbg.dbg_mod
 from pwndbg.aglib import kernel
-from pwndbg.aglib.kernel.slab import PercpuSheaves
-from pwndbg.aglib.kernel.slab import Sheaf
 from pwndbg.aglib.kernel.slab import CpuCache
 from pwndbg.aglib.kernel.slab import Freelist
 from pwndbg.aglib.kernel.slab import NodeCache
+from pwndbg.aglib.kernel.slab import PercpuSheaves
+from pwndbg.aglib.kernel.slab import Sheaf
 from pwndbg.aglib.kernel.slab import Slab
 from pwndbg.aglib.kernel.slab import find_containing_slab_cache
 from pwndbg.color import message

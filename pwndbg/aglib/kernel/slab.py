@@ -292,7 +292,9 @@ class SlabCache:
 
 
 class PercpuSheaves:
-    def __init__(self, percpu_sheaves: pwndbg.dbg_mod.Value, slab_cache: SlabCache, cpu: int) -> None:
+    def __init__(
+        self, percpu_sheaves: pwndbg.dbg_mod.Value, slab_cache: SlabCache, cpu: int
+    ) -> None:
         self._sheaves = percpu_sheaves
         self.slab_cache = slab_cache
         self.cpu = cpu
