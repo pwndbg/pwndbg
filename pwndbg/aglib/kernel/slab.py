@@ -210,6 +210,16 @@ class SlabCache:
             yield CpuCache(cpu_cache, self, cpu)
 
     @property
+    def node_barns(self) -> Generator[NodeBarn, None, None]:
+        if not self._slab_cache.dereference().type.has_field("per_node"):
+            return
+        for node in range(kernel.num_numa_nodes()):
+            barn = self._slab_cache["per_node"][node]["barn"]
+            if not int(barn):
+                continue
+            yield NodeBarn(barn, self, node)
+
+    @property
     def node_caches(self) -> Generator[NodeCache, None, None]:
         """returns node caches for all NUMA nodes"""
         if kernel.krelease() >= (7, 1):
@@ -339,6 +349,31 @@ class Sheaf:
     def objects(self) -> list[int]:
         objects = self._sheaf["objects"]
         return [int(objects[i]) for i in range(self.size)]
+
+
+class NodeBarn:
+    def __init__(self, barn: pwndbg.dbg_mod.Value, slab_cache: SlabCache, node: int) -> None:
+        self._barn = barn
+        self.slab_cache = slab_cache
+        self.node = node
+
+    @property
+    def address(self) -> int:
+        return int(self._barn)
+
+    @property
+    def sheaves_full(self) -> list[Sheaf]:
+        ret = []
+        for sheaf in for_each_entry(self._barn["sheaves_full"], "struct slab_sheaf", "barn_list"):
+            ret.append(Sheaf(sheaf, self.slab_cache))
+        return ret
+
+    @property
+    def sheaves_empty(self) -> list[Sheaf]:
+        ret = []
+        for sheaf in for_each_entry(self._barn["sheaves_empty"], "struct slab_sheaf", "barn_list"):
+            ret.append(Sheaf(sheaf, self.slab_cache))
+        return ret
 
 
 class CpuCache:
