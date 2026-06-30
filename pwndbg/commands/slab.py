@@ -24,6 +24,7 @@ from pwndbg.aglib.kernel.slab import NodeCache
 from pwndbg.aglib.kernel.slab import PercpuSheaves
 from pwndbg.aglib.kernel.slab import Sheaf
 from pwndbg.aglib.kernel.slab import Slab
+from pwndbg.aglib.kernel.slab import SlabCache
 from pwndbg.aglib.kernel.slab import find_containing_slab_cache
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -65,6 +66,16 @@ parser_contains = subparsers.add_parser(
 )
 parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", help="")
 
+parser_sheaf = subparsers.add_parser(
+    "sheaf",
+    description="Dump a slab sheaf (struct slab_sheaf) at the given address. "
+    "Requires a kernel with SLUB percpu sheaves (Linux >= 7.0).",
+    help="Dump a slab sheaf at the given address.",
+)
+parser_sheaf.add_argument(
+    "addresses", metavar="addr", type=str, nargs="+", help="address of a struct slab_sheaf"
+)
+
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
@@ -94,6 +105,10 @@ def slab(
         assert addresses
         for addr in addresses:
             slab_contains(addr)
+    elif command == "sheaf":
+        assert addresses
+        for addr in addresses:
+            slab_sheaf(addr)
 
 
 def emphasize(s):
@@ -377,3 +392,20 @@ def slab_contains(address: str) -> None:
         indent.print("status:", message.hint(inuse))
     except Exception as e:
         print(message.warn(f"address does not belong to a SLUB cache: {e}"))
+
+
+def slab_sheaf(address: str) -> None:
+    try:
+        addr = int(pwndbg.dbg.selected_frame().evaluate_expression(address)) & ((1 << 64) - 1)
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(f"Could not parse '{address}'"))
+        print(message.error(f"Message: {e}"))
+        return
+
+    try:
+        # TODO: print which cache the sheaf belongs to
+        sheaf_ptr = pwndbg.aglib.memory.get_typed_pointer("struct slab_sheaf", addr)
+        slab_cache = SlabCache(sheaf_ptr["cache"])
+        print_sheaf("slab_sheaf", Sheaf(sheaf_ptr, slab_cache), True)
+    except Exception as e:
+        print(message.error(f"could not read a slab sheaf at {addr:#x}: {e}"))
