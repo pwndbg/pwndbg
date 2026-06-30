@@ -195,6 +195,12 @@ class SlabCache:
         return CpuCache(cpu_cache, self, cpu)
 
     @property
+    def percpu_sheaves(self) -> Generator[PercpuSheaves, None, None]:
+        for cpu in range(kernel.nproc()):
+            sheaves = kernel.per_cpu(self._slab_cache["cpu_sheaves"], cpu=cpu)
+            yield PercpuSheaves(sheaves, self, cpu)
+
+    @property
     def cpu_caches(self) -> Generator[CpuCache, None, None]:
         if not self._slab_cache.dereference().type.has_field("cpu_slab"):
             return
@@ -283,6 +289,54 @@ class SlabCache:
                 if slab is not None and address in slab:
                     return slab
         return None
+
+
+class PercpuSheaves:
+    def __init__(self, percpu_sheaves: pwndbg.dbg_mod.Value, slab_cache: SlabCache, cpu: int) -> None:
+        self._sheaves = percpu_sheaves
+        self.slab_cache = slab_cache
+        self.cpu = cpu
+
+    @property
+    def address(self) -> int:
+        return int(self._sheaves)
+
+    def _sheaf(self, field: str) -> Sheaf | None:
+        ptr = self._sheaves[field]
+        if not int(ptr):
+            return None
+        return Sheaf(ptr, self.slab_cache)
+
+    @property
+    def main(self) -> Sheaf | None:
+        return self._sheaf("main")
+
+    @property
+    def spare(self) -> Sheaf | None:
+        return self._sheaf("spare")
+
+    @property
+    def rcu_free(self) -> Sheaf | None:
+        return self._sheaf("rcu_free")
+
+
+class Sheaf:
+    def __init__(self, sheaf: pwndbg.dbg_mod.Value, slab_cache: SlabCache) -> None:
+        self._sheaf = sheaf
+        self.slab_cache = slab_cache
+
+    @property
+    def address(self) -> int:
+        return int(self._sheaf)
+
+    @property
+    def size(self) -> int:
+        return int(self._sheaf["size"])
+
+    @property
+    def objects(self) -> list[int]:
+        objects = self._sheaf["objects"]
+        return [int(objects[i]) for i in range(self.size)]
 
 
 class CpuCache:
