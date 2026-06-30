@@ -216,4 +216,4 @@ def emulate(pc=None, lines=None, reverse=None, total=None, emulate_=True) -> Non
 
 
 nearpc.repeat = False
-nearpc.next_pc = 0
+nearpc.next_pc = 0  # type: ignore[attr-defined]
