@@ -17,6 +17,9 @@ import pwndbg.aglib.memory
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg.aglib import kernel
+from pwndbg.aglib.kernel.slab import PercpuSheaves
+from pwndbg.aglib.kernel.slab import Sheaf
 from pwndbg.aglib.kernel.slab import CpuCache
 from pwndbg.aglib.kernel.slab import Freelist
 from pwndbg.aglib.kernel.slab import NodeCache
@@ -180,6 +183,30 @@ def print_slab(slab: Slab, verbose: bool) -> None:
                     indent.print(f"{prefix} ({desc})")
 
 
+def print_sheaf(name: str, sheaf: Sheaf | None, verbose: bool) -> None:
+    if sheaf is None:
+        return
+
+    indent.print(
+        f"{indent.prefix(name)} @ {indent.addr_hex(sheaf.address)} [size: {indent.aux_hex(sheaf.size)}]:"
+    )
+    if verbose:
+        with indent:
+            for i, obj in enumerate(sheaf.objects):
+                indent.print(f"- {indent.prefix(f'[0x{i:02x}]')} {indent.addr_hex(obj)}")
+
+
+def print_sheaves(sheaves: PercpuSheaves, verbose: bool) -> None:
+    indent.print(
+        f"{indent.prefix('percpu_sheaves')} @ {indent.addr_hex(sheaves.address)} [CPU {sheaves.cpu}]:"
+    )
+    with indent:
+        print_sheaf("main", sheaves.main, verbose)
+        print_sheaf("spare", sheaves.spare, verbose)
+        print_sheaf("rcu_free", sheaves.rcu_free, verbose)
+        indent.print()
+
+
 def print_cpu_cache(cpu_cache: CpuCache, verbose: bool, active: bool, partial: bool) -> None:
     indent.print(
         f"{indent.prefix('kmem_cache_cpu')} @ {indent.addr_hex(cpu_cache.address)} [CPU {cpu_cache.cpu}]:"
@@ -271,10 +298,17 @@ def slab_info(
             indent.print(f"{indent.prefix('Usercopy region offset')}: {useroffset}")
             indent.print(f"{indent.prefix('Usercopy region size')}: {usersize}")
 
-        for cpu_cache in slab_cache.cpu_caches:
-            if cpu is not None and cpu_cache.cpu != cpu:
-                continue
-            print_cpu_cache(cpu_cache, verbose, active, partial)
+        # per-cpu objects
+        if kernel.krelease() >= (7, 0):
+            for sheaves in slab_cache.percpu_sheaves:
+                if cpu is not None and sheaves.cpu != cpu:
+                    continue
+                print_sheaves(sheaves, verbose)
+        else:
+            for cpu_cache in slab_cache.cpu_caches:
+                if cpu is not None and cpu_cache.cpu != cpu:
+                    continue
+                print_cpu_cache(cpu_cache, verbose, active, partial)
 
         if not partial:
             return
