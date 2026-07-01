@@ -6,10 +6,10 @@ import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
 import pwndbg.aglib.stack
-import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
+from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 
 # List of manually-explored pages which were discovered

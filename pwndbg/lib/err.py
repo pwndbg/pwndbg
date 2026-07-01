@@ -12,7 +12,7 @@ from enum import Enum
 
 class ErrorCode(Enum):
     """
-    Describes which error occured.
+    Describes which error occurred.
 
     Feel free to add a new one.
     """

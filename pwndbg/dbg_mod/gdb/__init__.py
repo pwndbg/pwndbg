@@ -23,13 +23,13 @@ from typing_extensions import override
 
 import pwndbg
 import pwndbg.aglib.remote
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.path
+from pwndbg.color import message
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import selection
@@ -636,10 +636,12 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def stopped_with_signal(self) -> bool:
+        # FIXME: `info program` is hacky (#3976)
         return "It stopped with signal " in gdb.execute("info program", to_string=True)
 
     @override
     def stopped_at_breakpoint(self) -> bool:
+        # FIXME: `info program` is hacky (#3976)
         gdb_prog: str = gdb.execute("info program", to_string=True)
         # The first happens when e.g. running start
         # ("It stopped at a breakpoint that has since been deleted.")
@@ -730,18 +732,17 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
                 if stop_addr > addr:
                     return self.read_memory(addr, stop_addr - addr)
-            else:
-                # Handle the case of remote debugging, where GDB's remote protocol
-                # returns the start address as the failed read address instead of the stop address.
-                # This is a limitation in how GDB handles the remote protocol, and while it could
-                # be fixed, it currently behaves this way.
-                #
-                # To work around this, we perform a binary search in the `_find_memory_last_readable` method
-                # to find the correct stop address that avoids the failure.
-                #
-                # For local debugging, this issue does not occur, and we proceed with the normal flow.
-                if (stop_addr := self._find_memory_last_readable(addr, count)) > 0:
-                    return self.read_memory(addr, stop_addr - addr + 1)
+            # Handle the case of remote debugging, where GDB's remote protocol
+            # returns the start address as the failed read address instead of the stop address.
+            # This is a limitation in how GDB handles the remote protocol, and while it could
+            # be fixed, it currently behaves this way.
+            #
+            # To work around this, we perform a binary search in the `_find_memory_last_readable` method
+            # to find the correct stop address that avoids the failure.
+            #
+            # For local debugging, this issue does not occur, and we proceed with the normal flow.
+            elif (stop_addr := self._find_memory_last_readable(addr, count)) > 0:
+                return self.read_memory(addr, stop_addr - addr + 1)
 
             raise pwndbg.dbg_mod.Error(e)
 
@@ -828,11 +829,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
             if step > 0:
                 start = pwndbg.lib.memory.round_down(start, step) + step
+            elif align > 1:
+                start = pwndbg.lib.memory.round_up(start + len(pattern), align)
             else:
-                if align > 1:
-                    start = pwndbg.lib.memory.round_up(start + len(pattern), align)
-                else:
-                    start += len(pattern)
+                start += len(pattern)
 
     @override
     def is_remote(self) -> bool:
@@ -1033,7 +1033,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 elif match == "riscv":
                     # If GDB doesn't detect the width, it will just say `riscv`.
                     match = "rv64"
-                elif match == "iwmmxt" or match == "iwmmxt2" or match == "xscale":
+                elif match in {"iwmmxt", "iwmmxt2", "xscale"}:
                     match = "arm"
                 elif match == "rs6000":
                     # The RS/6000 architecture is compatible with the PowerPC common
@@ -2016,7 +2016,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
             else:
                 raise pwndbg.dbg_mod.Error(e)
 
-        if flavor != "att" and flavor != "intel":
+        if flavor not in {"att", "intel"}:
             raise pwndbg.dbg_mod.Error(f"unrecognized disassembly flavor '{flavor}'")
 
         literal: Literal["att", "intel"] = flavor

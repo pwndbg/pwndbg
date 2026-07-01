@@ -23,7 +23,7 @@ re_addr = r"0x[0-9a-fA-F]{1,12}"
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
-    import pwndbg.color as color
+    from pwndbg import color
 
     # Disable debuginfod to avoid musl debug info triggering GDB frame tracking errors.
     await ctrl.disable_debuginfod()
@@ -174,7 +174,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_slot_start(ctrl: Controller, binary: Path):
-    import pwndbg.color as color
+    from pwndbg import color
 
     await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")
@@ -203,7 +203,7 @@ async def test_mallocng_slot_start(ctrl: Controller, binary: Path):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_group(ctrl: Controller, binary: Path):
-    import pwndbg.color as color
+    from pwndbg import color
 
     await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")
@@ -281,7 +281,7 @@ async def test_mallocng_group(ctrl: Controller, binary: Path):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_meta(ctrl: Controller, binary: Path):
-    import pwndbg.color as color
+    from pwndbg import color
 
     await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")
@@ -308,7 +308,7 @@ async def test_mallocng_meta(ctrl: Controller, binary: Path):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_malloc_context(ctrl: Controller, binary: Path):
-    import pwndbg.color as color
+    from pwndbg import color
 
     # Make sure we are not working with symbols when we think we aren't
     await ctrl.disable_debuginfod()
@@ -351,7 +351,7 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: Path):
 )
 async def test_mallocng_find(ctrl: Controller, binary: Path):
     import pwndbg
-    import pwndbg.color as color
+    from pwndbg import color
 
     await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")
@@ -400,7 +400,7 @@ async def test_mallocng_find(ctrl: Controller, binary: Path):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_metaarea(ctrl: Controller, binary: Path):
-    import pwndbg.color as color
+    from pwndbg import color
 
     await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")
@@ -434,7 +434,7 @@ async def test_mallocng_metaarea(ctrl: Controller, binary: Path):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_vis(ctrl: Controller, binary: Path):
-    import pwndbg.color as color
+    from pwndbg import color
 
     await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")

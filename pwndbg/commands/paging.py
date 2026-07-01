@@ -8,11 +8,11 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.chain
-import pwndbg.color as color
 import pwndbg.color.context as ctx_color
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.commands.kcurrent
+from pwndbg import color
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Performs pagewalk.")

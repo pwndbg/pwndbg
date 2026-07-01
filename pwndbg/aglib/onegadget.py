@@ -14,13 +14,13 @@ import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.tempfile
 import pwndbg.libc
 from pwndbg.color import colorize
 from pwndbg.color import generate_color_function
+from pwndbg.color import message
 
 ADDRESS_WRITABLE_PATTERN = re.compile(r"address(?:es)? (.*) (?:is|are) writable")
 WRITABLE_COLON_PATTERN = re.compile(r"writable: (.*)")

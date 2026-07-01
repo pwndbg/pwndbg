@@ -16,10 +16,10 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.stack
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.config
+from pwndbg.color import message
 from pwndbg.lib.elftypes import AT_CONSTANT_NAMES
 from pwndbg.lib.elftypes import AT_CONSTANTS
 

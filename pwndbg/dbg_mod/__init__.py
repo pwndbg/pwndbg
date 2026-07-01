@@ -1150,7 +1150,11 @@ class EventType(Enum):
 
     EXIT = 2
     """This event is fired after the process being debugged has been
-    detached from or has finished executing."""
+    detached from or has finished executing.
+
+    You're not allowed to call `info program` in GDB during this.
+    https://sourceware.org/bugzilla/show_bug.cgi?id=34047
+    """
 
     MEMORY_CHANGED = 3
     """This event is fired when the user interactively makes changes to the memory
