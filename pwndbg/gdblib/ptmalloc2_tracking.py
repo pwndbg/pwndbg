@@ -517,7 +517,7 @@ class ReallocEnterBreakpoint(gdb.Breakpoint):
             ptr_str = self.tracker.colorize_ptr(freed_pointer)
             print(
                 message.warn(
-                    f"[-] realloc({ptr_str}, {requested_size}) ignored, as realloc(0, ...) is implementation defined"
+                    f"[-] realloc({ptr_str}, {requested_size}) ignored, as realloc(..., 0) is implementation defined"
                 )
             )
             self.tracker.exit_memory_management()
