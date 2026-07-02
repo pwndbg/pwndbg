@@ -485,8 +485,10 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
             chunk.origin = caller_symbol()
         self.tracker.malloc(chunk)
         ptr_str = self.tracker.colorize_ptr(ret_ptr)
-        suffix = f" <- {chunk.origin}" if chunk.origin else ""
-        print(f"[*] {self.name} -> {ptr_str}, {chunk.size:#x} bytes real size{suffix}")
+        suffix = f"@ {pwndbg.color.bold(chunk.origin)}" if chunk.origin else ""
+        print(f"[*] {self.name} -> {ptr_str}, {chunk.size:#x} bytes real size")
+        if suffix:
+            print(f"    {suffix}")
 
         self.tracker.exit_memory_management()
         return False
@@ -578,10 +580,12 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker.exit_memory_management()
 
         origin = caller_symbol() if self.tracker.show_symbols else None
-        suffix = f" <- {origin}" if origin else ""
+        suffix = f"@ {pwndbg.color.bold(origin)}" if origin else ""
         print(
-            f"[*] realloc({self.freed_str}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size{suffix}"
+            f"[*] realloc({self.freed_str}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
         )
+        if suffix:
+            print(f"    {suffix}")
         return False
 
     def out_of_scope(self) -> None:
@@ -640,8 +644,10 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker.exit_memory_management()
 
         origin = caller_symbol() if self.tracker.show_symbols else None
-        suffix = f" <- {origin}" if origin else ""
-        print(f"[*] free({self.ptr_str}){suffix}")
+        suffix = f"@ {pwndbg.color.bold(origin)}" if origin else ""
+        print(f"[*] free({self.ptr_str})")
+        if suffix:
+            print(f"    {suffix}")
         return False
 
     def out_of_scope(self) -> None:
@@ -669,7 +675,10 @@ def in_program_code_stack() -> bool:
 
 def caller_symbol() -> str | None:
     frame = program_caller_frame()
-    return pwndbg.aglib.symbol.resolve_addr(int(frame.pc())) if frame else None
+    if not frame:
+        return None
+    sym = pwndbg.aglib.symbol.resolve_addr(int(frame.pc()))
+    return sym or f"{int(frame.pc()):#x}"
 
 
 # These variables track the currently installed heap tracker.

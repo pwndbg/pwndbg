@@ -36,8 +36,8 @@ enable.add_argument(
     help="Force the tracker to use hardware breakpoints.",
 )
 enable.add_argument(
-    "-s",
-    "--symbols",
+    "-w",
+    "--where",
     dest="show_symbols",
     action="store_true",
     default=False,
