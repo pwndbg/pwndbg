@@ -229,6 +229,10 @@ def print_node_cache(node_cache: NodeCache, verbose: bool) -> None:
     )
     with indent:
         partial_slabs = node_cache.partial_slabs
+        if not partial_slabs:
+            indent.print("Partial Slabs: (none)")
+            return
+
         indent.print(
             f"{indent.prefix('Partial Slabs')} [nr_partial/min_partial: {indent.aux_hex(nr_partial)}/{indent.aux_hex(min_partial)}]"
         )
