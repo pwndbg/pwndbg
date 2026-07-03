@@ -61,6 +61,7 @@ import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.arguments
 import pwndbg.color
+import pwndbg.color.memory
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.color import message
@@ -485,7 +486,7 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
             chunk.origin = caller_symbol()
         self.tracker.malloc(chunk)
         ptr_str = self.tracker.colorize_ptr(ret_ptr)
-        suffix = f"@ {pwndbg.color.bold(chunk.origin)}" if chunk.origin else ""
+        suffix = f"@ {pwndbg.color.memory.c.code(chunk.origin)}" if chunk.origin else ""
         print(f"[*] {self.name} -> {ptr_str}, {chunk.size:#x} bytes real size")
         if suffix:
             print(f"    {suffix}")
@@ -580,7 +581,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker.exit_memory_management()
 
         origin = caller_symbol() if self.tracker.show_symbols else None
-        suffix = f"@ {pwndbg.color.bold(origin)}" if origin else ""
+        suffix = f"@ {pwndbg.color.memory.c.code(origin)}" if origin else ""
         print(
             f"[*] realloc({self.freed_str}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
         )
@@ -644,7 +645,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker.exit_memory_management()
 
         origin = caller_symbol() if self.tracker.show_symbols else None
-        suffix = f"@ {pwndbg.color.bold(origin)}" if origin else ""
+        suffix = f"@ {pwndbg.color.memory.c.code(origin)}" if origin else ""
         print(f"[*] free({self.ptr_str})")
         if suffix:
             print(f"    {suffix}")
