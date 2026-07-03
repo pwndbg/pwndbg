@@ -542,5 +542,3 @@ def exithandlers() -> None:
         else:
             print("Registered tls_dtor handlers:")
             _print_tls_dtors(tls_dtors)
-            # for dtor in tls_dtors:
-            #     print(str(dtor))

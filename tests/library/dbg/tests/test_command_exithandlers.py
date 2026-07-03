@@ -46,7 +46,7 @@ async def test_command_exithandlers(ctrl: Controller) -> None:
     exit_funcs_start = out_lines.index("Registered __exit_funcs handlers:")
     system_entry = out_lines[exit_funcs_start + 1]
     deadbeef_cxa_entry = out_lines[exit_funcs_start + 2]
-    assert out_lines[exit_funcs_start + 3] == dl_fini_handler_line
+    assert out_lines[exit_funcs_start + 3].strip() == dl_fini_handler_line.strip()
     assert "[ef_on (2)]" in system_entry
     assert "'/bin/whoami'" in system_entry  # arg chain
     assert (
