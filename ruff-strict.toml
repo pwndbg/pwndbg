@@ -1,0 +1,11 @@
+# strict ruff config
+# mainly includes things we can't easily fix, but don't want to introduce more of
+
+extend = "pyproject.toml"
+
+
+[lint]
+extend-select = [
+    "PTH", # new code should use pathlib
+    # TODO: select more rules
+]
