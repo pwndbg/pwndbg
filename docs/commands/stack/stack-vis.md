@@ -8,6 +8,7 @@ usage: stack-vis [-h] [--no-skip] [--no-truncate] [--all-frames] [count]
 
 Visualize stack frames of the current thread.
 
+Each frame is annotated with the name of the function to which it belongs.
 Repeated lines can be collapsed by setting 'vis-skip-repeating-val' config (on by default).
 ### Positional arguments
 

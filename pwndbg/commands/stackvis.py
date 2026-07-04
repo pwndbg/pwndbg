@@ -5,18 +5,19 @@ import argparse
 import pwndbg
 import pwndbg.aglib
 from pwndbg.color import generate_color_function
-from pwndbg.commands import CommandCategory
+from pwndbg.commands import CommandCategory, fix_int_reraise_arg
 
 parser = argparse.ArgumentParser(
     description="""Visualize stack frames of the current thread.
 
+Each frame is annotated with the name of the function to which it belongs.
 Repeated lines can be collapsed by setting 'vis-skip-repeating-val' config (on by default)."""
 )
 group = parser.add_mutually_exclusive_group()
 group.add_argument(
     "count",
     nargs="?",
-    type=lambda n: max(int(n, 0), 1),
+    type=lambda n: max(fix_int_reraise_arg(n, 0), 1),
     default=pwndbg.config.default_visualize_chunk_number,
     help="Number of frames to visualize.",
 )
