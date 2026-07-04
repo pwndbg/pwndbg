@@ -141,13 +141,6 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         except ValueError:
             pass
 
-        # FIXME: LLDB has bugs with both evaluate_expression and FindSymbols
-        # for demangled C++ symbol names (https://github.com/llvm/llvm-project/issues/206630).
-        # This regex is a temporary workaround to allow common C++ characters
-        # until the upstream issue is resolved.
-        if not re.match(r"^[a-zA-Z0-9_.:@*/$() ,~<>&]+$", name):
-            raise pwndbg.dbg_mod.Error(f"Symbol {name!r} contains invalid characters")
-
         value = None
         with suppress(pwndbg.dbg_mod.Error):
             if re.match(r"^[a-zA-Z0-9_.:@*/$]+$", name):
