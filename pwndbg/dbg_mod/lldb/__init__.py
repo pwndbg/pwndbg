@@ -150,7 +150,8 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
 
         value = None
         with suppress(pwndbg.dbg_mod.Error):
-            value = self.evaluate_expression(f"&{name}")
+            if re.match(r"^[a-zA-Z0-9_.:@*/$]+$", name):
+                value = self.evaluate_expression(f"&{name}")
 
         if value is None:
             # Fallback because `evaluate_expression` may fail to resolve symbols for TLS variables.
