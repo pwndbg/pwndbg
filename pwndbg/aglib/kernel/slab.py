@@ -196,6 +196,8 @@ class SlabCache:
 
     @property
     def percpu_sheaves(self) -> Generator[PercpuSheaves, None, None]:
+        if not self._slab_cache.dereference().type.has_field("cpu_sheaves"):
+            return
         for cpu in range(kernel.nproc()):
             sheaves = kernel.per_cpu(self._slab_cache["cpu_sheaves"], cpu=cpu)
             yield PercpuSheaves(sheaves, self, cpu)
