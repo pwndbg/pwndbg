@@ -528,12 +528,12 @@ def pprint_blocks(
         begin_addr = pwndbg.lib.memory.round_down(cursor, cell_size << 1)
         end_addr = pwndbg.lib.memory.round_down(stop, cell_size << 1)
 
-        # Reset repeat tracking at chunk boundaries (only if skip_repeating is enabled)
+        # Reset repeat tracking at block boundaries (only if skip_repeating is enabled)
         if skip_repeating:
             flush_repeats()
 
         while cursor != stop:
-            # skip the middle part of a huge chunk
+            # skip the middle part of a huge block
             if (
                 not no_truncate
                 and half_max_size > 0
