@@ -1,5 +1,13 @@
 name: Heap Libc Version Tests
 
+# Builds the per-libc images AND runs the heap tests against each libc version
+# Jobs:
+#   changes            - paths-filter gate: anything relevant changes? which (if any) image(s) need a rebuild.
+#   heap-libc-versions - per {libc, arch}: pull the <libc>-test-libs image (or build + push it when its
+#                        inputs changed), extract the libc trees, then compile the per-version test
+#                        binaries and run the heap tests against them.
+#   create-manifest    - combine the per-arch images into the multi-arch :latest manifest.
+
 on:
   workflow_dispatch:
   push:
