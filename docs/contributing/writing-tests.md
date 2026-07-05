@@ -144,19 +144,23 @@ To test architecture specific features, like disassembly annotations, we use emu
 
 ## Libc Version Testing
 
-`tests/library/dbg/tests/test_heap_glibc_versions.py` and `test_musl_versions.py` exercise pwndbg against many libc versions.
+`tests/library/dbg/tests/test_heap_glibc_versions.py` and `test_musl_versions.py` exercise pwndbg against many libc versions, and are where you should start to get a better understanding of the libc version testing.
 
-Where possible we avoid bespoke per-version tests and instead run the existing deep tests across the whole matrix by parametrizing their test binary over the available versions. Concretely:
+Rather than write new per-version tests, we parametrize the existing tests over the available versions:
 
 - **glibc** (2.35-2.43): version detection; the heap commands (allocator, bins, `malloc-chunk`, `dt`, `find-fake-fast`) via debug symbols; the forced-heuristic path; and a no-symbol heuristic run against a fully stripped libc.
 - **musl** (1.1.24-1.2.6): detection and exact version, static (where the mallocng fingerprint exists) and dynamic, plus the full `test_mallocng.py` suite.
 
+**How it works:** Each version's libc is compiled inside the `Dockerfile.*-test-libs` images. For glibc this happens twice: with full debug info, and as a stripped no-debug copy under `glibcs-nodebug/` for the no-symbol heuristic tests. `download-test-libs.sh` then copies those artifacts out of the image onto the host (`docker cp`) under `tests/binaries/host/`. The tests never run inside the libc-building image; they run on the host locally, or in the `ubuntu24.04` container in CI, with the per-version test binaries linked against the extracted libcs.
+
+**Why both musl linkages?** A statically linked binary has the whole libc (including the mallocng allocator and its symbols) compiled into the ELF, while a dynamically linked one loads `libc.so` as a separate mapping. pwndbg locates and parses the allocator differently in each case, so the mallocng suite runs against both to confirm detection and that the `ng` heap commands work regardless of how musl was linked.
+
 **Adding or removing a glibc or musl version is a one-file change** in the relevant `Dockerfile.*-test-libs`: add (or remove) the `FROM base-builder AS build-<version>` stage, its `RUN` line (which passes the release tarball's sha256), and its scratch-stage `COPY` line(s).
 
-**Running locally** (needs Docker):
+**Running locally**:
 
 ```bash
-./scripts/download-test-libs.sh glibc    # or musl
-make -C tests/binaries/host -j4 all  # glibc/musl compile per-version binaries
+./scripts/download-test-libs.sh glibc # or musl (Note: this step needs Docker)
+make -C tests/binaries/host -j4 all
 ./tests.sh -d gdb -g dbg test_heap_glibc_versions
 ```
