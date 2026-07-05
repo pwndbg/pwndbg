@@ -16,8 +16,8 @@ from . import pwndbg_test
 HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 HEAP_GLIBC2_43 = get_binary("heap_glibc2.43.native.out")
 
-_HEAP_BINARIES = glibc_version_binaries("heap_malloc_chunk")
-_HEAP_DUMP_BINARIES = glibc_version_binaries("heap_malloc_chunk_dump")
+_HEAP_MALLOC_CHUNK_BINARIES = glibc_version_binaries("heap_malloc_chunk")
+_HEAP_MALLOC_CHUNK_DUMP_BINARIES = glibc_version_binaries("heap_malloc_chunk_dump")
 
 _MP_HEURISTIC_242 = "pwndbg heuristic cannot find mp_ in the .data section on glibc 2.42"
 
@@ -33,9 +33,9 @@ def _glibc_params(
     return pytest.mark.parametrize("binary", params)
 
 
-glibc_versions = _glibc_params(_HEAP_BINARIES)
-glibc_dump_versions = _glibc_params(_HEAP_DUMP_BINARIES)
-glibc_versions_mp = _glibc_params(_HEAP_BINARIES, {"2.42": _MP_HEURISTIC_242})
+glibc_versions = _glibc_params(_HEAP_MALLOC_CHUNK_BINARIES)
+glibc_dump_versions = _glibc_params(_HEAP_MALLOC_CHUNK_DUMP_BINARIES)
+glibc_versions_mp = _glibc_params(_HEAP_MALLOC_CHUNK_BINARIES, {"2.42": _MP_HEURISTIC_242})
 
 ADDR_RE = re.compile(r"^Addr: (0x[0-9a-f]+)$")
 
