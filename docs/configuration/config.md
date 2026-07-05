@@ -303,7 +303,7 @@ Which context sections are displayed (controls order).
 
 
 
-**Default:** 'last_signal regs disasm code ghidra stack backtrace expressions threads heap_tracker'  
+**Default:** 'regs disasm code ghidra stack backtrace expressions threads heap_tracker last_signal'  
 
 ----------
 

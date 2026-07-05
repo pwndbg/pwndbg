@@ -43,6 +43,7 @@ import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.lib.cache
 import pwndbg.lib.config
+import pwndbg.lib.tips
 import pwndbg.rich
 import pwndbg.ui
 from pwndbg.aglib.arch_mod import get_thumb_mode_string
@@ -175,7 +176,7 @@ config_output = pwndbg.config.add_param(
 )
 config_context_sections = pwndbg.config.add_param(
     "context-sections",
-    "last_signal regs disasm code ghidra stack backtrace expressions threads heap_tracker",
+    "regs disasm code ghidra stack backtrace expressions threads heap_tracker last_signal",
     "which context sections are displayed (controls order)",
 )
 config_max_threads_display = pwndbg.config.add_param(
@@ -1740,8 +1741,12 @@ def context_threads(
 
 
 @pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.SAVE_SIGNAL)
-@pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.SAVE_SIGNAL)
 def save_signal() -> None:
+    # We can't do this on EventType.CONTINUE because of #3683
+    # We can't do this on EventType.EXIT because of
+    #  https://sourceware.org/bugzilla/show_bug.cgi?id=34047
+    # But we don't really care about those anyway, at least for GDB, because
+    # the signal information only changes on gdb.SignalEvent which is a subclass of gdb.StopEvent .
     global last_signal
     last_signal = result = []
 
@@ -1757,7 +1762,11 @@ def save_signal() -> None:
     if not process:
         return
 
-    if not (process.stopped_with_signal() or process.stopped_at_breakpoint()):
+    # We don't show signal on breakpoints (process.stopped_at_breakpoint()) because
+    # it clutters the context.
+    # process.stopped_with_signal() does return non-breakpoint caused SIGTRAPs
+    # (e.g. a non-debugger-inserted int3 instruction).
+    if not (process.stopped_with_signal()):
         return
 
     signal = pwndbg.aglib.signal.get_last_signal()
@@ -1773,9 +1782,7 @@ def save_signal() -> None:
                 msg += desc_long
         except pwndbg.dbg_mod.Error:
             pass
-    elif signal == "SIGTRAP":
-        result.append(message.breakpoint(f"Breakpoint hit at {pwndbg.aglib.regs.pc:#x}"))
-        return
+
     result.append(message.signal(msg))
 
 
