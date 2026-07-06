@@ -57,8 +57,17 @@ def compound_head(page: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value:
     pg_head = pg_headty.enum_member("PG_head")
     assert pg_head is not None, "Type 'enum pageflags' not found"
 
+    # Fetch page flags.
+    maybeflags = page["flags"]
+    # Since kernel v6.18 the flag integer is tucked away in a struct.
+    # (https://elixir.bootlin.com/linux/v6.18/source/mm/slab.h#L53)
+    if maybeflags.type.has_field("f"):
+        flagint: int = int(maybeflags["f"])
+    else:
+        flagint = int(maybeflags)
+
     # https://elixir.bootlin.com/linux/v6.2/source/include/linux/page-flags.h#L212
-    if int(page["flags"]) & (1 << pg_head):
+    if flagint & (1 << pg_head):
         next_page = _arr(page, 1)
 
         head = next_page["compound_head"]

@@ -183,7 +183,14 @@ class SlabCache:
 
     @property
     def flags(self) -> list[str]:
-        return get_flags_list(int(self._slab_cache["flags"]))
+        maybeflags = self._slab_cache["flags"]
+        # Since kernel v6.18 the flag integer is tucked away in a struct.
+        # (https://elixir.bootlin.com/linux/v6.18/source/mm/slab.h#L53)
+        if maybeflags.type.has_field("f"):
+            flagint: int = int(maybeflags["f"])
+        else:
+            flagint = int(maybeflags)
+        return get_flags_list(flagint)
 
     @property
     def cpu_cache(self) -> CpuCache | None:
