@@ -175,6 +175,7 @@ def tcp(data: str, endianness: str) -> list[Connection]:
 def tcp6(data: str, endianness: str) -> list[Connection]:
     return _tcp_parser(data, socket.AF_INET6, endianness)
 
+
 def _is_unix_entry(fields: list[str]) -> bool:
     # A valid /proc/net/unix entry looks like:
     # "0000000000000000: 00000002 00000000 00010000 0001 01 12345 /some/path"
@@ -190,6 +191,7 @@ def _is_unix_entry(fields: list[str]) -> bool:
     except ValueError:
         return False
     return True
+
 
 def unix(data: str) -> list[UnixSocket]:
     if not data:
