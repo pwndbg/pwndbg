@@ -60,7 +60,7 @@ def compound_head(page: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value:
     # Fetch page flags.
     maybeflags = page["flags"]
     # Since kernel v6.18 the flag integer is tucked away in a struct.
-    # (https://elixir.bootlin.com/linux/v6.18/source/mm/slab.h#L53)
+    # (https://elixir.bootlin.com/linux/v6.18/source/include/linux/mm_types.h#L79)
     if maybeflags.type.has_field("f"):
         flagint: int = int(maybeflags["f"])
     else:
