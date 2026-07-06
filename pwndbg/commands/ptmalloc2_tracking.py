@@ -38,7 +38,7 @@ enable.add_argument(
 enable.add_argument(
     "-w",
     "--where",
-    dest="show_symbols",
+    dest="show_location",
     action="store_true",
     default=False,
     help="Annotate each allocation/free with the calling symbol.",
@@ -70,10 +70,10 @@ toggle_break.set_defaults(mode="toggle-break")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.LINUX, command_name="track-heap")
 @pwndbg.commands.OnlyWhenRunning
-def track_heap(mode=None, use_hardware_breakpoints=False, rel_addr=False, show_symbols=False):
+def track_heap(mode=None, use_hardware_breakpoints=False, rel_addr=False, show_location=False):
     if mode == "enable":
         # Enable the tracker.
-        pwndbg.gdblib.ptmalloc2_tracking.install(rel_addr=rel_addr, show_symbols=show_symbols)
+        pwndbg.gdblib.ptmalloc2_tracking.install(rel_addr=rel_addr, show_location=show_location)
     elif mode == "disable":
         # Disable the tracker.
         pwndbg.gdblib.ptmalloc2_tracking.uninstall()

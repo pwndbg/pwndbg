@@ -215,14 +215,14 @@ def _delete_defered():
 
 
 class Tracker:
-    def __init__(self, rel_addr: bool = False, show_symbols: bool = False) -> None:
+    def __init__(self, rel_addr: bool = False, show_location: bool = False) -> None:
         self.free_chunks: SortedDict[int, Chunk] = SortedDict()
         self.alloc_chunks: SortedDict[int, Chunk] = SortedDict()
         self.free_watchpoints: dict[int, FreeChunkWatchpoint] = {}
         self.memory_management_calls: dict[int, bool] = {}
         self.colorized_heap_ptrs: dict[int, str] = {}
         self.rel_addr = rel_addr
-        self.show_symbols = show_symbols
+        self.show_location = show_location
 
     def is_performing_memory_management(self):
         thread = gdb.selected_thread().global_num
@@ -476,7 +476,7 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
             return False
 
         chunk = get_chunk(ret_ptr, self.requested_size)
-        if self.tracker.show_symbols:
+        if self.tracker.show_location:
             chunk.origin = caller_symbol()
         self.tracker.malloc(chunk)
         ptr_str = self.tracker.colorize_ptr(ret_ptr)
@@ -574,7 +574,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         malloc()
         self.tracker.exit_memory_management()
 
-        origin = caller_symbol() if self.tracker.show_symbols else None
+        origin = caller_symbol() if self.tracker.show_location else None
         suffix = f"@ {pwndbg.color.memory.c.code(origin)}" if origin else ""
         print(
             f"[*] realloc({self.freed_str}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
@@ -638,7 +638,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
 
         self.tracker.exit_memory_management()
 
-        origin = caller_symbol() if self.tracker.show_symbols else None
+        origin = caller_symbol() if self.tracker.show_location else None
         suffix = f"@ {pwndbg.color.memory.c.code(origin)}" if origin else ""
         print(f"[*] free({self.ptr_str})")
         if suffix:
@@ -686,7 +686,7 @@ free_enter = None
 stop_on_error = True
 
 
-def install(disable_hardware_watchpoints=True, rel_addr=False, show_symbols=False) -> None:
+def install(disable_hardware_watchpoints=True, rel_addr=False, show_location=False) -> None:
     global malloc_enter
     global calloc_enter
     global realloc_enter
@@ -746,7 +746,7 @@ def install(disable_hardware_watchpoints=True, rel_addr=False, show_symbols=Fals
         print()
 
     # Install the heap tracker.
-    tracker = Tracker(rel_addr=rel_addr, show_symbols=show_symbols)
+    tracker = Tracker(rel_addr=rel_addr, show_location=show_location)
 
     malloc_enter = MallocEnterBreakpoint(available[0], tracker)
     free_enter = FreeEnterBreakpoint(available[1], tracker)
@@ -762,7 +762,7 @@ def install(disable_hardware_watchpoints=True, rel_addr=False, show_symbols=Fals
     print("Heap tracker installed.")
     if rel_addr:
         print("The heap tracker will use offsets instead of absolute addresses in the report.")
-    if show_symbols:
+    if show_location:
         print("The heap tracker will show symbols for each chunk.")
 
 
