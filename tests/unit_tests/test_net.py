@@ -104,3 +104,17 @@ def test_unix_preserves_carriage_return_in_socket_path() -> None:
     assert sockets[0].inode == 23302
     assert sockets[0].path == "@@@@\x9e\x05@@\x01=\r@@@@@@@@"
     assert "\r" in sockets[0].path
+
+
+
+def test_unix_does_not_crash_with_valid_input():
+    data = (
+        "Num RefCount Protocol Flags Type St Inode Path\n"
+        "000000: 00000002 00000000 00000000 0002 01 12345 /tmp/sock\n"
+    )
+
+    # Sockets
+    sockets = unix(data)
+    # Assert statements
+    assert len(sockets) == 1
+    assert sockets[0].inode == 12345
