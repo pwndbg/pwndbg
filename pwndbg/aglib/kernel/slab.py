@@ -11,6 +11,7 @@ import pwndbg.lib.cache
 from pwndbg.aglib import kernel
 from pwndbg.aglib.kernel.macros import compound_head
 from pwndbg.aglib.kernel.macros import for_each_entry
+from pwndbg.aglib.kernel.macros import memdesc_flag_or_int
 from pwndbg.aglib.kernel.macros import swab
 
 
@@ -183,14 +184,7 @@ class SlabCache:
 
     @property
     def flags(self) -> list[str]:
-        maybeflags = self._slab_cache["flags"]
-        # Since kernel v6.18 the flag integer is tucked away in a struct.
-        # (https://elixir.bootlin.com/linux/v6.18/source/mm/slab.h#L53)
-        if maybeflags.type.has_field("f"):
-            flagint: int = int(maybeflags["f"])
-        else:
-            flagint = int(maybeflags)
-        return get_flags_list(flagint)
+        return get_flags_list(memdesc_flag_or_int(self._slab_cache["flags"]))
 
     @property
     def cpu_cache(self) -> CpuCache | None:

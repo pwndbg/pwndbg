@@ -44,6 +44,21 @@ def _arr(x: pwndbg.dbg_mod.Value, n: int) -> pwndbg.dbg_mod.Value:
     return (ptr + n).dereference()
 
 
+def memdesc_flag_or_int(val: pwndbg.dbg_mod.Value) -> int:
+    """
+    Return flag integer value from `val` which is either of type `unsigned long`
+    or `memdesc_flags_t`.
+
+    Use this to read `flags` variable of `struct slab` and `struct page`.
+    """
+    # Since kernel v6.18 the flag integer is tucked away in a struct.
+    # (https://elixir.bootlin.com/linux/v6.18/source/include/linux/mm_types.h#L79)
+    # (https://elixir.bootlin.com/linux/v6.18/source/mm/slab.h#L53)
+    if val.type.has_field("f"):
+        return int(val["f"])
+    return int(val)
+
+
 def compound_head(page: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value:
     """returns the head page of compound pages"""
     assert page.type.code == pwndbg.dbg_mod.TypeCode.STRUCT and page.type.name_identifier == "page"
@@ -57,17 +72,8 @@ def compound_head(page: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value:
     pg_head = pg_headty.enum_member("PG_head")
     assert pg_head is not None, "Type 'enum pageflags' not found"
 
-    # Fetch page flags.
-    maybeflags = page["flags"]
-    # Since kernel v6.18 the flag integer is tucked away in a struct.
-    # (https://elixir.bootlin.com/linux/v6.18/source/include/linux/mm_types.h#L79)
-    if maybeflags.type.has_field("f"):
-        flagint: int = int(maybeflags["f"])
-    else:
-        flagint = int(maybeflags)
-
     # https://elixir.bootlin.com/linux/v6.2/source/include/linux/page-flags.h#L212
-    if flagint & (1 << pg_head):
+    if memdesc_flag_or_int(page["flags"]) & (1 << pg_head):
         next_page = _arr(page, 1)
 
         head = next_page["compound_head"]
