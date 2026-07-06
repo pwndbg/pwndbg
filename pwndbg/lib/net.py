@@ -181,14 +181,14 @@ def _is_unix_entry(fields: list[str]) -> bool:
     # i.e. a hex slot number ending with ":", five hex fields, a decimal
     # inode, and an optional path.
     if len(fields) < 7 or not fields[0].endswith(":"):
-        return False 
+        return False
     try:
         int(fields[0][:-1], 16)
         for f in fields[1:6]:
             int(f, 16)
         int(fields[6])
     except ValueError:
-        return False 
+        return False
     return True
 
 def unix(data: str) -> list[UnixSocket]:
@@ -211,7 +211,7 @@ def unix(data: str) -> list[UnixSocket]:
 
         if not _is_unix_entry(fields):
             if prev_had_path:
-                result[-1].path += "\n" + line 
+                result[-1].path += "\n" + line
             continue
 
         u = UnixSocket()
