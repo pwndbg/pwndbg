@@ -20,6 +20,7 @@ import struct
 # Python versions.
 _NETLINK_SOCK_DIAG = 4
 _SOCK_DIAG_BY_FAMILY = 20
+_AF_NETLINK = 16  # from <linux/socket.h>; not exposed by Python's socket
 
 _NLM_F_REQUEST = 0x1
 _NLM_F_ROOT = 0x100
@@ -62,7 +63,7 @@ def get_unix_peers() -> dict[int, int]:
     not as "no peer".
     """
     try:
-        sock = socket.socket(socket.AF_NETLINK, socket.SOCK_RAW, _NETLINK_SOCK_DIAG)
+        sock = socket.socket(_AF_NETLINK, socket.SOCK_RAW, _NETLINK_SOCK_DIAG)
     except OSError:
         return {}
 
