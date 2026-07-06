@@ -9,6 +9,7 @@ from pwnlib.util.packing import p32
 from pwnlib.util.packing import p64
 from pwnlib.util.packing import u32
 from pwnlib.util.packing import u64
+from rich.table import Table
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
@@ -23,6 +24,7 @@ import pwndbg.commands
 import pwndbg.dintegration
 import pwndbg.emu.emulator
 import pwndbg.libc
+import pwndbg.rich
 from pwndbg.color import blue
 from pwndbg.color import message
 from pwndbg.dbg_mod import Value
@@ -35,35 +37,6 @@ class _ExitFunctionEntry:
     fn: int
     arg: int
     dso_handle: int
-
-    def __str__(self) -> str:
-        match self.flavor:
-            case 0:
-                flavor_str = "ef_free"
-            case 1:
-                flavor_str = "ef_us"
-            case 2:
-                flavor_str = "ef_on"
-            case 3:
-                flavor_str = "ef_at"
-            case 4:
-                flavor_str = "ef_cxa"
-            case _:
-                flavor_str = "unknown"
-
-        string = f"{pwndbg.color.memory.get(self.addr)} [{flavor_str} ({self.flavor})]"
-        if flavor_str in {"ef_on", "ef_cxa", "ef_at", "unknown"}:
-            decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
-            fn_str = pwndbg.color.memory.get_address_and_symbol(self.fn, decomp_stack_vars)
-            string += f": {fn_str}"
-        if flavor_str in {"ef_on", "ef_cxa", "unknown"}:
-            string += f" [arg = {pwndbg.chain.format(self.arg)}"
-        if flavor_str in {"ef_cxa", "unknown"}:
-            string += f", dso_handle = {pwndbg.color.memory.get(self.dso_handle)}]"
-        elif flavor_str == "ef_on":
-            string += "]"
-
-        return string
 
     @staticmethod
     def read(addr: int, pointer_guard: int) -> _ExitFunctionEntry:
@@ -129,14 +102,6 @@ class _TlsDtorEntry:
     obj: int
     map: int
     next: int
-
-    def __str__(self) -> str:
-        decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
-        string = f"{pwndbg.color.memory.get(self.address)}: "
-        string += pwndbg.color.memory.get_address_and_symbol(self.func, decomp_stack_vars)
-        string += f" [obj = {pwndbg.chain.format(self.obj)}"
-        string += f", map = {pwndbg.color.memory.get(self.map)}]"
-        return string
 
     @staticmethod
     def read(addr: int, pointer_guard: int) -> _TlsDtorEntry:
@@ -458,6 +423,64 @@ def _list_tls_dtors(pointer_guard: int, tls_dtor_list: int) -> list[_TlsDtorEntr
     return dtors
 
 
+def _print_exit_handlers(handlers: list[_ExitFunctionEntry]) -> None:
+    table = Table.grid()
+    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)
+    for handler in handlers:
+        sections = []
+        match handler.flavor:
+            case 0:
+                flavor_str = "ef_free"
+            case 1:
+                flavor_str = "ef_us"
+            case 2:
+                flavor_str = "ef_on"
+            case 3:
+                flavor_str = "ef_at"
+            case 4:
+                flavor_str = "ef_cxa"
+            case _:
+                flavor_str = "unknown"
+        sections.append(
+            f"{pwndbg.color.memory.get(handler.addr)} \\[{flavor_str} ({handler.flavor})]"
+        )
+        if flavor_str in {"ef_on", "ef_cxa", "ef_at", "unknown"}:
+            sections[0] += ": "
+            decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
+            fn_str = pwndbg.color.memory.get_address_and_symbol(handler.fn, decomp_stack_vars)
+            sections.append(fn_str)
+        else:
+            sections.append("")
+        if flavor_str in {"ef_on", "ef_cxa", "unknown"}:
+            detail_string = f" \\[arg = {pwndbg.chain.format(handler.arg)}"
+            if flavor_str in {"ef_cxa", "unknown"}:
+                detail_string += f", dso_handle = {pwndbg.color.memory.get(handler.dso_handle)}]"
+            elif flavor_str == "ef_on":
+                detail_string += "]"
+            sections.append(detail_string)
+        else:
+            sections.append("")
+        table.add_row(*sections)
+    print(pwndbg.rich.rich_to_str(table, width=512))  # effectively disable per-cell truncation
+
+
+def _print_tls_dtors(dtors: list[_TlsDtorEntry]) -> None:
+    table = Table.grid()
+    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)
+    decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
+    for dtor in dtors:
+        table.add_row(
+            f"{pwndbg.color.memory.get(dtor.address)}: ",
+            pwndbg.color.memory.get_address_and_symbol(dtor.func, decomp_stack_vars),
+            f" \\[obj = {pwndbg.chain.format(dtor.obj)}, map = {pwndbg.color.memory.get(dtor.map)}]",
+        )
+    print(pwndbg.rich.rich_to_str(table, width=512))
+
+
 parser = argparse.ArgumentParser(description="List currently registered glibc exit handlers.")
 
 
@@ -508,8 +531,7 @@ def exithandlers() -> None:
             print("No __exit_funcs handlers registered.")
             return
         print("Registered __exit_funcs handlers:")
-        for entry in exit_handlers:
-            print(str(entry))
+        _print_exit_handlers(exit_handlers)
 
     # Fetch and print tls dtors if we can.
     print()
@@ -519,5 +541,4 @@ def exithandlers() -> None:
             print("No tls_dtor handlers registered.")
         else:
             print("Registered tls_dtor handlers:")
-            for dtor in tls_dtors:
-                print(str(dtor))
+            _print_tls_dtors(tls_dtors)

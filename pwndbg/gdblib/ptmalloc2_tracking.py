@@ -357,12 +357,6 @@ class Tracker:
                     # Check for range overlap.
                     ch_lo_addr = ch.address
                     ch_hi_addr = ch.address + ch.size
-                    ch.address
-
-                for ch in lo_heap:
-                    # Check for range overlap.
-                    ch_lo_addr = ch.address
-                    ch_hi_addr = ch.address + ch.size
 
                     lo_in_range = ch_lo_addr < hi_addr
                     hi_in_range = ch_hi_addr > lo_addr
