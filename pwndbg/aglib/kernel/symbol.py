@@ -341,8 +341,6 @@ def kernel_symbol_func(
                         result = arch_heuristic_handle()
             if result is None and not prefer_symbol:
                 result = pwndbg.aglib.symbol.lookup_symbol_addr(symbol_name or f.__name__)
-            if result is None:
-                return None
             return result
 
         return func
@@ -480,14 +478,16 @@ class x86_64Symbols(ArchSymbols):
     # if negative, the `-0x...`` is a kernel address displayed as a negative number
     # returns the first 0x... as an int if exists
     def dword_op_memoff_reg(
-        self, disass: str, op: str, sign: str = "-", nth: int = 0
+        self, disass: str, op: str, first: bool = True, nth: int = 0
     ) -> int | None:
-        result = self.regex(disass, rf"{op}.*\[.*{re.escape(sign)}\s(0x[0-9a-f]{{1,8}})\]", nth)
-        if result is not None:
-            if sign == "-":
-                return (1 << 64) - int(result.group(1), 16)
-            return int(result.group(1), 16)
-        return None
+        r = rf"{op}.*\[.*([+-])\s(0x[0-9a-f]{{1,8}})\]\s*,"
+        if not first:
+            r = rf"{op}.*,\s*\[.*([+-])\s(0x[0-9a-f]{{1,8}})\]"
+        result = self.regex(disass, r, nth)
+        if result is None:
+            return None
+        value = int(result.group(2), 16)
+        return (1 << 64) - value if result.group(1) == "-" else value
 
     # mov reg, <kernel address as a constant>
     def qword_mov_reg_const(self, disass: str, nth: int = 0) -> int | None:
@@ -516,8 +516,7 @@ class x86_64Symbols(ArchSymbols):
         disass = self.disass(self.node_data_heuristic_func)
         if not disass:
             return None
-        result = self.qword_op_reg_memoff(disass, op="mov", sign="-")
-        if result is not None:
+        if (result := self.qword_op_reg_memoff(disass, op="mov", sign="-")) is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
@@ -531,11 +530,9 @@ class x86_64Symbols(ArchSymbols):
         disass = self.disass(self.per_cpu_offset_heuristic_func)
         if not disass:
             return None
-        result = self.qword_op_reg_memoff(disass, op="add", sign="-")
-        if result is not None:
+        if (result := self.qword_op_reg_memoff(disass, op="add", sign="-")) is not None:
             return result
-        result = self.qword_mov_reg_const(disass)
-        if result is not None:
+        if (result := self.qword_mov_reg_const(disass)) is not None:
             return result
         return self.qword_mov_reg_ripoff(disass)
 
@@ -550,8 +547,7 @@ class x86_64Symbols(ArchSymbols):
         disass = self.disass(self.db_list_heuristic_func)
         if not disass:
             return None
-        result = self.qword_mov_reg_const(disass)
-        if result is not None:
+        if (result := self.qword_mov_reg_const(disass)) is not None:
             return result - offset
         return None
 
@@ -559,8 +555,7 @@ class x86_64Symbols(ArchSymbols):
         disass = self.disass(self.map_idr_heuristic_func)
         if not disass:
             return None
-        result = self.qword_mov_reg_const(disass, nth=1)
-        if result is not None:
+        if (result := self.qword_mov_reg_const(disass, nth=1)) is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
@@ -568,8 +563,7 @@ class x86_64Symbols(ArchSymbols):
         disass = self.disass(self.prog_idr_heuristic_func)
         if not disass:
             return None
-        result = self.qword_mov_reg_const(disass, nth=1)
-        if result is not None:
+        if (result := self.qword_mov_reg_const(disass, nth=1)) is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
@@ -577,14 +571,11 @@ class x86_64Symbols(ArchSymbols):
         disass = self.disass(self.current_task_heuristic_func)
         if not disass:
             return None
-        result = self.dword_mov_reg_const(disass)
-        if result is not None:
+        if (result := self.dword_mov_reg_const(disass)) is not None:
             return result
-        result = self.qword_mov_reg_const(disass)
-        if result is not None:
+        if (result := self.qword_mov_reg_const(disass)) is not None:
             return result
-        result = self.dword_op_memoff_reg(disass, "mov", "+")
-        return result
+        return self.dword_op_memoff_reg(disass, "mov", True)
 
 
 class Aarch64Symbols(ArchSymbols):
