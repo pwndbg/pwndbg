@@ -20,6 +20,7 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     """
     import pwndbg
     import pwndbg.aglib
+    from pwndbg.dbg_mod import DebuggerType
 
     await ctrl.launch(MEMORY_BINARY)
 
@@ -221,6 +222,35 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
         "string or is too short.\n"
         "Perhaps try: db <address> <count> or hexdump <address>\n"
     )
+
+    #################################################
+    #### dds / dps / dqs / kd command tests
+    #################################################
+    for cmd in ("dds", "dps", "dqs", "kd"):
+        # Without count argument (uses default)
+        out_default = (await ctrl.execute_and_capture(f"{cmd} &data")).strip().splitlines()
+        # With count argument
+        out_3 = (await ctrl.execute_and_capture(f"{cmd} &data 3")).strip().splitlines()
+        assert len(out_3) == 3
+        # Ensure the first lines of both are identical
+        assert out_default[:3] == out_3
+
+    # Test repeat/Enter behavior by mocking check_repeated to return True (only on GDB)
+    is_gdb = pwndbg.dbg.name() == DebuggerType.GDB
+    if is_gdb:
+        out_normal = (await ctrl.execute_and_capture("dds &data 2")).strip().splitlines()
+        await ctrl.execute("pi pwndbg.commands.windbg.dds.check_repeated = lambda *a, **kw: True")
+        try:
+            out_repeated = (await ctrl.execute_and_capture("dds &data 2")).strip().splitlines()
+            # Verify it has different addresses
+            assert out_normal != out_repeated
+            # Verify it dumped consecutive memory regions (e.g. out_repeated starts after out_normal ends)
+            ptrsize = pwndbg.aglib.typeinfo.ptrsize
+            addr_normal_start = int(out_normal[0].split()[1], 16)
+            addr_repeated_start = int(out_repeated[0].split()[1], 16)
+            assert addr_repeated_start == addr_normal_start + 2 * ptrsize
+        finally:
+            await ctrl.execute("pi del pwndbg.commands.windbg.dds.check_repeated")
 
 
 @pwndbg_test

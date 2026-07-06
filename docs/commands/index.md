@@ -119,6 +119,7 @@
 -  [elfsections](linux_libc_elf/elfsections.md) - Prints the section mappings contained in the ELF header.
 -  [envp](linux_libc_elf/envp.md) - Prints out the contents of the environment.
 -  [errno](linux_libc_elf/errno.md) - Converts errno (or argument) to its string representation.
+-  [exithandlers](linux_libc_elf/exithandlers.md) - List currently registered glibc exit handlers.
 -  [got](linux_libc_elf/got.md) - Show the state of the Global Offset Table.
 -  [gotplt](linux_libc_elf/gotplt.md) - Prints any symbols found in the .got.plt section if it exists.
 -  [libcinfo](linux_libc_elf/libcinfo.md) - Show various information about the currently used libc

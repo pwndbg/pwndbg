@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -o errexit
+set -o pipefail
 
 source "$(dirname "$0")/../../../scripts/common.sh"
 
@@ -25,7 +26,19 @@ fi
 
 wget --no-verbose --show-progress --progress=bar:force:noscroll "${URL}/hashsums.txt" -O "${OUT_DIR}/hashsums.txt"
 
+pids=()
 while read -r hash file; do
     echo "Downloading ${file}..."
-    download "${file}"
+    download "${file}" &
+    pids+=($!)
 done < "${OUT_DIR}/hashsums.txt"
+
+failed=0
+for pid in "${pids[@]}"; do
+    wait "$pid" || failed=1
+done
+
+if [ "$failed" -ne 0 ]; then
+    echo "One or more downloads failed."
+    exit 1
+fi
