@@ -166,6 +166,9 @@ typedef struct {
 typedef struct refcount_struct {
 	atomic_t refs;
 } refcount_t;
+typedef struct {
+	unsigned long f;
+} memdesc_flags_t;
 
 struct list_head {
     struct list_head *next, *prev;
@@ -217,7 +220,7 @@ def recover_page_typeinfo() -> str:
 #if KVERSION < KERNEL_VERSION(6, 18, 0)
         unsigned long flags;
 #else
-        struct { unsigned long f; } flags;
+        memdesc_flags_t flags;
 #endif
         union {
             struct {
