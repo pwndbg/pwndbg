@@ -213,8 +213,12 @@ def recover_page_typeinfo() -> str:
     result += "\n".join(f"#define {s}" for s in defs)
     result += COMMON_TYPES
     result += """
-    struct page { // just a simplied page struct with relavent fields
+    struct page { // just a simplied page struct with relevant fields
+#if KVERSION < KERNEL_VERSION(6, 18, 0)
         unsigned long flags;
+#else
+        struct { unsigned long f; } flags;
+#endif
         union {
             struct {
                 union {
