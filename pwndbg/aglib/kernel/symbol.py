@@ -166,6 +166,9 @@ typedef struct {
 typedef struct refcount_struct {
 	atomic_t refs;
 } refcount_t;
+typedef struct {
+	unsigned long f;
+} memdesc_flags_t;
 
 struct list_head {
     struct list_head *next, *prev;
@@ -213,8 +216,12 @@ def recover_page_typeinfo() -> str:
     result += "\n".join(f"#define {s}" for s in defs)
     result += COMMON_TYPES
     result += """
-    struct page { // just a simplied page struct with relavent fields
+    struct page { // just a simplied page struct with relevant fields
+#if KVERSION < KERNEL_VERSION(6, 18, 0)
         unsigned long flags;
+#else
+        memdesc_flags_t flags;
+#endif
         union {
             struct {
                 union {
