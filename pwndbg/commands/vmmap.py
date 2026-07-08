@@ -209,6 +209,11 @@ parser.add_argument(
         "See the `vmmap-cache` config option."
     ),
 )
+parser.add_argument(
+    "--json",
+    action="store_true",
+    help="Output memory map in JSON format for programmatic consumption",
+)
 
 
 @pwndbg.commands.Command(
@@ -225,6 +230,7 @@ def vmmap(
     gaps=False,
     expand_shared_cache=False,
     refresh=False,
+    json=False,
 ) -> None:
     lookaround_lines_limit = 64
 
@@ -286,6 +292,24 @@ def vmmap(
 
     if not total_pages:
         print("There are no mappings for specified address or module.")
+        return
+
+    # JSON output mode
+    if json:
+        import json as json_module
+        pages_data = []
+        for page in total_pages:
+            if (executable and not page.execute) or (writable and not page.write):
+                continue
+            pages_data.append({
+                "start": hex(page.start),
+                "end": hex(page.end),
+                "permissions": page.permstr,
+                "size": page.memsz,
+                "offset": page.offset,
+                "objfile": page.objfile or "",
+            })
+        print(json_module.dumps(pages_data, indent=2))
         return
 
     if gaps:
