@@ -24,7 +24,8 @@ import pwndbg.mcp.tools
 try:
     from mcp.server import Server
     from mcp.server.stdio import stdio_server
-    from mcp.types import Tool, TextContent
+    from mcp.types import TextContent
+    from mcp.types import Tool
 except ImportError:
     print("Error: MCP SDK not installed. Run: pip install mcp")
     sys.exit(1)
@@ -105,6 +106,7 @@ def main():
 
     # Default to stdio transport
     import asyncio
+
     asyncio.run(run_stdio_server())
 
 

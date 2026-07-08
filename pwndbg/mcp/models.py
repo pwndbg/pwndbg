@@ -11,6 +11,7 @@ from typing import Any
 @dataclass
 class RegisterState:
     """Represents CPU register state"""
+
     registers: dict[str, int]
     pc: int
     sp: int
@@ -30,6 +31,7 @@ class RegisterState:
 @dataclass
 class MemoryRegion:
     """Represents a memory region"""
+
     start: int
     end: int
     permissions: str
@@ -50,6 +52,7 @@ class MemoryRegion:
 @dataclass
 class MemoryContent:
     """Represents memory content"""
+
     address: int
     data: bytes
     ascii_repr: str
@@ -66,6 +69,7 @@ class MemoryContent:
 @dataclass
 class HeapChunk:
     """Represents a heap chunk"""
+
     address: int
     size: int
     prev_size: int
@@ -90,6 +94,7 @@ class HeapChunk:
 @dataclass
 class HeapInfo:
     """Represents heap information"""
+
     chunks: list[HeapChunk]
     top: int
     system_mem: int
@@ -107,6 +112,7 @@ class HeapInfo:
 @dataclass
 class StackFrame:
     """Represents a stack frame"""
+
     address: int
     function: str | None
     offset: int
@@ -126,6 +132,7 @@ class StackFrame:
 @dataclass
 class Breakpoint:
     """Represents a breakpoint"""
+
     number: int
     address: int
     enabled: bool
@@ -147,6 +154,7 @@ class Breakpoint:
 @dataclass
 class CommandResult:
     """Represents command execution result"""
+
     output: str
     error: str | None = None
     return_code: int = 0
@@ -161,6 +169,7 @@ class CommandResult:
 @dataclass
 class ExecutionState:
     """Represents execution state after continue"""
+
     stopped: bool
     reason: str | None = None
     signal: str | None = None

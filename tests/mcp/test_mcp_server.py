@@ -7,12 +7,11 @@ properly formatted JSON responses.
 
 from __future__ import annotations
 
-import json
+import pwndbg.aglib.regs
 import pytest
 
 # Import pwndbg modules
 import pwndbg.aglib
-import pwndbg.aglib.regs
 import pwndbg.mcp.tools
 
 
@@ -153,7 +152,6 @@ class TestMCPModels:
         assert result["address"] == "0x400000"
         assert result["enabled"] is True
         assert result["location"] == "main"
-
 
     def test_find_rop_gadgets(self):
         """Test find_rop_gadgets tool."""

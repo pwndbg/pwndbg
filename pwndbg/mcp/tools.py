@@ -7,6 +7,7 @@ to AI Agents via the Model Context Protocol.
 
 from __future__ import annotations
 
+import contextlib
 from typing import Any
 
 import pwndbg.aglib
@@ -14,17 +15,13 @@ import pwndbg.aglib.heap
 import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.dbg
-from pwndbg.mcp.models import (
-    Breakpoint,
-    CommandResult,
-    ExecutionState,
-    HeapChunk,
-    HeapInfo,
-    MemoryContent,
-    MemoryRegion,
-    RegisterState,
-    StackFrame,
-)
+from pwndbg.mcp.models import Breakpoint
+from pwndbg.mcp.models import CommandResult
+from pwndbg.mcp.models import ExecutionState
+from pwndbg.mcp.models import HeapInfo
+from pwndbg.mcp.models import MemoryContent
+from pwndbg.mcp.models import RegisterState
+from pwndbg.mcp.models import StackFrame
 
 
 def execute_command(command: str) -> dict[str, Any]:
@@ -42,6 +39,7 @@ def execute_command(command: str) -> dict[str, Any]:
         # This is the real API used throughout pwndbg codebase
         if pwndbg.dbg.is_gdblib_available():
             import gdb
+
             output = gdb.execute(command, to_string=True)
             result = CommandResult(output=output.strip(), return_code=0)
         else:
@@ -147,20 +145,20 @@ def heap_analysis() -> dict[str, Any]:
         try:
             # Iterate through chunks - need to check the actual API
             # The Chunk class has: address, size, prev_size, flags, fd, bk properties
-            if hasattr(heap, 'chunk') and callable(heap.chunk):
+            if hasattr(heap, "chunk") and callable(heap.chunk):
                 # Try to iterate chunks starting from a known address
                 # This is a simplified approach - real implementation would need
                 # to traverse the heap properly
                 pass
 
             # Get top chunk and memory stats from arena
-            if hasattr(heap, 'arenas'):
+            if hasattr(heap, "arenas"):
                 for arena in heap.arenas:
-                    if hasattr(arena, 'top'):
+                    if hasattr(arena, "top"):
                         top = arena.top or 0
-                    if hasattr(arena, 'system_mem'):
+                    if hasattr(arena, "system_mem"):
                         system_mem = arena.system_mem or 0
-                    if hasattr(arena, 'max_system_mem'):
+                    if hasattr(arena, "max_system_mem"):
                         max_system_mem = arena.max_system_mem or 0
 
         except Exception:
@@ -191,6 +189,7 @@ def stack_analysis() -> dict[str, Any]:
         try:
             if pwndbg.dbg.is_gdblib_available():
                 import gdb
+
                 output = gdb.execute("backtrace", to_string=True)
 
                 # Parse backtrace output
@@ -268,10 +267,8 @@ def breakpoint_set(location: str, type: str = "breakpoint") -> dict[str, Any]:
                     if part.isdigit():
                         bp_num = int(part)
                     elif part.startswith("0x"):
-                        try:
+                        with contextlib.suppress(Exception):
                             addr = int(part, 16)
-                        except Exception:
-                            pass
 
         bp = Breakpoint(
             number=bp_num,
@@ -324,10 +321,8 @@ def continue_execution() -> dict[str, Any]:
             stopped = False
 
         # Get current address
-        try:
+        with contextlib.suppress(Exception):
             address = pwndbg.aglib.regs.pc
-        except Exception:
-            pass
 
         state = ExecutionState(
             stopped=stopped,
@@ -355,10 +350,8 @@ def find_rop_gadgets(grep: str | None = None, memlimit: str = "50MB") -> dict[st
         if not pwndbg.dbg.is_gdblib_available():
             return {"error": "LLDB not yet supported in MCP"}
 
+
         import gdb
-        import tempfile
-        from io import StringIO
-        import contextlib
 
         # Build rop command
         cmd_parts = ["rop"]
@@ -376,7 +369,7 @@ def find_rop_gadgets(grep: str | None = None, memlimit: str = "50MB") -> dict[st
 
         for line in lines:
             # Skip header and summary lines
-            if line.startswith("Gadgets information") or line.startswith("=") or not line.strip():
+            if line.startswith(("Gadgets information", "=")) or not line.strip():
                 continue
             if "Unique gadgets found:" in line:
                 continue
@@ -390,10 +383,12 @@ def find_rop_gadgets(grep: str | None = None, memlimit: str = "50MB") -> dict[st
 
                     try:
                         addr = int(addr_str, 16)
-                        gadgets.append({
-                            "address": hex(addr),
-                            "instruction": gadget_str,
-                        })
+                        gadgets.append(
+                            {
+                                "address": hex(addr),
+                                "instruction": gadget_str,
+                            }
+                        )
                     except ValueError:
                         continue
 
@@ -560,10 +555,12 @@ def disassemble(
 
             instruction = " ".join(instr_parts) if instr_parts else ""
 
-            instructions.append({
-                "address": hex(addr),
-                "instruction": instruction,
-            })
+            instructions.append(
+                {
+                    "address": hex(addr),
+                    "instruction": instruction,
+                }
+            )
 
         return {
             "instructions": instructions,
@@ -627,12 +624,14 @@ def get_backtrace() -> dict[str, Any]:
                     source = part
                     break
 
-            frames.append({
-                "number": frame_num,
-                "address": hex(addr),
-                "function": func,
-                "source": source,
-            })
+            frames.append(
+                {
+                    "number": frame_num,
+                    "address": hex(addr),
+                    "function": func,
+                    "source": source,
+                }
+            )
 
         return {
             "frames": frames,
