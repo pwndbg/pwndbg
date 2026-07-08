@@ -155,6 +155,35 @@ class TestMCPModels:
         assert result["location"] == "main"
 
 
+    def test_find_rop_gadgets(self):
+        """Test find_rop_gadgets tool."""
+        result = pwndbg.mcp.tools.find_rop_gadgets()
+        assert isinstance(result, dict)
+        # Should return gadgets list or error
+        assert "gadgets" in result or "error" in result
+
+    def test_search_memory(self):
+        """Test search_memory tool."""
+        result = pwndbg.mcp.tools.search_memory("test")
+        assert isinstance(result, dict)
+        # Should return addresses list or error
+        assert "addresses" in result or "error" in result
+
+    def test_disassemble(self):
+        """Test disassemble tool."""
+        result = pwndbg.mcp.tools.disassemble()
+        assert isinstance(result, dict)
+        # Should return instructions list or error
+        assert "instructions" in result or "error" in result
+
+    def test_get_backtrace(self):
+        """Test get_backtrace tool."""
+        result = pwndbg.mcp.tools.get_backtrace()
+        assert isinstance(result, dict)
+        # Should return frames list or error
+        assert "frames" in result or "error" in result
+
+
 class TestMCPToolRegistry:
     """Test suite for MCP tool registry."""
 
@@ -173,6 +202,10 @@ class TestMCPToolRegistry:
             "stack_analysis",
             "breakpoint_set",
             "continue_execution",
+            "find_rop_gadgets",
+            "search_memory",
+            "disassemble",
+            "get_backtrace",
         ]
         for tool_name in expected_tools:
             assert tool_name in pwndbg.mcp.tools.TOOLS

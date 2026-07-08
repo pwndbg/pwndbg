@@ -342,6 +342,308 @@ def continue_execution() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
+def find_rop_gadgets(grep: str | None = None, memlimit: str = "50MB") -> Dict[str, Any]:
+    """
+    Find ROP gadgets in the current binary or memory mappings.
+
+    Args:
+        grep: Optional string to grep the output for (e.g., "pop rdi")
+        memlimit: Maximum size of memory pages to scan (default: "50MB")
+
+    Returns:
+        Dictionary with list of gadgets found
+    """
+    try:
+        if not pwndbg.dbg.is_gdblib_available():
+            return {"error": "LLDB not yet supported in MCP"}
+
+        import gdb
+        import tempfile
+        from io import StringIO
+        import contextlib
+
+        # Build rop command
+        cmd_parts = ["rop"]
+        if grep:
+            cmd_parts.extend(["--grep", grep])
+        cmd_parts.extend(["--memlimit", memlimit])
+
+        # Execute rop command and capture output
+        cmd = " ".join(cmd_parts)
+        output = gdb.execute(cmd, to_string=True)
+
+        # Parse gadgets from output
+        gadgets = []
+        lines = output.strip().split("\n")
+
+        for line in lines:
+            # Skip header and summary lines
+            if line.startswith("Gadgets information") or line.startswith("=") or not line.strip():
+                continue
+            if "Unique gadgets found:" in line:
+                continue
+
+            # Parse gadget line: "0x0007dce8 : pop rdi ; or dword ptr [rax], eax ; add rsp, 0x28 ; ret"
+            if ":" in line and "0x" in line:
+                parts = line.split(":", 1)
+                if len(parts) >= 2:
+                    addr_str = parts[0].strip()
+                    gadget_str = parts[1].strip()
+
+                    try:
+                        addr = int(addr_str, 16)
+                        gadgets.append({
+                            "address": hex(addr),
+                            "instruction": gadget_str,
+                        })
+                    except ValueError:
+                        continue
+
+        return {
+            "gadgets": gadgets,
+            "count": len(gadgets),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def search_memory(
+    pattern: str,
+    search_type: str = "bytes",
+    executable_only: bool = False,
+    writable_only: bool = False,
+    limit: int | None = None,
+) -> Dict[str, Any]:
+    """
+    Search memory for byte sequences, strings, pointers, or integer values.
+
+    Args:
+        pattern: The pattern to search for (string, hex bytes, or integer)
+        search_type: Type of search ("bytes", "string", "dword", "qword", "pointer")
+        executable_only: Search only executable segments
+        writable_only: Search only writable segments
+        limit: Maximum number of results to return
+
+    Returns:
+        Dictionary with list of addresses where pattern was found
+    """
+    try:
+        if not pwndbg.dbg.is_gdblib_available():
+            return {"error": "LLDB not yet supported in MCP"}
+
+        import gdb
+
+        # Build search command
+        cmd_parts = ["search"]
+
+        # Add type flag
+        if search_type == "string":
+            cmd_parts.extend(["-t", "string"])
+        elif search_type == "dword":
+            cmd_parts.extend(["-t", "dword"])
+        elif search_type == "qword":
+            cmd_parts.extend(["-t", "qword"])
+        elif search_type == "pointer":
+            cmd_parts.extend(["-p"])
+        else:  # bytes
+            cmd_parts.extend(["-t", "bytes"])
+
+        # Add flags
+        if executable_only:
+            cmd_parts.append("-e")
+        if writable_only:
+            cmd_parts.append("-w")
+        if limit:
+            cmd_parts.extend(["--limit", str(limit)])
+
+        # Add pattern
+        cmd_parts.append(pattern)
+
+        # Execute search command
+        cmd = " ".join(cmd_parts)
+        output = gdb.execute(cmd, to_string=True)
+
+        # Parse addresses from output
+        addresses = []
+        for line in output.strip().split("\n"):
+            # Look for hex addresses in output
+            if "0x" in line:
+                parts = line.split()
+                for part in parts:
+                    if part.startswith("0x"):
+                        try:
+                            addr = int(part, 16)
+                            addresses.append(hex(addr))
+                        except ValueError:
+                            continue
+
+        return {
+            "addresses": addresses,
+            "count": len(addresses),
+            "pattern": pattern,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def disassemble(
+    address: int | None = None,
+    count: int = 10,
+) -> Dict[str, Any]:
+    """
+    Disassemble instructions near the specified address or current PC.
+
+    Args:
+        address: Address to disassemble near (default: current PC)
+        count: Number of instructions to disassemble (default: 10)
+
+    Returns:
+        Dictionary with list of disassembled instructions
+    """
+    try:
+        if not pwndbg.dbg.is_gdblib_available():
+            return {"error": "LLDB not yet supported in MCP"}
+
+        import gdb
+
+        # Build nearpc command
+        cmd_parts = ["nearpc"]
+        if address is not None:
+            cmd_parts.append(hex(address))
+        cmd_parts.append(str(count))
+
+        # Execute nearpc command
+        cmd = " ".join(cmd_parts)
+        output = gdb.execute(cmd, to_string=True)
+
+        # Parse instructions from output
+        instructions = []
+        for line in output.strip().split("\n"):
+            if not line.strip():
+                continue
+
+            # Parse instruction line: "   0x400000 <main>    push rbp"
+            # or "→  0x400000 <main>    push rbp"
+            line = line.strip()
+
+            # Skip if no address found
+            if "0x" not in line:
+                continue
+
+            # Extract address
+            parts = line.split()
+            addr_str = None
+            for part in parts:
+                if part.startswith("0x"):
+                    addr_str = part
+                    break
+
+            if not addr_str:
+                continue
+
+            try:
+                addr = int(addr_str, 16)
+            except ValueError:
+                continue
+
+            # Extract instruction (everything after the address and optional symbol)
+            # Find the instruction part
+            instr_parts = []
+            found_addr = False
+            for part in parts:
+                if part == addr_str:
+                    found_addr = True
+                    continue
+                if found_addr:
+                    # Skip symbol like <main>
+                    if part.startswith("<") and part.endswith(">"):
+                        continue
+                    instr_parts.append(part)
+
+            instruction = " ".join(instr_parts) if instr_parts else ""
+
+            instructions.append({
+                "address": hex(addr),
+                "instruction": instruction,
+            })
+
+        return {
+            "instructions": instructions,
+            "count": len(instructions),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def get_backtrace() -> Dict[str, Any]:
+    """
+    Get the current call stack backtrace.
+
+    Returns:
+        Dictionary with list of stack frames
+    """
+    try:
+        if not pwndbg.dbg.is_gdblib_available():
+            return {"error": "LLDB not yet supported in MCP"}
+
+        import gdb
+
+        # Execute backtrace command
+        output = gdb.execute("backtrace", to_string=True)
+
+        # Parse backtrace output
+        frames = []
+        for line in output.strip().split("\n"):
+            if not line.startswith("#"):
+                continue
+
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+
+            # Parse frame number
+            try:
+                frame_num = int(parts[0][1:])  # Remove '#'
+            except ValueError:
+                continue
+
+            # Parse address
+            addr_str = parts[1]
+            try:
+                if addr_str.startswith("0x"):
+                    addr = int(addr_str, 16)
+                else:
+                    addr = 0
+            except ValueError:
+                addr = 0
+
+            # Parse function name
+            func = None
+            if len(parts) >= 3:
+                func = parts[2]
+
+            # Parse source location if present
+            source = None
+            for part in parts:
+                if " at " in part or ":" in part:
+                    source = part
+                    break
+
+            frames.append({
+                "number": frame_num,
+                "address": hex(addr),
+                "function": func,
+                "source": source,
+            })
+
+        return {
+            "frames": frames,
+            "count": len(frames),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # Tool registry for MCP Server
 TOOLS = {
     "execute_command": {
@@ -414,6 +716,82 @@ TOOLS = {
     "continue_execution": {
         "function": continue_execution,
         "description": "Continue program execution",
+        "parameters": {"type": "object", "properties": {}},
+    },
+    "find_rop_gadgets": {
+        "function": find_rop_gadgets,
+        "description": "Find ROP gadgets in the current binary or memory mappings",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "grep": {
+                    "type": "string",
+                    "description": "Optional string to grep the output for (e.g., 'pop rdi')",
+                },
+                "memlimit": {
+                    "type": "string",
+                    "description": "Maximum size of memory pages to scan (default: '50MB')",
+                    "default": "50MB",
+                },
+            },
+            "required": [],
+        },
+    },
+    "search_memory": {
+        "function": search_memory,
+        "description": "Search memory for byte sequences, strings, pointers, or integer values",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pattern": {
+                    "type": "string",
+                    "description": "The pattern to search for (string, hex bytes, or integer)",
+                },
+                "search_type": {
+                    "type": "string",
+                    "description": "Type of search ('bytes', 'string', 'dword', 'qword', 'pointer')",
+                    "default": "bytes",
+                },
+                "executable_only": {
+                    "type": "boolean",
+                    "description": "Search only executable segments",
+                    "default": False,
+                },
+                "writable_only": {
+                    "type": "boolean",
+                    "description": "Search only writable segments",
+                    "default": False,
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of results to return",
+                },
+            },
+            "required": ["pattern"],
+        },
+    },
+    "disassemble": {
+        "function": disassemble,
+        "description": "Disassemble instructions near the specified address or current PC",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "integer",
+                    "description": "Address to disassemble near (default: current PC)",
+                },
+                "count": {
+                    "type": "integer",
+                    "description": "Number of instructions to disassemble (default: 10)",
+                    "default": 10,
+                },
+            },
+            "required": [],
+        },
+    },
+    "get_backtrace": {
+        "function": get_backtrace,
+        "description": "Get the current call stack backtrace",
         "parameters": {"type": "object", "properties": {}},
     },
 }
