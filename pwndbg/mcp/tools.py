@@ -7,9 +7,7 @@ to AI Agents via the Model Context Protocol.
 
 from __future__ import annotations
 
-import io
-import sys
-from typing import Any, Dict, List
+from typing import Any
 
 import pwndbg.aglib
 import pwndbg.aglib.heap
@@ -29,7 +27,7 @@ from pwndbg.mcp.models import (
 )
 
 
-def execute_command(command: str) -> Dict[str, Any]:
+def execute_command(command: str) -> dict[str, Any]:
     """
     Execute a pwndbg/GDB command and return the output.
 
@@ -55,7 +53,7 @@ def execute_command(command: str) -> Dict[str, Any]:
         return CommandResult(output="", error=str(e), return_code=1).to_dict()
 
 
-def get_registers() -> Dict[str, Any]:
+def get_registers() -> dict[str, Any]:
     """
     Get the current CPU register state.
 
@@ -101,7 +99,7 @@ def get_registers() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-def inspect_memory(address: int, size: int = 64) -> Dict[str, Any]:
+def inspect_memory(address: int, size: int = 64) -> dict[str, Any]:
     """
     Read and display memory contents at the given address.
 
@@ -130,7 +128,7 @@ def inspect_memory(address: int, size: int = 64) -> Dict[str, Any]:
         return {"error": str(e), "address": hex(address)}
 
 
-def heap_analysis() -> Dict[str, Any]:
+def heap_analysis() -> dict[str, Any]:
     """
     Analyze the current heap state.
 
@@ -179,7 +177,7 @@ def heap_analysis() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-def stack_analysis() -> Dict[str, Any]:
+def stack_analysis() -> dict[str, Any]:
     """
     Analyze the current stack frames.
 
@@ -231,7 +229,7 @@ def stack_analysis() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-def breakpoint_set(location: str, type: str = "breakpoint") -> Dict[str, Any]:
+def breakpoint_set(location: str, type: str = "breakpoint") -> dict[str, Any]:
     """
     Set a breakpoint at the specified location.
 
@@ -287,7 +285,7 @@ def breakpoint_set(location: str, type: str = "breakpoint") -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-def continue_execution() -> Dict[str, Any]:
+def continue_execution() -> dict[str, Any]:
     """
     Continue program execution.
 
@@ -342,7 +340,7 @@ def continue_execution() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-def find_rop_gadgets(grep: str | None = None, memlimit: str = "50MB") -> Dict[str, Any]:
+def find_rop_gadgets(grep: str | None = None, memlimit: str = "50MB") -> dict[str, Any]:
     """
     Find ROP gadgets in the current binary or memory mappings.
 
@@ -413,7 +411,7 @@ def search_memory(
     executable_only: bool = False,
     writable_only: bool = False,
     limit: int | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Search memory for byte sequences, strings, pointers, or integer values.
 
@@ -489,7 +487,7 @@ def search_memory(
 def disassemble(
     address: int | None = None,
     count: int = 10,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Disassemble instructions near the specified address or current PC.
 
@@ -575,7 +573,7 @@ def disassemble(
         return {"error": str(e)}
 
 
-def get_backtrace() -> Dict[str, Any]:
+def get_backtrace() -> dict[str, Any]:
     """
     Get the current call stack backtrace.
 

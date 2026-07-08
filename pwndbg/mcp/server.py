@@ -17,7 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from typing import Any, Dict
+from typing import Any
 
 import pwndbg.mcp.tools
 
@@ -54,7 +54,7 @@ def create_mcp_server() -> Server:
         return tools
 
     @server.call_tool()
-    async def call_tool(name: str, arguments: Dict[str, Any]) -> list[TextContent]:
+    async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         """Call a pwndbg tool with the given arguments."""
         if name not in pwndbg.mcp.tools.TOOLS:
             return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}"}))]
