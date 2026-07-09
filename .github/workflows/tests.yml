@@ -48,6 +48,12 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
+      - name: Cache jemalloc build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pwndbg
+          key: ${{ runner.os }}-jemalloc-${{ hashFiles('setup-dev.sh') }}
+
       - name: Install dependencies
         run: |
           ./setup-dev.sh --install-only
@@ -84,14 +90,6 @@ jobs:
         run: |
           ./tests.sh --nix -d gdb -g cross-arch-user
 
-      - name: Set up cache for QEMU images
-        if: matrix.type == 'qemu-system-tests'
-        id: qemu-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ./tests/library/qemu-system/kimages
-          key: ${{ matrix.os }}-cache-qemu-images
-
       - name: Download QEMU images
         if: matrix.type == 'qemu-system-tests'
         run: |
@@ -112,23 +110,22 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Cache for pip
+      - name: Cache uv downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.cache/pip
-          key: ${{ matrix.os }}-cache-pip
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+
+      - name: Cache jemalloc build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pwndbg
+          key: ${{ runner.os }}-jemalloc-${{ hashFiles('setup-dev.sh') }}
 
       - name: Setup pwndbg
         run: |
           ./setup.sh
           ./setup-dev.sh
-
-      - name: Set up cache for QEMU images
-        id: qemu-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ./tests/library/qemu-system/kimages
-          key: ${{ matrix.os }}-cache-qemu-images
 
       - name: Download images
         run: |
