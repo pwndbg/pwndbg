@@ -143,14 +143,6 @@ def heap_analysis() -> dict[str, Any]:
         max_system_mem = 0
 
         try:
-            # Iterate through chunks - need to check the actual API
-            # The Chunk class has: address, size, prev_size, flags, fd, bk properties
-            if hasattr(heap, "chunk") and callable(heap.chunk):
-                # Try to iterate chunks starting from a known address
-                # This is a simplified approach - real implementation would need
-                # to traverse the heap properly
-                pass
-
             # Get top chunk and memory stats from arena
             if hasattr(heap, "arenas"):
                 for arena in heap.arenas:
@@ -178,54 +170,12 @@ def heap_analysis() -> dict[str, Any]:
 def stack_analysis() -> dict[str, Any]:
     """
     Analyze the current stack frames.
+    Reuses get_backtrace() to avoid code duplication.
 
     Returns:
-        List of StackFrame objects
+        Dictionary with list of stack frames
     """
-    try:
-        frames = []
-
-        # Get backtrace using gdb.execute
-        try:
-            if pwndbg.dbg.is_gdblib_available():
-                import gdb
-
-                output = gdb.execute("backtrace", to_string=True)
-
-                # Parse backtrace output
-                for line in output.strip().split("\n"):
-                    if line.startswith("#"):
-                        parts = line.split()
-                        if len(parts) >= 2:
-                            frame_num = int(parts[0][1:])  # Remove '#'
-                            addr_str = parts[1]
-
-                            # Try to parse address
-                            try:
-                                if addr_str.startswith("0x"):
-                                    addr = int(addr_str, 16)
-                                else:
-                                    addr = 0
-                            except Exception:
-                                addr = 0
-
-                            # Try to get function name
-                            func = None
-                            if len(parts) >= 3:
-                                func = parts[2]
-
-                            frame = StackFrame(
-                                address=addr,
-                                function=func,
-                                offset=frame_num,
-                            )
-                            frames.append(frame)
-        except Exception:
-            pass
-
-        return {"frames": [f.to_dict() for f in frames]}
-    except Exception as e:
-        return {"error": str(e)}
+    return get_backtrace()
 
 
 def breakpoint_set(location: str, type: str = "breakpoint") -> dict[str, Any]:
