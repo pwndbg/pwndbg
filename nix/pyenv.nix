@@ -298,14 +298,32 @@ let
     ) { };
 
     jpype1 = pkgs.callPackage (
-      { python3 }:
-      prev.jpype1.overrideAttrs (old: {
-        buildInputs =
-          (old.buildInputs or [ ])
-          ++ lib.optionals isCross [
-            python3
-          ];
-      })
+      {
+        python3,
+        cmake,
+        jdk_headless,
+        ant,
+      }:
+      prev.jpype1.overrideAttrs (
+        old:
+        {
+          buildInputs =
+            (old.buildInputs or [ ])
+            ++ lib.optionals isCross [
+              python3
+            ];
+        }
+        // lib.optionalAttrs ((isBuildSource old) && old.version == "1.7.1") {
+          nativeBuildInputs =
+            old.nativeBuildInputs
+            ++ [
+              cmake
+              jdk_headless
+              ant
+            ]
+            ++ final.resolveBuildSystem { scikit-build-core = [ ]; };
+        }
+      )
     ) { };
 
     ghidra-bridge = pkgs.callPackage (
