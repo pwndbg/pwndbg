@@ -165,10 +165,9 @@ class ContextTUIWindow:
                 if not ContextTUIWindow._static_enabled and pwndbg.dbg.selected_inferior().alive():
                     context()
                 ContextTUIWindow._static_enabled = True
-        else:
-            if self._enabled:
-                self._disable()
-                ContextTUIWindow._static_enabled = False
+        elif self._enabled:
+            self._disable()
+            ContextTUIWindow._static_enabled = False
         return is_valid
 
     def _ansi_substr(self, line: str, start_char: int, end_char: int) -> str:

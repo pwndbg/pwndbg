@@ -36,7 +36,6 @@ import pwndbg.chain
 import pwndbg.color
 import pwndbg.color.context as ctx_color
 import pwndbg.color.memory as mem_color
-import pwndbg.color.message as message
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
@@ -44,16 +43,18 @@ import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.lib.cache
 import pwndbg.lib.config
-import pwndbg.lib.pretty_print as pretty_print
+import pwndbg.lib.tips
 import pwndbg.rich
 import pwndbg.ui
 from pwndbg.aglib.arch_mod import get_thumb_mode_string
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
+from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
+from pwndbg.lib import pretty_print
 from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import RegisterContextProtocol
 from pwndbg.lib.regs import VisitableRegister
@@ -175,7 +176,7 @@ config_output = pwndbg.config.add_param(
 )
 config_context_sections = pwndbg.config.add_param(
     "context-sections",
-    "last_signal regs disasm code ghidra stack backtrace expressions threads heap_tracker",
+    "regs disasm code ghidra stack backtrace expressions threads heap_tracker last_signal",
     "which context sections are displayed (controls order)",
 )
 config_max_threads_display = pwndbg.config.add_param(
@@ -446,7 +447,7 @@ def history_handle_unchanged_contents() -> None:
         # Duplicate the last entry if it is the same as the previous one
         # and wasn't added when the history was updated
         if len(history) == longest_history - 1 and history:
-            context_history[section_name].append(history[-1])
+            history.append(history[-1])
         # Prepend empty entries to the history to make all sections have the same length
         elif len(history) < longest_history - 1:
             context_history[section_name] = [
@@ -1693,10 +1694,8 @@ def context_threads(
 
     for thread in displayed_threads:
         name = thread.name or ""
-        if len(name) > max_name_length:
-            max_name_length = len(name)
-        if len(str(thread.global_num)) > max_global_num_len:
-            max_global_num_len = len(str(thread.global_num))
+        max_name_length = max(max_name_length, len(name))
+        max_global_num_len = max(max_global_num_len, len(str(thread.global_num)))
 
     for thread in filter(lambda t: t.is_valid(), displayed_threads):
         selected = " ►" if thread is original_thread else "  "
@@ -1742,8 +1741,12 @@ def context_threads(
 
 
 @pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.SAVE_SIGNAL)
-@pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.SAVE_SIGNAL)
 def save_signal() -> None:
+    # We can't do this on EventType.CONTINUE because of #3683
+    # We can't do this on EventType.EXIT because of
+    #  https://sourceware.org/bugzilla/show_bug.cgi?id=34047
+    # But we don't really care about those anyway, at least for GDB, because
+    # the signal information only changes on gdb.SignalEvent which is a subclass of gdb.StopEvent .
     global last_signal
     last_signal = result = []
 
@@ -1759,7 +1762,11 @@ def save_signal() -> None:
     if not process:
         return
 
-    if not (process.stopped_with_signal() or process.stopped_at_breakpoint()):
+    # We don't show signal on breakpoints (process.stopped_at_breakpoint()) because
+    # it clutters the context.
+    # process.stopped_with_signal() does return non-breakpoint caused SIGTRAPs
+    # (e.g. a non-debugger-inserted int3 instruction).
+    if not (process.stopped_with_signal()):
         return
 
     signal = pwndbg.aglib.signal.get_last_signal()
@@ -1775,9 +1782,7 @@ def save_signal() -> None:
                 msg += desc_long
         except pwndbg.dbg_mod.Error:
             pass
-    elif signal == "SIGTRAP":
-        result.append(message.breakpoint(f"Breakpoint hit at {pwndbg.aglib.regs.pc:#x}"))
-        return
+
     result.append(message.signal(msg))
 
 

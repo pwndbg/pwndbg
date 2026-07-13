@@ -14,7 +14,6 @@ import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.context as ctx_color
 import pwndbg.color.memory as mem_color
-import pwndbg.color.message as message
 import pwndbg.color.syntax_highlight as H
 import pwndbg.dintegration
 import pwndbg.lib.config
@@ -24,6 +23,7 @@ from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import boolean_to_instruction_condition
+from pwndbg.color import message
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.regs import PseudoEmulatedRegisterFile
 
@@ -490,7 +490,7 @@ class DisassemblyAssistant:
         if value is None:
             return None
 
-        if operand.type == CS_OP_REG or operand.type == CS_OP_IMM:
+        if operand.type in (CS_OP_REG, CS_OP_IMM):
             return value
         if operand.type == CS_OP_MEM:
             # Assume that we are reading ptrsize - subclasses should override this function
@@ -982,17 +982,18 @@ class DisassemblyAssistant:
                 # and we are not emulating. This means we cannot savely dereference if PC is not at the current instruction address,
                 # because the the memory address could have been written to by the time the instruction executes
                 telescope_print = None
+            elif signed and read_size != target_size and len(telescope_addresses) == 2:
+                # We sign extend the value, then convert it back to the unsigned bit representation
+                final_value = bit_math.to_signed(telescope_addresses[1], read_size * 8) & (
+                    (1 << (target_size * 8)) - 1
+                )
+                # If it's a signed read that required extension, it will just be a number with no special symbol/color needed
+                telescope_print = hex(final_value)
             else:
-                if signed and read_size != target_size and len(telescope_addresses) == 2:
-                    # We sign extend the value, then convert it back to the unsigned bit representation
-                    final_value = bit_math.to_signed(telescope_addresses[1], read_size * 8) & (
-                        (1 << (target_size * 8)) - 1
-                    )
-                    # If it's a signed read that required extension, it will just be a number with no special symbol/color needed
-                    telescope_print = hex(final_value)
-                else:
-                    # Start showing at dereferenced address, hence the [1:]
-                    telescope_print = f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
+                # Start showing at dereferenced address, hence the [1:]
+                telescope_print = (
+                    f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
+                )
 
             instruction.annotation = f"{dest_str}, {source_str}"
 

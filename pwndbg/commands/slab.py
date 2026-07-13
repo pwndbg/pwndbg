@@ -15,7 +15,6 @@ import pwndbg
 import pwndbg.aglib.kernel.slab
 import pwndbg.aglib.memory
 import pwndbg.color
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 from pwndbg.aglib.kernel.slab import CpuCache
@@ -23,6 +22,7 @@ from pwndbg.aglib.kernel.slab import Freelist
 from pwndbg.aglib.kernel.slab import NodeCache
 from pwndbg.aglib.kernel.slab import Slab
 from pwndbg.aglib.kernel.slab import find_containing_slab_cache
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.exception import IndentContextManager
 
@@ -131,7 +131,7 @@ def freelist_desc(freelist: Freelist) -> str:
 
 def print_slab(slab: Slab, verbose: bool) -> None:
     indent.print(
-        f"- {indent.prefix('Slab')} @ {indent.addr_hex(slab.virt_address)} [{indent.aux_hex(slab.slab_address)}]:"
+        f"- {indent.prefix('Slab')} @ {indent.addr_hex(slab.slab_address)} [{indent.aux_hex(slab.virt_address)}]:"
     )
 
     with indent:
@@ -225,7 +225,7 @@ def print_node_cache(node_cache: NodeCache, verbose: bool) -> None:
     )
     # https://elixir.bootlin.com/linux/v6.13/source/mm/slub.c#L3140
     indent.print(
-        f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(address)} [NUMA node {node}, nr_partial/min_partial: {indent.aux_hex(nr_partial)}/{indent.aux_hex(min_partial)}]:"
+        f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(address)} [NUMA node {node}]:"
     )
     with indent:
         partial_slabs = node_cache.partial_slabs
@@ -234,7 +234,7 @@ def print_node_cache(node_cache: NodeCache, verbose: bool) -> None:
             return
 
         indent.print(
-            f"{indent.prefix('Partial Slabs')} [nr_partial: {indent.aux_hex(len(partial_slabs))}]"
+            f"{indent.prefix('Partial Slabs')} [nr_partial/min_partial: {indent.aux_hex(nr_partial)}/{indent.aux_hex(min_partial)}]"
         )
         with indent:
             for slab in partial_slabs:
@@ -327,11 +327,10 @@ def slab_contains(address: str) -> None:
                 inuse = "in-use"
             if slab.is_active:
                 location = f"active, cpu {slab.cpu_cache.cpu}"
+            elif slab.is_cpu:
+                location = f"partial, cpu {slab.cpu_cache.cpu}"
             else:
-                if slab.is_cpu:
-                    location = f"partial, cpu {slab.cpu_cache.cpu}"
-                else:
-                    location = f"partial, node {slab.node_cache.node}"
+                location = f"partial, node {slab.node_cache.node}"
             if slab.inuse == slab.object_count:
                 objcnt = "full"
             else:

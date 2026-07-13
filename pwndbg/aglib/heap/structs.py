@@ -1251,10 +1251,10 @@ DEFAULT_MP_.n_mmaps_max = DEFAULT_MMAP_MAX
 DEFAULT_MP_.mmap_threshold = DEFAULT_MMAP_THRESHOLD
 DEFAULT_MP_.trim_threshold = DEFAULT_TRIM_THRESHOLD
 DEFAULT_MP_.arena_test = 2 if pwndbg.aglib.arch.ptrsize == 4 else 8
-if (MallocPar._c_struct != c_malloc_par_2_23) and (MallocPar._c_struct != c_malloc_par_2_12):
+if MallocPar._c_struct not in (c_malloc_par_2_23, c_malloc_par_2_12):
     # the only difference between 2.23 and the rest is the lack of tcache
     DEFAULT_MP_.tcache_count = TCACHE_FILL_COUNT
-    if MallocPar._c_struct == c_malloc_par_2_42 or MallocPar._c_struct == c_malloc_par_2_43:
+    if MallocPar._c_struct in (c_malloc_par_2_42, c_malloc_par_2_43):
         DEFAULT_MP_.tcache_small_bins = TCACHE_SMALL_BINS
         DEFAULT_MP_.tcache_max_bytes = (
             MAX_TCACHE_SMALL_SIZE + SIZE_SZ + MALLOC_ALIGN_MASK

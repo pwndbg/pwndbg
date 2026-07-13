@@ -8,20 +8,20 @@ import argparse
 import string
 
 import pwndbg
-import pwndbg.aglib.heap.mallocng as mallocng
-import pwndbg.aglib.memory as memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.typeinfo
-import pwndbg.aglib.typeinfo as typeinfo
 import pwndbg.aglib.vmmap
-import pwndbg.color as color
 import pwndbg.color.memory as mem_color
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.config
+from pwndbg import color
 from pwndbg import config
+from pwndbg.aglib import memory
+from pwndbg.aglib import typeinfo
+from pwndbg.aglib.heap import mallocng
 from pwndbg.aglib.heap.mallocng import ng
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.pretty_print import Property
 from pwndbg.lib.pretty_print import from_properties
@@ -315,17 +315,16 @@ def dump_slot(
                 alt_value=cyc_val_alt,
             ),
         )
-    else:
-        # We haven't printed the slot state yet. Will we do it with a grouped slot?
-        if not will_dump_gslot:
-            # Nope, then let's go ahead and guess.
-            inband_group.append(
-                Property(
-                    name="state",
-                    value=get_colored_slot_state(slot.slot_state),
-                    extra="(probably, check the meta)",
-                )
+    # We haven't printed the slot state yet. Will we do it with a grouped slot?
+    elif not will_dump_gslot:
+        # Nope, then let's go ahead and guess.
+        inband_group.append(
+            Property(
+                name="state",
+                value=get_colored_slot_state(slot.slot_state),
+                extra="(probably, check the meta)",
             )
+        )
 
     output += from_properties("in-band", inband_group)
 

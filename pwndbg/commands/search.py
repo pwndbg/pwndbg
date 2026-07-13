@@ -276,7 +276,7 @@ def search(
     # Output appropriate messages based on the detected search type for better clarity
     if is_pointer:
         print("Searching for a pointer-width integer: " + repr(value))
-    elif type == "word" or type == "short":
+    elif type in {"word", "short"}:
         print("Searching for a 2-byte integer: " + repr(value))
     elif type == "dword":
         print("Searching for a 4-byte integer: " + repr(value))

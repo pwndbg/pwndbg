@@ -12,8 +12,8 @@ import tempfile
 from pathlib import Path
 
 import pwndbg
-import pwndbg.aglib.elf as elf
 import pwndbg.lib.tempfile
+from pwndbg.aglib import elf
 from pwndbg.lib import Status
 
 # Remeber loaded structures. This would be useful for 'remove-symbol-file'.

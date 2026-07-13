@@ -159,9 +159,8 @@ def _disable_colors_trigger():
         if not hasattr(colorize, "original_code"):
             colorize.original_code = colorize.__code__
         colorize.__code__ = nocolor.__code__
-    else:
-        if hasattr(colorize, "original_code"):
-            colorize.__code__ = colorize.original_code
+    elif hasattr(colorize, "original_code"):
+        colorize.__code__ = colorize.original_code
 
 
 def generate_color_function_inner(

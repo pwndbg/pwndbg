@@ -18,10 +18,10 @@ import pwndbg.aglib
 import pwndbg.aglib.dynamic
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
-import pwndbg.color.message as message
 import pwndbg.gdblib.bpoint
 import pwndbg.gdblib.shellcode
 import pwndbg.lib.memory
+from pwndbg.color import message
 
 
 class RelocTypes:

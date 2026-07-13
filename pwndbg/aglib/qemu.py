@@ -16,9 +16,9 @@ from pt.machine import Machine
 
 import pwndbg
 import pwndbg.aglib
-import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.qemu
+from pwndbg.color import message
 
 if TYPE_CHECKING:
     import pwndbg.aglib.kernel

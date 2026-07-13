@@ -4,9 +4,9 @@ import argparse
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
-import pwndbg.color.message as message
 import pwndbg.commands
 from pwndbg import config
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Finds the kernel virtual base address.")

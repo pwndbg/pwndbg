@@ -19,11 +19,11 @@ import gdb
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.nearpc
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
 import pwndbg.lib.strings
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 pwndbg.config.add_param(
@@ -94,7 +94,6 @@ def _requests():
 def set_dummy_mode(d=True) -> None:
     global dummy
     dummy = d
-    return
 
 
 def get_openai_api_key():

@@ -14,11 +14,11 @@ import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.err
 import pwndbg.lib.memory
+from pwndbg.color import message
 from pwndbg.lib.memory import Page
 
 

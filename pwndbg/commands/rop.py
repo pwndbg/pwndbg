@@ -11,12 +11,12 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.vmmap
 import pwndbg.color.disasm
 import pwndbg.color.memory
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.lib.memory
 from pwndbg.aglib.disasm.disassembly import get_disassembler
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 

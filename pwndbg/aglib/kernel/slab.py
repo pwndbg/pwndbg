@@ -11,6 +11,7 @@ import pwndbg.lib.cache
 from pwndbg.aglib import kernel
 from pwndbg.aglib.kernel.macros import compound_head
 from pwndbg.aglib.kernel.macros import for_each_entry
+from pwndbg.aglib.kernel.macros import memdesc_flag_or_int
 from pwndbg.aglib.kernel.macros import swab
 
 
@@ -183,7 +184,7 @@ class SlabCache:
 
     @property
     def flags(self) -> list[str]:
-        return get_flags_list(int(self._slab_cache["flags"]))
+        return get_flags_list(memdesc_flag_or_int(self._slab_cache["flags"]))
 
     @property
     def cpu_cache(self) -> CpuCache | None:
@@ -557,7 +558,7 @@ def kmem_cache_pad_sz() -> tuple[int, int]:
     if kasan_config_name in kconfig and krelease:  # kasan
         if krelease >= (6, 3) or krelease < (6, 1) or "CONFIG_KASAN_GENERIC" in kernel.kconfig():
             distance -= pwndbg.aglib.typeinfo.uint.sizeof * 2
-        if (5, 12) <= krelease and krelease < (6, 3):
+        if (5, 12) <= krelease < (6, 3):
             distance -= ptrsize
     if "CONFIG_HARDENED_USERCOPY" in kconfig or (krelease and krelease < (6, 2)):
         distance -= pwndbg.aglib.typeinfo.uint.sizeof * 2
