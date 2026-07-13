@@ -11,20 +11,13 @@ from . import pwndbg_test
 MUSL_VERSIONS = musl_test_versions()
 assert MUSL_VERSIONS, "no musl versions parsed from Dockerfile.musl-test-libs"
 
-_MALLOCNG_MIN = (1, 2, 1)
-
 
 def version_tuple(ver: str) -> tuple[int, ...]:
     return tuple(int(p) for p in ver.split("."))
 
 
 def _version_linkages() -> list[tuple[str, str]]:
-    combos: list[tuple[str, str]] = []
-    for ver in MUSL_VERSIONS:
-        combos.append((ver, "dynamic"))
-        if version_tuple(ver) >= _MALLOCNG_MIN:
-            combos.append((ver, "static"))
-    return combos
+    return [(ver, linkage) for ver in MUSL_VERSIONS for linkage in ("dynamic", "static")]
 
 
 _COMBOS = _version_linkages()
