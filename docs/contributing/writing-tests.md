@@ -148,7 +148,7 @@ To test architecture specific features, like disassembly annotations, we use emu
 
 Rather than write new per-version tests, we parametrize the existing tests over the available versions:
 
-- **glibc** (2.35-2.43): version detection; the heap commands (allocator, bins, `malloc-chunk`, `dt`, `find-fake-fast`) via debug symbols; the forced-heuristic path; and a no-symbol heuristic run against a fully stripped libc.
+- **glibc** (2.35-2.43): version detection; the heap commands (allocator, bins, `malloc-chunk`, `dt`, `find-fake-fast`); and `main_arena` resolution three ways, once via debug symbols, once with the heuristic forced on while symbols are present, and once via the heuristic alone against a fully stripped libc.
 - **musl** (1.1.24-1.2.6): detection and exact version, static (where the mallocng fingerprint exists) and dynamic, plus the full `test_mallocng.py` suite.
 
 **How it works:** Each version's libc is compiled inside the `Dockerfile.*-test-libs` images. For glibc this happens twice: with full debug info, and as a stripped no-debug copy under `glibcs-nodebug/` for the no-symbol heuristic tests. `download-test-libs.sh` then copies those artifacts out of the image onto the host (`docker cp`) under `tests/binaries/host/`. The tests never run inside the libc-building image; they run on the host locally, or in the `ubuntu24.04` container in CI, with the per-version test binaries linked against the extracted libcs.
