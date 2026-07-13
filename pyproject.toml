@@ -155,6 +155,7 @@ select = [
     "UP",     # pyugprade
     "FURB",   # refurb
     "PLR",    # pylint-refactor
+    "PLE",    # pylint-error
     # We want to enable the below lints, but they currently return too many errors
     # "SLF" # flake8-self
     # "PTH", # flake8-use-pathlib
