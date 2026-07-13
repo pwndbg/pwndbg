@@ -306,38 +306,37 @@ def create_branch_visualization_strings(
                         BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
                     )
                     branch_vis_string_len += 2 + expand_amount
-        else:
-            # Backwards jump
-            if pair.start == addr:
-                if branch_vis_string:
-                    branch_vis_string = (
-                        colorize_branch_vis_line(
-                            pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
-                        )
-                        + branch_vis_string
+        # Backwards jump
+        elif pair.start == addr:
+            if branch_vis_string:
+                branch_vis_string = (
+                    colorize_branch_vis_line(
+                        pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
                     )
-                    branch_vis_string_len += 1 + expand_amount
-                else:
-                    branch_vis_string = colorize_branch_vis_line(
-                        pair_offset,
-                        BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
+                    + branch_vis_string
+                )
+                branch_vis_string_len += 1 + expand_amount
+            else:
+                branch_vis_string = colorize_branch_vis_line(
+                    pair_offset,
+                    BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
+                )
+                branch_vis_string_len += 2 + expand_amount
+        elif pair.end == addr:
+            if branch_vis_string:
+                branch_vis_string = (
+                    colorize_branch_vis_line(
+                        pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
                     )
-                    branch_vis_string_len += 2 + expand_amount
-            elif pair.end == addr:
-                if branch_vis_string:
-                    branch_vis_string = (
-                        colorize_branch_vis_line(
-                            pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
-                        )
-                        + branch_vis_string
-                    )
-                    branch_vis_string_len += 1 + expand_amount
-                else:
-                    branch_vis_string = colorize_branch_vis_line(
-                        pair_offset,
-                        TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
-                    )
-                    branch_vis_string_len += 2 + expand_amount
+                    + branch_vis_string
+                )
+                branch_vis_string_len += 1 + expand_amount
+            else:
+                branch_vis_string = colorize_branch_vis_line(
+                    pair_offset,
+                    TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
+                )
+                branch_vis_string_len += 2 + expand_amount
         if pair_offset == maximum_pair_id:
             # We don't have any more column space for more jump ranges
             break
@@ -369,10 +368,9 @@ def create_branch_visualization_strings(
             # If this pair ended at this address, nothing goes into the empty line after it
             if pair.end == addr:
                 continue
-        else:
-            # If a backwards jump started here, nothing goes in the empty line after it
-            if pair.start == addr:
-                continue
+        # If a backwards jump started here, nothing goes in the empty line after it
+        elif pair.start == addr:
+            continue
 
         if pair_offset == maximum_pair_id:
             last_iteration = True
@@ -391,7 +389,7 @@ def create_branch_visualization_strings(
         empty_line_branch_vis_string_len += 1 + num_empty_lines
 
         # Now, create the string for the non-empty line
-        if pair.start == addr or pair.end == addr:
+        if addr in (pair.start, pair.end):
             continue
 
         # Only add to the string if the space hasn't been taking by a horizontal line

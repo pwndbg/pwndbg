@@ -101,6 +101,11 @@ def update_deps(src_root: Path) -> None:
 
 
 def is_system_installation(src_root: Path) -> bool:
+    # NOTE: This is intentionally duplicated (inlined) in the top-level `gdbinit.py`
+    # so that gdbinit doesn't import the `pwndbginit` package before `fixup_paths()`
+    # corrects `sys.path` (see https://github.com/pwndbg/pwndbg/issues/3963). If you
+    # change the logic here, update `is_system_installation` in `gdbinit.py` too.
+    #
     # If pwndbg is installed in `/venv/lib/pythonX.Y/site-packages/pwndbg/`,
     # the `.pwndbg_root` file will not exist because `src_root` will point to the
     # `/venv/lib/pythonX.Y/site-packages/` directory, not the original source directory

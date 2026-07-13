@@ -12,13 +12,13 @@ import pwndbg.aglib.disasm.assistant
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.memory as mem_color
-import pwndbg.color.message as message
 import pwndbg.dintegration
 from pwndbg.aglib.disasm.assistant import memory_or_register_assign
 from pwndbg.aglib.disasm.assistant import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.color import message
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:

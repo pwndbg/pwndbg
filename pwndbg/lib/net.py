@@ -213,16 +213,16 @@ NETLINK_TYPES = {
     7: "NETLINK_SELINUX",  # SELinux event notifications
     8: "NETLINK_ISCSI",  # Open-iSCSI
     9: "NETLINK_AUDIT",  # auditing
-    10: "NETLINK_FIB_LOOKUP",  #
-    11: "NETLINK_CONNECTOR",  #
+    10: "NETLINK_FIB_LOOKUP",
+    11: "NETLINK_CONNECTOR",
     12: "NETLINK_NETFILTER",  # netfilter subsystem
-    13: "NETLINK_IP6_FW",  #
+    13: "NETLINK_IP6_FW",
     14: "NETLINK_DNRTMSG",  # DECnet routing messages
     15: "NETLINK_KOBJECT_UEVENT",  # Kernel messages to userspace
-    16: "NETLINK_GENERIC",  #
+    16: "NETLINK_GENERIC",
     18: "NETLINK_SCSITRANSPORT",  # SCSI Transports
-    19: "NETLINK_ECRYPTFS",  #
-    20: "NETLINK_RDMA",  #
+    19: "NETLINK_ECRYPTFS",
+    20: "NETLINK_RDMA",
     21: "NETLINK_CRYPTO",  # Crypto layer
     22: "NETLINK_SMC",  # SMC monitoring
 }

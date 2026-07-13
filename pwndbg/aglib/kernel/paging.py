@@ -146,7 +146,7 @@ class PageTableScan:
                         flags = Page.R_OK if entry & 1 != 0 else 0
                         flags |= Page.X_OK if (entry >> 53) & 3 != 3 else 0
                         ap = (entry >> 6) & 3
-                        flags |= Page.W_OK if ap == 1 or ap == 0 else 0
+                        flags |= Page.W_OK if ap in {1, 0} else 0
                 if flags & Page.R_OK:  # only append present pages, read bit indicates presence
                     if curr_off is not None:
                         if flags == curr_flags:
@@ -923,9 +923,8 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def pagewalk(self, target: int, entry: int | None, virt: bool = True) -> PagewalkResult:
         if pwndbg.aglib.memory.is_kernel(target):
             entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
-        else:
-            if entry is None:
-                entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
+        elif entry is None:
+            entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
         if entry is None:
             return PagewalkResult()
         entry |= 3  # marks the entry as a table

@@ -136,11 +136,7 @@ class Parameter:
             if val is None:
                 return "auto"
             return "on" if val else "off"
-        if (
-            self.param_class == PARAM_STRING
-            or self.param_class == PARAM_ENUM
-            or self.param_class == PARAM_OPTIONAL_FILENAME
-        ):
+        if self.param_class in (PARAM_STRING, PARAM_ENUM, PARAM_OPTIONAL_FILENAME):
             return "'" + val + "'"
         return str(val)
 

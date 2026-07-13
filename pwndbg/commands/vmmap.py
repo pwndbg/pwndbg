@@ -16,13 +16,13 @@ import pwndbg.aglib.file
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as mem_color
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.color import cyan
 from pwndbg.color import green
+from pwndbg.color import message
 from pwndbg.color import red
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.memory import Page

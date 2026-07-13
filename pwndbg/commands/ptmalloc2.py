@@ -995,9 +995,8 @@ def find_fake_fast(
             if partial_overwrite:
                 if (candidate_address + size_field) > target_address:
                     malloc_chunk(candidate_address - size_sz, fake=True)
-            else:
-                if (candidate_address + size_field) >= (target_address + size_sz):
-                    malloc_chunk(candidate_address - size_sz, fake=True)
+            elif (candidate_address + size_field) >= (target_address + size_sz):
+                malloc_chunk(candidate_address - size_sz, fake=True)
 
         else:
             break

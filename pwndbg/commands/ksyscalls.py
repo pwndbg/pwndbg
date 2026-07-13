@@ -8,9 +8,9 @@ import argparse
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg.color import message
 
 parser = argparse.ArgumentParser(
     description="Displays Linux syscall table, including names and addresses of syscalls."

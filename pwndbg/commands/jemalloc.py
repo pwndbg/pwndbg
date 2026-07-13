@@ -3,10 +3,10 @@ from __future__ import annotations
 import argparse
 
 import pwndbg
-import pwndbg.aglib.heap.jemalloc as jemalloc
 import pwndbg.color.context as ctx_color
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg.aglib.heap import jemalloc
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 

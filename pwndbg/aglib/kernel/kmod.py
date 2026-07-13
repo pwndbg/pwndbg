@@ -6,11 +6,11 @@ import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib
 import pwndbg.lib.cache
 from pwndbg.aglib.kernel.macros import for_each_entry
+from pwndbg.color import message
 
 
 class mod_mem_type(Enum):
