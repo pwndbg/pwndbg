@@ -1,4 +1,8 @@
-from pwndbg.lib.abi import DEFAULT_ABIS, SYSCALL_ABIS, SIGRETURN_ABIS
+from __future__ import annotations
+
+from pwndbg.lib.abi import DEFAULT_ABIS
+from pwndbg.lib.abi import SIGRETURN_ABIS
+from pwndbg.lib.abi import SYSCALL_ABIS
 
 
 def test_loongarch64_abi_registered() -> None:

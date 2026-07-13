@@ -55,34 +55,38 @@ class SigreturnABI(SyscallABI):
 linux_i386 = ABI((), 4, 0)
 linux_amd64 = ABI(("rdi", "rsi", "rdx", "rcx", "r8", "r9"), 8, 0)
 linux_arm = ABI(("r0", "r1", "r2", "r3"), 8, 0)
-linux_aarch64 = ABI(("x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7"), 16, 0) 
-linux_loongarch64 = ABI(("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"), 8, 0) 
+linux_aarch64 = ABI(("x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7"), 16, 0)
+linux_loongarch64 = ABI(("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"), 8, 0)
 linux_mips = ABI(("$a0", "$a1", "$a2", "$a3"), 4, 0)
 linux_mips64 = ABI(("$a0", "$a1", "$a2", "$a3", "$a4", "$a5", "$a6", "$a7"), 8, 0)
 linux_ppc = ABI(("r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10"), 4, 0)
 linux_ppc64 = ABI(("r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10"), 8, 0)
 linux_riscv32 = ABI(("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"), 4, 0)
 linux_riscv64 = ABI(("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"), 8, 0)
-linux_s390x = ABI(("r2", "r3", "r4", "r5", "r6"),8,0,)
+linux_s390x = ABI(("r2", "r3", "r4", "r5", "r6"), 8, 0)
 
 linux_i386_syscall = SyscallABI(("eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"), 4, 0)
 linux_amd64_syscall = SyscallABI(("rax", "rdi", "rsi", "rdx", "r10", "r8", "r9"), 8, 0)
 linux_arm_syscall = SyscallABI(("r7", "r0", "r1", "r2", "r3", "r4", "r5", "r6"), 4, 0)
-linux_aarch64_syscall = SyscallABI(("x8", "x0", "x1", "x2", "x3", "x4", "x5"), 16, 0)  
-linux_loongarch64_syscall = SyscallABI(("a7", "a0", "a1", "a2", "a3", "a4", "a5", "a6"), 8, 0) 
+linux_aarch64_syscall = SyscallABI(("x8", "x0", "x1", "x2", "x3", "x4", "x5"), 16, 0)
+linux_loongarch64_syscall = SyscallABI(("a7", "a0", "a1", "a2", "a3", "a4", "a5", "a6"), 8, 0)
 linux_mips_syscall = SyscallABI(("$v0", "$a0", "$a1", "$a2", "$a3"), 4, 0)
 linux_mips64_syscall = SyscallABI(("$v0", "$a0", "$a1", "$a2", "$a3", "$a4", "$a5"), 4, 0)
 linux_ppc_syscall = SyscallABI(("r0", "r3", "r4", "r5", "r6", "r7", "r8", "r9"), 4, 0)
 linux_ppc64_syscall = SyscallABI(("r0", "r3", "r4", "r5", "r6", "r7", "r8"), 8, 0)
 linux_riscv32_syscall = SyscallABI(("a7", "a0", "a1", "a2", "a3", "a4", "a5", "a6"), 4, 0)
 linux_riscv64_syscall = SyscallABI(("a7", "a0", "a1", "a2", "a3", "a4", "a5", "a6"), 8, 0)
-linux_s390x_syscall = SyscallABI(("r1", "r2", "r3", "r4", "r5", "r6"),8,0,) 
+linux_s390x_syscall = SyscallABI(
+    ("r1", "r2", "r3", "r4", "r5", "r6"),
+    8,
+    0,
+)
 
 linux_i386_sigreturn = SigreturnABI(("eax",), 4, 0)
 linux_amd64_sigreturn = SigreturnABI(("rax",), 4, 0)
 linux_arm_sigreturn = SigreturnABI(("r7",), 4, 0)
-linux_loongarch64_sigreturn = SigreturnABI(("a7",), 8, 0)  
-linux_s390x_sigreturn = SigreturnABI(("r1",), 8, 0) 
+linux_loongarch64_sigreturn = SigreturnABI(("a7",), 8, 0)
+linux_s390x_sigreturn = SigreturnABI(("r1",), 8, 0)
 
 # Fake ABIs used by SROP
 linux_i386_srop = ABI(("eax",), 4, 0)
@@ -93,7 +97,7 @@ DEFAULT_ABIS: dict[tuple[int, str, str], ABI] = {
     (32, "i386", "linux"): linux_i386,
     (64, "x86-64", "linux"): linux_amd64,
     (64, "aarch64", "linux"): linux_aarch64,
-    (64, 'loongarch64', 'linux'): linux_loongarch64, 
+    (64, "loongarch64", "linux"): linux_loongarch64,
     (32, "arm", "linux"): linux_arm,
     (32, "thumb", "linux"): linux_arm,
     (32, "mips", "linux"): linux_mips,
@@ -102,14 +106,14 @@ DEFAULT_ABIS: dict[tuple[int, str, str], ABI] = {
     (64, "powerpc", "linux"): linux_ppc64,
     (32, "rv32", "linux"): linux_riscv32,
     (64, "rv64", "linux"): linux_riscv64,
-    (64, "s390x", "linux"): linux_s390x, 
+    (64, "s390x", "linux"): linux_s390x,
 }
 
 SYSCALL_ABIS: dict[tuple[int, str, str], SyscallABI] = {
     (32, "i386", "linux"): linux_i386_syscall,
     (64, "x86-64", "linux"): linux_amd64_syscall,
     (64, "aarch64", "linux"): linux_aarch64_syscall,
-    (64, 'loongarch64', 'linux'): linux_loongarch64_syscall, 
+    (64, "loongarch64", "linux"): linux_loongarch64_syscall,
     (32, "arm", "linux"): linux_arm_syscall,
     (32, "thumb", "linux"): linux_arm_syscall,
     (32, "mips", "linux"): linux_mips_syscall,
@@ -118,7 +122,7 @@ SYSCALL_ABIS: dict[tuple[int, str, str], SyscallABI] = {
     (64, "powerpc", "linux"): linux_ppc64_syscall,
     (32, "rv32", "linux"): linux_riscv32_syscall,
     (64, "rv64", "linux"): linux_riscv64_syscall,
-    (64, "s390x", "linux"): linux_s390x_syscall, 
+    (64, "s390x", "linux"): linux_s390x_syscall,
 }
 
 SIGRETURN_ABIS: dict[tuple[int, str, str], SigreturnABI] = {
@@ -126,6 +130,6 @@ SIGRETURN_ABIS: dict[tuple[int, str, str], SigreturnABI] = {
     (64, "x86-64", "linux"): linux_amd64_sigreturn,
     (32, "arm", "linux"): linux_arm_sigreturn,
     (32, "thumb", "linux"): linux_arm_sigreturn,
-    (64, "loongarch64", "linux"): linux_loongarch64_sigreturn,  
-    (64, "s390x", "linux"): linux_s390x_sigreturn, 
+    (64, "loongarch64", "linux"): linux_loongarch64_sigreturn,
+    (64, "s390x", "linux"): linux_s390x_sigreturn,
 }
