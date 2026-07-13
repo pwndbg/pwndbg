@@ -136,7 +136,7 @@ EOF
 EOF
     fi
 
-    sudo pacman -Syu --noconfirm || true
+    sudo pacman -Syu --noconfirm
     sudo pacman -S --needed --noconfirm \
         nasm \
         glibc-debug \

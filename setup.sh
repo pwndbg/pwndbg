@@ -72,7 +72,7 @@ install_pacman() {
     # user want to perform a full system upgrade
     answer=${answer:-n} # n is default
     if [[ "$answer" == "y" ]]; then
-        sudo pacman -Syu || true
+        sudo pacman -Syu --noconfirm
     fi
     sudo pacman -S --noconfirm --needed git gdb python which debuginfod curl gcc make patch
 }
