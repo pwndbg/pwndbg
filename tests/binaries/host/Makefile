@@ -90,7 +90,7 @@ endif
 # Versions come from the build-<version> stages in Dockerfile.glibc-test-libs (the source of truth).
 GLIBC_TEST_VERSIONS := $(shell sed -n 's/^FROM base-builder AS build-\([0-9][0-9.]*\).*/\1/p' $(PWD)/../../../Dockerfile.glibc-test-libs)
 # Add a binary by creating <stem>.native.c and listing it here; add a version via a Dockerfile stage.
-GLIBC_HEAP_BINARIES := heap_malloc_chunk heap_malloc_chunk_dump heap_bins heap_find_fake_fast
+GLIBC_VERSION_BINARIES := heap_malloc_chunk heap_malloc_chunk_dump heap_bins heap_find_fake_fast
 
 AVAILABLE_GLIBC_VERSIONS := $(foreach ver,$(GLIBC_TEST_VERSIONS),\
     $(if $(wildcard $(PWD)/glibcs/$(ver)/$(GLIBC_LD_NAME)),$(ver)))
@@ -99,7 +99,7 @@ ifeq ($(LIBC_VER_ARCH_OK),yes)
 ifeq ($(strip $(GLIBC_TEST_VERSIONS)),)
 $(error Could not parse glibc versions from Dockerfile.glibc-test-libs - expected 'FROM base-builder AS build-<version>' stages)
 endif
-define GLIBC_HEAP_TARGET
+define GLIBC_VERSION_TARGET
 $(1).glibc-$(2).out: $(1).native.c
 	@echo "[+] Building '$$@' against glibc $(2)"
 	$${ZIGCC} $${CFLAGS} -w \
@@ -109,18 +109,18 @@ $(1).glibc-$(2).out: $(1).native.c
 	-o $$@ $$< -pthread -lpthread
 endef
 
-$(foreach bin,$(GLIBC_HEAP_BINARIES),\
+$(foreach bin,$(GLIBC_VERSION_BINARIES),\
     $(foreach ver,$(AVAILABLE_GLIBC_VERSIONS),\
-        $(eval $(call GLIBC_HEAP_TARGET,$(bin),$(ver)))))
+        $(eval $(call GLIBC_VERSION_TARGET,$(bin),$(ver)))))
 
-ALL_GLIBC_VERSION_TARGETS := $(foreach bin,$(GLIBC_HEAP_BINARIES),\
+ALL_GLIBC_VERSION_TARGETS := $(foreach bin,$(GLIBC_VERSION_BINARIES),\
     $(foreach ver,$(AVAILABLE_GLIBC_VERSIONS),$(bin).glibc-$(ver).out))
 
 GLIBC_NODEBUG_BINARIES := heap_malloc_chunk
 AVAILABLE_GLIBC_NODEBUG_VERSIONS := $(foreach ver,$(GLIBC_TEST_VERSIONS),\
     $(if $(wildcard $(PWD)/glibcs-nodebug/$(ver)/$(GLIBC_LD_NAME)),$(ver)))
 
-define GLIBC_HEAP_NODEBUG_TARGET
+define GLIBC_VERSION_NODEBUG_TARGET
 $(1).glibc-$(2)-nodebug.out: $(1).native.c
 	@echo "[+] Building '$$@' against no-debug glibc $(2)"
 	$${ZIGCC} $${CFLAGS} -w \
@@ -132,7 +132,7 @@ endef
 
 $(foreach bin,$(GLIBC_NODEBUG_BINARIES),\
     $(foreach ver,$(AVAILABLE_GLIBC_NODEBUG_VERSIONS),\
-        $(eval $(call GLIBC_HEAP_NODEBUG_TARGET,$(bin),$(ver)))))
+        $(eval $(call GLIBC_VERSION_NODEBUG_TARGET,$(bin),$(ver)))))
 
 ALL_GLIBC_VERSION_TARGETS += $(foreach bin,$(GLIBC_NODEBUG_BINARIES),\
     $(foreach ver,$(AVAILABLE_GLIBC_NODEBUG_VERSIONS),$(bin).glibc-$(ver)-nodebug.out))
@@ -143,7 +143,7 @@ endif
 # Versions come from the build-<version> stages in Dockerfile.musl-test-libs (the source of truth).
 MUSL_TEST_VERSIONS := $(shell sed -n 's/^FROM base-builder AS build-\([0-9][0-9.]*\).*/\1/p' $(PWD)/../../../Dockerfile.musl-test-libs)
 # Add a binary by creating <stem>.native.c and listing it here; add a version via a Dockerfile stage.
-MUSL_HEAP_BINARIES := heap_musl
+MUSL_VERSION_BINARIES := heap_musl
 
 AVAILABLE_MUSL_VERSIONS := $(foreach ver,$(MUSL_TEST_VERSIONS),\
     $(if $(wildcard $(PWD)/musls/$(ver)/lib/libc.a),$(ver)))
@@ -159,7 +159,7 @@ ifeq ($(strip $(MUSL_TEST_VERSIONS)),)
 $(error Could not parse musl versions from Dockerfile.musl-test-libs - expected 'FROM base-builder AS build-<version>' stages)
 endif
 
-define MUSL_HEAP_STATIC_TARGET
+define MUSL_VERSION_STATIC_TARGET
 $(1).musl-$(2)-static.out: $(1).native.c $(PWD)/musls/$(2)/lib/libc.a $(PWD)/musls/$(2)/lib/crt1.o $(PWD)/musls/$(2)/lib/crti.o $(PWD)/musls/$(2)/lib/crtn.o
 	@echo "[+] Building '$$@' against musl $(2) (static)"
 	$${ZIGCC} $${CFLAGS} -static -no-pie -fno-pie -nostdlibinc -nostdlib \
@@ -171,7 +171,7 @@ $(1).musl-$(2)-static.out: $(1).native.c $(PWD)/musls/$(2)/lib/libc.a $(PWD)/mus
 	$$(PWD)/musls/$(2)/lib/libc.a $$(PWD)/musls/$(2)/lib/crtn.o
 endef
 
-define MUSL_HEAP_DYNAMIC_TARGET
+define MUSL_VERSION_DYNAMIC_TARGET
 $(1).musl-$(2)-dynamic.out: $(1).native.c $(PWD)/musls/$(2)/lib/libc.so $(PWD)/musls/$(2)/lib/crt1.o $(PWD)/musls/$(2)/lib/crti.o $(PWD)/musls/$(2)/lib/crtn.o
 	@echo "[+] Building '$$@' against musl $(2) (dynamic)"
 	$${ZIGCC} $${CFLAGS} -no-pie -fno-pie -nostdlibinc -nostdlib \
@@ -184,18 +184,18 @@ $(1).musl-$(2)-dynamic.out: $(1).native.c $(PWD)/musls/$(2)/lib/libc.so $(PWD)/m
 	$$(PWD)/musls/$(2)/lib/libc.so $$(PWD)/musls/$(2)/lib/crtn.o
 endef
 
-$(foreach bin,$(MUSL_HEAP_BINARIES),\
+$(foreach bin,$(MUSL_VERSION_BINARIES),\
     $(foreach ver,$(MUSL_STATIC_VERSIONS),\
-        $(eval $(call MUSL_HEAP_STATIC_TARGET,$(bin),$(ver)))))
+        $(eval $(call MUSL_VERSION_STATIC_TARGET,$(bin),$(ver)))))
 
-ALL_MUSL_VERSION_TARGETS := $(foreach bin,$(MUSL_HEAP_BINARIES),\
+ALL_MUSL_VERSION_TARGETS := $(foreach bin,$(MUSL_VERSION_BINARIES),\
     $(foreach ver,$(MUSL_STATIC_VERSIONS),$(bin).musl-$(ver)-static.out))
 
 ifeq ($(MUSL_DYNAMIC_OK),yes)
-$(foreach bin,$(MUSL_HEAP_BINARIES),\
+$(foreach bin,$(MUSL_VERSION_BINARIES),\
     $(foreach ver,$(AVAILABLE_MUSL_VERSIONS),\
-        $(eval $(call MUSL_HEAP_DYNAMIC_TARGET,$(bin),$(ver)))))
-ALL_MUSL_VERSION_TARGETS += $(foreach bin,$(MUSL_HEAP_BINARIES),\
+        $(eval $(call MUSL_VERSION_DYNAMIC_TARGET,$(bin),$(ver)))))
+ALL_MUSL_VERSION_TARGETS += $(foreach bin,$(MUSL_VERSION_BINARIES),\
     $(foreach ver,$(AVAILABLE_MUSL_VERSIONS),$(bin).musl-$(ver)-dynamic.out))
 endif
 else
