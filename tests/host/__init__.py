@@ -153,11 +153,18 @@ class TestHost:
 
 class Controller:
     async def launch(
-        self, binary: Path, args: list[str] = None, env: dict[str, str] = None
+        self,
+        binary: Path,
+        args: list[str] = None,
+        env: dict[str, str] = None,
+        stdin: Path | None = None,
+        stdout: Path | None = None,
+        stderr: Path | None = None,
     ) -> None:
         """
         Launch the binary with the given path, relative to the binaries folder
-        for the calling test.
+        for the calling test. If any standard stream path is set, redirect the
+        corresponding inferior stream to or from that file.
         """
         raise NotImplementedError()
 

@@ -28,7 +28,13 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             self.pc = pc
 
         async def launch(
-            self, binary: Path, args: list[str] = None, env: dict[str, str] = None
+            self,
+            binary: Path,
+            args: list[str] = None,
+            env: dict[str, str] = None,
+            stdin: Path | None = None,
+            stdout: Path | None = None,
+            stderr: Path | None = None,
         ) -> None:
             if env is None:
                 env = {}
@@ -46,8 +52,11 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             await self.pc.execute("settings clear plugin.symbol-locator.debuginfod.server-urls")
             await self.pc.execute(f"target create {binary}")
             env_args = " ".join((f"-E{k}={v}" for k, v in env.items()))
+            stdin_arg = f"-i {shlex.quote(str(stdin))}" if stdin is not None else ""
+            stdout_arg = f"-o {shlex.quote(str(stdout))}" if stdout is not None else ""
+            stderr_arg = f"-e {shlex.quote(str(stderr))}" if stderr is not None else ""
             await self.pc.execute(
-                f"process launch -A true {env_args} -s -- "
+                f"process launch -A true {env_args} {stdin_arg} {stdout_arg} {stderr_arg} -s -- "
                 + " ".join(shlex.quote(arg) for arg in args)
             )
 
