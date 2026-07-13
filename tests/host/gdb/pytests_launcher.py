@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import shlex
 import sys
 from collections.abc import Callable
 from collections.abc import Coroutine
@@ -31,7 +32,13 @@ class _GDBController(host.Controller):
         """
         self._gdb_execute("context")
 
-    async def launch(self, binary: Path, args: list[str] = [], env: dict[str, str] = {}) -> None:
+    async def launch(
+        self,
+        binary: Path,
+        args: list[str] = [],
+        env: dict[str, str] = {},
+        stdin: Path | None = None,
+    ) -> None:
         """
         Launch the given binary.
 
@@ -55,7 +62,10 @@ class _GDBController(host.Controller):
         # breakpoints point to invalid memory and cause "Cannot access memory"
         # errors on starti.
         self._gdb_execute("delete breakpoints")
-        self._gdb_execute("starti " + " ".join(args))
+        command = "starti " + " ".join(args)
+        if stdin is not None:
+            command += f" < {shlex.quote(str(stdin))}"
+        self._gdb_execute(command)
         self._show_context()
 
     async def cont(self) -> None:

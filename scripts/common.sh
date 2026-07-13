@@ -33,7 +33,7 @@ else
         echo "Error: 'uv' binary not found." >&2
         UV="${PWNDBG_VENV_PATH}/bin/uv"
     fi
-    UV_RUN="${UV} run"
+    UV_RUN="${UV} run --frozen"
     UV_RUN_TEST="${UV_RUN} --group dev --group tests --all-extras"
     UV_RUN_LINT="${UV_RUN} --group lint"
     # If we don't do this, we get inconsistencies because argparse is unstable.

@@ -178,17 +178,20 @@ class IODriver:
         raise NotImplementedError()
 
 
-def get_io_driver() -> IODriver:
+def get_io_driver(stdin_path: str | None = None) -> IODriver:
     """
     Instances a new IODriver using the best strategy available in the current
     system. Meaning a PTY on Unix and plain text on Windows.
+
+    If stdin_path is set, the launched process reads its standard input from
+    that file instead of from the Pwndbg terminal.
     """
     if PTY_AVAILABLE:
         pty = make_pty()
         if pty is not None:
             worker, manager = pty
-            return IODriverPseudoTerminal(worker=worker, manager=manager)
-    return IODriverPlainText()
+            return IODriverPseudoTerminal(worker=worker, manager=manager, stdin_path=stdin_path)
+    return IODriverPlainText(stdin_path=stdin_path)
 
 
 class IODriverPlainText(IODriver):
@@ -211,7 +214,8 @@ class IODriverPlainText(IODriver):
 
     process: lldb.SBProcess
 
-    def __init__(self):
+    def __init__(self, stdin_path: str | None = None):
+        self.stdin_path = stdin_path
         self.likely_output = threading.BoundedSemaphore(1)
         self.process = None
         self.stop_requested = threading.Event()
@@ -234,11 +238,16 @@ class IODriverPlainText(IODriver):
 
     @override
     def stdio(self) -> tuple[str | None, str | None, str | None]:
-        return None, None, None
+        return self.stdin_path, None, None
 
     def _handle_input(self):
         while not self._closed.is_set():
             if not self.start_requested.acquire(blocking=True, timeout=1):
+                continue
+
+            if self.stdin_path is not None:
+                self.stop_requested.wait()
+                self.stop_fulfilled.release()
                 continue
 
             while not self.stop_requested.is_set():
@@ -338,7 +347,8 @@ class IODriverPlainText(IODriver):
         assert self.process is None, "Multiple calls to start()"
         self.process = process
         self.stop_requested.clear()
-        os.set_blocking(sys.stdin.fileno(), False)
+        if self.stdin_path is None:
+            os.set_blocking(sys.stdin.fileno(), False)
 
         # Nonblocking output is NOT what we want, but in UNIX systems O_NONBLOCK
         # is set in the context of the so-called "open file description"[1][2],
@@ -389,7 +399,8 @@ class IODriverPlainText(IODriver):
         self.stop_fulfilled.acquire(blocking=True)
         self.stop_fulfilled.acquire(blocking=True)
 
-        os.set_blocking(sys.stdin.fileno(), True)
+        if self.stdin_path is None:
+            os.set_blocking(sys.stdin.fileno(), True)
 
         # See start()
         try:
@@ -485,7 +496,7 @@ class IODriverPseudoTerminal(IODriver):
 
     has_terminal_control: bool
 
-    def __init__(self, manager: int, worker: str):
+    def __init__(self, manager: int, worker: str, stdin_path: str | None = None):
         assert PTY_AVAILABLE, (
             "IODriverPseudoTerminal should never be created unless PTY_AVAILABLE is set"
         )
@@ -495,6 +506,7 @@ class IODriverPseudoTerminal(IODriver):
 
         self.manager = manager
         self.worker = worker
+        self.stdin_path = stdin_path
 
         # Try to set up our opportunistic control of the input terminal.
         self.termcontrol = OpportunisticTerminalControl()
@@ -538,20 +550,25 @@ class IODriverPseudoTerminal(IODriver):
 
     @override
     def stdio(self) -> tuple[str | None, str | None, str | None]:
-        return self.worker, self.worker, self.worker
+        stdin = self.worker if self.stdin_path is None else self.stdin_path
+        return stdin, self.worker, self.worker
 
     def _handle_io(self):
         while not self.stop_requested.is_set():
-            select.select([sys.stdin, self.manager], [self.manager], [], 0.2)
+            if self.stdin_path is None:
+                select.select([sys.stdin, self.manager], [self.manager], [], 0.2)
+            else:
+                select.select([self.manager], [self.manager], [], 0.2)
 
-            try:
-                while True:
-                    data = os.read(sys.stdin.fileno(), 1024)
-                    if len(data) == 0:
-                        break
-                    self.input_buffer += data
-            except OSError:
-                pass
+            if self.stdin_path is None:
+                try:
+                    while True:
+                        data = os.read(sys.stdin.fileno(), 1024)
+                        if len(data) == 0:
+                            break
+                        self.input_buffer += data
+                except OSError:
+                    pass
 
             try:
                 written = os.write(self.manager, self.input_buffer)
@@ -581,7 +598,8 @@ class IODriverPseudoTerminal(IODriver):
         assert self.process is None, "Multiple calls to start()"
         self.process = process
         self.stop_requested.clear()
-        os.set_blocking(sys.stdin.fileno(), False)
+        if self.stdin_path is None:
+            os.set_blocking(sys.stdin.fileno(), False)
 
         # Same reasoning as IODriverPlainText applies here.
         try:
@@ -594,11 +612,12 @@ class IODriverPseudoTerminal(IODriver):
         except OSError:
             self._stderr_nonblock_failed = True
 
-        self.was_line_buffering = self.termcontrol.get_line_buffering()
-        self.was_echoing = self.termcontrol.get_echo()
+        if self.stdin_path is None:
+            self.was_line_buffering = self.termcontrol.get_line_buffering()
+            self.was_echoing = self.termcontrol.get_echo()
 
-        self.termcontrol.set_line_buffering(False)
-        self.termcontrol.set_echo(False)
+            self.termcontrol.set_line_buffering(False)
+            self.termcontrol.set_echo(False)
 
         self.io_thread = threading.Thread(target=self._handle_io)
         self.io_thread.start()
@@ -609,7 +628,8 @@ class IODriverPseudoTerminal(IODriver):
         # stopped on their own terms.
         self.stop_requested.set()
         self.io_thread.join()
-        os.set_blocking(sys.stdin.fileno(), True)
+        if self.stdin_path is None:
+            os.set_blocking(sys.stdin.fileno(), True)
 
         # Same reasoning as IODriverPlainText applies here.
         try:
@@ -624,8 +644,9 @@ class IODriverPseudoTerminal(IODriver):
             if not self._stderr_nonblock_failed:
                 raise
 
-        self.termcontrol.set_line_buffering(self.was_line_buffering)
-        self.termcontrol.set_echo(self.was_echoing)
+        if self.stdin_path is None:
+            self.termcontrol.set_line_buffering(self.was_line_buffering)
+            self.termcontrol.set_echo(self.was_echoing)
 
         self._stdout_nonblock_failed = False
         self._stderr_nonblock_failed = False

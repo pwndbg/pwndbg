@@ -152,10 +152,17 @@ class TestHost:
 
 
 class Controller:
-    async def launch(self, binary: Path, args: list[str] = [], env: dict[str, str] = {}) -> None:
+    async def launch(
+        self,
+        binary: Path,
+        args: list[str] = [],
+        env: dict[str, str] = {},
+        stdin: Path | None = None,
+    ) -> None:
         """
         Launch the binary with the given path, relative to the binaries folder
-        for the calling test.
+        for the calling test. If stdin is set, redirect the inferior's standard
+        input from that file.
         """
         raise NotImplementedError()
 

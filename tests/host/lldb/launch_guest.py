@@ -28,7 +28,11 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             self.pc = pc
 
         async def launch(
-            self, binary: Path, args: list[str] = [], env: dict[str, str] = {}
+            self,
+            binary: Path,
+            args: list[str] = [],
+            env: dict[str, str] = {},
+            stdin: Path | None = None,
         ) -> None:
             if not os.path.exists(binary):
                 pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
@@ -42,8 +46,9 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             await self.pc.execute("settings clear plugin.symbol-locator.debuginfod.server-urls")
             await self.pc.execute(f"target create {binary}")
             env_args = " ".join((f"-E{k}={v}" for k, v in env.items()))
+            stdin_arg = f"-i {shlex.quote(str(stdin))}" if stdin is not None else ""
             await self.pc.execute(
-                f"process launch -A true {env_args} -s -- "
+                f"process launch -A true {env_args} {stdin_arg} -s -- "
                 + " ".join(shlex.quote(arg) for arg in args)
             )
 
