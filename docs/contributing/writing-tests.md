@@ -155,7 +155,7 @@ Rather than write new per-version tests, we parametrize the existing tests over 
 
 **Why both musl linkages?** A statically linked binary has the whole libc (including the mallocng allocator and its symbols) compiled into the ELF, while a dynamically linked one loads `libc.so` as a separate mapping. pwndbg locates and parses the allocator differently in each case, so the mallocng suite runs against both to confirm detection and that the `ng` heap commands work regardless of how musl was linked.
 
-**Adding or removing a glibc or musl version is a one-file change** in the relevant `Dockerfile.*-test-libs`: add (or remove) the `FROM base-builder AS build-<version>` stage, its `RUN` line (which passes the release tarball's sha256), and its scratch-stage `COPY` line(s).
+**Adding or removing a glibc or musl version is a one-file change** in the relevant `Dockerfile.*-test-libs`: add (or remove) the `FROM base-builder AS build-<version>` stage, its `RUN` line (which passes the release tarball's sha256), and its scratch-stage `COPY` line(s). The version ranges quoted in these docs need a manual bump too.
 
 **Running locally**:
 
