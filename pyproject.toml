@@ -131,11 +131,16 @@ ignore = [
     "RET504",  # flake8-return unnecessary-assign
     "PLR0911", # pylint-refactor too-many-statements
     "PLR0912", # pylint-refactor too-many-branches
+    "B011",    # flake8-bugbear assert-false
+    "B905",    # flake8-bugbear zip-without-explicit-strict
     # We want to unignore the below lints, but they currently return too many errors
     "PLR0913", # pylint-refactor too-many-arguments
     "PLR0915", # pylint-refactor too-many-return-statements
     "PLR1704", # pylint-refactor redefined-argument-from-local (this will probably also catch some bugs)
     "PLR2004", # pylint-refactor magic-value-comparison
+    "B008",    # flake8-bugbear function-call-in-default-argument
+    "B023",    # flake8-bugbear function-uses-loop-variable
+    "B904",    # flake8-bugbear raise-without-from-inside-except
 ]
 
 select = [
@@ -156,6 +161,7 @@ select = [
     "FURB",   # refurb
     "PLR",    # pylint-refactor
     "PLE",    # pylint-error
+    "B",      # flake8-bugbear
     # We want to enable the below lints, but they currently return too many errors
     # "SLF" # flake8-self
     # "PTH", # flake8-use-pathlib
