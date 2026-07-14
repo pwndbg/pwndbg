@@ -29,7 +29,7 @@ def up(n: int = 1) -> None:
     """
     f = gdb.selected_frame()
 
-    for _ in range(n):
+    for _ in range(int(n)):
         if f.older():
             f = f.older()
     f.select()
