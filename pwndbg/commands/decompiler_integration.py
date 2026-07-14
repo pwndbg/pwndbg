@@ -3,8 +3,6 @@ from __future__ import annotations
 import argparse
 import shutil
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 import pwndbg
@@ -158,6 +156,12 @@ angr_plugin_path = pwndbg.config.add_param(
     "where to install the angr integration plugin",
     param_class=pwndbg.lib.config.PARAM_STRING,
 )
+ghidra_plugin_path = pwndbg.config.add_param(
+    "decompiler-ghidra-plugin-path",
+    str(d2d_cache_dir / "d2d-ghidra"),
+    "where to install the ghidra integration plugin",
+    param_class=pwndbg.lib.config.PARAM_STRING,
+)
 
 
 def install_generic_plugin(
@@ -166,6 +170,7 @@ def install_generic_plugin(
     decomp_name: str,
     packaged_plugin_path: Path,
     config_var: pwndbg.lib.config.Parameter,
+    show_success: bool = True,
 ):
     """
     Arguments:
@@ -176,6 +181,7 @@ def install_generic_plugin(
         decomp_name: Pretty name of the decompiler.
         packaged_plugin_path: The path of the folder for the decompiler plugin in the decomp2dbg python package.
         config_var: The variable which holds the destination plugin path.
+        show_success: Whether to print a success message at the end. Used to special-case the Ghidra install.
     """
     print(f"Installing the {decomp_name} decompiler plugin.\n")
     print_d2d_version()
@@ -205,7 +211,10 @@ def install_generic_plugin(
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.symlink_to(source)
 
-    print("\nThe fact that symlinks are used means the decompiler plugin will be automatically")
+    print(
+        "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ tips ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    )
+    print("The fact that symlinks are used means the decompiler plugin will be automatically")
     print(
         f"updated when the decomp2dbg python package is updated. But {message.notice('if the decomp2dbg')}"
     )
@@ -217,13 +226,18 @@ def install_generic_plugin(
     print(
         message.hint(
             f"If you want to change the plugin destination, run `set {config_var.name} the/new/path`.\n"
-            "(and put this line into your ~/.gdbinit so you don't have issues in the future)\n"
+            "(and put this line into your ~/.gdbinit so you don't have issues in the future)"
         )
     )
     print(
-        message.success("Installed successfully.")
-        + " If your decompiler is already open, restart it. You can use `di connect` now."
+        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
     )
+
+    if show_success:
+        print(
+            message.success("Installed successfully.")
+            + " If your decompiler is already open, restart it. You can use `di connect` now."
+        )
 
 
 def install_ida_plugin() -> None:
@@ -288,56 +302,46 @@ def install_angr_plugin() -> None:
 
 
 def install_ghidra_plugin() -> None:
-    print("Installing the Ghidra decompiler plugin.")
-    print_d2d_version()
+    packaged = decomp2dbg_path() / "d2d_server.py"
+    dest = Path(str(ghidra_plugin_path)) / "d2d_server.py"
 
-    download_url: str = f"https://github.com/mahaloz/decomp2dbg/releases/download/v{d2d_required_version_str}/d2d-ghidra-plugin.zip"
-    download_dest: Path = d2d_cache_dir / "d2d-ghidra-plugin.zip"
-
-    print("\nSince the Ghidra extension is written in Java, we download it as already built.")
-    print(f"Downloading:\n\t{download_url}\n\t-> {download_dest}")
-
-    try:
-        with (
-            urllib.request.urlopen(download_url) as response,
-            open(str(download_dest), "wb") as out_file,
-        ):
-            shutil.copyfileobj(response, out_file)
-    except urllib.error.HTTPError as e:
-        print(message.error("\nHTTP Error while fetching the plugin. Aborting."))
-        print("Status code:", e.code)
-        print("Reason:", e.reason)
-        print("Response body:", e.read())
-        return
-    except urllib.error.URLError as e:
-        print(message.error("\nURL Error while fetching the plugin. Aborting."))
-        print("Reason:", e.reason)
-        return
-
-    print(message.success("Done.\n"))
-
-    print("Unfortunately, Ghidra doesn't load the plugin instantly on startup, so you ")
-    print(
-        message.notice("need to tell Ghidra to load the plugin")
-        + " by clicking [File > Install Extensions > + (top right)]"
+    install_generic_plugin(
+        [(packaged, dest)], [], "Ghidra", packaged, ghidra_plugin_path, show_success=False
     )
-    print(
-        "in the Project Managment window. Then restart Ghidra. And in your project you might also need to"
-    )
-    print(
-        "[File > Configure] and enable decomp2dbg decompiler server'. Now you can start the server with "
-    )
-    print("Ctrl+Shift+D as usual.")
 
     print(
-        message.warn("\nIMPORTANT: ")
-        + "Because the Ghidra plugin is not shipped compiled in the decomp2dbg python package, there is no symlink"
+        message.system(
+            "---------------------------------> Manual Steps Required <---------------------------------"
+        )
     )
-    print("and " + message.warn("the plugin will not be automatically updated.\n"))
+    print("To run the plugin, you need to run ghidra in PyGhidra Mode.")
+    print(
+        "If you're using the Arch Linux package you can do this by running `/opt/ghidra/support/pyghidraRun`."
+    )
+    print("Then once you open a project, go Window > Script Manager > Manage Script Directories")
+    print(
+        "                                                               [three horizontal lines on the top right]"
+    )
+    print(" > Display file chooser to add bundles to list [plus icon on the top right] .")
+    print("Then add")
+    print("\t", Path(str(ghidra_plugin_path)))
+    print(
+        "to the list (make sure to select the folder), and enable the bundle. Then close that window,"
+    )
+    print(
+        "go back to the Script Manager, search 'd2d' and enable the plugin. Now you may close the"
+    )
+    print("Script Manager.")
+    print(
+        message.system(
+            "-------------------------------------------------------------------------------------------"
+        )
+    )
 
-    version_path: Path = d2d_cache_dir / "ghidra_plugin_version"
-    version_path.write_text(d2d_required_version_str)
-    print(f"Saved current required version ({d2d_required_version_str}) (to {version_path}).")
+    print(
+        message.success("\nGood job!")
+        + " Now you can run the decompiler integration with Ctrl+Shift+D or Tools > decomp2dbg > Start Server."
+    )
 
 
 def install(which_decompiler: str) -> None:
