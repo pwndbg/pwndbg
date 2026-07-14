@@ -80,7 +80,7 @@ def ExtractFuncDecl(node: CAstNode, verbose: bool = False) -> Function | None:
     return Func
 
 
-def ExtractAllFuncDecls(ast: CAstNode, verbose: bool = False):
+def ExtractAllFuncDecls(ast: CAstNode, verbose: bool = False) -> dict[str, Function]:
     Functions: dict[str, Function] = {}
 
     class FuncDefVisitor(c_ast.NodeVisitor):
@@ -98,7 +98,7 @@ def ExtractFuncDeclFromSource(source: str) -> Function | None:
         p = CParser()
         ast: CAstNode = p.parse(source + ";")
         funcs = ExtractAllFuncDecls(ast)
-        for _name, func in funcs.items():
+        for func in funcs.values():
             return func
     except Exception:
         import traceback

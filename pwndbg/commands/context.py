@@ -1361,9 +1361,7 @@ def context_disasm(
     syntax = pwndbg.aglib.disasm.disassembly.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(
-        iter(pwndbg.aglib.disasm.disassembly.get_disassembler.cache.values()), None
-    )
+    cs = next(iter(pwndbg.aglib.disasm.disassembly.get_disassembler.cache.values()), None)
 
     # Clear the caches when user changes disassembly syntax during session.
     # The `None` case happens when the cache was not filled yet (see e.g. #881)

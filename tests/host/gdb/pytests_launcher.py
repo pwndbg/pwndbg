@@ -31,7 +31,9 @@ class _GDBController(host.Controller):
         """
         self._gdb_execute("context")
 
-    async def launch(self, binary: Path, args: list[str] = None, env: dict[str, str] = None) -> None:
+    async def launch(
+        self, binary: Path, args: list[str] = None, env: dict[str, str] = None
+    ) -> None:
         """
         Launch the given binary.
 
