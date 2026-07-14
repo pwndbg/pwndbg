@@ -82,7 +82,7 @@ def elfsections(no_rebase: bool) -> None:
 
         # if the binary is started, use the memory permission for the coloring
         if pwndbg.aglib.proc.alive() and not no_rebase:
-            for start, end, size, name, privilege in sections:
+            for start, end, size, name, _privilege in sections:
                 page = pwndbg.aglib.vmmap.find(start)
 
                 privilege_str = "R" if page.read else "-"

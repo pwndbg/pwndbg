@@ -1546,7 +1546,7 @@ def context_backtrace(
     oldest_frame = this_frame
 
     tui_backtrace_lines = max(int(backtrace_lines), height or 0)
-    for i in range(tui_backtrace_lines - 1):
+    for _ in range(tui_backtrace_lines - 1):
         try:
             candidate = oldest_frame.parent()
         # We catch an error in case of a `gdb.error: PC not saved` case
@@ -1557,7 +1557,7 @@ def context_backtrace(
             break
         oldest_frame = candidate
 
-    for i in range(tui_backtrace_lines - 1):
+    for _ in range(tui_backtrace_lines - 1):
         candidate = newest_frame.child()
         if not candidate:
             break
