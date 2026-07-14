@@ -208,11 +208,48 @@ def generate_color_function(
     if disable_colors:
         return function
 
-    for color in config.split(","):
+    config_str = config.value if hasattr(config, "value") else str(config)
+
+    valid_colors = [
+        "normal",
+        "black",
+        "red",
+        "green",
+        "yellow",
+        "blue",
+        "purple",
+        "cyan",
+        "light_gray",
+        "light_grey",
+        "foreground",
+        "gray",
+        "grey",
+        "light_red",
+        "light_green",
+        "light_yellow",
+        "light_blue",
+        "light_purple",
+        "light_cyan",
+        "white",
+        "bold",
+        "underline",
+        "none",
+    ]
+
+    for color in config_str.split(","):
+        color = color.strip()
+        if not color:
+            continue
         func_name = color.lower().replace("-", "_")
+        if func_name not in valid_colors:
+            raise ValueError(
+                f"Invalid color/style '{color}'. Valid choices are: {', '.join(sorted(valid_colors))}"
+            )
         fn = _locals.get(func_name)
-        assert fn is not None, f"Invalid colour {color}"
-        assert callable(fn), f"Invalid colour {color}"
+        if fn is None or not callable(fn):
+            raise ValueError(
+                f"Invalid color/style '{color}'. Valid choices are: {', '.join(sorted(valid_colors))}"
+            )
         function = generate_color_function_inner(function, fn)
     return function
 

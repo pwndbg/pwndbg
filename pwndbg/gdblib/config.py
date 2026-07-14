@@ -17,6 +17,7 @@ module, for example:
 
 from __future__ import annotations
 
+import contextlib
 from typing import Any
 
 import gdb
@@ -88,24 +89,34 @@ class Parameter(gdb.Parameter):
 
     def get_set_string(self) -> str:
         """Handles the GDB `set <param>`"""
-        # GDB will set `self.value` to the user's input
-        if self.value is None and CLASS_MAPPING[self.param.param_class] in (
-            gdb.PARAM_UINTEGER,
-            gdb.PARAM_INTEGER,
-        ):
-            # FIXME: The comment below is wrong, see
-            # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Parameters-In-Python.html#Parameters-In-Python
-            # Do we need this branch?
-            # # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/
-            # # And hilarious thing is that GDB won't let you set the default value to `None` when you construct the `gdb.Parameter` object with `gdb.PARAM_UINTEGER` or `gdb.PARAM_INTEGER` lol
-            # # Maybe it's a bug of GDB?
-            # # Anyway, to avoid some unexpected behaviors, we'll still set `self.param.value` to 0 here.
-            self.param.value = 0
-        else:
-            self.param.value = self.value
+        old_value = self.param.value
+        try:
+            # GDB will set `self.value` to the user's input
+            if self.value is None and CLASS_MAPPING[self.param.param_class] in (
+                gdb.PARAM_UINTEGER,
+                gdb.PARAM_INTEGER,
+            ):
+                # FIXME: The comment below is wrong, see
+                # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Parameters-In-Python.html#Parameters-In-Python
+                # Do we need this branch?
+                # # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/
+                # # And hilarious thing is that GDB won't let you set the default value to `None` when you construct the `gdb.Parameter` object with `gdb.PARAM_UINTEGER` or `gdb.PARAM_INTEGER` lol
+                # # Maybe it's a bug of GDB?
+                # # Anyway, to avoid some unexpected behaviors, we'll still set `self.param.value` to 0 here.
+                self.param.value = 0
+            else:
+                self.param.value = self.value
 
-        for trigger in pwndbg.config.triggers[self.param.name]:
-            trigger()
+            for trigger in pwndbg.config.triggers[self.param.name]:
+                trigger()
+        except Exception as e:
+            # Rollback values on exception
+            self.value = old_value
+            self.param.value = old_value
+            for trigger in pwndbg.config.triggers[self.param.name]:
+                with contextlib.suppress(Exception):
+                    trigger()
+            raise gdb.GdbError(str(e))
 
         # No need to print anything if this is set before we get to a prompt,
         # like if we're setting options in .gdbinit
