@@ -141,7 +141,7 @@ class Kallsyms:
         current_index = 0x30
 
         position -= 1
-        for _tokens_backwards in range(current_index):
+        for _ in range(current_index):
             for chars_in_token in range(50):
                 position -= 1
                 assert position >= 0
@@ -414,7 +414,7 @@ class Kallsyms:
             tokens = []
             position = self.token_table
 
-            for _num_token in range(256):
+            for _ in range(256):
                 token = ""
                 while self.kernel_ro_mem[position]:
                     token += chr(self.kernel_ro_mem[position])
@@ -485,7 +485,7 @@ class Kallsyms:
         while position + 1 < len(self.kernel_ro_mem) and self.kernel_ro_mem[position + 1] == 0:
             position += 1
 
-        for _null_separated_bytes_chunks in range(20):
+        for _ in range(20):
             num_non_null_bytes = 1  # we always start at a non-null byte in this loop
             num_null_bytes = (
                 1  # we will at least encounter one null byte before the end of this loop
