@@ -203,7 +203,7 @@ def preprocess_branch_visualization(
                 pair_map[instruction.address].append(pair)
 
         if repeat:
-            for pair, y in last_run_ids.items():
+            for pair, _y in last_run_ids.items():
                 if pair.contains(instruction.address):
                     pair_map[instruction.address].append(pair)
                     continued_ranges.add(pair)

@@ -46,7 +46,9 @@ class BitFlags(VisitableRegister):
     flags: OrderedDict[str, int | tuple[int, int]]
     value: int
 
-    def __init__(self, flags: list[tuple[str, int | tuple[int, int]]] = []):
+    def __init__(self, flags: list[tuple[str, int | tuple[int, int]]] = None):
+        if flags is None:
+            flags = []
         self.regname = ""
         self.flags = OrderedDict()
         for name, bits in flags:
@@ -141,9 +143,13 @@ class KernelRegisterSet:
     def __init__(
         self,
         segments: SegmentRegisters,
-        controls: dict[str, BitFlags | AddressingRegister] = {},
-        msrs: dict[str, BitFlags | AddressingRegister] = {},
+        controls: dict[str, BitFlags | AddressingRegister] = None,
+        msrs: dict[str, BitFlags | AddressingRegister] = None,
     ):
+        if msrs is None:
+            msrs = {}
+        if controls is None:
+            controls = {}
         self.segments = segments
         self.controls = controls
         self.msrs = msrs
@@ -238,14 +244,18 @@ class RegisterSet:
         stack: Reg = Reg("sp"),
         frame: Reg | None = None,
         retaddr: tuple[Reg, ...] = (),
-        flags: dict[str, BitFlags] = {},
-        extra_flags: dict[str, BitFlags] = {},
+        flags: dict[str, BitFlags] = None,
+        extra_flags: dict[str, BitFlags] = None,
         gpr: tuple[Reg, ...] = (),
         misc: tuple[str, ...] = (),
         args: tuple[str, ...] = (),
         kernel: KernelRegisterSet | None = None,
         retval: str | None = None,
     ) -> None:
+        if extra_flags is None:
+            extra_flags = {}
+        if flags is None:
+            flags = {}
         self.pc = pc.name
         self.stack = stack.name
         self.frame = frame.name if frame else None

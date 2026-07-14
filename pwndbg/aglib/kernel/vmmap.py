@@ -42,7 +42,7 @@ def _apply_address_markers(pages: tuple[Page, ...]) -> None:
     if pi and pages:
         sections = pi.markers()
         # this is needed for context annotations
-        for i, page in enumerate(pages):
+        for _i, page in enumerate(pages):
             name = _get_name(sections, page.start)
             if name is not None:
                 page.objfile = name

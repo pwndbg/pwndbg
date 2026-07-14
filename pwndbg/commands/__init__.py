@@ -559,13 +559,15 @@ class Command:
         *,  # All further parameters are not positional
         category: CommandCategory,
         command_name: str | None = None,
-        aliases: list[str] = [],
+        aliases: list[str] = None,
         examples: str = "",
         notes: str = "",
         only_debuggers: set[pwndbg.dbg_mod.DebuggerType] | None = None,
         exclude_debuggers: set[pwndbg.dbg_mod.DebuggerType] | None = None,
     ) -> None:
         # Setup an ArgumentParser even if we were only passed a description.
+        if aliases is None:
+            aliases = []
         if isinstance(parser_or_desc, str):
             self.parser = argparse.ArgumentParser(description=parser_or_desc)
         else:

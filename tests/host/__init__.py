@@ -152,7 +152,7 @@ class TestHost:
 
 
 class Controller:
-    async def launch(self, binary: Path, args: list[str] = [], env: dict[str, str] = {}) -> None:
+    async def launch(self, binary: Path, args: list[str] = None, env: dict[str, str] = None) -> None:
         """
         Launch the binary with the given path, relative to the binaries folder
         for the calling test.
