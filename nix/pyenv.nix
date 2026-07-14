@@ -102,6 +102,7 @@ let
     "ptyprocess"
     "pathspec"
     "markdown-it-py"
+    "ipython-pygments-lexers"
   ];
   pkgsNeedHatchling = [
     "traitlets"
