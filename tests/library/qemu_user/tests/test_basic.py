@@ -24,7 +24,7 @@ def helper(qemu_start_binary, filename: str, arch: str):
 
     pwndbg.commands.context.context_disasm()
 
-    for _i in range(NUMBER_OF_STEPS):
+    for _ in range(NUMBER_OF_STEPS):
         if not pwndbg.aglib.proc.alive():
             break
         gdb.execute("stepi")

@@ -397,7 +397,7 @@ class Emulator:
         if not read_size <= 8:
             return result
 
-        for _i in range(limit):
+        for _ in range(limit):
             if result.count(address) >= 2:
                 break
 
