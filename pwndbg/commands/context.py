@@ -1362,7 +1362,7 @@ def context_disasm(
 
     # Get the Capstone object to set disassembly syntax
     cs = next(
-        iter(getattr(pwndbg.aglib.disasm.disassembly.get_disassembler, "cache").values()), None
+        iter(pwndbg.aglib.disasm.disassembly.get_disassembler.cache.values()), None
     )
 
     # Clear the caches when user changes disassembly syntax during session.
