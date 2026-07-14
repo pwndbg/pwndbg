@@ -39,7 +39,15 @@ async def single_param(ctrl: Controller, param_name: str, triggers: Any):
         await set_param(ctrl, param_name, -1)
     elif isinstance(p.value, str) and p.param_class != pwndbg.lib.config.PARAM_ENUM:
         await set_param(ctrl, param_name, "")
-        await set_param(ctrl, param_name, "some invalid text")
+        if p.__class__.__name__ == "ColorParameter":
+            import pytest
+
+            from pwndbg.dbg_mod import Error
+
+            with pytest.raises(Error, match="Invalid color/style 'some invalid text'"):
+                await set_param(ctrl, param_name, "some invalid text")
+        else:
+            await set_param(ctrl, param_name, "some invalid text")
         await set_param(ctrl, param_name, "red")
         await set_param(ctrl, param_name, "bold,yellow")
     elif isinstance(p.value, str) and p.param_class == pwndbg.lib.config.PARAM_ENUM:

@@ -195,6 +195,47 @@ class ColorConfig:
         raise AttributeError(f"ColorConfig object for {self._namespace} has no attribute '{attr}'")
 
 
+def get_valid_colors() -> set[str]:
+    # We want to find all callables in this module that are not helpers or internal functions.
+    helpers = {
+        "colorize",
+        "nocolor",
+        "unstylize",
+        "strip",
+        "terminate_with",
+        "generate_color_function",
+        "generate_color_function_inner",
+        "get_valid_colors",
+        "validate_color",
+        "ljust_colored",
+        "rjust_colored",
+    }
+    # Dynamically query callables from our own namespace
+    valid = {
+        name
+        for name, fn in globals().items()
+        if callable(fn) and not name.startswith("_") and name not in helpers
+    }
+    # Add light_grey, grey, none as valid choices
+    valid.add("light_grey")
+    valid.add("grey")
+    valid.add("none")
+    return valid
+
+
+def validate_color(config_str: str) -> None:
+    valid_colors = get_valid_colors()
+    for color in config_str.split(","):
+        color = color.strip()
+        if not color:
+            continue
+        func_name = color.lower().replace("-", "_")
+        if func_name not in valid_colors:
+            raise ValueError(
+                f"Invalid color/style '{color}'. Valid choices are: {', '.join(sorted(valid_colors))}"
+            )
+
+
 def generate_color_function(
     config: str | Parameter, _locals: dict[str, Callable[[str], str]] = locals()
 ) -> Callable[[object], str]:
@@ -210,46 +251,20 @@ def generate_color_function(
 
     config_str = config.value if hasattr(config, "value") else str(config)
 
-    valid_colors = [
-        "normal",
-        "black",
-        "red",
-        "green",
-        "yellow",
-        "blue",
-        "purple",
-        "cyan",
-        "light_gray",
-        "light_grey",
-        "foreground",
-        "gray",
-        "grey",
-        "light_red",
-        "light_green",
-        "light_yellow",
-        "light_blue",
-        "light_purple",
-        "light_cyan",
-        "white",
-        "bold",
-        "underline",
-        "none",
-    ]
+    validate_color(config_str)
 
     for color in config_str.split(","):
         color = color.strip()
         if not color:
             continue
         func_name = color.lower().replace("-", "_")
-        if func_name not in valid_colors:
-            raise ValueError(
-                f"Invalid color/style '{color}'. Valid choices are: {', '.join(sorted(valid_colors))}"
-            )
         fn = _locals.get(func_name)
+        if fn is None and func_name == "light_grey":
+            fn = _locals.get("light_gray")
+        if fn is None and func_name == "grey":
+            fn = _locals.get("gray")
         if fn is None or not callable(fn):
-            raise ValueError(
-                f"Invalid color/style '{color}'. Valid choices are: {', '.join(sorted(valid_colors))}"
-            )
+            fn = str
         function = generate_color_function_inner(function, fn)
     return function
 

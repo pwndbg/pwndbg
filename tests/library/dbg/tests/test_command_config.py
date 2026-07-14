@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
+from pwndbg.dbg_mod import Error
+
 from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
@@ -22,6 +26,22 @@ async def test_config(ctrl: Controller) -> None:
 
     await ctrl.execute("set global-max-fast 0x80")
     assert "'0x80' ('0')" in (await ctrl.execute_and_capture("heap-config"))
+
+
+@pwndbg_test
+async def test_config_color_validation(ctrl: Controller) -> None:
+    await ctrl.launch(REFERENCE_BINARY)
+
+    # 1. Setting a valid color works
+    await ctrl.execute("set telescope-register-color red,bold")
+    assert "red,bold" in (await ctrl.execute_and_capture("theme telescope-register-color"))
+
+    # 2. Setting an invalid color raises Error/GdbError
+    with pytest.raises(Error, match="Invalid color/style 'meow'"):
+        await ctrl.execute("set telescope-register-color meow")
+
+    # 3. Verify the value rolled back to the previous valid setting
+    assert "red,bold" in (await ctrl.execute_and_capture("theme telescope-register-color"))
 
 
 @pwndbg_test

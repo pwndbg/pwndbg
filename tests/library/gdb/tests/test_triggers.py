@@ -34,7 +34,13 @@ def single_param(param_name, triggers):
         set_show(param_name, -1)
     elif isinstance(p.value, str) and p.param_class != pwndbg.lib.config.PARAM_ENUM:
         set_show(param_name, "")
-        set_show(param_name, "some invalid text")
+        if p.__class__.__name__ == "ColorParameter":
+            import pytest
+
+            with pytest.raises(gdb.error, match="Invalid color/style 'some invalid text'"):
+                set_show(param_name, "some invalid text")
+        else:
+            set_show(param_name, "some invalid text")
         set_show(param_name, "red")
         set_show(param_name, "bold,yellow")
     elif isinstance(p.value, str) and p.param_class == pwndbg.lib.config.PARAM_ENUM:

@@ -13,12 +13,15 @@ from pwndbg.lib.config import Scope
 class ColorParameter(Parameter):
     color_function: Callable[[object], str]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.update_color_function()
 
-    def update_color_function(self):
+    def update_color_function(self) -> None:
         self.color_function = pwndbg.color.generate_color_function(self.value)
+
+    def validate(self, value: Any) -> None:
+        pwndbg.color.validate_color(str(value))
 
 
 def add_param(

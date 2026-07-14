@@ -91,6 +91,9 @@ class Parameter(gdb.Parameter):
         """Handles the GDB `set <param>`"""
         old_value = self.param.value
         try:
+            # Explicitly validate the user's input before applying it
+            self.param.validate(self.value)
+
             # GDB will set `self.value` to the user's input
             if self.value is None and CLASS_MAPPING[self.param.param_class] in (
                 gdb.PARAM_UINTEGER,
@@ -109,8 +112,8 @@ class Parameter(gdb.Parameter):
 
             for trigger in pwndbg.config.triggers[self.param.name]:
                 trigger()
-        except Exception as e:
-            # Rollback values on exception
+        except ValueError as e:
+            # Rollback values on validation exception
             self.value = old_value
             self.param.value = old_value
             for trigger in pwndbg.config.triggers[self.param.name]:

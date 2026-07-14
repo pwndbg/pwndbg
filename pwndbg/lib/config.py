@@ -125,6 +125,9 @@ class Parameter:
         i.e. `my-config` has the attribute name `my_config`"""
         return self.name.replace("-", "_")
 
+    def validate(self, value: Any) -> None:
+        """Validate the value. Should raise a ValueError if the value is invalid."""
+
     def __getattr__(self, name: str):
         return getattr(self.value, name)
 
