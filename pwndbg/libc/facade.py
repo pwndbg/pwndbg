@@ -374,7 +374,7 @@ def section_address_by_name(section_name: str) -> int:
     libc_path: str = str(filepath())
     for (
         address,
-        size,
+        _size,
         candidate_section_name,
         module_name,
     ) in pwndbg.dbg.selected_inferior().module_section_locations():
