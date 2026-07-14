@@ -3,9 +3,13 @@ Helpers for walking ``/proc/*/fd`` to identify which processes share a given
 kernel object.
 
 Currently used by procinfo to turn an anonymous pipe FD ("pipe:[N]") into a
-list of (pid, fd, comm, mode) endpoints. Like the SOCK_DIAG path this is
-inherently local-only — the data lives in the host kernel's procfs and means
-nothing for a remote / different-kernel target.
+list of (pid, fd, comm, mode) endpoints.
+
+``find_pipe_endpoints`` walks the local kernel's procfs directly. For a remote
+target the same walk is done by the GDB stub on its side (the "files" table of
+``qXfer:osdata:read``) and fed through ``pipe_endpoints_from_fd_rows``.
+``parse_fdinfo_mode`` works off the text of a single /proc/PID/fdinfo/FD file,
+which is readable both locally and over the remote protocol's vFile packets.
 """
 
 from __future__ import annotations
@@ -17,10 +21,13 @@ class Pipe:
     """Anonymous pipe FD as seen from one process.
 
     ``inode`` and ``fd`` describe our own end. ``mode`` is "r"/"w"/"rw"/"?"
-    derived from /proc/PID/fdinfo. ``peers`` lists every *other* FD across
-    the system that points at the same pipe inode, with the same mode info,
-    so the user can see who's on the other end (or that they hold both ends
-    themselves).
+    derived from /proc/PID/fdinfo. ``peers`` lists every *other* FD that points
+    at the same pipe inode, with the same mode info, so the user can see who's
+    on the other end (or that they hold both ends themselves).
+
+    ``peers`` is system-wide when a whole-system FD listing is available (local
+    procfs walk, or the remote stub's osdata "files" table); otherwise it falls
+    back to just the debuggee's own FDs.
     """
 
     inode: int | None = None
@@ -57,37 +64,74 @@ def _format_peer(peer: tuple[int, int, str, str]) -> str:
     return s
 
 
-def _read_fdinfo_mode(pid: int, fd: int) -> str:
-    """Return access mode of an FD from /proc/PID/fdinfo/FD as 'r'/'w'/'rw'.
+def parse_fdinfo_mode(data: str) -> str:
+    """Return access mode of an FD as 'r'/'w'/'rw' from /proc/PID/fdinfo/FD text.
 
-    Returns '?' if fdinfo can't be read or doesn't carry the flags line. The
-    fdinfo flags field is octal text and contains the original open() flags;
-    the bottom two bits encode the access mode (O_RDONLY / O_WRONLY / O_RDWR).
+    Returns '?' if the text doesn't carry a usable flags line. The fdinfo flags
+    field is octal text and contains the original open() flags; the bottom two
+    bits encode the access mode (O_RDONLY / O_WRONLY / O_RDWR).
+    """
+    for line in data.splitlines():
+        if not line.startswith("flags:"):
+            continue
+        _, _, value = line.partition(":")
+        value = value.strip()
+        if not value:
+            return "?"
+        try:
+            flags = int(value, 8)
+        except ValueError:
+            return "?"
+        access = flags & 0o3
+        if access == 0:
+            return "r"
+        if access == 1:
+            return "w"
+        if access == 2:
+            return "rw"
+        return "?"
+    return "?"
+
+
+def _read_fdinfo_mode(pid: int, fd: int) -> str:
+    """Local-kernel variant of `parse_fdinfo_mode`, reading procfs directly.
+
+    Returns '?' if fdinfo can't be read.
     """
     try:
         with open(f"/proc/{pid}/fdinfo/{fd}") as f:
-            for line in f:
-                if not line.startswith("flags:"):
-                    continue
-                _, _, value = line.partition(":")
-                value = value.strip()
-                if not value:
-                    return "?"
-                try:
-                    flags = int(value, 8)
-                except ValueError:
-                    return "?"
-                access = flags & 0o3
-                if access == 0:
-                    return "r"
-                if access == 1:
-                    return "w"
-                if access == 2:
-                    return "rw"
-                return "?"
+            return parse_fdinfo_mode(f.read())
     except OSError:
         return "?"
-    return "?"
+
+
+def pipe_endpoints_from_fd_rows(
+    rows: list[tuple[int, int, str, str]],
+    target_inodes: set[int],
+) -> dict[int, list[tuple[int, int, str, str]]]:
+    """Like ``find_pipe_endpoints``, but from pre-collected FD rows.
+
+    ``rows`` are ``(pid, fd, comm, name)`` where ``name`` is the fd's readlink
+    target - the shape of the remote stub's osdata "files" table. Modes can't
+    be known at this layer, so every endpoint gets "?"; callers can refine
+    them from fdinfo afterwards.
+    """
+    result: dict[int, list[tuple[int, int, str, str]]] = {}
+    for pid, fd, comm, name in rows:
+        if not (name.startswith("pipe:[") and name.endswith("]")):
+            continue
+        try:
+            inode = int(name[len("pipe:[") : -1])
+        except ValueError:
+            continue
+        if inode not in target_inodes:
+            continue
+        result.setdefault(inode, []).append((pid, fd, comm, "?"))
+
+    for inode in result:
+        result[inode].sort(key=lambda t: (t[0], t[1]))
+
+    return result
 
 
 def find_pipe_endpoints(

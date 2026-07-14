@@ -5,6 +5,8 @@ import os
 from pwndbg.lib.proc_fd import Pipe
 from pwndbg.lib.proc_fd import _read_fdinfo_mode
 from pwndbg.lib.proc_fd import find_pipe_endpoints
+from pwndbg.lib.proc_fd import parse_fdinfo_mode
+from pwndbg.lib.proc_fd import pipe_endpoints_from_fd_rows
 
 
 def _pipe_inode(fd: int) -> int:
@@ -56,6 +58,48 @@ def test_read_fdinfo_mode_for_pipe_ends() -> None:
 def test_read_fdinfo_mode_unknown_fd() -> None:
     # A wildly-invalid fd number gives us '?' instead of raising.
     assert _read_fdinfo_mode(os.getpid(), 999_999) == "?"
+
+
+def test_pipe_endpoints_from_fd_rows() -> None:
+    # Rows in the shape of the remote stub's "files" osdata table: the same
+    # pipe held by two processes, plus unrelated FDs that must be ignored.
+    rows = [
+        (4243, 0, "grep", "pipe:[555]"),
+        (4242, 4, "cat", "pipe:[555]"),
+        (4242, 1, "cat", "/dev/pts/0"),
+        (9999, 3, "other", "pipe:[777]"),
+        (1, 5, "init", "socket:[555]"),
+    ]
+    endpoints = pipe_endpoints_from_fd_rows(rows, {555})
+    assert set(endpoints) == {555}
+    # Sorted by (pid, fd); modes unknown at this layer.
+    assert endpoints[555] == [(4242, 4, "cat", "?"), (4243, 0, "grep", "?")]
+
+
+def test_pipe_endpoints_from_fd_rows_malformed_names() -> None:
+    rows = [
+        (1, 2, "x", "pipe:[notanumber]"),
+        (1, 3, "x", "pipe:[123"),
+        (1, 4, "x", ""),
+    ]
+    assert pipe_endpoints_from_fd_rows(rows, {123}) == {}
+
+
+def test_parse_fdinfo_mode() -> None:
+    # This is the parser used for remote targets, where fdinfo arrives as bytes
+    # over vFile rather than being read from the local procfs.
+    fdinfo = "pos:\t0\nflags:\t02\nmnt_id:\t14\nino:\t1109875\n"
+    assert parse_fdinfo_mode(fdinfo) == "rw"
+    assert parse_fdinfo_mode("pos:\t0\nflags:\t00\n") == "r"
+    assert parse_fdinfo_mode("pos:\t0\nflags:\t0100001\n") == "w"
+
+
+def test_parse_fdinfo_mode_malformed() -> None:
+    # No flags line, an empty value, or a non-octal value: '?' rather than raise.
+    assert parse_fdinfo_mode("") == "?"
+    assert parse_fdinfo_mode("pos:\t0\nino:\t123\n") == "?"
+    assert parse_fdinfo_mode("flags:\t\n") == "?"
+    assert parse_fdinfo_mode("flags:\tnonsense\n") == "?"
 
 
 def test_pipe_str_renders_self_only() -> None:
