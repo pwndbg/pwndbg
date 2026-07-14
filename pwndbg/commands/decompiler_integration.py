@@ -24,7 +24,7 @@ from pwndbg.commands import CommandCategory
 
 # Bump me if needed.
 # (This will trigger check_decomp2dbg_version_bumped())
-d2d_required_major, d2d_required_minor, d2d_required_fix = 3, 14, 0
+d2d_required_major, d2d_required_minor, d2d_required_fix = 4, 0, 3
 
 d2d_required_version_str: str = f"{d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}"
 
@@ -162,6 +162,7 @@ angr_plugin_path = pwndbg.config.add_param(
 
 def install_generic_plugin(
     paths: list[tuple[Path, Path]],
+    old_paths: list[Path],
     decomp_name: str,
     packaged_plugin_path: Path,
     config_var: pwndbg.lib.config.Parameter,
@@ -170,6 +171,8 @@ def install_generic_plugin(
     Arguments:
         paths: A list of (source path, destination path) tuples. Each element of the list
                will be symlinked (destination) -> (source).
+        old_paths: A list of destination paths. These will simply be deleted before the plugin is installed.
+                   Used to clean up the decomp2dbg installation when it changes between versions.
         decomp_name: Pretty name of the decompiler.
         packaged_plugin_path: The path of the folder for the decompiler plugin in the decomp2dbg python package.
         config_var: The variable which holds the destination plugin path.
@@ -182,11 +185,9 @@ def install_generic_plugin(
     print("\nSource:      ", packaged_plugin_path)
     print("Destination: ", plugin_destination)
 
-    print("\nMaking sure destination folder exists..\n")
-    plugin_destination.mkdir(parents=True, exist_ok=True)
-
-    print("Deleting old files (if they exist):")
-    for _, dest in paths:
+    print("\nDeleting old files (if they exist):")
+    to_delete: list[Path] = [x for _, x in paths] + old_paths
+    for dest in to_delete:
         print(f"\t{dest}")
         if dest.exists() or dest.is_symlink():
             if dest.is_symlink() or not dest.is_dir():
@@ -201,6 +202,7 @@ def install_generic_plugin(
     print("\nCreating symlinks:")
     for source, dest in paths:
         print(f"\t{dest} -> {source}")
+        dest.parent.mkdir(parents=True, exist_ok=True)
         dest.symlink_to(source)
 
     print("\nThe fact that symlinks are used means the decompiler plugin will be automatically")
@@ -225,25 +227,40 @@ def install_generic_plugin(
 
 
 def install_ida_plugin() -> None:
-    packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_ida"
     plugin_destination: Path = Path(str(ida_plugin_path))
 
-    packaged1 = packaged_plugin_path / "d2d_ida"
-    packaged2 = packaged_plugin_path / "d2d_ida.py"
+    packaged = decomp2dbg_path() / "d2d_server.py"
+    dest = plugin_destination / "d2d_server.py"
 
-    dest1 = plugin_destination / "d2d_ida"
-    dest2 = plugin_destination / "d2d_ida.py"
+    # changed since 4.0.0
+    old_dest1 = plugin_destination / "d2d_ida"
+    old_dest2 = plugin_destination / "d2d_ida.py"
 
     install_generic_plugin(
-        [(packaged1, dest1), (packaged2, dest2)], "IDA", packaged_plugin_path, ida_plugin_path
+        [(packaged, dest)], [old_dest1, old_dest2], "IDA", packaged, ida_plugin_path
     )
 
 
 def install_binja_plugin() -> None:
-    packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_binja"
+    packaged_plugin_path: Path = decomp2dbg_path() / "server" / "stubs"
+    plugin_destination: Path = Path(str(binja_plugin_path)) / "d2d_binja"
+
+    # We could also symlink `d2d_binja` to `server/stubs` but mahaloz says thats
+    # not stable.
+    packaged1 = packaged_plugin_path / "__init__.py"
+    dest1 = plugin_destination / "__init__.py"
+
+    # The binja plugin metadata
+    packaged2 = packaged_plugin_path / "plugin.json"
+    dest2 = plugin_destination / "plugin.json"
+
+    # Delete the whole folder so we don't need to keep track of
+    # the individual files that were deprecated.
+    old_dest = plugin_destination
 
     install_generic_plugin(
-        [(packaged_plugin_path, Path(str(binja_plugin_path)) / "d2d_binja")],
+        [(packaged1, dest1), (packaged2, dest2)],
+        [old_dest],
         "Binary Ninja",
         packaged_plugin_path,
         binja_plugin_path,
@@ -251,12 +268,21 @@ def install_binja_plugin() -> None:
 
 
 def install_angr_plugin() -> None:
-    packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_angr"
+    packaged_plugin_path: Path = decomp2dbg_path() / "server" / "stubs"
+    plugin_destination: Path = Path(str(angr_plugin_path)) / "d2d_angr"
+
+    packaged = packaged_plugin_path / "__init__.py"
+    dest = plugin_destination / "__init__.py"
+
+    # Delete the whole folder so we don't need to keep track of
+    # the individual files that were deprecated.
+    old_dest = plugin_destination
 
     install_generic_plugin(
-        [(packaged_plugin_path, Path(str(angr_plugin_path)) / "d2d_angr")],
+        [(packaged, dest)],
+        [old_dest],
         "angr-managment",
-        packaged_plugin_path,
+        packaged,
         angr_plugin_path,
     )
 
