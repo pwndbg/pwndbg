@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
+from collections.abc import Iterator
 
 import pytest
 
@@ -24,13 +25,14 @@ REFERENCE_BINARY_PIPE_FORK = get_binary("reference-binary-pipe-fork.native.out")
 
 
 @pytest.fixture
-def gdbserver_with_pipe_fork_binary():
+def gdbserver_with_pipe_fork_binary() -> Iterator[int]:
     process = subprocess.Popen(
         [GDBSERVER, "127.0.0.1:0", REFERENCE_BINARY_PIPE_FORK],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         text=True,
     )
+    assert process.stderr is not None
     # With port 0 gdbserver picks a free port and announces it on stderr.
     port = None
     for _ in range(20):
@@ -52,7 +54,7 @@ def gdbserver_with_pipe_fork_binary():
 
 
 @pytest.mark.skipif(GDBSERVER is None, reason="gdbserver is not installed")
-def test_procinfo_pipe_peers_on_remote_target(gdbserver_with_pipe_fork_binary):
+def test_procinfo_pipe_peers_on_remote_target(gdbserver_with_pipe_fork_binary: int) -> None:
     port = gdbserver_with_pipe_fork_binary
 
     result = run_gdb_with_script(
