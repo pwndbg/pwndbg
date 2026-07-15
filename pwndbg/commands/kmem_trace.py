@@ -103,6 +103,8 @@ class KmemTracepointsData:
 
         if cache is not None:
             result = self._format_kmem_tracepoint_output(prefix, cache.name, "obj", objaddr)
+        elif objaddr == 0:
+            result = self._format_kmem_tracepoint_output(prefix, "NULL", "obj", objaddr)
         self.add_result(result)
 
     def format_page_kmem_tracepoint_output(
