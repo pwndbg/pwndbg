@@ -17,6 +17,7 @@ from pwndbg.dbg_mod.lldb import YieldSingleStep
 from pwndbg.dbg_mod.lldb.repl import UserCancelledError
 from pwndbg.dbg_mod.lldb.repl import print_info
 from pwndbg.dbg_mod.lldb.repl.io import IODriver
+from pwndbg.dbg_mod.lldb.repl.io import IODriverFile
 from pwndbg.dbg_mod.lldb.repl.io import IODriverPlainText
 
 
@@ -841,6 +842,9 @@ class ProcessDriver:
             # Ideally with remote targets we would at least keep the connection,
             # but LLDB is rather frail when it comes to preverving it gracefully
             # across failures, so we always drop everything.
+            if self.io is not None:
+                self.io.close()
+                self.io = None
             self.process = None
             self.listener = None
 
@@ -868,6 +872,9 @@ class ProcessDriver:
         args: list[str],
         working_dir: str | None,
         extra_flags: int,
+        stdin_path: str | None,
+        stdout_path: str | None,
+        stderr_path: str | None,
     ) -> lldb.SBError:
         """
         Launch a process in a remote debugserver.
@@ -876,7 +883,10 @@ class ProcessDriver:
         guarantee any other driver will work.
         """
         assert self.io is None
-        self.io = IODriverPlainText()
+        if stdin_path is None and stdout_path is None and stderr_path is None:
+            self.io = IODriverPlainText()
+        else:
+            self.io = IODriverFile(stdin_path, stdout_path, stderr_path)
 
         error = lldb.SBError()
         stdin, stdout, stderr = self.io.stdio()
@@ -958,6 +968,9 @@ class ProcessDriver:
         args: list[str],
         working_dir: str | None,
         disable_aslr: bool,
+        stdin_path: str | None = None,
+        stdout_path: str | None = None,
+        stderr_path: str | None = None,
     ) -> LaunchResult:
         """
         Launches the process and handles startup events. Always stops on first
@@ -970,7 +983,16 @@ class ProcessDriver:
             extra_flags |= lldb.eLaunchFlagDisableASLR
 
         if self.has_connection():
-            result = self._enter(self._launch_remote, env, args, working_dir, extra_flags)
+            result = self._enter(
+                self._launch_remote,
+                env,
+                args,
+                working_dir,
+                extra_flags,
+                stdin_path,
+                stdout_path,
+                stderr_path,
+            )
             if isinstance(result, LaunchResultError):
                 result.disconnected = True
             return result

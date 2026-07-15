@@ -178,11 +178,21 @@ class IODriver:
         raise NotImplementedError()
 
 
-def get_io_driver() -> IODriver:
+def get_io_driver(
+    stdin_path: str | None = None,
+    stdout_path: str | None = None,
+    stderr_path: str | None = None,
+) -> IODriver:
     """
     Instances a new IODriver using the best strategy available in the current
     system. Meaning a PTY on Unix and plain text on Windows.
+
+    If any file path is set, the corresponding stream is redirected to or from
+    that file instead of the Pwndbg terminal.
     """
+    if stdin_path is not None or stdout_path is not None or stderr_path is not None:
+        return IODriverFile(stdin_path, stdout_path, stderr_path)
+
     if PTY_AVAILABLE:
         pty = make_pty()
         if pty is not None:
@@ -332,13 +342,16 @@ class IODriverPlainText(IODriver):
         # We don't really want to do anything on process start.
         pass
 
+    def _set_stdin_blocking(self, blocking: bool) -> None:
+        os.set_blocking(sys.stdin.fileno(), blocking)
+
     @override
     def start(self, process: lldb.Process) -> None:
         # Set up new threads and start processing I/O.
         assert self.process is None, "Multiple calls to start()"
         self.process = process
         self.stop_requested.clear()
-        os.set_blocking(sys.stdin.fileno(), False)
+        self._set_stdin_blocking(False)
 
         # Nonblocking output is NOT what we want, but in UNIX systems O_NONBLOCK
         # is set in the context of the so-called "open file description"[1][2],
@@ -389,7 +402,7 @@ class IODriverPlainText(IODriver):
         self.stop_fulfilled.acquire(blocking=True)
         self.stop_fulfilled.acquire(blocking=True)
 
-        os.set_blocking(sys.stdin.fileno(), True)
+        self._set_stdin_blocking(True)
 
         # See start()
         try:
@@ -416,6 +429,42 @@ class IODriverPlainText(IODriver):
         self._closed.set()
         self.in_thr.join()
         self.out_thr.join()
+
+
+class IODriverFile(IODriverPlainText):
+    """Plain-text I/O with one or more inferior streams redirected to files."""
+
+    def __init__(
+        self,
+        stdin_path: str | None,
+        stdout_path: str | None,
+        stderr_path: str | None,
+    ):
+        self.stdin_path = stdin_path
+        self.stdout_path = stdout_path
+        self.stderr_path = stderr_path
+        super().__init__()
+
+    @override
+    def stdio(self) -> tuple[str | None, str | None, str | None]:
+        return self.stdin_path, self.stdout_path, self.stderr_path
+
+    @override
+    def _handle_input(self) -> None:
+        if self.stdin_path is None:
+            return super()._handle_input()
+
+        while not self._closed.is_set():
+            if not self.start_requested.acquire(blocking=True, timeout=1):
+                continue
+
+            self.stop_requested.wait()
+            self.stop_fulfilled.release()
+
+    @override
+    def _set_stdin_blocking(self, blocking: bool) -> None:
+        if self.stdin_path is None:
+            super()._set_stdin_blocking(blocking)
 
 
 def make_pty() -> tuple[str, int] | None:

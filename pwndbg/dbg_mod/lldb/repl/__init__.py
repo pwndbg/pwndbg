@@ -1092,11 +1092,8 @@ process_launch_unsupported = [
     "plugin",
     "arch",
     "shell",
-    "stderr",
-    "stdin",
     "structured-data-key",
     "no-stdio",
-    "stdout",
     "tty",
     "structured-data-value",
     "working-dir",
@@ -1146,7 +1143,11 @@ def process_launch(
         # Force qemu-user as remote, pwndbg depends on that, eg: for download procfs files
         dbg._current_process_is_gdb_remote = True
 
-    io_driver = get_io_driver()
+    io_driver = get_io_driver(
+        stdin_path=args.stdin,
+        stdout_path=args.stdout,
+        stderr_path=args.stderr,
+    )
     result = driver.launch(
         target,
         io_driver,
@@ -1154,6 +1155,9 @@ def process_launch(
         launch_args,
         os.getcwd(),
         args.disable_aslr,
+        stdin_path=args.stdin,
+        stdout_path=args.stdout,
+        stderr_path=args.stderr,
     )
 
     match result:
