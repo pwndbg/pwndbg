@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
@@ -117,6 +118,20 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
         ]
 
     return expected
+
+
+@pwndbg_test
+async def test_debug_syms_heap_is_uninitialized_without_symbols_or_mp(
+    ctrl: Controller,
+) -> None:
+    import pwndbg.aglib.symbol
+    from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
+
+    heap = object.__new__(DebugSymsHeap)
+    heap._mp = None
+
+    with patch.object(pwndbg.aglib.symbol, "lookup_symbol_addr", return_value=None):
+        assert heap.is_initialized() is False
 
 
 @pwndbg_test

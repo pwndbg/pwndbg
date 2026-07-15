@@ -1695,9 +1695,11 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_malloc_initialized")
         if addr is None:
             addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_initialized")
-        # fallback for GLIBC 2.42 as __malloc_initialized was removed
+        # Fallback for GLIBC 2.42 as __malloc_initialized was removed.
+        # Missing debug symbols can also leave mp_ unavailable.
         if addr is None:
-            return int(self.mp["sbrk_base"]) != 0
+            mp = self.mp
+            return mp is not None and int(mp["sbrk_base"]) != 0
         return pwndbg.aglib.memory.s32(addr) > 0
 
 
