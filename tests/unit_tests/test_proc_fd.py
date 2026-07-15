@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 
 from pwndbg.lib.proc_fd import Pipe
-from pwndbg.lib.proc_fd import _read_fdinfo_mode
 from pwndbg.lib.proc_fd import find_pipe_endpoints
 from pwndbg.lib.proc_fd import parse_fdinfo_mode
 from pwndbg.lib.proc_fd import pipe_endpoints_from_fd_rows
@@ -13,10 +12,14 @@ def _pipe_inode(fd: int) -> int:
     return os.stat(f"/proc/self/fd/{fd}").st_ino
 
 
+def _live_fdinfo_mode(fd: int) -> str:
+    with open(f"/proc/self/fdinfo/{fd}") as f:
+        return parse_fdinfo_mode(f.read())
+
+
 def test_find_pipe_endpoints_locates_both_ends() -> None:
     # An anonymous pipe(2) gives us a read end and a write end that share
-    # the same inode but have different access modes. find_pipe_endpoints
-    # must report both, with the correct read/write tag for each.
+    # the same inode. find_pipe_endpoints must report both FDs.
     r, w = os.pipe()
     try:
         inode = _pipe_inode(r)
@@ -27,9 +30,8 @@ def test_find_pipe_endpoints_locates_both_ends() -> None:
         ends = endpoints[inode]
         assert len(ends) >= 2
 
-        modes = {fd: mode for (pid, fd, _comm, mode) in ends if pid == os.getpid()}
-        assert modes[r] == "r"
-        assert modes[w] == "w"
+        own_fds = {fd for (pid, fd, _comm) in ends if pid == os.getpid()}
+        assert {r, w} <= own_fds
     finally:
         os.close(r)
         os.close(w)
@@ -45,19 +47,15 @@ def test_find_pipe_endpoints_unknown_inode() -> None:
     assert find_pipe_endpoints({2**32 - 1}) == {}
 
 
-def test_read_fdinfo_mode_for_pipe_ends() -> None:
+def test_parse_fdinfo_mode_on_live_pipe_ends() -> None:
+    # The parser against real kernel-produced fdinfo text, not a fixture.
     r, w = os.pipe()
     try:
-        assert _read_fdinfo_mode(os.getpid(), r) == "r"
-        assert _read_fdinfo_mode(os.getpid(), w) == "w"
+        assert _live_fdinfo_mode(r) == "r"
+        assert _live_fdinfo_mode(w) == "w"
     finally:
         os.close(r)
         os.close(w)
-
-
-def test_read_fdinfo_mode_unknown_fd() -> None:
-    # A wildly-invalid fd number gives us '?' instead of raising.
-    assert _read_fdinfo_mode(os.getpid(), 999_999) == "?"
 
 
 def test_pipe_endpoints_from_fd_rows() -> None:
@@ -72,8 +70,8 @@ def test_pipe_endpoints_from_fd_rows() -> None:
     ]
     endpoints = pipe_endpoints_from_fd_rows(rows, {555})
     assert set(endpoints) == {555}
-    # Sorted by (pid, fd); modes unknown at this layer.
-    assert endpoints[555] == [(4242, 4, "cat", "?"), (4243, 0, "grep", "?")]
+    # Sorted by (pid, fd).
+    assert endpoints[555] == [(4242, 4, "cat"), (4243, 0, "grep")]
 
 
 def test_pipe_endpoints_from_fd_rows_malformed_names() -> None:

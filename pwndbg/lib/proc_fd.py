@@ -3,13 +3,14 @@ Helpers for walking ``/proc/*/fd`` to identify which processes share a given
 kernel object.
 
 Currently used by procinfo to turn an anonymous pipe FD ("pipe:[N]") into a
-list of (pid, fd, comm, mode) endpoints.
+list of (pid, fd, comm) endpoints.
 
 ``find_pipe_endpoints`` walks the local kernel's procfs directly. For a remote
 target the same walk is done by the GDB stub on its side (the "files" table of
-``qXfer:osdata:read``) and fed through ``pipe_endpoints_from_fd_rows``.
-``parse_fdinfo_mode`` works off the text of a single /proc/PID/fdinfo/FD file,
-which is readable both locally and over the remote protocol's vFile packets.
+``qXfer:osdata:read``) and fed through ``pipe_endpoints_from_fd_rows``. The
+r/w mode of each endpoint is resolved by the caller, which fetches the text of
+/proc/PID/fdinfo/FD from wherever the target lives and runs it through
+``parse_fdinfo_mode``.
 """
 
 from __future__ import annotations
@@ -93,30 +94,16 @@ def parse_fdinfo_mode(data: str) -> str:
     return "?"
 
 
-def _read_fdinfo_mode(pid: int, fd: int) -> str:
-    """Local-kernel variant of `parse_fdinfo_mode`, reading procfs directly.
-
-    Returns '?' if fdinfo can't be read.
-    """
-    try:
-        with open(f"/proc/{pid}/fdinfo/{fd}") as f:
-            return parse_fdinfo_mode(f.read())
-    except OSError:
-        return "?"
-
-
 def pipe_endpoints_from_fd_rows(
     rows: list[tuple[int, int, str, str]],
     target_inodes: set[int],
-) -> dict[int, list[tuple[int, int, str, str]]]:
+) -> dict[int, list[tuple[int, int, str]]]:
     """Like ``find_pipe_endpoints``, but from pre-collected FD rows.
 
     ``rows`` are ``(pid, fd, comm, name)`` where ``name`` is the fd's readlink
-    target - the shape of the remote stub's osdata "files" table. Modes can't
-    be known at this layer, so every endpoint gets "?"; callers can refine
-    them from fdinfo afterwards.
+    target - the shape of the remote stub's osdata "files" table.
     """
-    result: dict[int, list[tuple[int, int, str, str]]] = {}
+    result: dict[int, list[tuple[int, int, str]]] = {}
     for pid, fd, comm, name in rows:
         if not (name.startswith("pipe:[") and name.endswith("]")):
             continue
@@ -126,7 +113,7 @@ def pipe_endpoints_from_fd_rows(
             continue
         if inode not in target_inodes:
             continue
-        result.setdefault(inode, []).append((pid, fd, comm, "?"))
+        result.setdefault(inode, []).append((pid, fd, comm))
 
     for inode in result:
         result[inode].sort(key=lambda t: (t[0], t[1]))
@@ -136,10 +123,10 @@ def pipe_endpoints_from_fd_rows(
 
 def find_pipe_endpoints(
     target_inodes: set[int],
-) -> dict[int, list[tuple[int, int, str, str]]]:
+) -> dict[int, list[tuple[int, int, str]]]:
     """For each pipe inode in ``target_inodes``, return all FDs holding it.
 
-    Result maps inode -> list of ``(pid, fd, comm, mode)`` sorted by
+    Result maps inode -> list of ``(pid, fd, comm)`` sorted by
     ``(pid, fd)`` for determinism. Inodes with no discoverable holder
     are absent (the kernel may report a pipe inode that's only held by a
     process whose ``/proc/PID/fd`` we can't read).
@@ -150,7 +137,7 @@ def find_pipe_endpoints(
     if not target_inodes:
         return {}
 
-    result: dict[int, list[tuple[int, int, str, str]]] = {}
+    result: dict[int, list[tuple[int, int, str]]] = {}
     try:
         proc_entries = os.listdir("/proc")
     except OSError:
@@ -192,8 +179,7 @@ def find_pipe_endpoints(
                 except OSError:
                     comm = ""
 
-            mode = _read_fdinfo_mode(pid, fd)
-            result.setdefault(inode, []).append((pid, fd, comm, mode))
+            result.setdefault(inode, []).append((pid, fd, comm))
 
     for inode in result:
         result[inode].sort(key=lambda t: (t[0], t[1]))

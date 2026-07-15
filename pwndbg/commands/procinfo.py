@@ -151,14 +151,13 @@ def _fdinfo_mode(pid: int, fd: int) -> str:
 
 def _pipe_endpoints_system_wide(
     inodes: set[int],
-) -> dict[int, list[tuple[int, int, str, str]]] | None:
+) -> dict[int, list[tuple[int, int, str]]] | None:
     """All FDs on the target system holding one of ``inodes``, or None.
 
     Locally this walks /proc/*/fd directly. On a remote target vFile can't
     list directories, so we ask the stub for its "files" osdata table (the
-    same walk, done on the remote side) and fill in each endpoint's r/w mode
-    by reading its fdinfo over vFile. Returns None when neither is possible
-    (e.g. a stub without qXfer:osdata support, like qemu-user).
+    same walk, done on the remote side). Returns None when neither is
+    possible (e.g. a stub without qXfer:osdata support, like qemu-user).
     """
     if not pwndbg.aglib.remote.is_remote():
         return pwndbg.lib.proc_fd.find_pipe_endpoints(inodes)
@@ -166,12 +165,7 @@ def _pipe_endpoints_system_wide(
     rows = pwndbg.aglib.osdata.open_files()
     if rows is None:
         return None
-
-    endpoints = pwndbg.lib.proc_fd.pipe_endpoints_from_fd_rows(rows, inodes)
-    return {
-        inode: [(pid, fd, comm, _fdinfo_mode(pid, fd)) for (pid, fd, comm, _mode) in eps]
-        for inode, eps in endpoints.items()
-    }
+    return pwndbg.lib.proc_fd.pipe_endpoints_from_fd_rows(rows, inodes)
 
 
 def _augment_pipes(pipes: list[pwndbg.lib.proc_fd.Pipe], self_pid: int) -> None:
@@ -189,22 +183,32 @@ def _augment_pipes(pipes: list[pwndbg.lib.proc_fd.Pipe], self_pid: int) -> None:
     inodes = {inode for inode, _fd, _pipe in entries}
     self_comm = _target_file_text(f"/proc/{self_pid}/comm").strip()
 
-    for _inode, fd, pipe_obj in entries:
-        pipe_obj.mode = _fdinfo_mode(self_pid, fd)
-
     endpoints = _pipe_endpoints_system_wide(inodes) or {}
 
-    for inode, fd, pipe_obj in entries:
-        eps = endpoints.get(inode)
-        if not eps:
-            eps = [
-                (self_pid, other_fd, self_comm, other.mode or "?")
-                for other_inode, other_fd, other in entries
+    # Fall back to the debuggee's own FD table for inodes the system-wide
+    # listing didn't cover.
+    for inode, _fd, _pipe in entries:
+        if not endpoints.get(inode):
+            endpoints[inode] = [
+                (self_pid, other_fd, self_comm)
+                for other_inode, other_fd, _other in entries
                 if other_inode == inode
             ]
+
+    # Resolve every endpoint's read/write end exactly once, from its fdinfo
+    # text (fetched over vFile when the target is remote).
+    modes = {
+        (ep_pid, ep_fd): _fdinfo_mode(ep_pid, ep_fd)
+        for eps in endpoints.values()
+        for (ep_pid, ep_fd, _comm) in eps
+    }
+
+    for inode, fd, pipe_obj in entries:
+        own = (self_pid, fd)
+        pipe_obj.mode = modes[own] if own in modes else _fdinfo_mode(self_pid, fd)
         pipe_obj.peers = [
-            (ep_pid, ep_fd, comm, mode)
-            for (ep_pid, ep_fd, comm, mode) in eps
+            (ep_pid, ep_fd, comm, modes[(ep_pid, ep_fd)])
+            for (ep_pid, ep_fd, comm) in endpoints.get(inode, [])
             if not (ep_pid == self_pid and ep_fd == fd)
         ]
 

@@ -14,9 +14,11 @@ import pwndbg.aglib.file
 import pwndbg.dbg_mod
 import pwndbg.lib.osdata
 
-# Large enough to keep round-trips low, small enough to fit any stub's packet
-# size buffer (gdbserver's default is 16KiB, the protocol minimum is 16KiB too,
-# but qemu and embedded stubs can be much smaller).
+# The length we request per qXfer read. It is only an upper bound: the stub
+# trims each reply to fit its own packet buffer (gdbserver advertises ~128KiB
+# via qSupported PacketSize, QEMU's stub caps at 4KiB, embedded probes can be
+# ~1KiB) and the loop below advances by the bytes actually received, so a
+# stub with a smaller buffer just needs more round-trips.
 _CHUNK = 0xF00
 
 
