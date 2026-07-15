@@ -10,9 +10,12 @@ osdata listing, so this can't silently pass through the same-process fallback.
 
 from __future__ import annotations
 
+import os
 import re
+import select
 import shutil
 import subprocess
+import time
 from collections.abc import Iterator
 
 import pytest
@@ -30,22 +33,31 @@ def gdbserver_with_pipe_fork_binary() -> Iterator[int]:
         [GDBSERVER, "127.0.0.1:0", REFERENCE_BINARY_PIPE_FORK],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
-        text=True,
     )
     assert process.stderr is not None
     # With port 0 gdbserver picks a free port and announces it on stderr.
+    # Read the raw fd non-blockingly with a deadline so a wedged gdbserver
+    # can't hang the whole suite (buffered readline + select don't mix).
+    stderr_fd = process.stderr.fileno()
+    os.set_blocking(stderr_fd, False)
+    seen = ""
     port = None
-    for _ in range(20):
-        line = process.stderr.readline()
-        if not line:
+    deadline = time.monotonic() + 10
+    while port is None and time.monotonic() < deadline:
+        ready, _, _ = select.select([stderr_fd], [], [], deadline - time.monotonic())
+        if not ready:
             break
-        match = re.search(r"Listening on port (\d+)", line)
+        chunk = os.read(stderr_fd, 4096)
+        if not chunk:
+            break
+        seen += chunk.decode(errors="replace")
+        match = re.search(r"Listening on port (\d+)", seen)
         if match:
             port = int(match.group(1))
-            break
     if port is None:
         process.kill()
-        pytest.fail("gdbserver did not report a listening port")
+        process.wait()
+        pytest.fail(f"gdbserver did not report a listening port; stderr so far: {seen!r}")
 
     yield port
 
