@@ -65,7 +65,7 @@ def ExtractFuncDecl(node: CAstNode, verbose: bool = False) -> Function | None:
         return None
 
     fargs: list[Argument] = []
-    for i, (argName, arg) in enumerate(node.args.children()):
+    for i, (_argName, arg) in enumerate(node.args.children()):
         defname = f"arg{i}"
         argdata = extractTypeAndName(arg, defname)
         if argdata is not None:
@@ -80,7 +80,7 @@ def ExtractFuncDecl(node: CAstNode, verbose: bool = False) -> Function | None:
     return Func
 
 
-def ExtractAllFuncDecls(ast: CAstNode, verbose: bool = False):
+def ExtractAllFuncDecls(ast: CAstNode, verbose: bool = False) -> dict[str, Function]:
     Functions: dict[str, Function] = {}
 
     class FuncDefVisitor(c_ast.NodeVisitor):
@@ -98,7 +98,7 @@ def ExtractFuncDeclFromSource(source: str) -> Function | None:
         p = CParser()
         ast: CAstNode = p.parse(source + ";")
         funcs = ExtractAllFuncDecls(ast)
-        for name, func in funcs.items():
+        for func in funcs.values():
             return func
     except Exception:
         import traceback
