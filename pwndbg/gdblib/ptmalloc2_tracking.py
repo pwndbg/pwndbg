@@ -552,8 +552,18 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         # Figure out what the reallocated pointer is.
         ret_ptr = int(self.return_value)
         if ret_ptr == 0:
-            # No change.
-            malloc = None
+            # realloc() failed to allocate. Per the C standard the original
+            # block is left untouched, so this is a genuine no-op: we must not
+            # free the old pointer or build a chunk from the NULL return. In
+            # particular, get_chunk(0, ...) would read a header at address
+            # 0 - sizeof(void*), which wraps around and throws (see #3998).
+            self.tracker.exit_memory_management()
+            print(
+                f"[*] realloc({self.freed_str}, {self.requested_size}) -> 0x0"
+                " (failed, original allocation unchanged)"
+            )
+            return False
+
         chunk = get_chunk(ret_ptr, self.requested_size)
         malloc = lambda: self.tracker.malloc(chunk)
 
