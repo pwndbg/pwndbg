@@ -52,3 +52,12 @@ async def test_config_filtering_missing(ctrl: Controller):
 
     out = await ctrl.execute_and_capture("config asdasdasdasd")
     assert out == 'No config parameter found with filter "asdasdasdasd"\n'
+
+
+@pwndbg_test
+async def test_set_doesnt_allow_setting_invalid_colors(ctrl: Controller) -> None:
+    await ctrl.execute("set telescope-register-color bld,red")
+    assert "bold,red" in (await ctrl.execute_and_capture("show telescope-register-color"))
+
+    await ctrl.execute("set telescope-register-color foo")
+    assert "bold,red" in (await ctrl.execute_and_capture("show telescope-register-color"))
