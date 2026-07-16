@@ -88,6 +88,7 @@ class Parameter(gdb.Parameter):
 
     def get_set_string(self) -> str:
         """Handles the GDB `set <param>`"""
+        prev_value = self.param.value
         # GDB will set `self.value` to the user's input
         if self.value is None and CLASS_MAPPING[self.param.param_class] in (
             gdb.PARAM_UINTEGER,
@@ -105,7 +106,12 @@ class Parameter(gdb.Parameter):
             self.param.value = self.value
 
         for trigger in pwndbg.config.triggers[self.param.name]:
-            trigger()
+            try:
+                trigger()
+            except Exception as e:
+                if hasattr(trigger, pwndbg.lib.config.ROLLBACK_ON_ERROR):
+                    self.param.value = prev_value
+                raise e
 
         # No need to print anything if this is set before we get to a prompt,
         # like if we're setting options in .gdbinit

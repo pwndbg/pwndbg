@@ -294,3 +294,11 @@ class Config:
         if attr in ("params", "triggers"):
             return super().__setattr__(attr, val)
         raise AttributeError("Use config.<param>.value to set value of a parameter")
+
+
+ROLLBACK_ON_ERROR = "_rollback_on_error"
+
+
+def rollback_on_trigger_error(fn: Callable) -> Callable:
+    setattr(fn, ROLLBACK_ON_ERROR, True)
+    return fn
