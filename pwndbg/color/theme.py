@@ -8,6 +8,7 @@ import pwndbg.color
 from pwndbg import config
 from pwndbg.lib.config import Parameter
 from pwndbg.lib.config import Scope
+from pwndbg.lib.config import rollback_on_trigger_error
 
 
 class ColorParameter(Parameter):
@@ -17,6 +18,7 @@ class ColorParameter(Parameter):
         super().__init__(*args, **kwargs)
         self.update_color_function()
 
+    @rollback_on_trigger_error
     def update_color_function(self):
         self.color_function = pwndbg.color.generate_color_function(self.value)
 
