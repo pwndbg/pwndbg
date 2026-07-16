@@ -299,6 +299,6 @@ class Config:
 ROLLBACK_ON_ERROR = "_rollback_on_error"
 
 
-def rollback_on_trigger_error(fn: Callable) -> Callable:
+def rollback_on_trigger_error(fn: Callable[..., Any]) -> Callable[..., Any]:
     setattr(fn, ROLLBACK_ON_ERROR, True)
     return fn
