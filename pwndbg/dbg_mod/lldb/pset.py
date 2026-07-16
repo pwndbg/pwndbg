@@ -22,7 +22,11 @@ def pset(param: pwndbg.lib.config.Parameter, value: str):
     """
     new_value = parse_value(param, value)
 
-    param.value = new_value
+    try:
+        param.value = new_value
+    except ValueError as e:
+        raise pwndbg.dbg_mod.Error(str(e))
+
     for trigger in pwndbg.config.triggers[param.name]:
         trigger()
 

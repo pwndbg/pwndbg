@@ -109,6 +109,7 @@ class Parameter:
 
     @value.setter
     def value(self, value: Any) -> None:
+        self.validate(value)
         self._value = value
         for listener in self.update_listeners:
             listener(value)

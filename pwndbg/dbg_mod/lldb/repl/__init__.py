@@ -401,8 +401,12 @@ def run(
                         last_exc = asyncio.CancelledError()
                         continue
 
-                    if not exec_repl_command(line, sys.stdout, dbg, driver, relay):
-                        last_exc = asyncio.CancelledError()
+                    try:
+                        if not exec_repl_command(line, sys.stdout, dbg, driver, relay):
+                            last_exc = asyncio.CancelledError()
+                            continue
+                    except Exception as e:
+                        print_error(str(e))
                         continue
 
                 elif isinstance(action, YieldExecDirect):
@@ -639,7 +643,7 @@ def _exec_repl_command(
         # standard debugger settings mechanism, like we do in GDB, but LLDB
         # doesn't support that.
         warn = False
-        if len(bits) != 3:
+        if len(bits) < 3:
             print("Usage: set <name> <value>")
             warn = True
         else:
@@ -648,10 +652,11 @@ def _exec_repl_command(
                 print_error(f"unknown setting '{bits[1]}'")
                 warn = True
             else:
+                value_str = " ".join(bits[2:])
                 try:
-                    pset(param, bits[2])
+                    pset(param, value_str)
                 except InvalidParse as e:
-                    print_error(f"invalid value '{bits[2]}' for setting '{bits[1]}': {e}")
+                    print_error(f"invalid value '{value_str}' for setting '{bits[1]}': {e}")
                     warn = True
 
         if warn:
