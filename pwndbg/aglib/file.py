@@ -268,7 +268,7 @@ def gdb_memtox_inverse(data: bytes) -> bytes:
             buffer.append(b)
         i += 1
 
-    return buffer
+    return bytes(buffer)
 
 
 def vfile_pread(fd: int, size: int, offset: int) -> tuple[int, bytes]:
