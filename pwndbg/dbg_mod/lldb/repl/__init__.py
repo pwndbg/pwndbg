@@ -392,6 +392,8 @@ def run(
                         # If the input is empty (i.e., 'Enter'), use the previous command
                         if line:
                             last_command = line
+                            dbg._history_index += 1
+                            dbg._history_list.append((dbg._history_index, line))
                         else:
                             line = last_command
                     except EOFError:

@@ -19,7 +19,8 @@ dependencies = [
     # We install uv to the venv
     "uv>=0.11.17",
     # Optional? only for 'ipi' command
-    "ipython>=8.39.0,<9",
+    "ipython>=8.39.0,<9 ; python_full_version <= '3.11'",
+    "ipython>=8.39.0,<10 ; python_full_version >= '3.12'",
     # Optional? only for 'ropgadget' command
     "ropgadget==7.6",
     # Optional? only for 'ai' commands
@@ -37,6 +38,10 @@ dependencies = [
     # For installing the decompiler plugins (we don't actually use it as a python library).
     # If you bump this, also bump the pwndbg/commands/decompiler_integration.py:d2d_required* variables.
     "decomp2dbg==3.14.1",
+    # jpype1 is a transitive dependency of decomp2dbg
+    # Note: newer versions have known build issues - see https://github.com/jpype-project/jpype/issues/1418
+    "jpype1==1.7.1 ; platform_machine == 'x86_64' or platform_machine == 'arm64'",
+    "jpype1==1.6.0 ; platform_machine != 'x86_64' and platform_machine != 'arm64'",
 ]
 
 [project.optional-dependencies]
@@ -47,7 +52,7 @@ lldb = [
     "lldb-for-pwndbg==22.1.0.post2",
 ]
 gdb = [
-    "gdb-for-pwndbg==17.2.0.post3",
+    "gdb-for-pwndbg==17.2.0.post4",
 ]
 
 [dependency-groups]
@@ -131,11 +136,16 @@ ignore = [
     "RET504",  # flake8-return unnecessary-assign
     "PLR0911", # pylint-refactor too-many-statements
     "PLR0912", # pylint-refactor too-many-branches
+    "B011",    # flake8-bugbear assert-false
+    "B905",    # flake8-bugbear zip-without-explicit-strict
     # We want to unignore the below lints, but they currently return too many errors
     "PLR0913", # pylint-refactor too-many-arguments
     "PLR0915", # pylint-refactor too-many-return-statements
     "PLR1704", # pylint-refactor redefined-argument-from-local (this will probably also catch some bugs)
     "PLR2004", # pylint-refactor magic-value-comparison
+    "B008",    # flake8-bugbear function-call-in-default-argument
+    "B023",    # flake8-bugbear function-uses-loop-variable
+    "B904",    # flake8-bugbear raise-without-from-inside-except
 ]
 
 select = [
@@ -155,6 +165,8 @@ select = [
     "UP",     # pyugprade
     "FURB",   # refurb
     "PLR",    # pylint-refactor
+    "PLE",    # pylint-error
+    "B",      # flake8-bugbear
     # We want to enable the below lints, but they currently return too many errors
     # "SLF" # flake8-self
     # "PTH", # flake8-use-pathlib
