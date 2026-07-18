@@ -121,7 +121,7 @@ def get(path: str) -> bytes:
     try:
         with open(local_path, "rb") as f:
             return f.read()
-    except Exception:
+    except OSError:
         return b""
 
 
@@ -138,13 +138,13 @@ def readlink(path: str) -> str:
         if can_download_remote_file():
             try:
                 return vfile_readlink(path).decode("utf-8")
-            except Exception:
+            except OSError:
                 return ""
         return ""
 
     try:
         return os.readlink(path)
-    except Exception:
+    except OSError:
         return ""
 
 
