@@ -131,7 +131,7 @@ def freelist_desc(freelist: Freelist) -> str:
 
 def print_slab(slab: Slab, verbose: bool) -> None:
     indent.print(
-        f"- {indent.prefix('Slab')} @ {indent.addr_hex(slab.virt_address)} [{indent.aux_hex(slab.slab_address)}]:"
+        f"- {indent.prefix('Slab')} @ {indent.addr_hex(slab.slab_address)} [{indent.aux_hex(slab.virt_address)}]:"
     )
 
     with indent:
@@ -225,7 +225,7 @@ def print_node_cache(node_cache: NodeCache, verbose: bool) -> None:
     )
     # https://elixir.bootlin.com/linux/v6.13/source/mm/slub.c#L3140
     indent.print(
-        f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(address)} [NUMA node {node}, nr_partial/min_partial: {indent.aux_hex(nr_partial)}/{indent.aux_hex(min_partial)}]:"
+        f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(address)} [NUMA node {node}]:"
     )
     with indent:
         partial_slabs = node_cache.partial_slabs
@@ -234,7 +234,7 @@ def print_node_cache(node_cache: NodeCache, verbose: bool) -> None:
             return
 
         indent.print(
-            f"{indent.prefix('Partial Slabs')} [nr_partial: {indent.aux_hex(len(partial_slabs))}]"
+            f"{indent.prefix('Partial Slabs')} [nr_partial/min_partial: {indent.aux_hex(nr_partial)}/{indent.aux_hex(min_partial)}]"
         )
         with indent:
             for slab in partial_slabs:

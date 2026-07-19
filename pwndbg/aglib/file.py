@@ -88,7 +88,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
     local_path = path
     if not pwndbg.aglib.remote.is_remote() or pwndbg.aglib.qemu.is_qemu_kernel():
         if not os.path.exists(local_path):
-            raise OSError(f"File '{local_path}' does not exist", errno.ENOENT)
+            raise OSError(errno.ENOENT, f"File '{local_path}' does not exist")
 
         return local_path
 
@@ -103,7 +103,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
             # This module originally raised this as an OSError.
             raise OSError(e)
     else:
-        raise OSError(f"get_file('{local_path}') is not supported for your target", errno.ENODEV)
+        raise OSError(errno.ENODEV, f"get_file('{local_path}') is not supported for your target")
 
     return local_path
 
@@ -268,7 +268,7 @@ def gdb_memtox_inverse(data: bytes) -> bytes:
             buffer.append(b)
         i += 1
 
-    return buffer
+    return bytes(buffer)
 
 
 def vfile_pread(fd: int, size: int, offset: int) -> tuple[int, bytes]:

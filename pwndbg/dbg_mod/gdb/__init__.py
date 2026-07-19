@@ -636,10 +636,12 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def stopped_with_signal(self) -> bool:
+        # FIXME: `info program` is hacky (#3976)
         return "It stopped with signal " in gdb.execute("info program", to_string=True)
 
     @override
     def stopped_at_breakpoint(self) -> bool:
+        # FIXME: `info program` is hacky (#3976)
         gdb_prog: str = gdb.execute("info program", to_string=True)
         # The first happens when e.g. running start
         # ("It stopped at a breakpoint that has since been deleted.")
@@ -1451,7 +1453,13 @@ class GDBType(pwndbg.dbg_mod.Type):
         # For GDB, we can do a little better than the default implementation, as
         # it has a specific convenience function that checks for this condition
         # exactly.
-        return gdb.types.has_field(self.inner, name)
+        try:
+            return gdb.types.has_field(self.inner, name)
+        except TypeError:
+            # GDB throws an exception for stuff that does not resolve to a struct or union
+            # after typedefs have been stripped.
+            # https://git.sr.ht/~sourceware/binutils-gdb/tree/05c660d1d7ca754a9607084e606c263b1fd74a94/item/gdb/python/lib/gdb/types.py#L61
+            return False
 
     @override
     def array(self, count: int) -> pwndbg.dbg_mod.Type:
