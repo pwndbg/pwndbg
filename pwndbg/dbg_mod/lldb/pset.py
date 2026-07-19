@@ -42,7 +42,7 @@ def parse_value(param: Parameter, expression: str) -> Any:
         if is_valid_color_parameter(expression):
             return expression
         # invalid color
-        valid_values = ", ".join(list(COLOR_NAME_TO_FUNC.keys()))
+        valid_values = ", ".join(list(COLOR_NAME_TO_FUNC))
         raise InvalidParse(
             f"invalid color\nspecifier must be one of {valid_values}\nsee 'theme' for examples"
         )

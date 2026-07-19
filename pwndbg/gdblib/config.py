@@ -106,7 +106,7 @@ class Parameter(gdb.Parameter):
             # Not a valid color parameter, revert the value and tell GDB to fail the command.
             erroneous_value = self.value
             self.value = old_value
-            valid_values = ", ".join(list(COLOR_NAME_TO_FUNC.keys()))
+            valid_values = ", ".join(list(COLOR_NAME_TO_FUNC))
             raise gdb.GdbError(
                 f"Invalid color '{erroneous_value}'.\nSpecifiers must be one of {valid_values}."
                 "\nSee `theme` for examples."
