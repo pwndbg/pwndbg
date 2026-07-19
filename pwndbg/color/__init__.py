@@ -48,6 +48,14 @@ UNDERLINE = "\x1b[4m"
 none = str
 
 
+def terminate_with(x: str, color: str) -> str:
+    return x.replace("\x1b[0m", NORMAL + color)
+
+
+def colorize(x: str, color: str) -> str:
+    return color + terminate_with(str(x), color) + NORMAL
+
+
 def normal(x: str) -> str:
     return colorize(x, NORMAL)
 
@@ -128,13 +136,30 @@ def underline(x: str) -> str:
     return colorize(x, UNDERLINE)
 
 
-def colorize(x: str, color: str) -> str:
-    return color + terminate_with(str(x), color) + NORMAL
-
-
-def nocolor(x: str, color: str) -> str:
-    return x
-
+COLOR_NAME_TO_FUNC: dict[str, Callable[[str], str]] = {
+    "none": none,
+    "normal": normal,
+    "black": black,
+    "red": red,
+    "green": green,
+    "yellow": yellow,
+    "blue": blue,
+    "purple": purple,
+    "cyan": cyan,
+    "light_gray": light_gray,
+    "light_grey": light_gray,
+    "foreground": foreground,
+    "gray": gray,
+    "light_red": light_red,
+    "light_green": light_green,
+    "light_yellow": light_yellow,
+    "light_blue": light_blue,
+    "light_purple": light_purple,
+    "light_cyan": light_cyan,
+    "white": white,
+    "bold": bold,
+    "underline": underline,
+}
 
 # Taken from https://stackoverflow.com/a/14693789
 ansi_escape_8bit = re.compile(
@@ -153,12 +178,16 @@ disable_colors = theme.add_param(
 )
 
 
+def __nocolor(x: str, _color: str) -> str:
+    return x
+
+
 @pwndbg.config.trigger(disable_colors)
 def _disable_colors_trigger():
     if disable_colors:
         if not hasattr(colorize, "original_code"):
             colorize.original_code = colorize.__code__
-        colorize.__code__ = nocolor.__code__
+        colorize.__code__ = __nocolor.__code__
     elif hasattr(colorize, "original_code"):
         colorize.__code__ = colorize.original_code
 
@@ -196,8 +225,12 @@ class ColorConfig:
 
 
 def generate_color_function(
-    config: str | Parameter, _locals: dict[str, Callable[[str], str]] = locals()
+    config: str | Parameter, color_space: dict[str, Callable[[str], str]] = COLOR_NAME_TO_FUNC
 ) -> Callable[[object], str]:
+    """
+    Takes a colorizing description like "blue,underline" and produces a function
+    which colors strings that way.
+    """
     # the `config` here may be a config Parameter object
     # and if we run with disable_colors or if the config value
     # is empty, we need to ensure we cast it to string
@@ -208,21 +241,27 @@ def generate_color_function(
     if disable_colors:
         return function
 
-    for color in config.split(","):
-        func_name = color.lower().replace("-", "_")
-        fn = _locals.get(func_name)
-        assert fn is not None, f"Invalid colour {color}"
-        assert callable(fn), f"Invalid colour {color}"
+    for func_name in config.replace("-", "_").split(","):
+        fn = color_space.get(func_name)
+        assert fn is not None, f"Invalid color {func_name}, valid: {color_space}"
+        assert callable(fn), f"Invalid color {func_name}, valid: {color_space}"
         function = generate_color_function_inner(function, fn)
     return function
 
 
+def is_valid_color_parameter(color_param: str) -> bool:
+    """
+    Validates the "blue,underline" colorizations that generate_color_function
+    takes.
+    """
+    for color in color_param.replace("-", "_").split(","):
+        if color not in COLOR_NAME_TO_FUNC:
+            return False
+    return True
+
+
 def strip(x: str) -> str:
     return re.sub("\x1b\\[[\\d;]+m", "", x)
-
-
-def terminate_with(x: str, color: str) -> str:
-    return x.replace("\x1b[0m", NORMAL + color)
 
 
 def ljust_colored(x: str, length: int, char: str = " ") -> str:
