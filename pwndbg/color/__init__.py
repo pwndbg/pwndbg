@@ -45,7 +45,15 @@ UNDERLINE = "\x1b[4m"
 #   117 ns ± 0.642 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
 #   In [3]: %timeit str('')
 #   72 ns ± 0.222 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
-none = str
+COLORS: dict[str, Callable[[str], str]] = {"none": str}
+
+
+def color(fn: Callable[[str], str]) -> Callable[[str], str]:
+    """
+    Mark a function as a "color", so it can be used in e.g. configuration.
+    """
+    COLORS[fn.__name__] = fn
+    return fn
 
 
 def terminate_with(x: str, color: str) -> str:
@@ -56,110 +64,105 @@ def colorize(x: str, color: str) -> str:
     return color + terminate_with(str(x), color) + NORMAL
 
 
+@color
 def normal(x: str) -> str:
     return colorize(x, NORMAL)
 
 
+@color
 def black(x: str) -> str:
     return colorize(x, BLACK)
 
 
+@color
 def red(x: str) -> str:
     return colorize(x, RED)
 
 
+@color
 def green(x: str) -> str:
     return colorize(x, GREEN)
 
 
+@color
 def yellow(x: str) -> str:
     return colorize(x, YELLOW)
 
 
+@color
 def blue(x: str) -> str:
     return colorize(x, BLUE)
 
 
+@color
 def purple(x: str) -> str:
     return colorize(x, PURPLE)
 
 
+@color
 def cyan(x: str) -> str:
     return colorize(x, CYAN)
 
 
+@color
 def light_gray(x: str) -> str:
     return colorize(x, LIGHT_GRAY)
 
 
+@color
 def foreground(x: str) -> str:
     return colorize(x, FOREGROUND)
 
 
+@color
 def gray(x: str) -> str:
     return colorize(x, GRAY)
 
 
+@color
 def light_red(x: str) -> str:
     return colorize(x, LIGHT_RED)
 
 
+@color
 def light_green(x: str) -> str:
     return colorize(x, LIGHT_GREEN)
 
 
+@color
 def light_yellow(x: str) -> str:
     return colorize(x, LIGHT_YELLOW)
 
 
+@color
 def light_blue(x: str) -> str:
     return colorize(x, LIGHT_BLUE)
 
 
+@color
 def light_purple(x: str) -> str:
     return colorize(x, LIGHT_PURPLE)
 
 
+@color
 def light_cyan(x: str) -> str:
     return colorize(x, LIGHT_CYAN)
 
 
+@color
 def white(x: str) -> str:
     return colorize(x, WHITE)
 
 
+@color
 def bold(x: str) -> str:
     return colorize(x, BOLD)
 
 
+@color
 def underline(x: str) -> str:
     return colorize(x, UNDERLINE)
 
-
-COLOR_NAME_TO_FUNC: dict[str, Callable[[str], str]] = {
-    "none": none,
-    "normal": normal,
-    "black": black,
-    "red": red,
-    "green": green,
-    "yellow": yellow,
-    "blue": blue,
-    "purple": purple,
-    "cyan": cyan,
-    "light_gray": light_gray,
-    "light_grey": light_gray,
-    "foreground": foreground,
-    "gray": gray,
-    "light_red": light_red,
-    "light_green": light_green,
-    "light_yellow": light_yellow,
-    "light_blue": light_blue,
-    "light_purple": light_purple,
-    "light_cyan": light_cyan,
-    "white": white,
-    "bold": bold,
-    "underline": underline,
-}
 
 # Taken from https://stackoverflow.com/a/14693789
 ansi_escape_8bit = re.compile(
@@ -225,7 +228,7 @@ class ColorConfig:
 
 
 def generate_color_function(
-    config: str | Parameter, color_space: dict[str, Callable[[str], str]] = COLOR_NAME_TO_FUNC
+    config: str | Parameter, color_space: dict[str, Callable[[str], str]] = COLORS
 ) -> Callable[[object], str]:
     """
     Takes a colorizing description like "blue,underline" and produces a function
@@ -255,7 +258,7 @@ def is_valid_color_parameter(color_param: str) -> bool:
     takes.
     """
     for color in color_param.replace("-", "_").split(","):
-        if color not in COLOR_NAME_TO_FUNC:
+        if color not in COLORS:
             return False
     return True
 
