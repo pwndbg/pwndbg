@@ -4,7 +4,7 @@ from typing import Any
 
 import pwndbg
 import pwndbg.lib.config as cfg
-from pwndbg.color import COLOR_NAME_TO_FUNC
+from pwndbg.color import COLORS
 from pwndbg.color import is_valid_color_parameter
 from pwndbg.color.theme import ColorParameter
 from pwndbg.lib.config import Parameter
@@ -42,7 +42,7 @@ def parse_value(param: Parameter, expression: str) -> Any:
         if is_valid_color_parameter(expression):
             return expression
         # invalid color
-        valid_values = ", ".join(list(COLOR_NAME_TO_FUNC))
+        valid_values = ", ".join(list(COLORS))
         raise InvalidParse(
             f"invalid color\nspecifier must be one of {valid_values}\nsee 'theme' for examples"
         )

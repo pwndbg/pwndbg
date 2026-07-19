@@ -24,7 +24,7 @@ import gdb
 import pwndbg
 import pwndbg.decorators
 import pwndbg.lib.config
-from pwndbg.color import COLOR_NAME_TO_FUNC
+from pwndbg.color import COLORS
 from pwndbg.color import is_valid_color_parameter
 from pwndbg.color.theme import ColorParameter
 
@@ -106,7 +106,7 @@ class Parameter(gdb.Parameter):
             # Not a valid color parameter, revert the value and tell GDB to fail the command.
             erroneous_value = self.value
             self.value = old_value
-            valid_values = ", ".join(list(COLOR_NAME_TO_FUNC))
+            valid_values = ", ".join(list(COLORS))
             raise gdb.GdbError(
                 f"Invalid color '{erroneous_value}'.\nSpecifiers must be one of {valid_values}."
                 "\nSee `theme` for examples."
