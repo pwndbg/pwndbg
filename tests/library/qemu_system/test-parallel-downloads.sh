@@ -75,11 +75,11 @@ bash "${WORK_DIR}/run_test.sh"
 EXIT_CODE=$?
 END_NS=$(date +%s%N)
 
-ELAPSED_MS=$(( (END_NS - START_NS) / 1000000 ))
+ELAPSED_MS=$(((END_NS - START_NS) / 1000000))
 echo "Total elapsed: ${ELAPSED_MS}ms"
 
 # ── Assertions ────────────────────────────────────────────────────────────────
-NUM_DOWNLOADS=$(ls "${TIMESTAMPS_DIR}"/*.start 2>/dev/null | wc -l)
+NUM_DOWNLOADS=$(ls "${TIMESTAMPS_DIR}"/*.start 2> /dev/null | wc -l)
 echo "Downloads observed: ${NUM_DOWNLOADS}"
 
 PASS=true
@@ -104,12 +104,12 @@ fi
 START_TIMES=()
 while IFS= read -r f; do
     START_TIMES+=("$(cat "$f")")
-done < <(ls "${TIMESTAMPS_DIR}"/*.start 2>/dev/null | sort)
+done < <(ls "${TIMESTAMPS_DIR}"/*.start 2> /dev/null | sort)
 
 END_TIMES=()
 while IFS= read -r f; do
     END_TIMES+=("$(cat "$f")")
-done < <(ls "${TIMESTAMPS_DIR}"/*.end 2>/dev/null | sort)
+done < <(ls "${TIMESTAMPS_DIR}"/*.end 2> /dev/null | sort)
 
 OVERLAP=false
 if [[ "${#START_TIMES[@]}" -ge 2 && "${#END_TIMES[@]}" -ge 1 ]]; then

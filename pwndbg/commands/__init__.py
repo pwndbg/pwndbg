@@ -1132,6 +1132,7 @@ def load_commands() -> None:
     import pwndbg.commands.profiler
     import pwndbg.commands.ptmalloc2
     import pwndbg.commands.pwndbg_
+    import pwndbg.commands.qemu_mem
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr
     import pwndbg.commands.rizin
