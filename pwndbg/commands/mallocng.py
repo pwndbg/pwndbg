@@ -83,7 +83,7 @@ def dump_group(group: mallocng.Group) -> str:
     try:
         # May fail on corrupt meta.
         group_size = group.group_size
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"Error while reading meta: {e}"))
         print(color.bold("Cannot determine group size."))
         group_size = -1
@@ -166,7 +166,7 @@ def dump_meta(meta: mallocng.Meta, focus_slot: int | None = None) -> str:
             parent_group = meta.parent_group()
             assert parent_group != -1
             output += " (" + mem_color.get(parent_group) + ")"
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             print(message.error(f"Could not fetch parent group: {e}"))
         output += color.bold(".\n")
 
@@ -341,7 +341,7 @@ def smart_dump_slot(
 ) -> str:
     try:
         slot.preload()
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         return message.error(f"Error while reading slot: {e}")
 
     successful_preload: bool = True
@@ -349,7 +349,7 @@ def smart_dump_slot(
 
     try:
         slot.group.preload()
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         err_msg = message.error(f"Error while reading group: {e}")
         successful_preload = False
 
@@ -358,13 +358,13 @@ def smart_dump_slot(
             slot.meta.preload()
             try:
                 slot.preload_meta_dependants()
-            except pwndbg.dbg_mod.Error as e1:
+            except pwndbg.dbg_mod.DebuggerError as e1:
                 err_msg = message.error(
                     f"Error while loading slot fields that depend on the meta:\n{e1}"
                 )
                 successful_preload = False
 
-        except pwndbg.dbg_mod.Error as e2:
+        except pwndbg.dbg_mod.DebuggerError as e2:
             err_msg = message.error(f"Error while reading meta: {e2}")
             successful_preload = False
 
@@ -542,7 +542,7 @@ def mallocng_meta(address: int) -> None:
 
     try:
         meta.preload()
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(str(e)))
         return
 
@@ -550,7 +550,7 @@ def mallocng_meta(address: int) -> None:
         group = mallocng.Group(meta.mem)
         group.preload()
         print(dump_group(group), end="")
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"Failed loading group: {e}"))
 
     print(dump_meta(meta), end="")
@@ -565,7 +565,7 @@ def mallocng_group(address: int, index: int | None = None) -> None:
 
     try:
         group.preload()
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(str(e)))
         return
 
@@ -589,7 +589,7 @@ def mallocng_group(address: int, index: int | None = None) -> None:
                 message.warn("Index is outside of group! ") + f"Group hosts only {meta.cnt} slots."
             )
 
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"Failed loading meta: {e}"))
         print("Cannot determine whether index is within group bounds.")
         return
@@ -618,7 +618,7 @@ def mallocng_meta_area(address: int, index: int | None = None) -> None:
                     + f"Meta area only hosts {meta_area.nslots} meta's."
                 )
 
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(str(e)))
         return
 
@@ -638,7 +638,7 @@ def mallocng_malloc_context(address: int | None = None) -> None:
 
         try:
             ctx = mallocng.MallocContext(address)
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             print(message.error(str(e)))
             return
 
@@ -875,7 +875,7 @@ def mallocng_visualize_slots(address: int, count: int = int(default_vis_count)):
                 slot.set_group(group)
                 # Probably redundant, but just in case.
                 slot.preload_meta_dependants()
-            except pwndbg.dbg_mod.Error as e:
+            except pwndbg.dbg_mod.DebuggerError as e:
                 print(
                     message.error(
                         f"Error while reading slot {idx} @ {mem_color.get(start_address)}: {e}"
@@ -925,7 +925,7 @@ def mallocng_dump(meta_area: int | None = None) -> None:
 
     try:
         free_metas = ng.get_free_metas()
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"Failed traversing free meta chain. {e}"))
         print(message.error("Meta allocation state may be wrong."))
         free_metas = {}
@@ -945,7 +945,7 @@ def mallocng_dump(meta_area: int | None = None) -> None:
     while ma_addr != 0:
         try:
             meta_area = mallocng.MetaArea(ma_addr)
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             print(message.error(f"Cannot read meta area @ {ma_addr:#x}: {e}"))
             break
 
@@ -972,7 +972,7 @@ def mallocng_dump(meta_area: int | None = None) -> None:
                     meta.preload()
                     group = mallocng.Group(meta.mem)
                     meta.preload()
-                except pwndbg.dbg_mod.Error as e:
+                except pwndbg.dbg_mod.DebuggerError as e:
                     print(message.error(f"Failed resolving meta / group data ({e}). Skipping.."))
                     continue
 

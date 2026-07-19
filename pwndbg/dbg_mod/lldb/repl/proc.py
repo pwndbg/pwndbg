@@ -716,7 +716,9 @@ class ProcessDriver:
                         # it a chance to recover gracefully before we propagate it
                         # up to the caller.
                         exceptions.append(
-                            pwndbg.dbg_mod.Error(f"Could not perform single step: {e.description}")
+                            pwndbg.dbg_mod.DebuggerError(
+                                f"Could not perform single step: {e.description}"
+                            )
                         )
                         continue
 

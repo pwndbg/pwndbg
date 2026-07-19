@@ -120,7 +120,7 @@ def probeleak(
 
     try:
         data = pwndbg.aglib.memory.read(address, count, partial=True)
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(str(e)))
         return
 

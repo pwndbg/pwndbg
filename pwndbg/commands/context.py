@@ -1550,7 +1550,7 @@ def context_backtrace(
         try:
             candidate = oldest_frame.parent()
         # We catch an error in case of a `gdb.error: PC not saved` case
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             break
 
         if not candidate:
@@ -1778,7 +1778,7 @@ def save_signal() -> None:
             msg = f"Program received signal {desc_short}"
             if desc_long:
                 msg += desc_long
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             pass
 
     result.append(message.signal(msg))

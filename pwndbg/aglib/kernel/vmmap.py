@@ -258,7 +258,7 @@ def kernel_vmmap_via_monitor_info_mem() -> tuple[Page, ...]:
 
     try:
         monitor_info_mem = pwndbg.dbg.selected_inferior().send_monitor("info mem")
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         # Exception should not happen in new qemu, can we clean up it?
         # Older versions of QEMU/GDB may throw `gdb.error: "monitor" command
         # not supported by this target`. Newer versions will not throw, but will

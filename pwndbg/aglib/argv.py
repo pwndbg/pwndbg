@@ -56,7 +56,7 @@ def update_state() -> None:
 
     try:
         _argc_numbers = pwndbg.aglib.memory.u(sp, ptrbits)
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         return
 
     sp += ptrsize
@@ -73,7 +73,7 @@ def update_state() -> None:
         while pwndbg.aglib.memory.u(sp, ptrbits):
             sp += ptrsize
             _envc_numbers += 1
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         pass
 
 

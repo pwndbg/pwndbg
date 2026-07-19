@@ -183,7 +183,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             if (val := lookup_frame_symbol(name, domain=domain)) is not None:
                 return GDBValue(val)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
         return None
 
     @override
@@ -197,7 +197,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
                 try:
                     value = parse_and_eval(expression, global_context=False)
                 except gdb.error as e:
-                    raise pwndbg.dbg_mod.Error(e)
+                    raise pwndbg.dbg_mod.DebuggerError(e)
 
         return GDBValue(value)
 
@@ -217,7 +217,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
                 gdb.execute(f"set ${name} = {val}")
                 return True
             except gdb.error as e:
-                raise pwndbg.dbg_mod.Error(e)
+                raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def pc(self) -> int:
@@ -258,7 +258,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
                 return GDBFrame(parent)
         except (gdb.error, gdb.MemoryError) as e:
             # We can encounter a `gdb.error: PC not saved` here.
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
         return None
 
@@ -270,7 +270,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
                 return GDBFrame(child)
         except (gdb.error, gdb.MemoryError) as e:
             # We can encounter a `gdb.error: PC not saved` here.
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
         return None
 
@@ -483,7 +483,7 @@ class GDBThread(pwndbg.dbg_mod.Thread):
                 ),
             )
             return siginfo
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             return None
 
 
@@ -654,7 +654,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         try:
             return GDBValue(parse_and_eval(expression, global_context=True))
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
@@ -712,7 +712,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             return bytearray(result)
         except gdb.error as e:
             if not partial:
-                raise pwndbg.dbg_mod.Error(e)
+                raise pwndbg.dbg_mod.DebuggerError(e)
 
             if not pwndbg.aglib.remote.is_remote():
                 message = str(e)
@@ -744,7 +744,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             elif (stop_addr := self._find_memory_last_readable(addr, count)) > 0:
                 return self.read_memory(addr, stop_addr - addr + 1)
 
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def write_memory(self, address: int, data: bytearray, partial: bool = False) -> int:
@@ -755,7 +755,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             if partial:
                 raise NotImplementedError("partial writes are currently not supported under gdb")
 
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
         return len(data)
 
     @override
@@ -856,14 +856,14 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         try:
             return conn.send_packet(packet) or b""
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def send_monitor(self, cmd: str) -> str:
         try:
             return gdb.execute(f"monitor {cmd}", to_string=True)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def download_remote_file(self, remote_path: str, local_path: str) -> None:
@@ -875,7 +875,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     fp.writelines(pwndbg.aglib.file.vfile_readfile(remote_path))
                     return
                 except OSError as e:
-                    raise pwndbg.dbg_mod.Error(
+                    raise pwndbg.dbg_mod.DebuggerError(
                         f"Could not download remote file {remote_path!r}:\nError: {str(e)}"
                     )
         try:
@@ -894,7 +894,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     real_error.append(line)
             if len(real_error):
                 error = "\n".join(real_error)
-                raise pwndbg.dbg_mod.Error(
+                raise pwndbg.dbg_mod.DebuggerError(
                     f"Could not download remote file {remote_path!r}:\nError: {error}"
                 )
 
@@ -951,7 +951,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             ) is not None:
                 return GDBValue(val)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
         return None
 
     @override
@@ -1071,7 +1071,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         #
         # [1]: https://sourceware.org/gdb/current/onlinedocs/gdb.html/Breakpoints-In-Python.html#Breakpoints-In-Python
         if self.in_bpwp_stop_handler:
-            raise pwndbg.dbg_mod.Error(
+            raise pwndbg.dbg_mod.DebuggerError(
                 "Creating new Breakpoints/Watchpoints while in a stop handler is not allowed in GDB"
             )
 
@@ -1489,12 +1489,12 @@ class GDBType(pwndbg.dbg_mod.Type):
         value = pwndbg.dbg.selected_inferior().create_value(0, self.pointer())
         try:
             addr = value[field_name].address
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             # error: `There is no member named field_name`
             return None
 
         if addr is None:
-            raise pwndbg.dbg_mod.Error("bug, this should no happen")
+            raise pwndbg.dbg_mod.DebuggerError("bug, this should no happen")
 
         return int(addr)
 
@@ -1527,7 +1527,7 @@ class GDBValue(pwndbg.dbg_mod.Value):
             self.type.code == pwndbg.dbg_mod.TypeCode.POINTER
             and self.type.target().code == pwndbg.dbg_mod.TypeCode.FUNC
         ):
-            raise pwndbg.dbg_mod.Error("Dereference to function type is not allowed")
+            raise pwndbg.dbg_mod.DebuggerError("Dereference to function type is not allowed")
 
         return GDBValue(self.inner.dereference())
 
@@ -1536,14 +1536,14 @@ class GDBValue(pwndbg.dbg_mod.Value):
         try:
             return self.inner.string()
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def value_to_human_readable(self) -> str:
         try:
             return str(self.inner)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def fetch_lazy(self) -> None:
@@ -1554,7 +1554,7 @@ class GDBValue(pwndbg.dbg_mod.Value):
         try:
             return int(self.inner)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
@@ -1562,27 +1562,27 @@ class GDBValue(pwndbg.dbg_mod.Value):
         type: GDBType = type
 
         if type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            raise pwndbg.dbg_mod.Error("Cast to function type is not allowed, use pointer")
+            raise pwndbg.dbg_mod.DebuggerError("Cast to function type is not allowed, use pointer")
 
         try:
             return GDBValue(self.inner.cast(type.inner))
         except gdb.error as e:
             # GDB casts can fail.
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def __add__(self, rhs: int) -> pwndbg.dbg_mod.Value:
         try:
             return GDBValue(self.inner + rhs)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def __sub__(self, rhs: int) -> pwndbg.dbg_mod.Value:
         try:
             return GDBValue(self.inner - rhs)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def __getitem__(self, key: str | int) -> pwndbg.dbg_mod.Value:
@@ -1594,7 +1594,7 @@ class GDBValue(pwndbg.dbg_mod.Value):
         try:
             return GDBValue(self.inner[key])
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
 
 def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]:
@@ -2020,10 +2020,10 @@ class GDB(pwndbg.dbg_mod.Debugger):
             if str(e).find("disassembly-flavor") > -1:
                 flavor = "intel"
             else:
-                raise pwndbg.dbg_mod.Error(e)
+                raise pwndbg.dbg_mod.DebuggerError(e)
 
         if flavor not in {"att", "intel"}:
-            raise pwndbg.dbg_mod.Error(f"unrecognized disassembly flavor '{flavor}'")
+            raise pwndbg.dbg_mod.DebuggerError(f"unrecognized disassembly flavor '{flavor}'")
 
         literal: Literal["att", "intel"] = flavor
         return literal

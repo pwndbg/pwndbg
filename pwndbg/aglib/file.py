@@ -99,7 +99,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         local_path = tempfile.mktemp(dir=remote_files_dir())
         try:
             pwndbg.dbg.selected_inferior().download_remote_file(path, local_path)
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             # This module originally raised this as an OSError.
             raise OSError(e)
     else:
