@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
+from pwndbg.dbg_mod import Error
+
 from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
@@ -52,3 +56,21 @@ async def test_config_filtering_missing(ctrl: Controller):
 
     out = await ctrl.execute_and_capture("config asdasdasdasd")
     assert out == 'No config parameter found with filter "asdasdasdasd"\n'
+
+
+@pwndbg_test
+async def test_config_color_validation(ctrl: Controller) -> None:
+    await ctrl.launch(REFERENCE_BINARY)
+
+    # set valid color
+    await ctrl.execute("set telescope-register-color red,bold")
+    assert "red,bold" in (await ctrl.execute_and_capture("theme telescope-register-color"))
+    assert "red,bold" in (await ctrl.execute_and_capture("show telescope-register-color"))
+
+    # set invalid color
+    with pytest.raises(Error, match="Invalid color 'meow'"):
+        await ctrl.execute("set telescope-register-color meow")
+
+    # check that it was successfully reverted
+    assert "red,bold" in (await ctrl.execute_and_capture("theme telescope-register-color"))
+    assert "red,bold" in (await ctrl.execute_and_capture("show telescope-register-color"))
