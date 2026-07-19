@@ -270,7 +270,6 @@ module = [
     "pwndbg.gdblib.got",
     "pwndbg.gdblib.ptmalloc2_tracking",
     "pwndbg.aglib.heap.*",
-    "pwndbg.hexdump",
     "pwndbg.ui",
     "pwndbg.wrappers.*",
 ]
