@@ -3,18 +3,21 @@ from __future__ import annotations
 from typing import Any
 
 import pwndbg
-import pwndbg.commands
 import pwndbg.lib.config as cfg
+from pwndbg.color import COLOR_NAME_TO_FUNC
+from pwndbg.color import is_valid_color_parameter
+from pwndbg.color.theme import ColorParameter
+from pwndbg.lib.config import Parameter
 
 
-def pget(name: str) -> pwndbg.lib.config.Parameter | None:
+def pget(name: str) -> Parameter | None:
     """
     Retrieves a parameter with a given name.
     """
     return pwndbg.config.params.get(name.replace("-", "_"))
 
 
-def pset(param: pwndbg.lib.config.Parameter, value: str):
+def pset(param: Parameter, value: str):
     """
     Parses and sets a Pwndbg configuration value.
 
@@ -33,7 +36,17 @@ class InvalidParse(Exception):
     pass
 
 
-def parse_value(param: pwndbg.lib.config.Parameter, expression: str) -> Any:
+def parse_value(param: Parameter, expression: str) -> Any:
+    # First check if this is a color parameter, then do parsing by param_class
+    if isinstance(param, ColorParameter):
+        if is_valid_color_parameter(expression):
+            return expression
+        # invalid color
+        valid_values = ", ".join(list(COLOR_NAME_TO_FUNC))
+        raise InvalidParse(
+            f"invalid color\nspecifier must be one of {valid_values}\nsee 'theme' for examples"
+        )
+
     param_class = param.param_class
     if param_class == cfg.PARAM_BOOLEAN:
         if expression == "on":

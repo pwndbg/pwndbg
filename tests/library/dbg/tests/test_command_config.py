@@ -4,8 +4,6 @@ import re
 
 import pytest
 
-from pwndbg.dbg_mod import Error
-
 from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
@@ -60,17 +58,27 @@ async def test_config_filtering_missing(ctrl: Controller):
 
 @pwndbg_test
 async def test_config_color_validation(ctrl: Controller) -> None:
+    import pwndbg
+    from pwndbg.dbg_mod import DebuggerType
+    from pwndbg.dbg_mod import Error
+
     await ctrl.launch(REFERENCE_BINARY)
 
     # set valid color
     await ctrl.execute("set telescope-register-color red,bold")
     assert "red,bold" in (await ctrl.execute_and_capture("theme telescope-register-color"))
-    assert "red,bold" in (await ctrl.execute_and_capture("show telescope-register-color"))
+    if pwndbg.dbg.name() == DebuggerType.GDB:
+        assert "red,bold" in (await ctrl.execute_and_capture("show telescope-register-color"))
 
     # set invalid color
-    with pytest.raises(Error, match="Invalid color 'meow'"):
-        await ctrl.execute("set telescope-register-color meow")
+    if pwndbg.dbg.name() == DebuggerType.GDB:
+        with pytest.raises(Error, match="Invalid color 'meow'"):
+            await ctrl.execute("set telescope-register-color meow")
+    else:
+        ret = await ctrl.execute_and_capture("set telescope-register-color meow")
+        assert "error" in ret and "invalid color" in ret
 
     # check that it was successfully reverted
     assert "red,bold" in (await ctrl.execute_and_capture("theme telescope-register-color"))
-    assert "red,bold" in (await ctrl.execute_and_capture("show telescope-register-color"))
+    if pwndbg.dbg.name() == DebuggerType.GDB:
+        assert "red,bold" in (await ctrl.execute_and_capture("show telescope-register-color"))
