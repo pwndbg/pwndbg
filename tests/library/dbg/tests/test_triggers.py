@@ -21,10 +21,8 @@ async def single_param(ctrl: Controller, param_name: str, triggers: Any):
     p = getattr(config, param_name.replace("-", "_"))
 
     mock_triggers = []
-    # Side-effects of some `integration-provider` triggers require GDB.
-    if param_name != "integration-provider" or pwndbg.dbg.is_gdblib_available():
-        for trigger in triggers:
-            mock_triggers.append(mock.Mock(side_effect=trigger))
+    for trigger in triggers:
+        mock_triggers.append(mock.Mock(side_effect=trigger))
 
     orig_triggers = config.triggers[param_name]
     config.triggers[param_name] = mock_triggers
