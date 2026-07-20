@@ -218,7 +218,6 @@ def unix(data: str) -> list[UnixSocket]:
 
         u = UnixSocket()
         prev_had_path = len(fields) >= 8
-        prev_had_path = len(fields) >= 8
         if prev_had_path:
             u.path = fields[7]
         u.inode = int(fields[6])
