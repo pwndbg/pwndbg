@@ -17,7 +17,7 @@ dependencies = [
     "pygments>=2.19.2,<3",
     "psutil>=7.0.0,<8",
     # We install uv to the venv
-    "uv>=0.11.17",
+    "uv>=0.11.29",
     # Optional? only for 'ipi' command
     "ipython>=8.39.0,<9 ; python_full_version <= '3.11'",
     "ipython>=8.39.0,<10 ; python_full_version >= '3.12'",
