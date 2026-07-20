@@ -446,3 +446,33 @@ def percpu(addr: gdb.Value, cpu: gdb.Value = gdb.Value(-1)) -> gdb.Value:
     if result is None:
         raise gdb.GdbError("__per_cpu_offset not found")
     return dbg_value_to_gdb(result)
+
+
+@GdbFunction(only_when_running=True)
+def heap(offset: gdb.Value = gdb.Value(0)) -> int:
+    """
+    Get the base address of the heap plus an optional offset.
+
+    Example:
+    ```
+    pwndbg> p $heap()
+    $1 = 0x55555555d000
+    pwndbg> p $heap(0x20)
+    $2 = 0x55555555d020
+    ```
+    """
+    import pwndbg.aglib.heap
+
+    allocator = pwndbg.aglib.heap.current
+    if allocator is None or not allocator.is_initialized():
+        raise gdb.GdbError("The heap allocator is not initialized.")
+
+    try:
+        sbrk_region = allocator.get_sbrk_heap_region()
+    except Exception as e:
+        raise gdb.GdbError(f"Could not retrieve sbrk heap region: {e}")
+
+    if sbrk_region is None:
+        raise gdb.GdbError("The heap base address could not be resolved.")
+
+    return sbrk_region.vaddr + int(offset)
