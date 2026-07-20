@@ -1380,20 +1380,6 @@ wheels = [
 ]
 
 [[package]]
-name = "mkdocs-api-autonav"
-version = "0.4.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "mkdocs" },
-    { name = "mkdocstrings-python" },
-    { name = "pyyaml" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/6d/b0/20960ee733a419a349877d09712d02e8ec2bda031672e5f0d0a15fc020b3/mkdocs_api_autonav-0.4.0.tar.gz", hash = "sha256:3527b0e5cf1b682bd374a3ce699ac12d6288f5fcaf93877f34a6b14c79740637", size = 17987, upload-time = "2025-09-09T12:42:02.216Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f0/37/e1413281aec69994a0ecb8baaff523b7b7da3119ae7d495b7dc659e630b0/mkdocs_api_autonav-0.4.0-py3-none-any.whl", hash = "sha256:87474e7919664fca75648a05e79de238dd5b39a0f711910d3638626b016acfe3", size = 13130, upload-time = "2025-09-09T12:42:00.731Z" },
-]
-
-[[package]]
 name = "mkdocs-autorefs"
 version = "1.4.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1933,7 +1919,6 @@ docs = [
     { name = "mdutils" },
     { name = "mike" },
     { name = "mkdocs" },
-    { name = "mkdocs-api-autonav" },
     { name = "mkdocs-awesome-nav" },
     { name = "mkdocs-gen-files" },
     { name = "mkdocs-material" },
@@ -2008,7 +1993,6 @@ docs = [
     { name = "mdutils" },
     { name = "mike" },
     { name = "mkdocs" },
-    { name = "mkdocs-api-autonav" },
     { name = "mkdocs-awesome-nav" },
     { name = "mkdocs-gen-files" },
     { name = "mkdocs-material" },
