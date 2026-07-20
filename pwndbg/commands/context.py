@@ -1361,9 +1361,7 @@ def context_disasm(
     syntax = pwndbg.aglib.disasm.disassembly.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(
-        iter(getattr(pwndbg.aglib.disasm.disassembly.get_disassembler, "cache").values()), None
-    )
+    cs = next(iter(pwndbg.aglib.disasm.disassembly.get_disassembler.cache.values()), None)
 
     # Clear the caches when user changes disassembly syntax during session.
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
@@ -1548,7 +1546,7 @@ def context_backtrace(
     oldest_frame = this_frame
 
     tui_backtrace_lines = max(int(backtrace_lines), height or 0)
-    for i in range(tui_backtrace_lines - 1):
+    for _ in range(tui_backtrace_lines - 1):
         try:
             candidate = oldest_frame.parent()
         # We catch an error in case of a `gdb.error: PC not saved` case
@@ -1559,7 +1557,7 @@ def context_backtrace(
             break
         oldest_frame = candidate
 
-    for i in range(tui_backtrace_lines - 1):
+    for _ in range(tui_backtrace_lines - 1):
         candidate = newest_frame.child()
         if not candidate:
             break

@@ -875,12 +875,16 @@ class Type:
     def fields(self) -> list[TypeField]:
         """
         List of all fields in this type, if it is a structured type.
+
+        Otherwise, return empty list.
         """
         raise NotImplementedError()
 
     def has_field(self, name: str) -> bool:
         """
         Whether this type has a field with the given name.
+
+        Always returns False for non-structured types.
         """
         # This is a sensible default way to check for a field's existence.
         #

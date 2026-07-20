@@ -1453,7 +1453,13 @@ class GDBType(pwndbg.dbg_mod.Type):
         # For GDB, we can do a little better than the default implementation, as
         # it has a specific convenience function that checks for this condition
         # exactly.
-        return gdb.types.has_field(self.inner, name)
+        try:
+            return gdb.types.has_field(self.inner, name)
+        except TypeError:
+            # GDB throws an exception for stuff that does not resolve to a struct or union
+            # after typedefs have been stripped.
+            # https://git.sr.ht/~sourceware/binutils-gdb/tree/05c660d1d7ca754a9607084e606c263b1fd74a94/item/gdb/python/lib/gdb/types.py#L61
+            return False
 
     @override
     def array(self, count: int) -> pwndbg.dbg_mod.Type:

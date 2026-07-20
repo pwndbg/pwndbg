@@ -61,6 +61,7 @@ import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.arguments
 import pwndbg.color
+import pwndbg.color.memory
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.color import message
@@ -191,11 +192,14 @@ class AllocChunkWatchpoint(gdb.Breakpoint):
 
 
 class Chunk:
-    def __init__(self, address: int, size: int, requested_size: int, flags: int) -> None:
+    def __init__(
+        self, address: int, size: int, requested_size: int, flags: int, origin: str | None = None
+    ) -> None:
         self.address = address
         self.size = size
         self.requested_size = requested_size
         self.flags = flags
+        self.origin = origin
 
 
 # GDB doesn't like having its breakpoints deleted during stop handlers, so we
@@ -211,13 +215,14 @@ def _delete_defered():
 
 
 class Tracker:
-    def __init__(self, rel_addr: bool = False) -> None:
+    def __init__(self, rel_addr: bool = False, show_location: bool = False) -> None:
         self.free_chunks: SortedDict[int, Chunk] = SortedDict()
         self.alloc_chunks: SortedDict[int, Chunk] = SortedDict()
         self.free_watchpoints: dict[int, FreeChunkWatchpoint] = {}
         self.memory_management_calls: dict[int, bool] = {}
         self.colorized_heap_ptrs: dict[int, str] = {}
         self.rel_addr = rel_addr
+        self.show_location = show_location
 
     def is_performing_memory_management(self):
         thread = gdb.selected_thread().global_num
@@ -352,12 +357,6 @@ class Tracker:
                     # Check for range overlap.
                     ch_lo_addr = ch.address
                     ch_hi_addr = ch.address + ch.size
-                    ch.address
-
-                for ch in lo_heap:
-                    # Check for range overlap.
-                    ch_lo_addr = ch.address
-                    ch_hi_addr = ch.address + ch.size
 
                     lo_in_range = ch_lo_addr < hi_addr
                     hi_in_range = ch_hi_addr > lo_addr
@@ -477,9 +476,14 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
             return False
 
         chunk = get_chunk(ret_ptr, self.requested_size)
+        if self.tracker.show_location:
+            chunk.origin = caller_symbol()
         self.tracker.malloc(chunk)
         ptr_str = self.tracker.colorize_ptr(ret_ptr)
+        suffix = f"@ {pwndbg.color.memory.c.code(chunk.origin)}" if chunk.origin else ""
         print(f"[*] {self.name} -> {ptr_str}, {chunk.size:#x} bytes real size")
+        if suffix:
+            print(f"    {suffix}")
 
         self.tracker.exit_memory_management()
         return False
@@ -570,9 +574,13 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         malloc()
         self.tracker.exit_memory_management()
 
+        origin = caller_symbol() if self.tracker.show_location else None
+        suffix = f"@ {pwndbg.color.memory.c.code(origin)}" if origin else ""
         print(
             f"[*] realloc({self.freed_str}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
         )
+        if suffix:
+            print(f"    {suffix}")
         return False
 
     def out_of_scope(self) -> None:
@@ -630,7 +638,11 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
 
         self.tracker.exit_memory_management()
 
+        origin = caller_symbol() if self.tracker.show_location else None
+        suffix = f"@ {pwndbg.color.memory.c.code(origin)}" if origin else ""
         print(f"[*] free({self.ptr_str})")
+        if suffix:
+            print(f"    {suffix}")
         return False
 
     def out_of_scope(self) -> None:
@@ -638,20 +650,30 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker.exit_memory_management()
 
 
-def in_program_code_stack() -> bool:
+def program_caller_frame() -> gdb.Frame | None:
     exe = pwndbg.aglib.proc.exe()
-    binary_exec_page_ranges = tuple(
+    ranges = tuple(
         (p.start, p.end) for p in pwndbg.aglib.vmmap.get() if p.objfile == exe and p.execute
     )
-
     frame = gdb.newest_frame()
     while frame is not None:
         pc = frame.pc()
-        for start, end in binary_exec_page_ranges:
-            if start <= pc < end:
-                return True
+        if any(start <= pc < end for start, end in ranges):
+            return frame
         frame = frame.older()
-    return False
+    return None
+
+
+def in_program_code_stack() -> bool:
+    return program_caller_frame() is not None
+
+
+def caller_symbol() -> str | None:
+    frame = program_caller_frame()
+    if not frame:
+        return None
+    sym = pwndbg.aglib.symbol.resolve_addr(int(frame.pc()))
+    return sym or f"{int(frame.pc()):#x}"
 
 
 # These variables track the currently installed heap tracker.
@@ -664,7 +686,7 @@ free_enter = None
 stop_on_error = True
 
 
-def install(disable_hardware_watchpoints=True, rel_addr=False) -> None:
+def install(disable_hardware_watchpoints=True, rel_addr=False, show_location=False) -> None:
     global malloc_enter
     global calloc_enter
     global realloc_enter
@@ -724,7 +746,7 @@ def install(disable_hardware_watchpoints=True, rel_addr=False) -> None:
         print()
 
     # Install the heap tracker.
-    tracker = Tracker(rel_addr=rel_addr)
+    tracker = Tracker(rel_addr=rel_addr, show_location=show_location)
 
     malloc_enter = MallocEnterBreakpoint(available[0], tracker)
     free_enter = FreeEnterBreakpoint(available[1], tracker)
@@ -740,6 +762,8 @@ def install(disable_hardware_watchpoints=True, rel_addr=False) -> None:
     print("Heap tracker installed.")
     if rel_addr:
         print("The heap tracker will use offsets instead of absolute addresses in the report.")
+    if show_location:
+        print("The heap tracker will show symbols for each chunk.")
 
 
 def uninstall() -> None:
