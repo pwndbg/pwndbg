@@ -25,9 +25,9 @@ LIMIT = pwndbg.config.add_param(
 c = ColorConfig(
     "chain",
     [
-        ColorParamSpec("arrow", "normal", "color of chain formatting (arrow)"),
+        ColorParamSpec("arrow", "none", "color of chain formatting (arrow)"),
         ColorParamSpec(
-            "contiguous-marker", "normal", "color of chain formatting (contiguous marker)"
+            "contiguous-marker", "none", "color of chain formatting (contiguous marker)"
         ),
     ],
 )
