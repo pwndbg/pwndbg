@@ -106,6 +106,9 @@
 -  [p2v](kernel/p2v.md) - Translate physical address to its corresponding virtual address.
 -  [pageinfo](kernel/pageinfo.md) - Convert a pointer to a `struct page` to its corresponding virtual address.
 -  [pagewalk](kernel/pagewalk.md) - Performs pagewalk.
+-  [physread](kernel/physread.md) - Read memory from a physical address by temporarily switching to physical mode.
+-  [physwrite](kernel/physwrite.md) - Write a value to a physical address by temporarily switching to physical mode.
+-  [qemu-mem-mode](kernel/qemu-mem-mode.md) - Switch QEMU between physical and virtual memory modes, or show current mode.
 -  [slab](kernel/slab.md) - Prints information about the linux kernel's slab allocator SLUB.
 -  [v2p](kernel/v2p.md) - Translate virtual address to its corresponding physmap address.
 
