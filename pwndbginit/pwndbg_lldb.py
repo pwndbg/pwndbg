@@ -150,11 +150,18 @@ def main() -> None:
 
     # Prepare the startup commands based on those arguments.
     startup = []
+
+    # load user commands from dotfile
+    dotfile = os.path.expanduser("~/.pwndbg_lldbinit")
+    if os.path.exists(dotfile):
+        with open(dotfile) as f:
+            startup += [line.strip("\n") for line in f]
+
     if args.target:
         # DEVIATION: The LLDB CLI silently ignores any target information passed
         # to it when using either '--attach-name' or '--attach-pid', but Pwndbg
         # unconditionally uses it, with a warning.
-        startup = [f"target create '{args.target}'"]
+        startup.append(f"target create '{args.target}'")
 
     if args.attach_name is not None:
         wait = "--waitfor" if args.wait_for else ""
