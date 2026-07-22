@@ -1570,10 +1570,10 @@ def context_backtrace(
     inactive_prefix = Text(" " * active_prefix.cell_len)
 
     table = Table.grid(expand=False, padding=(0, 1))
-    table.add_column(no_wrap=True)
-    table.add_column(justify="right", no_wrap=True)
-    table.add_column(justify="right", no_wrap=True)
-    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)  # active indicator
+    table.add_column(justify="right")  # frame number
+    table.add_column(justify="right", overflow="ignore", no_wrap=True)  # address
+    table.add_column(overflow="fold")  # symbol
 
     offset_regex = re.compile(r"^(.+)\+(\d+)$")
 
