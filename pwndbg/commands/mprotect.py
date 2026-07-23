@@ -6,9 +6,11 @@ import pwndbg.aglib.shellcode
 import pwndbg.aglib.vmmap
 import pwndbg.commands
 import pwndbg.dbg_mod
+import pwndbg.lib.errnum
 import pwndbg.lib.memory
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.lib import mmap
 
 parser = argparse.ArgumentParser(
     description="""
@@ -28,57 +30,13 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "prot", help='Prot string as in mprotect(2). Eg. "PROT_READ|PROT_EXEC", "rx", or "5"', type=str
+    "prot",
+    help='Prot string as in mprotect(2). Eg. "PROT_READ|PROT_EXEC", "rx", or "5"',
+    type=mmap.prot_from_string,
 )
 
 SYS_MPROTECT = 0x7D
-
-prot_dict = {
-    "PROT_NONE": 0x0,
-    "PROT_READ": 0x1,
-    "PROT_WRITE": 0x2,
-    "PROT_EXEC": 0x4,
-}
-
-
-def prot_str_to_val(protstr: str) -> int:
-    """
-    Converts a protection string to an integer. Formats include:
-     - A positive integer, like 3
-     - A combination of r, w, and x, like rw
-     - A combination of PROT_READ, PROT_WRITE, and PROT_EXEC, like PROT_READ|PROT_WRITE
-    """
-    protstr = protstr.upper()
-    if "PROT" in protstr:
-        prot_int = 0
-        for k, v in prot_dict.items():
-            if k in protstr:
-                prot_int |= v
-        return prot_int
-    if all(x in "RWX" for x in protstr):
-        prot_int = 0
-        for c in protstr:
-            if c == "R":
-                prot_int |= 1
-            elif c == "W":
-                prot_int |= 2
-            elif c == "X":
-                prot_int |= 4
-        return prot_int
-    try:
-        return int(protstr, 0)
-    except ValueError:
-        raise ValueError("Invalid protection string passed into mprotect")
-
-
-def prot_val_to_str(protval: int) -> str:
-    if protval == 0:
-        return "PROT_NONE"
-    ret = []
-    for k, v in prot_dict.items():
-        if protval & v:
-            ret.append(k)
-    return "|".join(ret)
+SYSCALL = "SYS_mprotect"
 
 
 @pwndbg.commands.Command(
@@ -92,20 +50,20 @@ mprotect some_symbol 0x1000 PROT_NONE
 """,
 )
 @pwndbg.commands.OnlyWhenRunning
-def mprotect(addr, length, prot) -> None:
-    prot_int = prot_str_to_val(prot)
+def mprotect(addr, length, prot: int) -> None:
     orig_addr = int(addr)
     aligned = pwndbg.lib.memory.page_align(orig_addr)
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
         print(
-            f"calling mprotect on address {aligned:#x} with protection {prot_int} ({prot_val_to_str(prot_int)})"
+            f"calling mprotect on address {aligned:#x} with protection {prot} ({mmap.prot_to_string(prot)})"
         )
 
         ret = await pwndbg.aglib.shellcode.exec_syscall(
-            ec, "SYS_mprotect", aligned, int(length) + orig_addr - aligned, int(prot_int)
+            ec, SYSCALL, aligned, int(length) + orig_addr - aligned, prot
         )
-        print(f"mprotect returned {ret}")
+
+        pwndbg.lib.errnum.handle_syscall_ret(SYSCALL, ret, pwndbg.aglib.arch.ptrbits)
 
         if pwndbg.aglib.vmmap.cache_status_text() is not None:
             print(
