@@ -10,6 +10,7 @@ from pwnlib.util.packing import p64
 from pwnlib.util.packing import u32
 from pwnlib.util.packing import u64
 from rich.table import Table
+from rich.text import Text
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
@@ -424,61 +425,94 @@ def _list_tls_dtors(pointer_guard: int, tls_dtor_list: int) -> list[_TlsDtorEntr
 
 
 def _print_exit_handlers(handlers: list[_ExitFunctionEntry]) -> None:
-    table = Table.grid()
-    table.add_column(no_wrap=True)
-    table.add_column(no_wrap=True)
-    table.add_column(no_wrap=True)
+    table = Table.grid(expand=False, padding=(0, 1))
+
+    table.add_column(justify="right", overflow="fold")  # handler address
+    table.add_column(overflow="fold")  # type (e.g. [ef_on (2)] or [ef_cxa (4)])
+    table.add_column(overflow="fold")  # function ptr + symbol (if available)
+    table.add_column(overflow="fold")  # args
+
+    flavor_names = {
+        0: "ef_free",
+        1: "ef_us",
+        2: "ef_on",
+        3: "ef_at",
+        4: "ef_cxa",
+    }
+
+    decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
+
     for handler in handlers:
-        sections = []
-        match handler.flavor:
-            case 0:
-                flavor_str = "ef_free"
-            case 1:
-                flavor_str = "ef_us"
-            case 2:
-                flavor_str = "ef_on"
-            case 3:
-                flavor_str = "ef_at"
-            case 4:
-                flavor_str = "ef_cxa"
-            case _:
-                flavor_str = "unknown"
-        sections.append(
-            f"{pwndbg.color.memory.get(handler.addr)} \\[{flavor_str} ({handler.flavor})]"
+        flavor_str = flavor_names.get(handler.flavor, "unknown")
+        has_function = flavor_str in {"ef_on", "ef_at", "ef_cxa", "unknown"}
+
+        address_cell = Text.from_ansi(pwndbg.color.memory.get(handler.addr))
+
+        flavor_cell = Text(f"[{flavor_str} ({handler.flavor})]")
+        if has_function:
+            flavor_cell.append(":")
+
+        function_cell = Text()
+        if has_function:
+            function_cell = Text.from_ansi(
+                pwndbg.color.memory.get_address_and_symbol(
+                    handler.fn,
+                    decomp_stack_vars,
+                )
+            )
+
+        argument_cell = Text()
+
+        if flavor_str == "ef_on":
+            argument_cell = Text.from_ansi(f"[arg = {pwndbg.chain.format(handler.arg)}]")
+
+        elif flavor_str in {"ef_cxa", "unknown"}:
+            argument_cell = Text.from_ansi(
+                f"[arg = {pwndbg.chain.format(handler.arg)}, "
+                f"dso_handle = "
+                f"{pwndbg.color.memory.get(handler.dso_handle)}]"
+            )
+
+        table.add_row(
+            address_cell,
+            flavor_cell,
+            function_cell,
+            argument_cell,
         )
-        if flavor_str in {"ef_on", "ef_cxa", "ef_at", "unknown"}:
-            sections[0] += ": "
-            decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
-            fn_str = pwndbg.color.memory.get_address_and_symbol(handler.fn, decomp_stack_vars)
-            sections.append(fn_str)
-        else:
-            sections.append("")
-        if flavor_str in {"ef_on", "ef_cxa", "unknown"}:
-            detail_string = f" \\[arg = {pwndbg.chain.format(handler.arg)}"
-            if flavor_str in {"ef_cxa", "unknown"}:
-                detail_string += f", dso_handle = {pwndbg.color.memory.get(handler.dso_handle)}]"
-            elif flavor_str == "ef_on":
-                detail_string += "]"
-            sections.append(detail_string)
-        else:
-            sections.append("")
-        table.add_row(*sections)
-    print(pwndbg.rich.rich_to_str(table, width=512))  # effectively disable per-cell truncation
+
+    print(pwndbg.rich.rich_to_str(table))
 
 
 def _print_tls_dtors(dtors: list[_TlsDtorEntry]) -> None:
-    table = Table.grid()
-    table.add_column(no_wrap=True)
-    table.add_column(no_wrap=True)
-    table.add_column(no_wrap=True)
+    table = Table.grid(expand=False, padding=(0, 1))
+
+    table.add_column(justify="right", overflow="fold")  # dtor address
+    table.add_column(overflow="fold")  # function + symbol
+    table.add_column(overflow="fold")  # object and map
+
     decomp_stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
     for dtor in dtors:
-        table.add_row(
-            f"{pwndbg.color.memory.get(dtor.address)}: ",
-            pwndbg.color.memory.get_address_and_symbol(dtor.func, decomp_stack_vars),
-            f" \\[obj = {pwndbg.chain.format(dtor.obj)}, map = {pwndbg.color.memory.get(dtor.map)}]",
+        address_cell = Text.from_ansi(pwndbg.color.memory.get(dtor.address))
+        address_cell.append(":")
+
+        function_cell = Text.from_ansi(
+            pwndbg.color.memory.get_address_and_symbol(
+                dtor.func,
+                decomp_stack_vars,
+            )
         )
-    print(pwndbg.rich.rich_to_str(table, width=512))
+
+        details_cell = Text.from_ansi(
+            f"[obj = {pwndbg.chain.format(dtor.obj)}, map = {pwndbg.color.memory.get(dtor.map)}]"
+        )
+
+        table.add_row(
+            address_cell,
+            function_cell,
+            details_cell,
+        )
+
+    print(pwndbg.rich.rich_to_str(table))
 
 
 parser = argparse.ArgumentParser(description="List currently registered glibc exit handlers.")
