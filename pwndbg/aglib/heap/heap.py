@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pwndbg.lib.memory
+
 
 class MemoryAllocator:
     """Heap abstraction layer."""
@@ -22,3 +24,12 @@ class MemoryAllocator:
             A boolean.
         """
         raise NotImplementedError()
+
+    def get_sbrk_heap_region(self) -> pwndbg.lib.memory.Page | None:
+        """Returns the sbrk heap region.
+
+        Returns:
+            A Page object or None.
+        """
+        raise NotImplementedError()
+
