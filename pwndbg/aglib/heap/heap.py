@@ -32,4 +32,3 @@ class MemoryAllocator:
             A Page object or None.
         """
         raise NotImplementedError()
-
