@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import gdb
 
 from . import get_binary
@@ -7,7 +9,8 @@ from . import get_binary
 REFERENCE_BINARY = get_binary("heap_bins.native.out")
 
 
-def test_function_heap(start_binary):
+def test_function_heap(start_binary: Any) -> None:
+
     start_binary(REFERENCE_BINARY)
 
     # Force heuristics since libc symbols are missing in test environment
