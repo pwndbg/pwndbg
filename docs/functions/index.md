@@ -267,6 +267,26 @@ Especially useful for quickly converting pwntools output.
 
 ----------
 
+### **heap**
+
+
+``` {.python .no-copy}
+heap(offset: gdb.Value = gdb.Value(0)) -> int
+```
+
+
+Get the base address of the heap plus an optional offset.
+
+#### Example
+```
+pwndbg> p $heap()
+$1 = 0x55555555d000
+pwndbg> p $heap(0x20)
+$2 = 0x55555555d020
+```
+
+----------
+
 ### **p2v**
 
 
