@@ -111,6 +111,8 @@ def canary(all) -> None:
 
             # AT_RANDOM is refilled after canary initialization since glibc 2.44
             # https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=337e18d6617bb93a6c718818c4d77d000878dbb6
+            # Also note that new thread descriptor stack_guard is copied from old ones
+            # https://elixir.bootlin.com/glibc/glibc-2.44/source/nptl/pthread_create.c#L740 (not yet exist)
             if pwndbg.libc.version() >= (2, 44):
                 global_canary = tls_canary
             elif tls_canary != global_canary:
