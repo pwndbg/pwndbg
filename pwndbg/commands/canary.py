@@ -7,6 +7,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.stack
 import pwndbg.aglib.tls
 import pwndbg.auxv
+import pwndbg.dbg_mod
 import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.libc
@@ -29,12 +30,13 @@ TLS_CANARY_OFFSETS = {
 }
 
 
-def canary_value() -> tuple[int | None, int | None]:
+def canary_from_at_random() -> tuple[int, int] | tuple[None, None]:
     """Get the global canary value from AT_RANDOM with its last byte masked (as glibc does)
 
     Note:
-        Once glibc ld setup canary in tls, it will refill AT_RANDOM with new random bytes,
-        so the value returned by this function may not represent current canary value!
+        Since glibc 2.44, once glibc ld setup canary in tls, it will refill AT_RANDOM with
+        new random bytes, so the value returned by this function may not represent current
+        canary value!
 
     Returns:
         tuple: (canary_value, at_random_addr) or (None, None) if not found
@@ -80,6 +82,33 @@ def find_tls_canary_addr() -> int | None:
 
     return tls_base + offset
 
+def canary_from_tls() -> tuple[int, int] | tuple[None, None]:
+    """Get the global canary value from TLS stack_guard
+
+    Returns:
+        tuple: (canary_value, canary_addr) or (None, None) if not found
+    """
+    canary_addr = find_tls_canary_addr()
+    if canary_addr is None:
+        return None, None
+
+    try:
+        canary_value = pwndbg.aglib.memory.read_pointer_width(canary_addr)
+    except pwndbg.dbg_mod.Error:
+        return None, None
+
+    return canary_value, canary_addr
+
+def canary_value() -> tuple[int, int] | tuple[None, None]:
+    """Unified entry to get global canary value, selecting AT_RANDOM below
+    glibc 2.44 while selecting TLS stack_guard above glibc 2.44 (inclusive).
+
+    Returns:
+        tuple: (canary_value, canary_addr) or (None, None) if not found
+    """
+    if pwndbg.libc.version() >= (2, 44):
+        return canary_from_tls()
+    return canary_from_at_random()
 
 parser = argparse.ArgumentParser(description="Print out the current stack canary.")
 parser.add_argument(
@@ -94,7 +123,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def canary(all) -> None:
     """Display information about the stack canary, including its location in TLS and any copies found on the stack."""
-    global_canary, at_random = canary_value()
+    global_canary, at_random = canary_from_at_random()
 
     if global_canary is None or at_random is None:
         print(message.error("Couldn't find AT_RANDOM - can't display canary."))
@@ -103,28 +132,19 @@ def canary(all) -> None:
     print(message.notice(f"AT_RANDOM  = {at_random:#x} # points to global canary seed value"))
 
     # Get and display the TLS canary address
-    tls_addr = find_tls_canary_addr()
-    if tls_addr is not None:
-        print(message.notice(f"TLS Canary = {tls_addr:#x} # address where canary is stored"))
+    tls_canary, tls_addr = canary_from_tls()
+    if tls_canary is None:
+        print(message.warn("Warning: Could not read TLS canary value"))
+    print(message.notice(f"TLS Canary = {tls_addr:#x} # address where canary is stored"))
 
-        # Verify the value at the TLS address matches our computed canary
-        try:
-            tls_canary = pwndbg.aglib.memory.read_pointer_width(tls_addr) & (
-                pwndbg.aglib.arch.ptrmask ^ 0xFF
-            )
-
-            # AT_RANDOM is refilled after canary initialization since glibc 2.44
-            # https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=337e18d6617bb93a6c718818c4d77d000878dbb6
-            # Also note that new thread descriptor stack_guard is copied from old ones
-            # https://elixir.bootlin.com/glibc/glibc-2.44/source/nptl/pthread_create.c#L740 (not yet exist)
-            if pwndbg.libc.version() >= (2, 44):
-                global_canary = tls_canary
-            elif tls_canary != global_canary:
-                print(message.warn("Warning: TLS canary value doesn't match global canary!"))
-        except Exception:
-            print(message.warn("Warning: Could not read TLS canary value"))
-    else:
-        print(message.warn("Note: Could not determine TLS canary address for current architecture"))
+    # AT_RANDOM is refilled after canary initialization since glibc 2.44
+    # https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=337e18d6617bb93a6c718818c4d77d000878dbb6
+    # Also note that new thread descriptor stack_guard is copied from old ones
+    # https://elixir.bootlin.com/glibc/glibc-2.44/source/nptl/pthread_create.c#L740 (not yet exist)
+    if pwndbg.libc.version() >= (2, 44):
+        global_canary = tls_canary
+    elif tls_canary != global_canary:
+        print(message.warn("Warning: TLS canary value doesn't match global canary!"))
 
     print(message.notice(f"Canary     = {global_canary:#x} (may be incorrect on != glibc)"))
 

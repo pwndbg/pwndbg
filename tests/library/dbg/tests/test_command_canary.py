@@ -48,7 +48,7 @@ async def test_command_canary(ctrl: Controller, binary: Path, reg_name: str, ski
 
         await ctrl.step_instruction()
 
-    at_random_canary, at_random = pwndbg.commands.canary.canary_value()
+    at_random_canary, at_random = pwndbg.commands.canary.canary_from_at_random()
     assert at_random is not None
 
     raw = pwndbg.aglib.memory.read_pointer_width(at_random)
@@ -59,11 +59,9 @@ async def test_command_canary(ctrl: Controller, binary: Path, reg_name: str, ski
     assert tls_addr is not None
     raw_tls = pwndbg.aglib.memory.read_pointer_width(tls_addr) & mask
 
-    # glibc 2.44 refill AT_RANDOM after set up tls stack_guard
-    # https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=337e18d6617bb93a6c718818c4d77d000878dbb6
-    canary_value = raw_tls if pwndbg.libc.version() >= (2, 44) else at_random_canary
+    canary_value = pwndbg.commands.canary.canary_value()[0]
 
-    # Check AT_RANDOM
+    # Check AT_RANDOM, if glibc >= 2.44, at_random_canary != canary_value
     assert masked_raw == at_random_canary
     # Check TLS Canary
     assert raw_tls == canary_value
