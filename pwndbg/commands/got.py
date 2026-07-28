@@ -189,5 +189,7 @@ def iter_objfiles() -> Iterator[pwndbg.lib.memory.Page]:
             continue
         if page.objfile in uniq:
             continue
+        if pwndbg.aglib.memory.read(page.start, 4, True) != b"\x7fELF":
+            continue
         uniq.add(page.objfile)
         yield page
