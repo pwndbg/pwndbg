@@ -9,6 +9,7 @@ import pwndbg.aglib.tls
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.telescope
+import pwndbg.libc
 import pwndbg.search
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -107,7 +108,12 @@ def canary(all) -> None:
             tls_canary = pwndbg.aglib.memory.read_pointer_width(tls_addr) & (
                 pwndbg.aglib.arch.ptrmask ^ 0xFF
             )
-            if tls_canary != global_canary:
+
+            # AT_RANDOM is refilled after canary initialization since glibc 2.44
+            # https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=337e18d6617bb93a6c718818c4d77d000878dbb6
+            if pwndbg.libc.version() >= (2, 44):
+                global_canary = tls_canary
+            elif tls_canary != global_canary:
                 print(message.warn("Warning: TLS canary value doesn't match global canary!"))
         except Exception:
             print(message.warn("Warning: Could not read TLS canary value"))
