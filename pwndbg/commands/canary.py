@@ -32,6 +32,10 @@ TLS_CANARY_OFFSETS = {
 def canary_value() -> tuple[int | None, int | None]:
     """Get the global canary value from AT_RANDOM with its last byte masked (as glibc does)
 
+    Note:
+        Once glibc ld setup canary in tls, it will refill AT_RANDOM with new random bytes,
+        so the value returned by this function may not represent current canary value!
+
     Returns:
         tuple: (canary_value, at_random_addr) or (None, None) if not found
     """
