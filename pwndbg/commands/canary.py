@@ -7,9 +7,9 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.stack
 import pwndbg.aglib.tls
 import pwndbg.auxv
-import pwndbg.dbg_mod
 import pwndbg.commands
 import pwndbg.commands.telescope
+import pwndbg.dbg_mod
 import pwndbg.libc
 import pwndbg.search
 from pwndbg.color import message
@@ -82,6 +82,7 @@ def find_tls_canary_addr() -> int | None:
 
     return tls_base + offset
 
+
 def canary_from_tls() -> tuple[int, int] | tuple[None, None]:
     """Get the global canary value from TLS stack_guard
 
@@ -99,6 +100,7 @@ def canary_from_tls() -> tuple[int, int] | tuple[None, None]:
 
     return canary_value, canary_addr
 
+
 def canary_value() -> tuple[int, int] | tuple[None, None]:
     """Unified entry to get global canary value, selecting AT_RANDOM below
     glibc 2.44 while selecting TLS stack_guard above glibc 2.44 (inclusive).
@@ -109,6 +111,7 @@ def canary_value() -> tuple[int, int] | tuple[None, None]:
     if pwndbg.libc.version() >= (2, 44):
         return canary_from_tls()
     return canary_from_at_random()
+
 
 parser = argparse.ArgumentParser(description="Print out the current stack canary.")
 parser.add_argument(
