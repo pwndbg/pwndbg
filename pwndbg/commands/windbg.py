@@ -6,15 +6,18 @@ from __future__ import annotations
 
 import argparse
 import codecs
+import math
 from itertools import chain
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
 import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.commands.next
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 
 if pwndbg.dbg.is_gdblib_available():
@@ -22,15 +25,60 @@ if pwndbg.dbg.is_gdblib_available():
 
 
 def enhex(size, value):
-    value = value & ((1 << 8 * size) - 1)
+    value &= (1 << 8 * size) - 1
     x = f"{abs(value):x}"
     x = x.rjust(size * 2, "0")
     return x
 
 
-# `pwndbg.hexdump` imports `enhex` from this module, so we have to import it
-# after it's been defined in order to avoid circular import errors.
-import pwndbg.hexdump
+def hexdump_windbg(
+    address: int = 0,
+    size: int = 0,
+    count: int = 0,
+    repeat: bool = False,
+):
+
+    # Traditionally, windbg will display 16 bytes of data per line.
+    values = []
+
+    if repeat:
+        count = getattr(hexdump_windbg, "last_count", count)
+        address = getattr(hexdump_windbg, "last_address", address)
+    else:
+        address = int(address) & pwndbg.aglib.arch.ptrmask
+        count = int(count)
+
+    size_type = pwndbg.aglib.typeinfo.get_type(size)
+
+    for i in range(count):
+        try:
+            gval = pwndbg.aglib.memory.get_typed_pointer_value(size_type, address + i * size)
+            values.append(int(gval))
+        except pwndbg.dbg_mod.Error:
+            break
+
+    if not values:
+        print("Could not access the provided address")
+        return
+
+    n_rows = int(math.ceil(count * size / 16.0))
+    row_sz = 16 // size
+    rows = [values[i * row_sz : (i + 1) * row_sz] for i in range(n_rows)]
+    lines = []
+
+    for i, row in enumerate(rows):
+        if not row:
+            continue
+        line = [enhex(pwndbg.aglib.arch.ptrsize, address + (i * 16)), "   "]
+        for value in row:
+            line.append(enhex(size, value))
+        lines.append(" ".join(line))
+
+    hexdump_windbg.last_count = count  # type: ignore[attr-defined]
+    hexdump_windbg.last_address = address + len(rows) * 16  # type: ignore[attr-defined]
+
+    yield lines
+
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N bytes.")
 parser.add_argument(
@@ -149,11 +197,7 @@ def dX(size, address, count, to_string=False, repeat=False):
     """
 
     lines = list(
-        chain.from_iterable(
-            pwndbg.hexdump.hexdump(
-                data=None, size=size, count=count, address=address, repeat=repeat, dX_call=True
-            )
-        )
+        chain.from_iterable(hexdump_windbg(size=size, count=count, address=address, repeat=repeat))
     )
 
     if not to_string and lines:

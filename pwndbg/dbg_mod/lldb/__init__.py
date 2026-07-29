@@ -739,7 +739,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         # Read strings up to 4GB.
         last_str = None
         buf = 256
-        for i in range(8, 33):  # log2(256) = 8, log2(4GB) = 32
+        for _ in range(8, 33):  # log2(256) = 8, log2(4GB) = 32
             s = self.inner.process.ReadCStringFromMemory(addr, buf, error)
             if error.Fail():
                 raise pwndbg.dbg_mod.Error(f"could not read value as string: {error.description}")

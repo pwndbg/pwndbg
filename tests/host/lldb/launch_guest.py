@@ -28,8 +28,12 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             self.pc = pc
 
         async def launch(
-            self, binary: Path, args: list[str] = [], env: dict[str, str] = {}
+            self, binary: Path, args: list[str] = None, env: dict[str, str] = None
         ) -> None:
+            if env is None:
+                env = {}
+            if args is None:
+                args = []
             if not os.path.exists(binary):
                 pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
 
