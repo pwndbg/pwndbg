@@ -62,16 +62,6 @@ def page_type(page) -> str:
     return "unknown"
 
 
-def page_info(page) -> None:
-    try:
-        refcount = pwndbg.aglib.memory.u32(page + 0x34)
-        print(
-            f"{color.green('page')} @ {color.yellow(hex(page))} [{page_type(page)}, refcount: {refcount}]"
-        )
-    except (ValueError, TypeError):
-        print(message.warn("invalid page address"))
-
-
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
@@ -113,10 +103,17 @@ def pagewalk(vaddr, entry=None) -> None:
     print(f"pagewalk result: {color.green(hex(vaddr))} [phys: {phys}]")
 
 
-def paging_print_helper(name, addr):
-    if addr is None:
-        return
-    print(f"{color.green(name)}: {color.yellow(hex(addr))}")
+def print_pageinfo(va: int, pa: int, page: int) -> None:
+    try:
+        print(f"{color.green('Virtual Address')}: {color.yellow(hex(va))}")
+        print(f"{color.green('Physical Address')}: {color.yellow(hex(pa))}")
+
+        refcount = pwndbg.aglib.memory.u32(page + 0x34)
+        print(
+            f"{color.green('page')} @ {color.yellow(hex(page))} [{page_type(page)}, refcount: {refcount}]"
+        )
+    except (ValueError, TypeError):
+        print(message.warn("invalid page address"))
 
 
 p2v_parser = argparse.ArgumentParser(
@@ -134,9 +131,8 @@ def p2v(paddr) -> None:
     paddr = int(pwndbg.dbg.selected_frame().evaluate_expression(paddr))
     try:
         vaddr = pwndbg.aglib.kernel.phys_to_virt(paddr)
-        paging_print_helper("Virtual address", vaddr)
-        page = pwndbg.aglib.kernel.virt_to_page(vaddr)
-        page_info(page)
+        page = pwndbg.aglib.kernel.phys_to_page(paddr)
+        print_pageinfo(vaddr, paddr, page)
     except Exception:
         print(message.warn("physical to virtual address failed, invalid physical address?"))
 
@@ -159,10 +155,9 @@ def v2p(vaddr) -> None:
     if not entry or paddr is None:
         print(message.warn("virtual to physical address failed, unmapped virtual address?"))
         return
-    paging_print_helper("Physical address", paddr)
-    # paddr is the physmap address which is a virtual address
+
     page = pwndbg.aglib.kernel.phys_to_page(paddr)
-    page_info(page)
+    print_pageinfo(vaddr, paddr, page)
 
 
 page_parser = argparse.ArgumentParser(
@@ -180,7 +175,7 @@ def pageinfo(page) -> None:
     page = int(pwndbg.dbg.selected_frame().evaluate_expression(page))
     try:
         vaddr = pwndbg.aglib.kernel.page_to_virt(page)
-        paging_print_helper("Virtual address", vaddr)
-        page_info(page)
+        paddr = pwndbg.aglib.kernel.page_to_phys(page)
+        print_pageinfo(vaddr, paddr, page)
     except Exception:
         print(message.warn("invalid page struct pointer"))
