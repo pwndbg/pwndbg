@@ -7,6 +7,7 @@ import pytest
 
 from ....host import Controller
 from . import glibc_version_binaries
+from . import glibc_version_params
 from . import launch_to
 from . import pwndbg_test
 
@@ -45,11 +46,7 @@ def check_no_results(result: str) -> None:
     assert len(matches) == 0
 
 
-@pytest.mark.parametrize(
-    "binary",
-    [b for _, b in _FIND_FAKE_FAST_BINARIES],
-    ids=[i for i, _ in _FIND_FAKE_FAST_BINARIES],
-)
+@glibc_version_params(_FIND_FAKE_FAST_BINARIES)
 @pwndbg_test
 async def test_find_fake_fast_command(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib

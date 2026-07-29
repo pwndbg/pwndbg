@@ -5,8 +5,9 @@ from pathlib import Path
 import pytest
 
 from ....host import Controller
-from . import get_binary
 from . import glibc_test_versions
+from . import glibc_version_binaries
+from . import glibc_version_params
 from . import launch_to
 from . import pwndbg_test
 
@@ -19,19 +20,14 @@ def version_tuple(ver: str) -> tuple[int, int]:
     return (int(parts[0]), int(parts[1]))
 
 
-_NODEBUG_BINARIES = [
-    (ver, get_binary(f"heap_malloc_chunk.glibc-{ver}-nodebug.out")) for ver in GLIBC_VERSIONS
-]
-_NODEBUG_BINARIES = [(ver, b) for ver, b in _NODEBUG_BINARIES if b.exists()]
+parametrize_malloc_chunk_versions = glibc_version_params(
+    glibc_version_binaries("heap_malloc_chunk", include_system=False), with_version=True
+)
 
 
-@pytest.mark.parametrize("glibc_version", GLIBC_VERSIONS)
+@parametrize_malloc_chunk_versions
 @pwndbg_test
-async def test_heap_version_detection(ctrl: Controller, glibc_version: str) -> None:
-    binary = get_binary(f"heap_malloc_chunk.glibc-{glibc_version}.out")
-    if not binary.exists():
-        pytest.skip(f"glibc {glibc_version} test binary not available")
-
+async def test_heap_version_detection(ctrl: Controller, glibc_version: str, binary: Path) -> None:
     await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")
 
@@ -47,13 +43,9 @@ async def test_heap_version_detection(ctrl: Controller, glibc_version: str) -> N
     assert detected[:2] == expected, f"Expected glibc {expected}, detected {detected}"
 
 
-@pytest.mark.parametrize("glibc_version", GLIBC_VERSIONS)
+@parametrize_malloc_chunk_versions
 @pwndbg_test
-async def test_heap_allocator_setup(ctrl: Controller, glibc_version: str) -> None:
-    binary = get_binary(f"heap_malloc_chunk.glibc-{glibc_version}.out")
-    if not binary.exists():
-        pytest.skip(f"glibc {glibc_version} test binary not available")
-
+async def test_heap_allocator_setup(ctrl: Controller, glibc_version: str, binary: Path) -> None:
     await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")
 
@@ -74,13 +66,9 @@ async def test_heap_allocator_setup(ctrl: Controller, glibc_version: str) -> Non
     assert allocator.mp is not None, f"mp (malloc_par) should be found for glibc {glibc_version}"
 
 
-@pytest.mark.parametrize("glibc_version", GLIBC_VERSIONS)
+@glibc_version_params(glibc_version_binaries("heap_bins", include_system=False), with_version=True)
 @pwndbg_test
-async def test_heap_bins_glibc_version(ctrl: Controller, glibc_version: str) -> None:
-    binary = get_binary(f"heap_bins.glibc-{glibc_version}.out")
-    if not binary.exists():
-        pytest.skip(f"glibc {glibc_version} test binary not available")
-
+async def test_heap_bins_glibc_version(ctrl: Controller, glibc_version: str, binary: Path) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
@@ -162,13 +150,11 @@ async def test_heap_bins_glibc_version(ctrl: Controller, glibc_version: str) -> 
     await ctrl.execute("bins")
 
 
-@pytest.mark.parametrize("glibc_version", GLIBC_VERSIONS)
+@parametrize_malloc_chunk_versions
 @pwndbg_test
-async def test_heap_malloc_chunk_glibc_version(ctrl: Controller, glibc_version: str) -> None:
-    binary = get_binary(f"heap_malloc_chunk.glibc-{glibc_version}.out")
-    if not binary.exists():
-        pytest.skip(f"glibc {glibc_version} test binary not available")
-
+async def test_heap_malloc_chunk_glibc_version(
+    ctrl: Controller, glibc_version: str, binary: Path
+) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.heap
     import pwndbg.aglib.symbol
@@ -208,16 +194,12 @@ async def test_heap_malloc_chunk_glibc_version(ctrl: Controller, glibc_version: 
         )
 
 
-@pytest.mark.parametrize("glibc_version", GLIBC_VERSIONS)
+@parametrize_malloc_chunk_versions
 @pytest.mark.parametrize("use_heuristic", [False, True], ids=["debug-syms", "heuristic"])
 @pwndbg_test
 async def test_heap_heuristic_glibc_version(
-    ctrl: Controller, glibc_version: str, use_heuristic: bool
+    ctrl: Controller, glibc_version: str, binary: Path, use_heuristic: bool
 ) -> None:
-    binary = get_binary(f"heap_malloc_chunk.glibc-{glibc_version}.out")
-    if not binary.exists():
-        pytest.skip(f"glibc {glibc_version} test binary not available")
-
     import pwndbg.aglib
     import pwndbg.aglib.heap
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
@@ -249,18 +231,14 @@ async def test_heap_heuristic_glibc_version(
     assert len(result) > 0, f"'heap' command produced no output for glibc {glibc_version}"
 
 
-_XFAIL_242 = pytest.mark.xfail(
-    reason="stripped glibc 2.42 heuristic can't recover main_arena",
-    strict=False,
-)
-
-
-@pytest.mark.parametrize(
-    "glibc_version,binary",
-    [
-        pytest.param(ver, binary, id=f"{ver}-nodebug", marks=[_XFAIL_242] if ver == "2.42" else [])
-        for ver, binary in _NODEBUG_BINARIES
-    ],
+@glibc_version_params(
+    glibc_version_binaries(
+        "heap_malloc_chunk",
+        suffix="-nodebug",
+        include_system=False,
+    ),
+    {"2.42": "stripped glibc 2.42 heuristic can't recover main_arena"},
+    with_version=True,
 )
 @pwndbg_test
 async def test_heap_heuristic_nodebug_glibc_version(

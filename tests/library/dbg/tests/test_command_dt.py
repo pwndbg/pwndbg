@@ -9,6 +9,7 @@ from ....host import Controller
 from . import get_binary
 from . import get_expr
 from . import glibc_version_binaries
+from . import glibc_version_params
 from . import launch_to
 from . import pwndbg_test
 
@@ -17,11 +18,7 @@ DT_RECURSIVE_OFFSETS = get_binary("dt_recursive_offsets.native.out")
 DT_BITFIELDS = get_binary("dt_bitfields.native.out")
 
 
-@pytest.mark.parametrize(
-    "binary",
-    [b for _, b in _HEAP_MALLOC_CHUNK_BINARIES],
-    ids=[i for i, _ in _HEAP_MALLOC_CHUNK_BINARIES],
-)
+@glibc_version_params(_HEAP_MALLOC_CHUNK_BINARIES)
 @pwndbg_test
 async def test_command_dt_works_with_address(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib
@@ -44,11 +41,7 @@ async def test_command_dt_works_with_address(ctrl: Controller, binary: Path) -> 
     assert re.match(exp_regex, out)
 
 
-@pytest.mark.parametrize(
-    "binary",
-    [b for _, b in _HEAP_MALLOC_CHUNK_BINARIES],
-    ids=[i for i, _ in _HEAP_MALLOC_CHUNK_BINARIES],
-)
+@glibc_version_params(_HEAP_MALLOC_CHUNK_BINARIES)
 @pwndbg_test
 async def test_command_dt_works_with_no_address(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib

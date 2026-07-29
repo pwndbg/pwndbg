@@ -8,19 +8,18 @@ from ....host import Controller
 from . import break_at_sym
 from . import get_binary
 from . import glibc_version_binaries
+from . import glibc_version_params
 from . import launch_to
 from . import pwndbg_test
 
 _BINS_BINARIES = glibc_version_binaries("heap_bins")
 
-glibc_versions = pytest.mark.parametrize(
-    "binary", [b for _, b in _BINS_BINARIES], ids=[i for i, _ in _BINS_BINARIES]
-)
+parametrize_glibc_versions = glibc_version_params(_BINS_BINARIES)
 
 GLIBC_2_43 = get_binary("heap_glibc2.43.native.out")
 
 
-@glibc_versions
+@parametrize_glibc_versions
 @pwndbg_test
 async def test_heap_bins(ctrl: Controller, binary: Path) -> None:
     """
@@ -633,7 +632,7 @@ async def test_smallbins_sizes_32bit_big(ctrl: Controller) -> None:
         assert bin_size.split(":")[0] == expected[bin_index]
 
 
-@glibc_versions
+@parametrize_glibc_versions
 @pwndbg_test
 async def test_heap_corruption_low_dereference(ctrl: Controller, binary: Path) -> None:
     """

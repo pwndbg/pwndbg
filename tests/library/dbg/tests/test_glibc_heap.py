@@ -10,6 +10,7 @@ from ....host import Controller
 from . import break_at_sym
 from . import get_binary
 from . import glibc_version_binaries
+from . import glibc_version_params
 from . import launch_to
 from . import pwndbg_test
 
@@ -22,20 +23,11 @@ _HEAP_MALLOC_CHUNK_DUMP_BINARIES = glibc_version_binaries("heap_malloc_chunk_dum
 _MP_HEURISTIC_242 = "pwndbg heuristic cannot find mp_ in the .data section on glibc 2.42"
 
 
-def _glibc_params(
-    binaries: list[tuple[str, Path]], xfails: dict[str, str] | None = None
-) -> pytest.MarkDecorator:
-    xfails = xfails or {}
-    params = []
-    for ident, b in binaries:
-        marks = [pytest.mark.xfail(reason=xfails[ident], strict=False)] if ident in xfails else []
-        params.append(pytest.param(b, id=ident, marks=marks))
-    return pytest.mark.parametrize("binary", params)
-
-
-glibc_versions = _glibc_params(_HEAP_MALLOC_CHUNK_BINARIES)
-glibc_dump_versions = _glibc_params(_HEAP_MALLOC_CHUNK_DUMP_BINARIES)
-glibc_versions_mp = _glibc_params(_HEAP_MALLOC_CHUNK_BINARIES, {"2.42": _MP_HEURISTIC_242})
+parametrize_glibc_versions = glibc_version_params(_HEAP_MALLOC_CHUNK_BINARIES)
+parametrize_glibc_dump_versions = glibc_version_params(_HEAP_MALLOC_CHUNK_DUMP_BINARIES)
+parametrize_glibc_versions_mp = glibc_version_params(
+    _HEAP_MALLOC_CHUNK_BINARIES, {"2.42": _MP_HEURISTIC_242}
+)
 
 ADDR_RE = re.compile(r"^Addr: (0x[0-9a-f]+)$")
 
@@ -141,7 +133,7 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
     return expected
 
 
-@glibc_versions
+@parametrize_glibc_versions
 @pwndbg_test
 async def test_heap_command_count(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib
@@ -155,7 +147,7 @@ async def test_heap_command_count(ctrl: Controller, binary: Path) -> None:
     assert len(count_addrs) == 2
 
 
-@glibc_versions
+@parametrize_glibc_versions
 @pwndbg_test
 async def test_heap_command_range_and_count(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib
@@ -364,7 +356,7 @@ async def test_malloc_chunk_2_43_heuristic(ctrl: Controller) -> None:
     )
 
 
-@glibc_dump_versions
+@parametrize_glibc_dump_versions
 @pwndbg_test
 async def test_malloc_chunk_dump_command(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib
@@ -468,7 +460,7 @@ class mock_for_heuristic:
         pwndbg.dbg.selected_inferior = self.saved_func
 
 
-@glibc_versions
+@parametrize_glibc_versions
 @pwndbg_test
 async def test_main_arena_heuristic(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib.heap
@@ -507,7 +499,7 @@ async def test_main_arena_heuristic(ctrl: Controller, binary: Path) -> None:
         assert pwndbg.aglib.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
 
 
-@glibc_versions_mp
+@parametrize_glibc_versions_mp
 @pwndbg_test
 async def test_mp_heuristic(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib.heap
@@ -544,7 +536,7 @@ async def test_mp_heuristic(ctrl: Controller, binary: Path) -> None:
         assert pwndbg.aglib.heap.current.mp.address == mp_addr_via_debug_symbol
 
 
-@glibc_versions
+@parametrize_glibc_versions
 @pytest.mark.parametrize(
     "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
 )
@@ -613,7 +605,7 @@ async def test_thread_cache_heuristic(
         )
 
 
-@glibc_versions
+@parametrize_glibc_versions
 @pytest.mark.parametrize(
     "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
 )
@@ -667,7 +659,7 @@ async def test_thread_arena_heuristic(
         assert pwndbg.aglib.heap.current.thread_arena.address == thread_arena_via_debug_symbol
 
 
-@glibc_versions
+@parametrize_glibc_versions
 @pwndbg_test
 async def test_global_max_fast_heuristic(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib
@@ -712,7 +704,7 @@ async def test_global_max_fast_heuristic(ctrl: Controller, binary: Path) -> None
         )
 
 
-@glibc_versions
+@parametrize_glibc_versions
 @pytest.mark.parametrize(
     "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
 )

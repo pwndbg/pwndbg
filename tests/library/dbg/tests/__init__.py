@@ -11,6 +11,8 @@ from typing import Any
 from typing import Concatenate
 from typing import ParamSpec
 
+import pytest
+
 from .... import host
 from ....host import Controller
 
@@ -55,16 +57,43 @@ def musl_test_versions() -> list[str]:
     return _dockerfile_versions("musl")
 
 
-def glibc_version_binaries(stem: str) -> list[tuple[str, Path]]:
+def glibc_version_binaries(
+    stem: str, *, suffix: str = "", include_system: bool = True
+) -> list[tuple[str, Path]]:
     """(id, path) for each existing build of `stem`; id is "system" or a glibc version.
 
     e.g. stem="heap_malloc_chunk" -> [("system", heap_malloc_chunk.native.out),
     ("2.35", heap_malloc_chunk.glibc-2.35.out), ..., ("2.43", heap_malloc_chunk.glibc-2.43.out)].
+
+    suffix goes before .out (e.g. "-nodebug"); include_system=False drops the system glibc build.
     """
-    targets = [("system", get_binary(f"{stem}.native.out"))]
+    assert not (suffix and include_system), "suffix builds have no system variant"
+    targets: list[tuple[str, Path]] = []
+    if include_system:
+        targets.append(("system", get_binary(f"{stem}.native.out")))
     for ver in glibc_test_versions():
-        targets.append((ver, get_binary(f"{stem}.glibc-{ver}.out")))
+        targets.append((ver, get_binary(f"{stem}.glibc-{ver}{suffix}.out")))
     return [(name, b) for name, b in targets if b.exists()]
+
+
+def glibc_version_params(
+    binaries: list[tuple[str, Path]],
+    xfails: dict[str, str] | None = None,
+    *,
+    with_version: bool = False,
+) -> pytest.MarkDecorator:
+    """Build a pytest parametrization decorator for glibc test binaries.
+
+    By default, each test case receives `binary`. Set `with_version=True`
+    to also pass `glibc_version`. `xfails` maps version IDs to xfail reasons.
+    """
+    xfails = xfails or {}
+    params = []
+    for ident, b in binaries:
+        marks = [pytest.mark.xfail(reason=xfails[ident], strict=False)] if ident in xfails else []
+        values = (ident, b) if with_version else (b,)
+        params.append(pytest.param(*values, id=ident, marks=marks))
+    return pytest.mark.parametrize("glibc_version,binary" if with_version else "binary", params)
 
 
 def break_at_sym(sym: str) -> None:
