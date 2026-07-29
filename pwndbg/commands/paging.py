@@ -105,12 +105,12 @@ def pagewalk(vaddr, entry=None) -> None:
 
 def print_pageinfo(va: int, pa: int, page: int) -> None:
     try:
-        print(f"{color.green('Virtual Address')}: {color.yellow(hex(va))}")
-        print(f"{color.green('Physical Address')}: {color.yellow(hex(pa))}")
+        print(f"{color.blue('Virtual Address')}: {color.yellow(hex(va))}")
+        print(f"{color.blue('Physical Address')}: {color.yellow(hex(pa))}")
 
         refcount = pwndbg.aglib.memory.u32(page + 0x34)
         print(
-            f"{color.green('page')} @ {color.yellow(hex(page))} [{page_type(page)}, refcount: {refcount}]"
+            f"{color.blue('page')} @ {color.yellow(hex(page))} [{page_type(page)}, refcount: {refcount}]"
         )
     except (ValueError, TypeError):
         print(message.warn("invalid page address"))
