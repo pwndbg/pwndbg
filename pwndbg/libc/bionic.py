@@ -31,21 +31,21 @@ def version(libc_filepath: str) -> tuple[int, ...]:
 
     https://android.googlesource.com/platform/bionic/+/master/libc/libc.map.txt
     """
-    api_symbols = {
-        37: "sched_getattr",  # Android 17
-        36: "lchmod",  # Android 16
-        35: "android_crash_detail_register",  # Android 15
-        34: "close_range",  # Android 14
-        33: "backtrace",  # Android 13
-        31: "android_reset_stack_guards",  # Android 12
-        29: "android_get_device_api_level",  # Android 10
-        28: "__ppoll64_chk",  # Android 9
-        26: "catclose",  # Android 8.0
-        24: "preadv",  # Android 7.0
-        23: "error_at_line",  # Android 6.0
-        21: "epoll_create1",  # Android 5.0
-    }
-    for api_level, api_symbol in api_symbols.items():
+    api_symbols = [
+        (37, "sched_getattr"),  # Android 17
+        (36, "lchmod"),  # Android 16
+        (35, "android_crash_detail_register"),  # Android 15
+        (34, "close_range"),  # Android 14
+        (33, "backtrace"),  # Android 13
+        (31, "android_reset_stack_guards"),  # Android 12
+        (29, "android_get_device_api_level"),  # Android 10
+        (28, "__ppoll64_chk"),  # Android 9
+        (26, "catclose"),  # Android 8.0
+        (24, "preadv"),  # Android 7.0
+        (23, "error_at_line"),  # Android 6.0
+        (21, "epoll_create1"),  # Android 5.0
+    ]
+    for api_level, api_symbol in api_symbols:
         if (
             pwndbg.aglib.symbol.lookup_symbol(api_symbol, objfile_endswith=libc_filepath)
             is not None
@@ -57,12 +57,14 @@ def version(libc_filepath: str) -> tuple[int, ...]:
 
 def has_internal_symbols(libc_filepath: str) -> bool:
     return (
+        # __libc_globals in present since Android 7.0 (API 24)
         pwndbg.aglib.symbol.lookup_symbol("__libc_globals", objfile_endswith=libc_filepath)
         is not None
     )
 
 
 def has_debug_info() -> bool:
+    # scudo::Chunk::UnpackedHeader is present since Android 11 (API 30)
     return pwndbg.aglib.typeinfo.load("scudo::Chunk::UnpackedHeader") is not None
 
 
