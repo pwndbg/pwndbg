@@ -457,6 +457,17 @@ Whether to colorize the hexdump command ascii section.
 
 ----------
 
+## **hexdump-highlight-color**
+
+
+Color for hexdump command (bytes matched by --highlight).
+
+Underlined by default so matched bytes stay distinguishable from bytes the normal color scheme already paints, such as zero bytes.
+
+**Default:** 'light-red,underline'  
+
+----------
+
 ## **hexdump-highlight-group-lsb**
 
 

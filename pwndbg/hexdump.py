@@ -14,6 +14,8 @@ from pwndbg.color import theme
 
 color_scheme = None
 printable = None
+# Uncolored counterpart of `printable`, used to re-color bytes matched by --highlight
+printable_raw = None
 
 
 def groupby(width: int, array, fill=None):
@@ -37,13 +39,14 @@ config_byte_separator = theme.add_param(
     H.config_normal, H.config_zero, H.config_special, H.config_printable, config_colorize_ascii
 )
 def load_color_scheme() -> None:
-    global color_scheme, printable
+    global color_scheme, printable, printable_raw
     #
     # We want to colorize the hex characters and only print out
     # printable values on the right hand side.
     #
     color_scheme = {i: H.normal(f"{i:02x}") for i in range(256)}
     printable = {i: H.normal(".") for i in range(256)}
+    printable_raw = dict.fromkeys(range(256), ".")
 
     for c in bytearray(
         (string.ascii_letters + string.digits + string.punctuation).encode("utf-8", "ignore")
@@ -52,6 +55,7 @@ def load_color_scheme() -> None:
         printable[c] = (
             H.printable(f"{chr(c)}") if pwndbg.config.hexdump_colorize_ascii else f"{chr(c)}"
         )
+        printable_raw[c] = chr(c)
 
     for c in bytearray(b"\x00"):
         color_scheme[c] = H.zero(f"{c:02x}")
@@ -63,6 +67,7 @@ def load_color_scheme() -> None:
 
     color_scheme[-1] = "  "
     printable[-1] = " "
+    printable_raw[-1] = " "
 
 
 def hexdump(
@@ -73,8 +78,9 @@ def hexdump(
     flip_group_endianness: bool = False,
     skip: bool = True,
     offset: int = 0,
+    highlight: set[int] | None = None,
 ):
-    if not color_scheme or not printable:
+    if not color_scheme or not printable or not printable_raw:
         load_color_scheme()
 
     # If there's nothing to print, just print the offset and address and return
@@ -128,17 +134,25 @@ def hexdump(
         for group in groupby(group_width, line):
             group = reversed(group) if flip_group_endianness else group
             for idx, char in enumerate(group):
-                if flip_group_endianness and idx == group_width - 1:
-                    hexline.append(H.highlight_group_lsb(color_scheme[char]))
+                if highlight and char in highlight:
+                    cell = H.highlight(f"{char:02x}")
                 else:
-                    hexline.append(color_scheme[char])
+                    cell = color_scheme[char]
+
+                if flip_group_endianness and idx == group_width - 1:
+                    hexline.append(H.highlight_group_lsb(cell))
+                else:
+                    hexline.append(cell)
                 hexline.append(config_byte_separator_str)
             hexline.append(" ")
 
         hexline.append(config_separator_str)
         for group in groupby(group_width, line):
             for char in group:
-                hexline.append(printable[char])
+                if highlight and char in highlight:
+                    hexline.append(H.highlight(printable_raw[char]))
+                else:
+                    hexline.append(printable[char])
             hexline.append(config_separator_str)
 
         yield "".join(hexline)

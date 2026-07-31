@@ -16,6 +16,13 @@ config_zero = theme.add_color_param(
 config_special = theme.add_color_param(
     "hexdump-special-color", "yellow", "color for hexdump command (special bytes)"
 )
+config_highlight = theme.add_color_param(
+    "hexdump-highlight-color",
+    "light-red,underline",
+    "color for hexdump command (bytes matched by --highlight)",
+    help_docstring="Underlined by default so matched bytes stay distinguishable from bytes the "
+    "normal color scheme already paints, such as zero bytes.",
+)
 config_offset = theme.add_color_param(
     "hexdump-offset-color", "none", "color for hexdump command (offset label)"
 )
@@ -47,6 +54,10 @@ def zero(x: str) -> str:
 
 def special(x: str) -> str:
     return config_special.color_function(x)
+
+
+def highlight(x: str) -> str:
+    return config_highlight.color_function(x)
 
 
 def offset(x: str) -> str:

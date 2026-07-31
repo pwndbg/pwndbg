@@ -10,6 +10,7 @@ import pwndbg.dbg_mod
 import pwndbg.hexdump
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.lib.common import parse_byte_patterns
 from pwndbg.lib.config import PARAM_ZUINTEGER
 
 pwndbg.config.add_param("hexdump-width", 16, "line width of hexdump command")
@@ -49,6 +50,13 @@ def address_or_module_name(s) -> int:
     if isinstance(addr_or_str, int):
         return addr_or_str
     raise argparse.ArgumentTypeError("Unknown hexdump argument type.")
+
+
+def byte_patterns(s: str) -> set[int]:
+    try:
+        return parse_byte_patterns(s)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e))
 
 
 def format_c(data: bytes) -> str:
@@ -95,12 +103,23 @@ parser.add_argument(
     choices=("py", "c"),
     help="Output as Python or C code data definition (default: py)",
 )
+parser.add_argument(
+    "-H",
+    "--highlight",
+    type=byte_patterns,
+    default=None,
+    help="Comma-separated hex byte patterns to highlight, e.g. '00,0a,4?'. "
+    "'?' matches any nibble. Useful for spotting bad chars in a payload",
+)
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def hexdump(
-    address: str | int, count: int = int(pwndbg.config.hexdump_bytes), code: str | None = None
+    address: str | int,
+    count: int = int(pwndbg.config.hexdump_bytes),
+    code: str | None = None,
+    highlight: set[int] | None = None,
 ) -> None:
     if count <= 0:
         print(f"count must be larger than 0 (is {count}).")
@@ -176,6 +195,7 @@ def hexdump(
             group_width=group_width,
             flip_group_endianness=flip_group_endianness,
             offset=hexdump.offset,
+            highlight=highlight,
         )
         for line in result:
             print(line)
