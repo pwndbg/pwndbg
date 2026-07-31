@@ -71,4 +71,3 @@ async def test_command_canary(ctrl: Controller, binary: Path, reg_name: str, ski
         masked_raw = raw & mask
         assert masked_raw == at_random_canary
         assert at_random_canary == canary_value
-
