@@ -31,6 +31,7 @@ async def test_command_canary(ctrl: Controller, binary: Path, reg_name: str, ski
     import pwndbg.aglib
     import pwndbg.aglib.memory
     import pwndbg.commands.canary
+    import pwndbg.libc
 
     await launch_to(ctrl, binary, "main")
 
@@ -47,7 +48,7 @@ async def test_command_canary(ctrl: Controller, binary: Path, reg_name: str, ski
 
         await ctrl.step_instruction()
 
-    canary_value, at_random = pwndbg.commands.canary.canary_value()
+    at_random_canary, at_random = pwndbg.commands.canary.canary_from_at_random()
     assert at_random is not None
 
     raw = pwndbg.aglib.memory.read_pointer_width(at_random)
@@ -58,8 +59,10 @@ async def test_command_canary(ctrl: Controller, binary: Path, reg_name: str, ski
     assert tls_addr is not None
     raw_tls = pwndbg.aglib.memory.read_pointer_width(tls_addr) & mask
 
-    # Check AT_RANDOM
-    assert masked_raw == canary_value
+    canary_value = pwndbg.commands.canary.canary_value()
+
+    # Check AT_RANDOM, if glibc >= 2.44, at_random_canary != canary_value
+    assert masked_raw == at_random_canary
     # Check TLS Canary
     assert raw_tls == canary_value
     # Check Canary
