@@ -59,7 +59,7 @@ async def test_command_canary(ctrl: Controller, binary: Path, reg_name: str, ski
     assert tls_addr is not None
     raw_tls = pwndbg.aglib.memory.read_pointer_width(tls_addr) & mask
 
-    canary_value = pwndbg.commands.canary.canary_value()[0]
+    canary_value = pwndbg.commands.canary.canary_value()
 
     # Check AT_RANDOM, if glibc >= 2.44, at_random_canary != canary_value
     assert masked_raw == at_random_canary
