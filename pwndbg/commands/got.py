@@ -190,6 +190,9 @@ def iter_objfiles() -> Iterator[pwndbg.lib.memory.Page]:
         if page.objfile in uniq:
             continue
         if pwndbg.aglib.memory.read(page.start, 4, True) != b"\x7fELF":
+            # FIXME: hacky, should be pulled out to a page.is_disk_backed_elf
+            # and that function should read the file from disk rather than from memory
+            # (and support remote files), related: #3641
             continue
         uniq.add(page.objfile)
         yield page
