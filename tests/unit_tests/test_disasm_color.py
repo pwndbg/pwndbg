@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import sys
 from unittest.mock import MagicMock
+
+import pwndbg
 
 # Setup mocks required for pwndbg import
 from tests.unit_tests.mocks import dbg_mod
 from tests.unit_tests.mocks import gdb  # noqa: F401
 from tests.unit_tests.mocks import gdblib  # noqa: F401
-
-import pwndbg
 
 dbg_mod.dbg.is_gdblib_available = lambda: False
 dbg_mod.dbg.event_handler = lambda *a, **kw: lambda f: f
@@ -16,9 +15,9 @@ dbg_mod.dbg.commands = lambda: set()
 dbg_mod.dbg.add_command = lambda *a, **kw: None
 pwndbg.dbg = dbg_mod.dbg
 
-import pytest
-import pwndbg.color.disasm as disasm
 from capstone6pwndbg import CS_OP_IMM
+
+from pwndbg.color import disasm
 
 if not hasattr(pwndbg.aglib, "regs") or pwndbg.aglib.regs is None:
     pwndbg.aglib.regs = MagicMock(pc=0)

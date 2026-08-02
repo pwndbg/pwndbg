@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import contextlib
+
+from capstone6pwndbg import CS_OP_IMM
+
 import pwndbg.aglib
 import pwndbg.aglib.nearpc
 import pwndbg.color.context as ctx_color
-from capstone6pwndbg import CS_OP_IMM
 from pwndbg.aglib.disasm.assistant import DisassemblyAssistant
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -105,17 +108,13 @@ def enrich_instruction_annotation(ins: PwndbgInstruction) -> None:
     for op in ins.operands:
         val = None
         if hasattr(op, "type") and op.type == CS_OP_IMM:
-            try:
+            with contextlib.suppress(ValueError, TypeError, AttributeError):
                 val = op.imm
-            except (ValueError, TypeError, AttributeError):
-                pass
         elif isinstance(getattr(op, "str", None), str) and (
             op.str.startswith("0x") or op.str.isdigit()
         ):
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 val = int(op.str, 0)
-            except (ValueError, TypeError):
-                pass
 
         if val and val > 0xFF:
             decoded = decode_immediate_string(val)
@@ -130,15 +129,11 @@ def enrich_instruction_annotation(ins: PwndbgInstruction) -> None:
             dst_str = getattr(dst_op, "str", "") or ""
             src_val = None
             if hasattr(src_op, "type") and src_op.type == CS_OP_IMM:
-                try:
+                with contextlib.suppress(ValueError, TypeError, AttributeError):
                     src_val = src_op.imm
-                except (ValueError, TypeError, AttributeError):
-                    pass
             elif isinstance(getattr(src_op, "str", None), str):
-                try:
+                with contextlib.suppress(ValueError, TypeError):
                     src_val = int(src_op.str, 0)
-                except (ValueError, TypeError):
-                    pass
 
             if dst_str.lower() in ("rax", "eax", "x0", "w0") and src_val is not None:
                 try:
@@ -162,15 +157,11 @@ def enrich_instruction_annotation(ins: PwndbgInstruction) -> None:
         for op in ins.operands:
             b_val = None
             if hasattr(op, "type") and op.type == CS_OP_IMM:
-                try:
+                with contextlib.suppress(ValueError, TypeError, AttributeError):
                     b_val = op.imm
-                except (ValueError, TypeError, AttributeError):
-                    pass
             elif isinstance(getattr(op, "str", None), str):
-                try:
+                with contextlib.suppress(ValueError, TypeError):
                     b_val = int(op.str, 0)
-                except (ValueError, TypeError):
-                    pass
 
             if b_val is not None and 32 <= b_val <= 126:
                 c_str = f"'{chr(b_val)}'"
