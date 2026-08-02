@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+from typing import Any
 
 from capstone6pwndbg import CS_OP_IMM
 
@@ -101,7 +102,7 @@ def decode_immediate_string(val: int) -> str | None:
     return None
 
 
-def enrich_instruction_annotation(ins: PwndbgInstruction) -> None:
+def enrich_instruction_annotation(ins: PwndbgInstruction | Any) -> None:
     comments = []
 
     # 1. Check operands for immediate values (e.g. 0x68732f2f6e69622f -> "/bin//sh", 0xa798fd1bcd0 -> "мяу\n")

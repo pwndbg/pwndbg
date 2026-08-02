@@ -11,7 +11,7 @@ from tests.unit_tests.mocks import gdblib  # noqa: F401
 
 dbg_mod.dbg.is_gdblib_available = lambda: False
 dbg_mod.dbg.event_handler = lambda *a, **kw: lambda f: f
-dbg_mod.dbg.commands = lambda: set()
+dbg_mod.dbg.commands = list
 dbg_mod.dbg.add_command = lambda *a, **kw: None
 pwndbg.dbg = dbg_mod.dbg
 
@@ -36,8 +36,8 @@ def test_decode_immediate_string_utf8_and_ascii():
     # 8-byte ASCII: "/bin//sh" -> 0x68732f2f6e69622f
     assert disasm.decode_immediate_string(0x68732F2F6E69622F) == '"/bin//sh"'
 
-    # 6-byte UTF-8 Russian string: "мяу\n" -> 0x0A798FD1BCD0
-    assert disasm.decode_immediate_string(0x0A798FD1BCD0) == '"мяу\\n"'
+    # 6-byte UTF-8 Russian string: "мяу\n" -> 0x0A83D18FD1BCD0
+    assert disasm.decode_immediate_string(0x0A83D18FD1BCD0) == '"мяу\\n"'
 
     # 4-byte ASCII: "test" -> 0x74736574
     assert disasm.decode_immediate_string(0x74736574) == '"test"'
@@ -97,7 +97,10 @@ def test_enrich_annotation_utf8_immediate():
     """Test that UTF-8 multibyte strings like 'мяу\\n' are correctly annotated."""
     ins = DummyInstruction(
         mnemonic="movabs",
-        operands=[DummyOperand(str_val="rax"), DummyOperand(op_type=CS_OP_IMM, imm=0x0A798FD1BCD0)],
+        operands=[
+            DummyOperand(str_val="rax"),
+            DummyOperand(op_type=CS_OP_IMM, imm=0x0A83D18FD1BCD0),
+        ],
     )
     disasm.enrich_instruction_annotation(ins)
     assert ins.annotation is not None and '"мяу\\n"' in ins.annotation
