@@ -85,7 +85,12 @@ def decode_immediate_string(val: int) -> str | None:
 
         # Fallback ASCII check
         if all(32 <= c <= 126 or c in (9, 10, 13) for c in b):
-            s = b.decode("ascii", errors="ignore").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+            s = (
+                b.decode("ascii", errors="ignore")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t")
+            )
             if len(s.strip()) > 0:
                 return f'"{s}"'
     except (ValueError, TypeError, OverflowError):
@@ -104,7 +109,9 @@ def enrich_instruction_annotation(ins: PwndbgInstruction) -> None:
                 val = op.imm
             except (ValueError, TypeError, AttributeError):
                 pass
-        elif isinstance(getattr(op, "str", None), str) and (op.str.startswith("0x") or op.str.isdigit()):
+        elif isinstance(getattr(op, "str", None), str) and (
+            op.str.startswith("0x") or op.str.isdigit()
+        ):
             try:
                 val = int(op.str, 0)
             except (ValueError, TypeError):

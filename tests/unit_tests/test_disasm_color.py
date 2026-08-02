@@ -11,7 +11,7 @@ from tests.unit_tests.mocks import gdblib  # noqa: F401
 import pwndbg
 
 dbg_mod.dbg.is_gdblib_available = lambda: False
-dbg_mod.dbg.event_handler = lambda *a, **kw: (lambda f: f)
+dbg_mod.dbg.event_handler = lambda *a, **kw: lambda f: f
 dbg_mod.dbg.commands = lambda: set()
 dbg_mod.dbg.add_command = lambda *a, **kw: None
 pwndbg.dbg = dbg_mod.dbg
@@ -31,10 +31,11 @@ if not hasattr(pwndbg.aglib, "arch") or pwndbg.aglib.arch is None:
 # Tests for decode_ascii_immediate(val)
 # ==============================================================================
 
+
 def test_decode_immediate_string_utf8_and_ascii():
     """Test decoding of valid ASCII and UTF-8 multibyte (Russian/Cyrillic) immediates."""
     # 8-byte ASCII: "/bin//sh" -> 0x68732f2f6e69622f
-    assert disasm.decode_immediate_string(0x68732f2f6e69622f) == '"/bin//sh"'
+    assert disasm.decode_immediate_string(0x68732F2F6E69622F) == '"/bin//sh"'
 
     # 6-byte UTF-8 Russian string: "мяу\n" -> 0x0A798FD1BCD0
     assert disasm.decode_immediate_string(0x0A798FD1BCD0) == '"мяу\\n"'
@@ -60,15 +61,18 @@ def test_decode_immediate_string_corrupted_and_unprintable():
     assert disasm.decode_immediate_string(0x20202020) is None
 
     # Control chars \n, \r, \t with printable char 'A' -> 0x0a0d0941 ("A\t\r\n")
-    assert disasm.decode_immediate_string(0x0a0d0941) == '"A\\t\\r\\n"'
+    assert disasm.decode_immediate_string(0x0A0D0941) == '"A\\t\\r\\n"'
 
 
 # ==============================================================================
 # Tests for enrich_instruction_annotation(ins)
 # ==============================================================================
 
+
 class DummyOperand:
-    def __init__(self, op_type=None, imm=None, before_value_resolved=None, before_value=None, str_val=None):
+    def __init__(
+        self, op_type=None, imm=None, before_value_resolved=None, before_value=None, str_val=None
+    ):
         if op_type is not None:
             self.type = op_type
         if imm is not None:
@@ -94,7 +98,7 @@ def test_enrich_annotation_utf8_immediate():
     """Test that UTF-8 multibyte strings like 'мяу\\n' are correctly annotated."""
     ins = DummyInstruction(
         mnemonic="movabs",
-        operands=[DummyOperand(str_val="rax"), DummyOperand(op_type=CS_OP_IMM, imm=0x0A798FD1BCD0)]
+        operands=[DummyOperand(str_val="rax"), DummyOperand(op_type=CS_OP_IMM, imm=0x0A798FD1BCD0)],
     )
     disasm.enrich_instruction_annotation(ins)
     assert ins.annotation is not None and '"мяу\\n"' in ins.annotation
@@ -102,10 +106,7 @@ def test_enrich_annotation_utf8_immediate():
 
 def test_enrich_annotation_negative_immediates():
     """Test that negative immediate operands do not cause errors or invalid ASCII decodings."""
-    ins = DummyInstruction(
-        mnemonic="mov",
-        operands=[DummyOperand(op_type=CS_OP_IMM, imm=-1)]
-    )
+    ins = DummyInstruction(mnemonic="mov", operands=[DummyOperand(op_type=CS_OP_IMM, imm=-1)])
     disasm.enrich_instruction_annotation(ins)
     assert ins.annotation is None
 
@@ -117,7 +118,7 @@ def test_enrich_annotation_syscall_decoding():
     # Valid syscall: sys_execve (59 on x86-64)
     ins_execve = DummyInstruction(
         mnemonic="mov",
-        operands=[DummyOperand(str_val="rax"), DummyOperand(op_type=CS_OP_IMM, imm=59)]
+        operands=[DummyOperand(str_val="rax"), DummyOperand(op_type=CS_OP_IMM, imm=59)],
     )
     disasm.enrich_instruction_annotation(ins_execve)
     assert ins_execve.annotation is not None and "sys_execve" in ins_execve.annotation
@@ -128,7 +129,7 @@ def test_enrich_annotation_file_descriptors():
     for fd, expected in [(0, "stdin"), (1, "stdout"), (2, "stderr")]:
         ins = DummyInstruction(
             mnemonic="mov",
-            operands=[DummyOperand(str_val="rdi"), DummyOperand(op_type=CS_OP_IMM, imm=fd)]
+            operands=[DummyOperand(str_val="rdi"), DummyOperand(op_type=CS_OP_IMM, imm=fd)],
         )
         disasm.enrich_instruction_annotation(ins)
         assert ins.annotation is not None and expected in ins.annotation
@@ -188,4 +189,3 @@ def test_instructions_and_padding_syscall_name_none():
     # Should safely process without raising TypeError
     res = disasm.instructions_and_padding([ins], linear=False)
     assert len(res) == 1
-
