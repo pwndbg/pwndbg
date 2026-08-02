@@ -102,14 +102,14 @@ def test_enrich_annotation_utf8_immediate():
             DummyOperand(op_type=CS_OP_IMM, imm=0x0A83D18FD1BCD0),
         ],
     )
-    disasm.enrich_instruction_annotation(ins)
+    disasm.enrich_instruction_annotation(ins)  # type: ignore[arg-type]
     assert ins.annotation is not None and '"мяу\\n"' in ins.annotation
 
 
 def test_enrich_annotation_negative_immediates():
     """Test that negative immediate operands do not cause errors or invalid ASCII decodings."""
     ins = DummyInstruction(mnemonic="mov", operands=[DummyOperand(op_type=CS_OP_IMM, imm=-1)])
-    disasm.enrich_instruction_annotation(ins)
+    disasm.enrich_instruction_annotation(ins)  # type: ignore[arg-type]
     assert ins.annotation is None
 
 
@@ -122,7 +122,7 @@ def test_enrich_annotation_syscall_decoding():
         mnemonic="mov",
         operands=[DummyOperand(str_val="rax"), DummyOperand(op_type=CS_OP_IMM, imm=59)],
     )
-    disasm.enrich_instruction_annotation(ins_execve)
+    disasm.enrich_instruction_annotation(ins_execve)  # type: ignore[arg-type]
     assert ins_execve.annotation is not None and "sys_execve" in ins_execve.annotation
 
 
@@ -133,7 +133,7 @@ def test_enrich_annotation_file_descriptors():
             mnemonic="mov",
             operands=[DummyOperand(str_val="rdi"), DummyOperand(op_type=CS_OP_IMM, imm=fd)],
         )
-        disasm.enrich_instruction_annotation(ins)
+        disasm.enrich_instruction_annotation(ins)  # type: ignore[arg-type]
         assert ins.annotation is not None and expected in ins.annotation
 
 
@@ -157,17 +157,17 @@ def test_enrich_annotation_memory_addresses(monkeypatch):
 
     # 1. Zero address ins.target = 0
     ins_zero = DummyInstruction(target=0)
-    disasm.enrich_instruction_annotation(ins_zero)
+    disasm.enrich_instruction_annotation(ins_zero)  # type: ignore[arg-type]
     assert ins_zero.annotation is None
 
     # 2. Negative address ins.target = -0x1000 (should safely catch MemoryError without crashing)
     ins_neg = DummyInstruction(target=-0x1000)
-    disasm.enrich_instruction_annotation(ins_neg)
+    disasm.enrich_instruction_annotation(ins_neg)  # type: ignore[arg-type]
     assert ins_neg.annotation is None
 
     # 3. Valid address returning bytearray
     ins_valid_str = DummyInstruction(target=0x1000)
-    disasm.enrich_instruction_annotation(ins_valid_str)
+    disasm.enrich_instruction_annotation(ins_valid_str)  # type: ignore[arg-type]
     assert ins_valid_str.annotation is not None and '-> "hello_world"' in ins_valid_str.annotation
 
 

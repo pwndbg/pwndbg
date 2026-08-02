@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import contextlib
-from typing import Any
 
 from capstone6pwndbg import CS_OP_IMM
 
 import pwndbg.aglib
 import pwndbg.aglib.nearpc
 import pwndbg.color.context as ctx_color
-from pwndbg.aglib.disasm.assistant import DisassemblyAssistant
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -102,10 +100,10 @@ def decode_immediate_string(val: int) -> str | None:
     return None
 
 
-def enrich_instruction_annotation(ins: PwndbgInstruction | Any) -> None:
-    comments = []
+def enrich_instruction_annotation(ins: PwndbgInstruction) -> None:
+    comments: list[str] = []
 
-    # 1. Check operands for immediate values (e.g. 0x68732f2f6e69622f -> "/bin//sh", 0xa798fd1bcd0 -> "мяу\n")
+    # 1. Check operands for immediate string values (e.g. 0x68732f2f6e69622f -> "/bin//sh", 0x0A83D18FD1BCD0 -> "мяу\n")
     for op in ins.operands:
         val = None
         if hasattr(op, "type") and op.type == CS_OP_IMM:
@@ -122,38 +120,7 @@ def enrich_instruction_annotation(ins: PwndbgInstruction | Any) -> None:
             if decoded and decoded not in comments:
                 comments.append(decoded)
 
-    # 2. Syscall & File descriptor detection
-    if ins.mnemonic in ("mov", "movabs", "movsx", "movzx"):
-        operands = ins.operands
-        if len(operands) >= 2:
-            dst_op, src_op = operands[0], operands[1]
-            dst_str = getattr(dst_op, "str", "") or ""
-            src_val = None
-            if hasattr(src_op, "type") and src_op.type == CS_OP_IMM:
-                with contextlib.suppress(ValueError, TypeError, AttributeError):
-                    src_val = src_op.imm
-            elif isinstance(getattr(src_op, "str", None), str):
-                with contextlib.suppress(ValueError, TypeError):
-                    src_val = int(src_op.str, 0)
-
-            if dst_str.lower() in ("rax", "eax", "x0", "w0") and src_val is not None:
-                try:
-                    sys_name = DisassemblyAssistant._syscall_name(src_val, pwndbg.aglib.arch.name)
-                    if sys_name:
-                        hint = f"sys_{sys_name}"
-                        if hint not in comments:
-                            comments.append(hint)
-                except (ValueError, TypeError, AttributeError):
-                    pass
-            elif dst_str.lower() in ("rdi", "edi", "r0", "w0") and src_val is not None:
-                if src_val == 0:
-                    comments.append("stdin")
-                elif src_val == 1:
-                    comments.append("stdout")
-                elif src_val == 2:
-                    comments.append("stderr")
-
-    # 3. Single byte stores (mov byte ptr [rsp], 0xXX)
+    # 2. Single byte stores (mov byte ptr [rsp], 0xXX -> 'a')
     if "byte" in ins.op_str.lower():
         for op in ins.operands:
             b_val = None
@@ -169,17 +136,15 @@ def enrich_instruction_annotation(ins: PwndbgInstruction | Any) -> None:
                 if c_str not in comments:
                     comments.append(c_str)
 
-    # 4. Memory string dereferencing
+    # 3. Memory string dereferencing (ins.target pointing to readable string)
     if ins.target and pwndbg.aglib.memory.is_readable_address(ins.target):
-        try:
+        with contextlib.suppress(ValueError, TypeError, AttributeError, MemoryError, OSError):
             data = pwndbg.aglib.memory.string(ins.target, max=32)
             if data and len(data) >= 2 and all(32 <= c <= 126 for c in data):
                 decoded_str = data.decode("ascii", errors="ignore")
                 hint = f'-> "{decoded_str}"'
                 if hint not in comments:
                     comments.append(hint)
-        except (ValueError, TypeError, AttributeError, MemoryError, OSError):
-            pass
 
     if comments:
         comment_str = gray(f"; {', '.join(comments)}")
