@@ -3,6 +3,8 @@ from __future__ import annotations
 import pwndbg.aglib
 import pwndbg.aglib.nearpc
 import pwndbg.color.context as ctx_color
+from capstone6pwndbg import CS_OP_IMM
+from pwndbg.aglib.disasm.assistant import DisassemblyAssistant
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -63,6 +65,132 @@ def one_instruction(ins: PwndbgInstruction, linear: bool) -> str:
     return asm
 
 
+def decode_immediate_string(val: int) -> str | None:
+    if val <= 0:
+        return None
+    byte_len = (val.bit_length() + 7) // 8
+    if byte_len < 2:
+        return None
+    try:
+        b = val.to_bytes(byte_len, "little")
+        # Try UTF-8 decoding (supports Russian, Cyrillic, UTF-8 multi-byte strings)
+        try:
+            s = b.decode("utf-8")
+            if all(c.isprintable() or c in ("\n", "\r", "\t") for c in s):
+                escaped = s.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+                if len(escaped.strip()) > 0:
+                    return f'"{escaped}"'
+        except UnicodeDecodeError:
+            pass
+
+        # Fallback ASCII check
+        if all(32 <= c <= 126 or c in (9, 10, 13) for c in b):
+            s = b.decode("ascii", errors="ignore").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+            if len(s.strip()) > 0:
+                return f'"{s}"'
+    except (ValueError, TypeError, OverflowError):
+        pass
+    return None
+
+
+def enrich_instruction_annotation(ins: PwndbgInstruction) -> None:
+    comments = []
+
+    # 1. Check operands for immediate values (e.g. 0x68732f2f6e69622f -> "/bin//sh", 0xa798fd1bcd0 -> "мяу\n")
+    for op in ins.operands:
+        val = None
+        if hasattr(op, "type") and op.type == CS_OP_IMM:
+            try:
+                val = op.imm
+            except (ValueError, TypeError, AttributeError):
+                pass
+        elif isinstance(getattr(op, "str", None), str) and (op.str.startswith("0x") or op.str.isdigit()):
+            try:
+                val = int(op.str, 0)
+            except (ValueError, TypeError):
+                pass
+
+        if val and val > 0xFF:
+            decoded = decode_immediate_string(val)
+            if decoded and decoded not in comments:
+                comments.append(decoded)
+
+    # 2. Syscall & File descriptor detection
+    if ins.mnemonic in ("mov", "movabs", "movsx", "movzx"):
+        operands = ins.operands
+        if len(operands) >= 2:
+            dst_op, src_op = operands[0], operands[1]
+            dst_str = getattr(dst_op, "str", "") or ""
+            src_val = None
+            if hasattr(src_op, "type") and src_op.type == CS_OP_IMM:
+                try:
+                    src_val = src_op.imm
+                except (ValueError, TypeError, AttributeError):
+                    pass
+            elif isinstance(getattr(src_op, "str", None), str):
+                try:
+                    src_val = int(src_op.str, 0)
+                except (ValueError, TypeError):
+                    pass
+
+            if dst_str.lower() in ("rax", "eax", "x0", "w0") and src_val is not None:
+                try:
+                    sys_name = DisassemblyAssistant._syscall_name(src_val, pwndbg.aglib.arch.name)
+                    if sys_name:
+                        hint = f"sys_{sys_name}"
+                        if hint not in comments:
+                            comments.append(hint)
+                except (ValueError, TypeError, AttributeError):
+                    pass
+            elif dst_str.lower() in ("rdi", "edi", "r0", "w0") and src_val is not None:
+                if src_val == 0:
+                    comments.append("stdin")
+                elif src_val == 1:
+                    comments.append("stdout")
+                elif src_val == 2:
+                    comments.append("stderr")
+
+    # 3. Single byte stores (mov byte ptr [rsp], 0xXX)
+    if "byte" in ins.op_str.lower():
+        for op in ins.operands:
+            b_val = None
+            if hasattr(op, "type") and op.type == CS_OP_IMM:
+                try:
+                    b_val = op.imm
+                except (ValueError, TypeError, AttributeError):
+                    pass
+            elif isinstance(getattr(op, "str", None), str):
+                try:
+                    b_val = int(op.str, 0)
+                except (ValueError, TypeError):
+                    pass
+
+            if b_val is not None and 32 <= b_val <= 126:
+                c_str = f"'{chr(b_val)}'"
+                if c_str not in comments:
+                    comments.append(c_str)
+
+    # 4. Memory string dereferencing
+    if ins.target and pwndbg.aglib.memory.is_readable_address(ins.target):
+        try:
+            data = pwndbg.aglib.memory.string(ins.target, max=32)
+            if data and len(data) >= 2 and all(32 <= c <= 126 for c in data):
+                decoded_str = data.decode("ascii", errors="ignore")
+                hint = f'-> "{decoded_str}"'
+                if hint not in comments:
+                    comments.append(hint)
+        except (ValueError, TypeError, AttributeError, MemoryError, OSError):
+            pass
+
+    if comments:
+        comment_str = gray(f"; {', '.join(comments)}")
+        if ins.annotation:
+            if "; " not in ins.annotation:
+                ins.annotation += "  " + comment_str
+        else:
+            ins.annotation = comment_str
+
+
 MIN_SPACING = 5
 WHITESPACE_LIMIT = 20
 
@@ -72,6 +200,9 @@ WHITESPACE_LIMIT = 20
 # A group is defined as a sequence of instructions surrounded by instructions that can change the instruction pointer.
 def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool) -> list[str]:
     result: list[str] = []
+
+    for ins in instructions:
+        enrich_instruction_annotation(ins)
 
     cur_padding_len = None
 
@@ -98,7 +229,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
                 groups.append(current_group)
                 current_group = []
         else:
-            if ins.syscall is not None:
+            if ins.syscall is not None and ins.syscall_name:
                 asm += f" <{pwndbg.aglib.nearpc.c.syscall_name('SYS_' + ins.syscall_name)}>"
 
             # Padding the string for a nicer output
