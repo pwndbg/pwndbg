@@ -132,8 +132,10 @@ class _TlsDtorEntry:
 
 
 def _ptr_demangle(pointer_guard: int, ptr: int) -> int:
+    # glibc 2.44 use unified algorithm
+    # https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=78f1f0e39cd41d28ae771eb3498bc33780c85cfd
     # list of PTR_DEMANGLE macros: https://elixir.bootlin.com/glibc/glibc-2.43/A/ident/PTR_DEMANGLE
-    if pwndbg.aglib.arch.name in {"x86-64", "i386"}:
+    if pwndbg.libc.version() >= (2, 44) or pwndbg.aglib.arch.name in {"x86-64", "i386"}:
         # https://elixir.bootlin.com/glibc/glibc-2.43/source/sysdeps/unix/sysv/linux/x86_64/pointer_guard.h#L63
         return (
             typing.cast(int, ror(ptr, pwndbg.aglib.arch.ptrsize * 2 + 1, pwndbg.aglib.arch.ptrbits))
@@ -148,6 +150,27 @@ def _ptr_demangle(pointer_guard: int, ptr: int) -> int:
 
 
 def _get_pointer_guard() -> int | None:
+    # glibc 2.44 use unified pointer guard
+    # https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=a5ec880f808ee7268d985bed4f961799bdc0a4bf
+    if pwndbg.libc.version() >= (2, 44) or pwndbg.aglib.arch.name in {
+        "aarch64",
+        "arm",
+    }:  # arm stores it in __pointer_chk_guard(_local)
+        pointer_chk_guard = pwndbg.aglib.symbol.lookup_symbol(
+            "__pointer_chk_guard"
+        ) or pwndbg.aglib.symbol.lookup_symbol("__pointer_chk_guard_local")
+        if pointer_chk_guard is None:
+            print(
+                message.error(
+                    "Could not find __pointer_chk_guard or __pointer_chk_guard_local symbols"
+                )
+            )
+            return None
+        # pointer_chk_guard is a uintptr_t so cast symbol addr to uint **
+        return int(
+            pointer_chk_guard.cast(pwndbg.aglib.typeinfo.uint.pointer().pointer()).dereference()
+        )
+
     if pwndbg.aglib.arch.name in {"x86-64", "i386"}:  # x86 stores pointer_guard in TLS
         tls_addr = (
             pwndbg.aglib.tls.find_address_with_register()
@@ -169,21 +192,6 @@ def _get_pointer_guard() -> int | None:
             pointer_guard_offset = tcbhead_t.offsetof("pointer_guard") or pointer_guard_offset
         return pwndbg.aglib.memory.read_pointer_width(tls_addr + pointer_guard_offset)
 
-    if pwndbg.aglib.arch.name in {"aarch64", "arm"}:  # arm stores it in __pointer_chk_guard(_local)
-        pointer_chk_guard = pwndbg.aglib.symbol.lookup_symbol(
-            "__pointer_chk_guard"
-        ) or pwndbg.aglib.symbol.lookup_symbol("__pointer_chk_guard_local")
-        if pointer_chk_guard is None:
-            print(
-                message.error(
-                    "Could not find __pointer_chk_guard or __pointer_chk_guard_local symbols"
-                )
-            )
-            return None
-        # pointer_chk_guard is a uintptr_t so cast symbol addr to uint **
-        return int(
-            pointer_chk_guard.cast(pwndbg.aglib.typeinfo.uint.pointer().pointer()).dereference()
-        )
     print(message.error(f"Don't know how to get pointer_guard on {pwndbg.aglib.arch.name}"))
     return None
 
