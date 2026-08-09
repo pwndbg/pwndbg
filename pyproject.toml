@@ -49,7 +49,7 @@ lldb = [
     # Optional? for better LLDB REPL behaviour on python builds that use libeedit.
     'gnureadline>=8.2.13,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.6,<4; sys_platform == "win32"',
-    "lldb-for-pwndbg==22.1.0.post3",
+    "lldb-for-pwndbg==23.1.0.post1",
 ]
 gdb = [
     "gdb-for-pwndbg==17.2.0.post5",
@@ -99,9 +99,9 @@ uv = [
 ruff = [
   { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
 ]
-lldb-for-pwndbg = [
-  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
-]
+#lldb-for-pwndbg = [
+#  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
+#]
 gdb-for-pwndbg = [
   { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
 ]
