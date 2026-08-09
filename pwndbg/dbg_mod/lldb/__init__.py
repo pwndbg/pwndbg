@@ -1768,9 +1768,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                         cast_type = pwndbg.aglib.typeinfo.pvoid
 
                 sym_type = sym.GetType()
-                if addr.section.name in (".tbss", ".tdata") and sym_type == lldb.eSymbolTypeInvalid:
+                if addr.section.name in (".tbss", ".tdata") and sym_type == lldb.eSymbolTypeData:
                     # Additionally, we check only TLS sections (.tbss and .tdata).
-                    # Symbols with type eSymbolTypeInvalid might represent TLS symbols.
+                    # Symbols with type eSymbolTypeData might represent TLS symbols.
                     # Attempt to resolve this symbol and verify if it provides a valid result.
                     tls = self._resolve_tls_symbol(sym)
                     if tls:
