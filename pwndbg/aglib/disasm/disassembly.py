@@ -572,10 +572,10 @@ def near(
     backward_count: int = 0,
     total_count: int | None = None,
     end_address: int | None = None,
-    emulate=False,
-    show_prev_insns=True,
-    use_cache=False,
-    linear=False,
+    emulate: bool = False,
+    show_prev_insns: bool = True,
+    use_cache: bool = False,
+    linear: bool = False,
     max_backwards_linear_count: int | None = None,
 ) -> tuple[list[PwndbgInstruction], int, int]:
     """

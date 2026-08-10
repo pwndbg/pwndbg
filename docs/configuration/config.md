@@ -228,6 +228,17 @@ Number of spaces that a <tab> in the source code counts for.
 
 ----------
 
+## **context-disasm-back-linear-lines**
+
+
+Maximum number of lines to disassemble backwards linearly in memory.
+
+
+
+**Default:** 'auto'  
+
+----------
+
 ## **context-disasm-lines**
 
 
