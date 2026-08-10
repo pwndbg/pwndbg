@@ -15,13 +15,13 @@ HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.native.out")
 HEAP_GLIBC2_43 = get_binary("heap_glibc2.43.native.out")
 
-ADDR_RE = re.compile(r"^Addr: (0x[0-9a-f]+)$")
+ADDR_RE = re.compile(r"\bAddr: (0x[0-9a-f]+)\b")
 
 
 def extract_chunk_addrs(output: str) -> list[int]:
     chunk_addrs: list[int] = []
     for line in output.splitlines():
-        match = ADDR_RE.match(line)
+        match = ADDR_RE.search(line)
         if match:
             chunk_addrs.append(int(match.group(1), 16))
     return chunk_addrs
@@ -117,6 +117,23 @@ def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, A
         ]
 
     return expected
+
+
+@pwndbg_test
+async def test_heap_command_compact_output(ctrl: Controller) -> None:
+    from pwndbg import color
+
+    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+
+    output = color.strip(await ctrl.execute_and_capture("heap allocated_chunk --count 1"))
+    lines = output.splitlines()
+
+    assert len(lines) == 1
+    assert "Allocated chunk" in lines[0]
+    assert "Addr: " in lines[0]
+    assert "Data: " in lines[0]
+    assert "Size: " in lines[0]
+    assert "Flags: " in lines[0]
 
 
 @pwndbg_test
