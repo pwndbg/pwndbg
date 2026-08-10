@@ -576,6 +576,7 @@ def near(
     show_prev_insns=True,
     use_cache=False,
     linear=False,
+    max_backwards_linear_count: int | None = None,
 ) -> tuple[list[PwndbgInstruction], int, int]:
     """
     Disassembles instructions near given `address`. Passing `emulate` makes use of
@@ -665,6 +666,7 @@ def near(
     # The assumption is that the instruction list will start with the linear instructions, and then transition to the emulated one
     index_of_last_linearly_disassembled_instruction = -1
 
+    count_backwards_linear = 0
     if show_prev_insns:
         saveptr = InstructionSequenceSavePointer(None)
 
@@ -675,6 +677,12 @@ def near(
             insn, was_linear = prev_instruction_fetch
 
             if was_linear:
+                count_backwards_linear += 1
+                if (
+                    max_backwards_linear_count is not None
+                    and count_backwards_linear > max_backwards_linear_count
+                ):
+                    break
                 index_of_last_linearly_disassembled_instruction += 1
 
             if DEBUG_ENHANCEMENT:
@@ -684,7 +692,10 @@ def near(
             insns.append(insn)
 
             prev_instruction_fetch = get_previous_instruction(
-                insn.address, use_cache=use_cache, linear=linear, saveptr=saveptr
+                insn.address,
+                use_cache=use_cache,
+                linear=linear,
+                saveptr=saveptr,
             )
         insns.reverse()
 

@@ -184,6 +184,7 @@ def qemu_assembly_run():
         gdb.execute("set exception-verbose on")
         gdb.execute("set context-reserve-lines never")
         gdb.execute("set width 80")
+        gdb.execute("set context-disasm-back-linear-lines 0")
         gdb.execute(f"target remote :{QEMU_PORT}")
 
         global _start_binary_called
