@@ -24,6 +24,7 @@ def start_binary():
         gdb.execute("set exception-verbose on")
         gdb.execute("set width 80")
         gdb.execute("set context-reserve-lines never")
+        gdb.execute("set heuristic-backwards-disasm off")
         gdb.execute("set context-disasm-back-linear-lines 0")
         os.environ["COLUMNS"] = "80"
         gdb.execute("starti " + " ".join(args))
