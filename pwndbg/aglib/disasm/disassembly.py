@@ -55,6 +55,14 @@ Enabling this may make disassembly slower.
 """,
 )
 
+# This global flag is used in tests to disable heuristic-based linear backwards disassembly
+heuristic_backwards_linear_disassembly_enabled = pwndbg.config.add_param(
+    "heuristic-backwards-disasm",
+    True,
+    "toggle backwards linear disassembly during emulation",
+    param_class=pwndbg.lib.config.PARAM_BOOLEAN,
+)
+
 # Caching strategy:
 # To ensure we don't have stale register/memory information in our cached PwndbgInstruction,
 # we clear the cache whenever we DON'T do a `stepi`, `nexti`, `step`, or `next` command.
@@ -238,7 +246,7 @@ def get_previous_instruction(
 HEURISTIC_INSTRUCTION_ALIGN_COUNT = 10
 
 
-def get_previous_linear_address_with_heuristic(current_address: int) -> int:
+def get_previous_linear_address_with_heuristic(current_address: int) -> int | None:
     """
     Return the address at which the previous instruction starts.
 
@@ -256,6 +264,9 @@ def get_previous_linear_address_with_heuristic(current_address: int) -> int:
 
     if pwndbg.aglib.arch.constant_instruction_size:
         return current_address - pwndbg.aglib.arch.max_instruction_size
+
+    if not heuristic_backwards_linear_disassembly_enabled:
+        return None
 
     max_instruction_size = pwndbg.aglib.arch.max_instruction_size
 
@@ -602,6 +613,8 @@ def near(
 
     pc = pwndbg.aglib.regs.pc
 
+    disassembling_from_pc = pc == address
+
     # Some architecture aren't emulated yet
     if not pwndbg.emu or pwndbg.aglib.arch.name not in pwndbg.emu.emulator.arch_to_UC:
         emulate = False
@@ -633,7 +646,7 @@ def near(
         address,
         emu,
         put_cache=True,
-        put_linear_backward_cache=False,
+        put_linear_backward_cache=disassembling_from_pc,
         assistant=assistant,
         linear=linear,
     )
@@ -730,6 +743,9 @@ def near(
         if end_address is not None and target >= end_address:
             break
 
+        populate_backward_linear_cache: bool = (
+            disassembling_from_pc or len(insns) >= HEURISTIC_INSTRUCTION_ALIGN_COUNT
+        )
         # Emulation may have failed or been disabled in the last call to one()
         if emu:
             if not emu.last_step_succeeded or not emu.valid:
@@ -768,7 +784,7 @@ def near(
                 split_insn = one(
                     delay_slot_address,
                     emu=None,
-                    put_linear_backward_cache=len(insns) >= HEURISTIC_INSTRUCTION_ALIGN_COUNT,
+                    put_linear_backward_cache=populate_backward_linear_cache,
                     put_cache=True,
                     linear=linear,
                 )
@@ -834,7 +850,7 @@ def near(
             target,
             emu,
             put_cache=True,
-            put_linear_backward_cache=len(insns) >= HEURISTIC_INSTRUCTION_ALIGN_COUNT,
+            put_linear_backward_cache=populate_backward_linear_cache,
             assistant=assistant,
             linear=linear,
         )
