@@ -425,6 +425,7 @@ def nearpc(
     branch_visualization: bool = False,
     address_to_highlight: int | None = None,
     end_address: int | None = None,
+    max_backwards_linear_count: int | None = None,
 ) -> list[str]:
     """
     Disassemble near a specified address.
@@ -489,6 +490,7 @@ def nearpc(
             use_cache=use_cache,
             linear=linear,
             end_address=end_address,
+            max_backwards_linear_count=max_backwards_linear_count,
         )
     )
 
@@ -683,7 +685,9 @@ def nearpc(
             if nearpc_branch_marker_contiguous:
                 if empty_line_branch_vis_string:
                     if not linear and i <= index_of_last_linearly_disassembled_instruction:
-                        empty_line_branch_vis_string = gray(pwndbg.color.strip(empty_line_branch_vis_string))
+                        empty_line_branch_vis_string = gray(
+                            pwndbg.color.strip(empty_line_branch_vis_string)
+                        )
 
                     result.append(empty_line_branch_vis_string)
                 else:
