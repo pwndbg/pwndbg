@@ -145,7 +145,7 @@ def set_debuginfod_timeouts() -> None:
     stall for a while.
 
     This is a double-problem because GDB / gnu libdebuginfod does not
-    serve a Ctrl-C during this time.
+    serve a Ctrl-C during this time. See #4079 for extra info.
 
     Set more sane values if the user did not already touch them.
     """
