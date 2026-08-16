@@ -130,9 +130,28 @@ def skip_autoupdate(src_root: Path) -> bool:
     return False
 
 
-def verify_venv():
+def verify_venv() -> None:
     src_root = Path(__file__).parent.parent.resolve()
     if skip_autoupdate(src_root):
         return
 
     update_deps(src_root)
+
+
+def set_debuginfod_timeouts() -> None:
+    """
+    The default value for DEBUGINFOD_TIMEOUT is 90 seconds. Since
+    https://debuginfod.ubuntu.com/ is often broken, the download can
+    stall for a while.
+
+    This is a double-problem because GDB / gnu libdebuginfod does not
+    serve a Ctrl-C during this time.
+
+    Set more sane values if the user did not already touch them.
+    """
+    if "DEBUGINFOD_TIMEOUT" not in os.environ:
+        # default is 90
+        os.environ["DEBUGINFOD_TIMEOUT"] = "5"
+    if "DEBUGINFOD_RETRY_LIMIT" not in os.environ:
+        # default is 2
+        os.environ["DEBUGINFOD_RETRY_LIMIT"] = "0"

@@ -10,6 +10,7 @@ import traceback
 import gdb
 
 from pwndbginit import gdbpatches  # noqa: F401
+from pwndbginit.common import set_debuginfod_timeouts
 from pwndbginit.common import verify_venv
 
 
@@ -50,6 +51,7 @@ def main() -> None:
 
     check_doubleload()
     verify_venv()
+    set_debuginfod_timeouts()
 
     # Force UTF-8 encoding (to_string=True to skip output appearing to the user)
     try:
