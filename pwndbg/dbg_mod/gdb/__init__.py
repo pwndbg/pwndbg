@@ -1769,7 +1769,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         self._load_gdbinit()
 
-        # show_hint must be called after loading ~/.gdbinit, this order allow disabling show_hint
+        # show_hint must be called after loading ~/.gdbinit, this order allows disabling show_hint
         prompt.show_hint()
 
     @override
