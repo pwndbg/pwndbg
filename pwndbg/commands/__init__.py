@@ -23,6 +23,7 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
+import pwndbg.color
 import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.exception
@@ -319,7 +320,8 @@ class CommandObj:
             # Workaround until https://github.com/pwndbg/pwndbg/issues/3523
             # is fixed.
             parser.prog = (
-                parser.prog.replace("pwndbg-lldb", "")
+                pwndbg.color.strip(parser.prog)
+                .replace("pwndbg-lldb", "")
                 .replace("launch_guest.py", "")
                 .replace("python3 -m tests.host.lldb.launch_guest", "")
             )
