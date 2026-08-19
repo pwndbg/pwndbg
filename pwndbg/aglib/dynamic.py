@@ -156,7 +156,7 @@ def r_debug_link_map_changed_remove_listener(handler: Callable[..., Any]) -> Non
     R_DEBUG_LINK_MAP_CHANGED_LISTENERS.remove(handler)
 
 
-def link_map_head():
+def link_map_head() -> LinkMapEntry | None:
     """
     Acquires a reference to the head entry of the link map.
     """
@@ -171,6 +171,7 @@ def link_map_head():
 
     if r_map != 0:
         return LinkMapEntry(r_map)
+    return None
 
 
 def link_map():

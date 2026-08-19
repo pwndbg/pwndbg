@@ -18,6 +18,7 @@ from typing_extensions import ParamSpec
 from typing_extensions import override
 
 import pwndbg.aglib
+import pwndbg.aglib.dynamic
 import pwndbg.aglib.heap
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
@@ -34,8 +35,14 @@ from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
 from pwndbg.color import message
 from pwndbg.lib import SymbolNotRecoveredError
 from pwndbg.lib import TypeNotRecoveredError
+from pwndbg.libc import LibcNotFound
 
 log = logging.getLogger(__name__)
+
+_HEURISTIC_FALLBACK_WARNING = (
+    "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
+    "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
+)
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -882,10 +889,68 @@ def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
 def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> T | None:
-        if pwndbg.aglib.heap.current is not None and pwndbg.aglib.heap.current.is_initialized():
-            return function(*a, **kw)
-        log.error(f"{func_name(function)}: Heap is not initialized yet.")
-        return None
+        if pwndbg.aglib.heap.current is None or not pwndbg.aglib.proc.alive():
+            log.error(f"{func_name(function)}: Heap is not initialized yet.")
+            return None
+
+        try:
+            libc_type = pwndbg.libc.which()
+        except LibcNotFound:
+            log.error(f"{func_name(function)}: Heap is not initialized yet.")
+            return None
+
+        # At the dynamic linker's entry point, _r_debug is available but its
+        # link map has not been populated yet. Treat that as "heap not
+        # initialized" instead of misreporting the active libc type.
+        if (
+            libc_type == pwndbg.libc.LibcType.UNKNOWN
+            and pwndbg.dbg.selected_inferior().is_dynamically_linked()
+            and pwndbg.aglib.dynamic.is_dynamic()
+            and pwndbg.aglib.dynamic.link_map_head() is None
+        ):
+            log.error(f"{func_name(function)}: Heap is not initialized yet.")
+            return None
+
+        allocator = _resolve_heap_allocator()
+        if allocator is None:
+            return None
+
+        previous_allocator = pwndbg.aglib.heap.current
+        warn_about_heuristic = isinstance(previous_allocator, DebugSymsHeap) and isinstance(
+            allocator, HeuristicHeap
+        )
+
+        # Some allocator methods read the global `heap.current` (e.g.
+        # Arena.__init__() uses it to fetch malloc_state), so the candidate must
+        # be installed while checking initialization. Restore the previous
+        # allocator if the check fails or raises.
+        is_initialized: bool | None = None
+        if allocator is not previous_allocator:
+            pwndbg.aglib.heap.current = allocator
+        try:
+
+            @functools.wraps(function)
+            def _is_initialized() -> bool:
+                return allocator.is_initialized()
+
+            is_initialized = _try2run_heap_command(_is_initialized)
+        finally:
+            if not is_initialized:
+                pwndbg.aglib.heap.current = previous_allocator
+
+        if is_initialized is None:
+            return None
+        if not is_initialized:
+            log.error(f"{func_name(function)}: Heap is not initialized yet.")
+            return None
+
+        # The candidate is initialized and is already installed as the current
+        # allocator. Print the fallback warning only for the first
+        # DebugSymsHeap -> HeuristicHeap transition.
+        if warn_about_heuristic:
+            log.warning(_HEURISTIC_FALLBACK_WARNING)
+
+        return function(*a, **kw)
 
     return _OnlyWhenHeapIsInitialized
 
@@ -926,75 +991,85 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
     return None
 
 
+def _resolve_heap_allocator() -> GlibcMemoryAllocator[Any, Any] | None:
+    """Return a resolvable heap allocator without mutating global state."""
+    e = log.error
+    w = log.warning
+
+    # Operating under the assumption that the pwndbg/libc/ code can figure out
+    # that we are using glibc with at least as good accuracy as the ptmalloc code.
+    libc_type = pwndbg.libc.which()
+    if libc_type != pwndbg.libc.LibcType.GLIBC:
+        e(f"The currently active libc isn't glibc. It's {libc_type.value}.")
+        return None
+
+    allocator = pwndbg.aglib.heap.current
+    if (
+        isinstance(allocator, HeuristicHeap)
+        and pwndbg.config.resolve_heap_via_heuristic == "auto"
+        and DebugSymsHeap().can_be_resolved()
+    ):
+        # In auto mode, we will try to use the debug symbols if possible
+        return DebugSymsHeap()
+
+    if isinstance(allocator, GlibcMemoryAllocator) and allocator.can_be_resolved():
+        return allocator
+
+    static = not pwndbg.dbg.selected_inferior().is_dynamically_linked()
+    if isinstance(allocator, DebugSymsHeap) and pwndbg.config.resolve_heap_via_heuristic == "auto":
+        # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
+        heuristic_heap = HeuristicHeap()
+        if heuristic_heap.can_be_resolved():
+            return heuristic_heap
+        if static:
+            e(
+                "Can't find GLIBC version required for this command to work since this is a statically linked binary"
+            )
+            w(
+                "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
+            )
+        else:
+            e(
+                "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
+            )
+            w(
+                "If you believe the GLIBC is loaded or this is a statically linked binary. "
+                "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
+            )
+    elif (
+        isinstance(allocator, DebugSymsHeap) and pwndbg.config.resolve_heap_via_heuristic == "force"
+    ):
+        e(
+            "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
+        )
+        w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
+    else:
+        # Note: Should not see this error, but just in case
+        e("An unknown error occurred when resolved the heap.")
+        pwndbg.exception.inform_report_issue("An unknown error occurred when resolved the heap")
+    return None
+
+
+def _activate_heap_allocator(allocator: GlibcMemoryAllocator[Any, Any]) -> None:
+    """Make `allocator` the current allocator, warning once on the
+    DebugSymsHeap -> HeuristicHeap fallback."""
+    previous = pwndbg.aglib.heap.current
+    # The initialization guard has already installed the candidate for all
+    # current ptmalloc commands. Keep this warning for standalone uses of
+    # OnlyWithResolvedHeapSyms, preserving that decorator's original behavior.
+    if isinstance(previous, DebugSymsHeap) and isinstance(allocator, HeuristicHeap):
+        log.warning(_HEURISTIC_FALLBACK_WARNING)
+    pwndbg.aglib.heap.current = allocator
+
+
 def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWithResolvedHeapSyms(*a: P.args, **kw: P.kwargs) -> T | None:
-        e = log.error
-        w = log.warning
-
-        # Operating under the assumption that the pwndbg/libc/ code can figure out
-        # that we are using glibc with at least as good accuracy as the ptmalloc code.
-        if pwndbg.libc.which() != pwndbg.libc.LibcType.GLIBC:
-            e(f"The currently active libc isn't glibc. It's {pwndbg.libc.which().value}.")
+        allocator = _resolve_heap_allocator()
+        if allocator is None:
             return None
-
-        if (
-            isinstance(pwndbg.aglib.heap.current, HeuristicHeap)
-            and pwndbg.config.resolve_heap_via_heuristic == "auto"
-            and DebugSymsHeap().can_be_resolved()
-        ):
-            # In auto mode, we will try to use the debug symbols if possible
-            pwndbg.aglib.heap.current = DebugSymsHeap()
-
-        if (
-            pwndbg.aglib.heap.current is not None
-            and isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
-            and pwndbg.aglib.heap.current.can_be_resolved()
-        ):
-            return _try2run_heap_command(function, *a, **kw)
-
-        static = not pwndbg.dbg.selected_inferior().is_dynamically_linked()
-        if (
-            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
-            and pwndbg.config.resolve_heap_via_heuristic == "auto"
-        ):
-            # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
-            heuristic_heap = HeuristicHeap()
-            if heuristic_heap.can_be_resolved():
-                pwndbg.aglib.heap.current = heuristic_heap
-                w(
-                    "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
-                    "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
-                )
-                return _try2run_heap_command(function, *a, **kw)
-            if static:
-                e(
-                    "Can't find GLIBC version required for this command to work since this is a statically linked binary"
-                )
-                w(
-                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
-                )
-            else:
-                e(
-                    "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
-                )
-                w(
-                    "If you believe the GLIBC is loaded or this is a statically linked binary. "
-                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
-                )
-        elif (
-            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
-            and pwndbg.config.resolve_heap_via_heuristic == "force"
-        ):
-            e(
-                "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
-            )
-            w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
-        else:
-            # Note: Should not see this error, but just in case
-            e("An unknown error occurred when resolved the heap.")
-            pwndbg.exception.inform_report_issue("An unknown error occurred when resolved the heap")
-        return None
+        _activate_heap_allocator(allocator)
+        return _try2run_heap_command(function, *a, **kw)
 
     return _OnlyWithResolvedHeapSyms
 

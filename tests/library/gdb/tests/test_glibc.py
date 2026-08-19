@@ -66,6 +66,10 @@ def test_finding_glibc_filepath(start_binary, have_debugging_information):
         assert pwndbg.libc.which() == pwndbg.libc.LibcType.UNKNOWN
         assert pwndbg.libc.filepath().name == "ld-linux-x86-64.so.2"
 
+        heap_output = gdb.execute("heap", to_string=True)
+        assert "The currently active libc isn't glibc. It's unknown." in heap_output
+        assert "Heap is not initialized yet." not in heap_output
+
 
 def test_set_glibc_version(start_binary):
     # Needed for glibc.version() as it requires an alive process.

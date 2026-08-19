@@ -716,3 +716,159 @@ async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bo
         _test_heuristic_fail_gracefully("global_max_fast")
         _test_heuristic_fail_gracefully("thread_cache")
         _test_heuristic_fail_gracefully("thread_arena")
+
+
+@pwndbg_test
+async def test_heap_at_starti_reports_not_initialized(
+    ctrl: Controller, caplog: pytest.LogCaptureFixture
+) -> None:
+    """At `starti` libc is not loaded yet, so `heap` must report an
+    uninitialized heap instead of misreporting the active libc type."""
+    await ctrl.launch(HEAP_MALLOC_CHUNK)
+    caplog.clear()
+
+    await ctrl.execute("heap")
+
+    assert "Heap is not initialized yet." in caplog.text
+    assert "The currently active libc isn't glibc" not in caplog.text
+
+
+@pwndbg_test
+async def test_heap_guard_commits_allocator_only_after_initialization(
+    ctrl: Controller, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The candidate must be current while checking initialization, but only
+    remain current and warn after successful initialization."""
+    from unittest.mock import PropertyMock
+    from unittest.mock import patch
+
+    import pwndbg.aglib.heap
+    import pwndbg.aglib.symbol
+    from pwndbg.aglib.heap.ptmalloc import Arena
+    from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
+    from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
+    from pwndbg.commands import OnlyWhenHeapIsInitialized
+    from pwndbg.commands import OnlyWithResolvedHeapSyms
+
+    await ctrl.launch(HEAP_MALLOC_CHUNK)
+    break_at_sym("break_here")
+    await ctrl.cont()
+
+    old_allocator = pwndbg.aglib.heap.current
+    assert isinstance(old_allocator, DebugSymsHeap)
+    main_arena_addr = pwndbg.aglib.symbol.lookup_symbol_addr("main_arena", prefer_static=True)
+    assert main_arena_addr is not None
+
+    initialization_results = iter((False, True, True))
+
+    def is_initialized(allocator: HeuristicHeap) -> bool:
+        # Arena reads malloc_state from the global heap.current. This fails if
+        # the candidate allocator was not installed for the initialization
+        # check.
+        Arena(main_arena_addr)
+        assert pwndbg.aglib.heap.current is allocator
+        return next(initialization_results)
+
+    def command() -> str:
+        return "called"
+
+    wrapper = OnlyWhenHeapIsInitialized(OnlyWithResolvedHeapSyms(command))
+
+    try:
+        with (
+            patch.object(DebugSymsHeap, "can_be_resolved", return_value=False),
+            patch.object(
+                DebugSymsHeap,
+                "malloc_state",
+                new_callable=PropertyMock,
+                return_value=None,
+            ),
+            patch.object(HeuristicHeap, "can_be_resolved", return_value=True),
+            patch.object(
+                HeuristicHeap,
+                "is_initialized",
+                autospec=True,
+                side_effect=is_initialized,
+            ),
+        ):
+            caplog.clear()
+            assert wrapper() is None
+            assert pwndbg.aglib.heap.current is old_allocator
+            assert "pwndbg will try to resolve the heap symbols via heuristic" not in caplog.text
+
+            caplog.clear()
+            assert wrapper() == "called"
+            assert isinstance(pwndbg.aglib.heap.current, HeuristicHeap)
+            assert (
+                caplog.text.count("pwndbg will try to resolve the heap symbols via heuristic") == 1
+            )
+
+            assert wrapper() == "called"
+            assert (
+                caplog.text.count("pwndbg will try to resolve the heap symbols via heuristic") == 1
+            )
+    finally:
+        pwndbg.aglib.heap.current = old_allocator
+
+
+@pwndbg_test
+async def test_heap_guard_keeps_current_on_initialization_error(
+    ctrl: Controller, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Initialization exceptions must be handled by _try2run_heap_command and
+    must not commit the allocator switch."""
+    from unittest.mock import patch
+
+    import pwndbg.aglib.heap
+    import pwndbg.commands.ptmalloc2
+    from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
+    from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
+    from pwndbg.lib import SymbolNotRecoveredError
+
+    await ctrl.launch(HEAP_MALLOC_CHUNK)
+    break_at_sym("break_here")
+    await ctrl.cont()
+
+    old_allocator = pwndbg.aglib.heap.current
+    old_exception_verbose = pwndbg.config.exception_verbose.value
+    old_exception_debugger = pwndbg.config.exception_debugger.value
+    assert isinstance(old_allocator, DebugSymsHeap)
+    pwndbg.config.exception_verbose.value = False
+    pwndbg.config.exception_debugger.value = False
+
+    try:
+        with (
+            patch.object(DebugSymsHeap, "can_be_resolved", return_value=False),
+            patch.object(
+                DebugSymsHeap,
+                "is_initialized",
+                side_effect=AssertionError("unresolvable DebugSymsHeap was initialized"),
+            ),
+            patch.object(HeuristicHeap, "can_be_resolved", return_value=True),
+            patch.object(
+                HeuristicHeap,
+                "is_initialized",
+                side_effect=SymbolNotRecoveredError("mp_", "test failure"),
+            ),
+        ):
+            caplog.clear()
+            try:
+                pwndbg.commands.ptmalloc2.heap.function()
+            except SymbolNotRecoveredError:
+                pytest.fail("heap initialization escaped the heap command error handler")
+
+            assert "heap: Fail to resolve the symbol: `mp_`" in caplog.text
+            assert "pwndbg will try to resolve the heap symbols via heuristic" not in caplog.text
+            assert pwndbg.aglib.heap.current is old_allocator
+
+            caplog.clear()
+            pwndbg.config.exception_verbose.value = True
+            with pytest.raises(SymbolNotRecoveredError):
+                pwndbg.commands.ptmalloc2.heap.function()
+
+            assert "pwndbg will try to resolve the heap symbols via heuristic" not in caplog.text
+            assert pwndbg.aglib.heap.current is old_allocator
+    finally:
+        pwndbg.aglib.heap.current = old_allocator
+        pwndbg.config.exception_verbose.value = old_exception_verbose
+        pwndbg.config.exception_debugger.value = old_exception_debugger

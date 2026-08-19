@@ -3,6 +3,7 @@ from __future__ import annotations
 from .dispatch import LibcProvider
 from .dispatch import LibcType
 from .dispatch import LibcURLs
+from .facade import LibcNotFound
 from .facade import addr
 from .facade import filepath
 from .facade import has_debug_info
@@ -18,6 +19,7 @@ from .facade import version
 from .facade import which
 
 __all__ = [
+    "LibcNotFound",
     "LibcProvider",
     "LibcType",
     "LibcURLs",
