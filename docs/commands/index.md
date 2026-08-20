@@ -211,6 +211,7 @@
 -  [canary](stack/canary.md) - Print out the current stack canary.
 -  [retaddr](stack/retaddr.md) - Print out the stack addresses that contain return addresses.
 -  [stack-explore](stack/stack-explore.md) - Explore stack from all threads.
+-  [stack-vis](stack/stack-vis.md) - Visualize stack frames of the current thread.
 -  [stack](stack/stack.md) - Dereferences on stack data with specified count and offset.
 -  [stackf](stack/stackf.md) - Dereferences on stack data, printing the entire stack frame with specified count and offset .
 

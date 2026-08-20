@@ -1254,7 +1254,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             # how to do that though so fall through for now.
             pass
 
-        for addr, mapname in possible:
+        for addr, _mapname in possible:
             if addr not in known_invalid:
                 maybe_ctx = MallocContext(addr)
                 if maybe_ctx.looks_valid():
