@@ -113,7 +113,7 @@ async def test_backwards_backwards_disassemble_heuristic(ctrl: Controller) -> No
     # Enable the heuristic
     await ctrl.execute_and_capture("set heuristic-backwards-disasm on")
 
-    dis = await ctrl.execute_and_capture("nearpc *_start+20 -r 4 -t 11")
+    dis = await ctrl.execute_and_capture("nearpc $rip+20 -r 4 -t 11")
 
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
@@ -190,14 +190,14 @@ async def test_backwards_linear_cache_misaligned_disasm(ctrl: Controller) -> Non
     await ctrl.launch(SYSCALLS_BINARY)
 
     # This filling up caches, disassembling from misaligned address
-    await ctrl.execute_and_capture("nearpc *_start+3 -t 11")
+    await ctrl.execute_and_capture("nearpc $rip+3 -t 11")
 
     # Disable the heuristic
     await ctrl.execute_and_capture("set heuristic-backwards-disasm off")
     await ctrl.execute_and_capture("set context-disasm-back-linear-lines 0")
 
     # Without the heuristic, we disassemble straightline
-    dis = await ctrl.execute_and_capture("nearpc *_start+10 -t 11")
+    dis = await ctrl.execute_and_capture("nearpc $rip+10 -t 11")
 
     expected = (
         " ► 0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
@@ -219,7 +219,7 @@ async def test_backwards_linear_cache_misaligned_disasm(ctrl: Controller) -> Non
 
     # Now, nearpc from an address after it. The caches should NOT be filled.
     # Instead, the heuristic will be used to disassemble backwards, to correctly find "start_"
-    dis_2 = await ctrl.execute_and_capture("nearpc *_start+10 -r 2 -t 11")
+    dis_2 = await ctrl.execute_and_capture("nearpc $rip+10 -r 2 -t 11")
 
     # This should be able to disassemble backwards using the backwards caches!
     expected_2 = (
