@@ -659,6 +659,17 @@ The soft line width for go-dump pretty printing.
 
 ----------
 
+## **heuristic-backwards-disasm**
+
+
+Toggle backwards linear disassembly during emulation.
+
+
+
+**Default:** on  
+
+----------
+
 ## **hexdump-bytes**
 
 
