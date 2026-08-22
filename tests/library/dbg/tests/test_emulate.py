@@ -119,7 +119,7 @@ async def test_backwards_disassemble_heuristic(ctrl: Controller) -> None:
 
     expected = (
         "   0x4000bd <do_read+5>               mov    edi, 0       EDI => 0\n"
-        "   0x4000c2 <do_read+10>              movabs rsi, buf     RSI => 0x800001c (buf)\n"
+        "   0x4000c2 <do_read+10>              movabs rsi, buf     RSI => 0x8000080 (buf)\n"
         "   0x4000cc <do_read+20>              mov    edx, 1       EDX => 1\n"
         "   0x4000d1 <syscall_read_label>      syscall\n"
         "   0x4000d3 <syscall_read_label+2>    ret   \n"
