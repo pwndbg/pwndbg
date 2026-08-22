@@ -119,6 +119,7 @@ async def test_backwards_disassemble_heuristic(ctrl: Controller) -> None:
 
     dis = await ctrl.execute_and_capture("nearpc -n -t 11")
 
+    # Data region location can differ based on the system
     buf_addr = int(pwndbg.aglib.symbol.lookup_symbol_addr("buf"))
 
     expected = (
