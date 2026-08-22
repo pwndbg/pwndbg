@@ -133,7 +133,7 @@ class InstructionSequenceSavePointer:
 # Dict of Address -> previous instruction sequentially in memory
 # Some architectures don't have fixed-sized instructions, so this is used
 # to disassemble backwards linearly in memory for those cases
-linear_backward_address_cache: collections.defaultdict[int, int] = collections.defaultdict(
+linear_backward_address_cache: collections.defaultdict[int, int | None] = collections.defaultdict(
     lambda: None
 )
 
