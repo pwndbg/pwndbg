@@ -106,8 +106,10 @@ STEPSYSCALL_X64_BINARY = get_binary("stepsyscall.x86-64.out")
 
 
 @pwndbg_test
-async def test_backwards_backwards_disassemble_heuristic(ctrl: Controller) -> None:
-
+async def test_backwards_disassemble_heuristic(ctrl: Controller) -> None:
+    """
+    This tests our capability of disassembling backwards in a variable length instruction set, where instruction alignment is not known ahead of time.
+    """
     await ctrl.launch(STEPSYSCALL_X64_BINARY)
 
     # Enable the heuristic
@@ -116,9 +118,9 @@ async def test_backwards_backwards_disassemble_heuristic(ctrl: Controller) -> No
     dis = await ctrl.execute_and_capture("nearpc -n -t 11")
 
     expected = (
-        "   0x4000bd <do_read+5>               mov    edi, 0               EDI => 0\n"
-        "   0x4000c2 <do_read+10>              movabs rsi, __bss_start     RSI => 0x800001c (__bss_start)\n"
-        "   0x4000cc <do_read+20>              mov    edx, 1               EDX => 1\n"
+        "   0x4000bd <do_read+5>               mov    edi, 0       EDI => 0\n"
+        "   0x4000c2 <do_read+10>              movabs rsi, buf     RSI => 0x800001c (buf)\n"
+        "   0x4000cc <do_read+20>              mov    edx, 1       EDX => 1\n"
         "   0x4000d1 <syscall_read_label>      syscall\n"
         "   0x4000d3 <syscall_read_label+2>    ret   \n"
         " \n"
