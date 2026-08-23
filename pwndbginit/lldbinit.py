@@ -7,22 +7,28 @@ import time
 
 import lldb
 
+from pwndbginit.common import set_debuginfod_timeouts
 from pwndbginit.common import verify_venv
 
 
-def main(debugger: lldb.SBDebugger, lldb_version: tuple[int, ...], debug: bool = False) -> None:
+def check_doubleload() -> None:
     if "pwndbg" in sys.modules:
         print("Detected double-loading of Pwndbg.")
         print("This should not happen. Please report this issue if you're not sure how to fix it.")
         sys.exit(1)
 
-    verify_venv()
+
+def main(debugger: lldb.SBDebugger, lldb_version: tuple[int, ...], debug: bool = False) -> None:
     profiler = cProfile.Profile()
 
     start_time = None
     if os.environ.get("PWNDBG_PROFILE") == "1":
         start_time = time.time()
         profiler.enable()
+
+    check_doubleload()
+    verify_venv()
+    set_debuginfod_timeouts()
 
     import pwndbg  # noqa: F811
     import pwndbg.dbg_mod.lldb
