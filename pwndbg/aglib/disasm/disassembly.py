@@ -758,7 +758,6 @@ def near(
     instruction_sequence_head = instruction_sequence_linked_list_map.get(address)
 
     if instruction_sequence_head is None:
-        # The second parameter usually cannot be None, but we set it later done
         instruction_sequence_head = InstructionSequenceNode(None, current)
         instruction_sequence_linked_list_map[address] = instruction_sequence_head
     else:
