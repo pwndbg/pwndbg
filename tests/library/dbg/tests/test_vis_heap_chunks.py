@@ -152,7 +152,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     expected3 = expected2[:-1] + [
         f"{heap_iter(0):#x}\t0x0000000000000000\t0x0000000000000021\t........!.......",
         f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................",
-        await vis_heap_line(suffix="\t <-- Top chunk"),
+        await vis_heap_line(suffix="     <-- Top chunk"),
     ]
     assert result3 == expected3
 
@@ -184,7 +184,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
         f"{heap_iter(0):#x}\t0x0000000000000000\t0x0000000000000031\t........1.......",
         f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................",
         f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................",
-        await vis_heap_line(suffix="\t <-- Top chunk"),
+        await vis_heap_line(suffix="     <-- Top chunk"),
     ]
 
     assert result4_b == expected4_b
@@ -231,13 +231,13 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     last_chunk_size = dq2
     for _ in range(last_chunk_size // 16):
         expected_all3.append(await vis_heap_line())
-    expected_all3.append(await vis_heap_line(suffix="\t <-- tcachebins[0x20][0/1]"))
+    expected_all3.append(await vis_heap_line(suffix="     <-- tcachebins[0x20][0/1]"))
 
     expected_all3.append(await vis_heap_line())
     last_chunk_size = dq2
     for _ in range(last_chunk_size // 16 - 1):
         expected_all3.append(await vis_heap_line())
-    expected_all3.append(await vis_heap_line(suffix="\t <-- Top chunk"))
+    expected_all3.append(await vis_heap_line(suffix="     <-- Top chunk"))
 
     assert result_all3 == expected_all3
 
