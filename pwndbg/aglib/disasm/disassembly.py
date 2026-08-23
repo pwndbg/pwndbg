@@ -590,7 +590,7 @@ def enhance_instruction(
     instruction: PwndbgInstruction,
     assistant: DisassemblyAssistant | None = None,
     emu: pwndbg.emu.emulator.Emulator | None = None,
-):
+) -> None:
 
     if instruction.enhanced:
         return
