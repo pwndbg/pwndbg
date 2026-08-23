@@ -228,6 +228,17 @@ Number of spaces that a <tab> in the source code counts for.
 
 ----------
 
+## **context-disasm-back-linear-lines**
+
+
+Maximum number of lines to disassemble backwards linearly in memory.
+
+
+
+**Default:** 'auto'  
+
+----------
+
 ## **context-disasm-lines**
 
 
@@ -645,6 +656,17 @@ The soft line width for go-dump pretty printing.
 
 
 **Default:** 80  
+
+----------
+
+## **heuristic-backwards-disasm**
+
+
+Toggle backwards linear disassembly during emulation.
+
+
+
+**Default:** on  
 
 ----------
 

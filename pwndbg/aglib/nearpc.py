@@ -21,6 +21,7 @@ from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import blue
+from pwndbg.color import gray
 from pwndbg.color import green
 from pwndbg.color import light_gray
 from pwndbg.color import light_green
@@ -424,6 +425,7 @@ def nearpc(
     branch_visualization: bool = False,
     address_to_highlight: int | None = None,
     end_address: int | None = None,
+    max_backwards_linear_count: int | None = None,
 ) -> list[str]:
     """
     Disassemble near a specified address.
@@ -477,16 +479,19 @@ def nearpc(
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
 
-    instructions, index_of_pc = pwndbg.aglib.disasm.disassembly.near(
-        pc,
-        forward_count=lines,
-        backward_count=back_lines,
-        total_count=total_lines,
-        emulate=emulate,
-        show_prev_insns=not repeat,
-        use_cache=use_cache,
-        linear=linear,
-        end_address=end_address,
+    instructions, index_of_pc, index_of_last_linearly_disassembled_instruction = (
+        pwndbg.aglib.disasm.disassembly.near(
+            pc,
+            forward_count=lines,
+            backward_count=back_lines,
+            total_count=total_lines,
+            emulate=emulate,
+            show_prev_insns=not repeat,
+            use_cache=use_cache,
+            linear=linear,
+            end_address=end_address,
+            max_backwards_linear_count=max_backwards_linear_count,
+        )
     )
 
     # If doing branch visualization, preprocess some datastructures
@@ -659,6 +664,9 @@ def nearpc(
                 ]
             )
 
+        if not linear and i <= index_of_last_linearly_disassembled_instruction:
+            line = gray(pwndbg.color.strip(line))
+
         result.append(line)
 
         # For call instructions, attempt to resolve the target and
@@ -676,6 +684,11 @@ def nearpc(
         elif instruction.split == SplitType.BRANCH_NOT_TAKEN:
             if nearpc_branch_marker_contiguous:
                 if empty_line_branch_vis_string:
+                    if not linear and i <= index_of_last_linearly_disassembled_instruction:
+                        empty_line_branch_vis_string = gray(
+                            pwndbg.color.strip(empty_line_branch_vis_string)
+                        )
+
                     result.append(empty_line_branch_vis_string)
                 else:
                     result.append(f"{nearpc_branch_marker_contiguous}")

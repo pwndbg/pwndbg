@@ -38,6 +38,8 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
                 pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
 
             await self.pc.execute("set context-reserve-lines never")
+            await self.pc.execute("set heuristic-backwards-disasm off")
+            await self.pc.execute("set context-disasm-back-linear-lines 0")
             # Disable debuginfod globally for LLDB tests: a partial/laggy
             # download triggers `LLVM ERROR: CachedFileStream was not committed`
             # which aborts the whole process and makes CI flaky (commonly seen
