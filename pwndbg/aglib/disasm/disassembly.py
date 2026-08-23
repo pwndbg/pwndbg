@@ -725,7 +725,7 @@ def near(
     for instruction in insns:
         if instruction.enhanced:
             break
-        enhance_instruction(instruction, assistant, emu)
+        enhance_instruction(instruction, assistant)
 
     # Copy register values to the enhancer for use in manual register tracking
     if assistant.supports_manual_emulation and address == pc:
