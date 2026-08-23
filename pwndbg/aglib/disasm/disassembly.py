@@ -25,6 +25,7 @@ import pwndbg.aglib.disasm.sparc
 import pwndbg.aglib.disasm.x86
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
+import pwndbg.dbg_mod
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
 import pwndbg.lib.config
@@ -650,7 +651,7 @@ def near(
     if not pwndbg.emu or pwndbg.aglib.arch.name not in pwndbg.emu.emulator.arch_to_UC:
         emulate = False
 
-    emu: pwndbg.emu.emulator.Emulator = None
+    emu: pwndbg.emu.emulator.Emulator | None = None
 
     # Emulate if program pc is at the current instruction - can't emulate at arbitrary places, because we need current
     # processor state to instantiate the emulator.
