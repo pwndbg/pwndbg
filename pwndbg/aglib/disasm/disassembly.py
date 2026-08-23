@@ -30,6 +30,7 @@ import pwndbg.lib.cache
 import pwndbg.lib.config
 from pwndbg.aglib.disasm.assistant import DEBUG_ENHANCEMENT
 from pwndbg.aglib.disasm.assistant import DisassemblyAssistant
+from pwndbg.aglib.disasm.instruction import DisassemblySource
 from pwndbg.aglib.disasm.instruction import ManualPwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstructionImpl
@@ -195,7 +196,13 @@ def get_previous_instruction(
         prev_address = get_previous_linear_address_with_heuristic(address)
 
         insn = (
-            one(prev_address, from_cache=use_cache, put_linear_backward_cache=False, linear=linear)
+            one(
+                prev_address,
+                from_cache=use_cache,
+                put_linear_backward_cache=False,
+                linear=linear,
+                enhance=False,
+            )
             if prev_address
             else None
         )
@@ -219,6 +226,7 @@ def get_previous_instruction(
             from_cache=use_cache,
             put_linear_backward_cache=False,
             put_dynamic_backward_cache=False,
+            enhance=False,
         )
 
         return (insn, False) if insn is not None else None
@@ -232,6 +240,7 @@ def get_previous_instruction(
             from_cache=use_cache,
             put_linear_backward_cache=False,
             put_dynamic_backward_cache=False,
+            enhance=False,
         )
         if prev_address
         else None
@@ -576,7 +585,29 @@ def set_visual_split(
         set_ins.split = SplitType.BRANCH_NOT_TAKEN
 
 
-# Return (list of PwndbgInstructions, index in list where instruction.address = passed in address)
+def enhance_instruction(
+    instruction: PwndbgInstruction,
+    assistant: DisassemblyAssistant | None = None,
+    emu: pwndbg.emu.emulator.Emulator | None = None,
+):
+
+    if instruction.enhanced:
+        return
+
+    match instruction.disassembly_source:
+        case DisassemblySource.CAPSTONE:
+            if assistant is None:
+                assistant = (
+                    pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
+                )
+            assistant.enhance(instruction, emu)
+
+        case DisassemblySource.DEBUGGER:
+            pwndbg.aglib.disasm.assistant.basic_enhance(instr)
+        case _:
+            raise NotImplementedError("Unknown disassembly source")
+
+
 def near(
     address: int,
     forward_count: int = 1,
@@ -633,47 +664,13 @@ def near(
             raise
 
     # By using the same assistant for all the instructions disassembled in this pass, we can track and share information across the instructions
-    assistant = pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
-
-    # Copy register values to the enhancer for use in manual register tracking
-    if assistant.supports_manual_emulation and address == pc:
-        for reg in pwndbg.aglib.regs.current.common:
-            if (reg_value := pwndbg.aglib.regs.read_reg(reg)) is not None:
-                assistant.manual_register_values.write_register(reg, reg_value)
-
-    # Start at the current instruction using emulation if available.
-    current = one(
-        address,
-        emu,
-        put_cache=True,
-        put_linear_backward_cache=disassembling_from_pc,
-        assistant=assistant,
-        linear=linear,
-    )
-
-    if DEBUG_ENHANCEMENT:
-        if emu and not emu.last_step_succeeded:
-            print("Emulator failed at first step")
-
-    if current is None:
-        return ([], -1, -1)
-
-    # A linked list that contains the order of instructions that emulation
-    # determines will run upon uses of the "nexti" command.
-    instruction_sequence_head = instruction_sequence_linked_list_map.get(address)
-
-    if instruction_sequence_head is None:
-        instruction_sequence_head = InstructionSequenceNode(None, current)
-        instruction_sequence_linked_list_map[address] = instruction_sequence_head
-    else:
-        # We re-disassembled the instruction and enhanced it, so save the new value
-        instruction_sequence_head.instruction = current
+    assistant = get_disassembly_assistant_for_current_arch()
 
     insns: list[PwndbgInstruction] = []
 
     # Get previously executed instructions from the cache.
     if DEBUG_ENHANCEMENT:
-        print(f"CACHE START -------------------, {current.address}")
+        print(f"CACHE START -------------------, {address}")
 
     # Keep track of which of the previous instructions were disassembly linearly so we can display them as gray while emulating
     # The assumption is that the instruction list will start with the linear instructions, and then transition to the emulated one
@@ -684,7 +681,7 @@ def near(
         saveptr = InstructionSequenceSavePointer(None)
 
         prev_instruction_fetch = get_previous_instruction(
-            current.address, use_cache=use_cache, linear=linear, saveptr=saveptr
+            address, use_cache=use_cache, linear=linear, saveptr=saveptr
         )
         while prev_instruction_fetch is not None and len(insns) < backward_count:
             insn, was_linear = prev_instruction_fetch
@@ -718,13 +715,56 @@ def near(
         target_instruction_count = len(insns) + forward_count
 
     index_of_current_instruction = len(insns)
-    insns.append(current)
 
     if DEBUG_ENHANCEMENT:
         print("END CACHE -------------------")
 
-    # At this point, we've already added everything *BEFORE* the requested address,
-    # and the instruction at 'address'.
+    # At this point, we seen everything *BEFORE* the requested address.
+    # However, some of them may not have gone through the enhancement process yet
+
+    for instruction in insns:
+        if instruction.enhanced:
+            break
+        enhance_instruction(instruction, assistant, emu)
+
+    # Copy register values to the enhancer for use in manual register tracking
+    if assistant.supports_manual_emulation and address == pc:
+        for reg in pwndbg.aglib.regs.current.common:
+            if (reg_value := pwndbg.aglib.regs.read_reg(reg)) is not None:
+                assistant.manual_register_values.write_register(reg, reg_value)
+
+    # Now, disassemble instruction at `address`
+
+    current = one(
+        address,
+        emu,
+        put_cache=True,
+        put_linear_backward_cache=disassembling_from_pc,
+        assistant=assistant,
+        linear=linear,
+    )
+
+    if DEBUG_ENHANCEMENT:
+        if emu and not emu.last_step_succeeded:
+            print("Emulator failed at first step")
+
+    if current is None:
+        return ([], -1, -1)
+
+    insns.append(current)
+
+    # A linked list that contains the order of instructions that emulation
+    # determines will run upon uses of the "nexti" command.
+    instruction_sequence_head = instruction_sequence_linked_list_map.get(address)
+
+    if instruction_sequence_head is None:
+        # The second parameter usually cannot be None, but we set it later done
+        instruction_sequence_head = InstructionSequenceNode(None, current)
+        instruction_sequence_linked_list_map[address] = instruction_sequence_head
+    else:
+        # We re-disassembled the instruction and enhanced it, so save the new value
+        instruction_sequence_head.instruction = current
+
     # Now, continue forwards.
 
     # A set of all the addresses after the PC that we have disassembled in this pass

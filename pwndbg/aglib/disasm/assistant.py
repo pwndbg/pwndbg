@@ -175,6 +175,7 @@ class DisassemblyAssistant:
 
         This is the only public method that should be called on this object externally.
         """
+        instruction.enhanced = True
         # It is assumed that the emulator's pc is at the instruction's address
 
         # There are 3 degrees of emulation:
@@ -1109,6 +1110,7 @@ class DisassemblyAssistant:
 
 
 def basic_enhance(ins: PwndbgInstruction) -> None:
+    ins.enhanced = True
     # Apply syntax highlighting and inline symbol replacement
     # Used in cases were we don't want to do the full enhancement process
     # for performance reasons.
