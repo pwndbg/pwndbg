@@ -3,6 +3,7 @@ from __future__ import annotations
 import typing
 from collections import defaultdict
 from enum import Enum
+from enum import auto
 from typing import Protocol
 
 import pwnlib
@@ -186,6 +187,11 @@ CAPSTONE_ARCH_MAPPING_STRING = {
 }
 
 
+class DisassemblySource(Enum):
+    CAPSTONE = (auto(),)
+    DEBUGGER = auto()
+
+
 # Interface for enhanced instructions - there are two implementations defined in this file
 class PwndbgInstruction(Protocol):
     cs_insn: CsInsn
@@ -212,6 +218,9 @@ class PwndbgInstruction(Protocol):
     split: SplitType
     emulated: bool
     register_writes: dict[int, int]
+
+    enhanced: bool
+    disassembly_source: DisassemblySource
 
     @property
     def call_like(self) -> bool: ...
@@ -248,6 +257,9 @@ class PwndbgInstruction(Protocol):
 # The information in this class is backed by metadata from Capstone
 class PwndbgInstructionImpl(PwndbgInstruction):
     def __init__(self, cs_insn: CsInsn, padding: int = 6) -> None:
+        self.disassembly_source = DisassemblySource.CAPSTONE
+        self.enhanced = False
+
         self.cs_insn: CsInsn = cs_insn
         """
         The underlying Capstone instruction object.
@@ -728,6 +740,9 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         Instances of this class do not go through the 'enhancement' process due to lacking important information provided by Capstone.
         As a result of this, some of the methods raise NotImplementedError, because if they are called it indicates a bug elsewhere in the codebase.
         """
+        self.disassembly_source = DisassemblySource.DEBUGGER
+        self.enhanced = False
+
         ins: DisassembledInstruction = pwndbg.dbg.selected_inferior().disasm(address)
         asm = ins["asm"].split(maxsplit=1)
 
