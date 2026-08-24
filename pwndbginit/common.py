@@ -196,7 +196,11 @@ def pre_debugger_init() -> StreamHandler[TextIO]:
     # Marker used to detect double-loading (checked in ../gdbinit.py).
     # Can happen if you run `pwndbg /bin/sh` and have `source /path/to/gdbinit.py`
     # in your `~/.gdbinit`.
-    pwndbg._pwndbg_is_loaded = True
+    # Note that the variable name is a bit deceptive since this also gets set
+    # from `gdb` + `source /path/to/gdbinit.py` and not only the `pwndbg` command,
+    # but renaming it now will cause desync for users who have different versions
+    # of pwndbg installed.
+    pwndbg._is_loaded_from_pwndbg = True
 
     set_debuginfod_timeouts()
     return init_logger()
