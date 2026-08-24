@@ -187,7 +187,7 @@ def init_logger() -> logging.StreamHandler[TextIO]:
     return handler
 
 
-def pre_debugger_init() -> StreamHandler[TextIO]:
+def pre_debugger_init() -> None:
     """
     Initialization to run before any debugger-specific stuff gets loaded.
     """
@@ -203,7 +203,6 @@ def pre_debugger_init() -> StreamHandler[TextIO]:
     pwndbg._is_loaded_from_pwndbg = True
 
     set_debuginfod_timeouts()
-    return init_logger()
 
 
 def post_debugger_init(

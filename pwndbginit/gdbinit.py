@@ -7,6 +7,7 @@ import traceback
 import gdb
 
 from pwndbginit import gdbpatches  # noqa: F401
+from pwndbginit.common import init_logger
 from pwndbginit.common import post_debugger_init
 from pwndbginit.common import pre_debugger_init
 from pwndbginit.common import setup_load_profiler
@@ -26,6 +27,9 @@ def check_doubleload() -> None:
 
 def main() -> None:
     profiler, load_profile_start_time = setup_load_profiler()
+    # Must be above `verify_venv()` as that function requires the logger
+    # to be set up.
+    log_handler = init_logger()
 
     check_doubleload()
     verify_venv()
@@ -39,7 +43,7 @@ def main() -> None:
 
     import pwndbg  # noqa: F811
 
-    log_handler = pre_debugger_init()
+    pre_debugger_init()
 
     import pwndbg.dbg_mod.gdb
 

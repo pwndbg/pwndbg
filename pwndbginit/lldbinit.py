@@ -4,6 +4,7 @@ import sys
 
 import lldb
 
+from pwndbginit.common import init_logger
 from pwndbginit.common import post_debugger_init
 from pwndbginit.common import pre_debugger_init
 from pwndbginit.common import setup_load_profiler
@@ -19,13 +20,14 @@ def check_doubleload() -> None:
 
 def main(debugger: lldb.SBDebugger, lldb_version: tuple[int, ...], debug: bool = False) -> None:
     profiler, load_profile_start_time = setup_load_profiler()
+    log_handler = init_logger()
 
     check_doubleload()
     verify_venv()
 
     import pwndbg  # noqa: F811
 
-    log_handler = pre_debugger_init()
+    pre_debugger_init()
 
     import pwndbg.dbg_mod.lldb
 
