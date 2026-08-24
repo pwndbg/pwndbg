@@ -192,6 +192,17 @@ class DisassemblySource(Enum):
     DEBUGGER = auto()
 
 
+# This is used for debugging issues in the disassembly display when instructions behind
+# the program counter are unexpectedly appearing
+class CacheSource(Enum):
+    LINKED_LIST_DYNAMIC = "L"
+    FALLBACK_DYNAMIC = "F"
+    CACHE_LINEAR = "C"
+    HEURISTIC_LINEAR = "H"
+
+    NOT_FROM_CACHE = ""
+
+
 # Interface for enhanced instructions - there are two implementations defined in this file
 class PwndbgInstruction(Protocol):
     cs_insn: CsInsn
@@ -221,6 +232,8 @@ class PwndbgInstruction(Protocol):
 
     enhanced: bool
     disassembly_source: DisassemblySource
+
+    cache_source: CacheSource
 
     @property
     def call_like(self) -> bool: ...
@@ -443,6 +456,12 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         """
         Mapping of Capstone register id to integer value. During enhancement, we might manually determine
         that an instruction writes some value to a register, and this is stored here.
+        """
+
+        self.cache_source = CacheSource.NOT_FROM_CACHE
+        """
+        This is purely for debugging.
+        This may change during the lifetime of this instruction, as this value is set during the latest time this instruction was displayed.
         """
 
     @property
@@ -792,6 +811,8 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.emulated = False
 
         self.register_writes = {}
+
+        self.cache_source = CacheSource.NOT_FROM_CACHE
 
     @property
     def bytes(self) -> bytearray:

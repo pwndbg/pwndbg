@@ -146,6 +146,12 @@ class DisassemblyAssistant:
     supports_manual_emulation = False
     """This feature relies on the Capstone .regs_access() features that not all architectures have reliable support for"""
 
+    _can_reason_about_process_state: bool = False
+    """
+    While enhancing an instruction, will we allow it to read from the current process state to read registers.
+    This is only true in one case: when enhancing the instruction that the CPU is currently paused on!
+    """
+
     def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         self.architecture = architecture
         self.manual_register_values = PseudoEmulatedRegisterFile(
@@ -169,7 +175,12 @@ class DisassemblyAssistant:
             CS_OP_MEM: self._memory_string,
         }
 
-    def enhance(self, instruction: PwndbgInstruction, emu: Emulator = None) -> None:
+    def enhance(
+        self,
+        instruction: PwndbgInstruction,
+        current_cpu_instruction: bool,
+        emu: Emulator | None = None,
+    ) -> None:
         """
         Enhance the instruction - resolving branch targets, conditionals, and adding annotations
 
@@ -177,6 +188,8 @@ class DisassemblyAssistant:
         """
         instruction.enhanced = True
         # It is assumed that the emulator's pc is at the instruction's address
+
+        self._can_reason_about_process_state = current_cpu_instruction
 
         # There are 3 degrees of emulation:
         # 1. No emulation at all. In this case, the `emu` parameter should be None
@@ -394,14 +407,14 @@ class DisassemblyAssistant:
 
         return jump_emu is not None
 
-    def can_reason_about_process_state(self, instruction: PwndbgInstruction) -> bool:
+    def can_reason_about_process_state(self) -> bool:
         """
         Determine if the program counter of the process equals the address of the instruction being enhanced.
         If so, it means we can safely reason and read from registers and memory to enhance values that
         we can add to the annotation string. This becomes relevent when NOT emulating, and is meant to
         allow more details when the PC is at the instruction being enhanced
         """
-        return instruction.address == pwndbg.aglib.regs.pc
+        return self._can_reason_about_process_state
 
     # Delegates to "read_register", which takes Capstone ID for register.
     def _parse_register(
@@ -446,7 +459,7 @@ class DisassemblyAssistant:
             if DEBUG_ENHANCEMENT:
                 print(f"Register in emulation returned {regname}={hex(value)}")
             return value
-        if self.can_reason_about_process_state(instruction):
+        if self.can_reason_about_process_state():
             # When instruction address == pc, we can reason about all registers.
             # The values will just reflect values prior to executing the instruction, instead of after,
             # which is relevent if we are writing to this register.
@@ -516,7 +529,7 @@ class DisassemblyAssistant:
         The list that the function returns is guaranteed have len >= 1
         """
 
-        can_read_process_state = self.can_reason_about_process_state(instruction)
+        can_read_process_state = self.can_reason_about_process_state()
 
         if emu:
             return emu.telescope(address, limit, read_size=read_size)
