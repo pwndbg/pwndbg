@@ -384,7 +384,7 @@ async def test_syscall_annotated_on_pc_address(ctrl: Controller) -> None:
     # Enable the heuristic
     await ctrl.execute_and_capture("set heuristic-backwards-disasm on")
 
-    dis = await ctrl.execute_and_capture("nearpc syscall_read_label -n -t 11")
+    dis = await ctrl.execute_and_capture("nearpc $rip-3 -n -t 11")
 
     # Data region location can differ based on the system
     buf_addr = int(pwndbg.aglib.symbol.lookup_symbol_addr("buf"))
