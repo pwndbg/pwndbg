@@ -1772,6 +1772,17 @@ class GDB(pwndbg.dbg_mod.Debugger):
         # show_hint must be called after loading ~/.gdbinit, this order allows disabling show_hint
         prompt.show_hint()
 
+        # Check if the user has ubuntu in their debuginfod urls, and warn them about
+        # it if so.
+        if "debuginfod.ubuntu.com" in gdb.execute("show debuginfod urls", to_string=True):
+            print(
+                message.warn(
+                    "\nYou have debuginfod.ubuntu.com in your debuginfod urls and will experience stalls"
+                    " because of this.\nWe recommend you remove it until ubuntu fixes their server.\n"
+                    "See https://github.com/pwndbg/pwndbg/pull/4079 for more info.\n"
+                )
+            )
+
     @override
     def add_command(
         self,
