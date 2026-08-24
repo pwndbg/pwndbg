@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import cProfile
 import hashlib
 import logging
 import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -138,6 +140,17 @@ def verify_venv() -> None:
     update_deps(src_root)
 
 
+def setup_load_profiler() -> tuple[cProfile.Profile, float | None]:
+    profiler = cProfile.Profile()
+
+    load_profile_start_time: float | None = None
+    if os.environ.get("PWNDBG_PROFILE") == "1":
+        load_profile_start_time = time.time()
+        profiler.enable()
+
+    return (profiler, load_profile_start_time)
+
+
 def set_debuginfod_timeouts() -> None:
     """
     The default value for DEBUGINFOD_TIMEOUT is 90 seconds. Since
@@ -155,3 +168,25 @@ def set_debuginfod_timeouts() -> None:
     if "DEBUGINFOD_RETRY_LIMIT" not in os.environ:
         # default is 2
         os.environ["DEBUGINFOD_RETRY_LIMIT"] = "0"
+
+
+def pre_debugger_init() -> None:
+    """
+    Initialization to run before any debugger-specific stuff gets loaded.
+    """
+    set_debuginfod_timeouts()
+
+
+def post_debugger_init(profiler, load_profile_start_time: float | None) -> None:
+    """
+    Initialization to run after Debugger.setup() gets run.
+    """
+    import pwndbg
+    import pwndbg.profiling
+
+    pwndbg.profiling.init(profiler, load_profile_start_time)
+    assert pwndbg.profiling.profiler is not None
+
+    if os.environ.get("PWNDBG_PROFILE") == "1":
+        pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
+        pwndbg.profiling.profiler.start()

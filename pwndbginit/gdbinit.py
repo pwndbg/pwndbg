@@ -1,20 +1,21 @@
 from __future__ import annotations
 
-import cProfile
 import logging
 import os
 import sys
-import time
 import traceback
+from typing import TextIO
 
 import gdb
 
 from pwndbginit import gdbpatches  # noqa: F401
-from pwndbginit.common import set_debuginfod_timeouts
+from pwndbginit.common import post_debugger_init
+from pwndbginit.common import pre_debugger_init
+from pwndbginit.common import setup_load_profiler
 from pwndbginit.common import verify_venv
 
 
-def init_logger():
+def init_logger() -> logging.StreamHandler[TextIO]:
     log_level_env = os.environ.get("PWNDBG_LOGLEVEL", "WARNING")
     log_level = getattr(logging, log_level_env.upper())
 
@@ -29,7 +30,7 @@ def init_logger():
     return handler
 
 
-def check_doubleload():
+def check_doubleload() -> None:
     if "pwndbg" in sys.modules:
         print(
             "Detected double-loading of Pwndbg (likely from both .gdbinit and the Pwndbg portable build)."
@@ -42,16 +43,10 @@ def check_doubleload():
 
 def main() -> None:
     handler = init_logger()
-    profiler = cProfile.Profile()
-
-    start_time = None
-    if os.environ.get("PWNDBG_PROFILE") == "1":
-        start_time = time.time()
-        profiler.enable()
+    profiler, load_profile_start_time = setup_load_profiler()
 
     check_doubleload()
     verify_venv()
-    set_debuginfod_timeouts()
 
     # Force UTF-8 encoding (to_string=True to skip output appearing to the user)
     try:
@@ -61,24 +56,26 @@ def main() -> None:
         print(f"Warning: Cannot set gdb charset: '{e}'")
 
     import pwndbg  # noqa: F811
-    import pwndbg.dbg_mod.gdb
 
     # Mark that pwndbg was loaded from `pwndbg` binary (for double-load detection)
     pwndbg._is_loaded_from_pwndbg = True
 
+    # FIXME: move above line here?
+    pre_debugger_init()
+
+    import pwndbg.dbg_mod.gdb
+
     pwndbg.dbg = pwndbg.dbg_mod.gdb.GDB()
     pwndbg.dbg.setup()
 
-    import pwndbg.log
-    import pwndbg.profiling
-
     # ColorFormatter relies on pwndbg being loaded, so we can't set it up until now
+    import pwndbg.log
+
     handler.setFormatter(pwndbg.log.ColorFormatter())
 
-    pwndbg.profiling.init(profiler, start_time)
-    if os.environ.get("PWNDBG_PROFILE") == "1":
-        pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
-        pwndbg.profiling.profiler.start()
+    # FIXME: put log handler in here?
+    # FIXME: put this below `py import pwndbg`?
+    post_debugger_init(profiler, load_profile_start_time)
 
     # We need reimport it here so that it's available at the global scope
     # when some starts a Python interpreter in GDB
