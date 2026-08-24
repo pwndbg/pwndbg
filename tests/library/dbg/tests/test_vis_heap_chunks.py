@@ -371,7 +371,7 @@ async def test_vis_heap_chunk_command_2_43(ctrl: Controller) -> None:
 
     expected1 = [
         f"{heap_iter(0):#x}\t{hexdump_line(0, first_chunk_size)}",
-        f"{heap_iter():#x}\t{hexdump_line(chunk1_next, tcache_key)}\t <-- tcachebins[{sz_class(first_chunk_size):#x}][0/2]",
+        f"{heap_iter():#x}\t{hexdump_line(chunk1_next, tcache_key)}     <-- tcachebins[{sz_class(first_chunk_size):#x}][0/2]",
         *[f"{heap_iter():#x}\t{hexdump_line()}" for _ in range(first_chunk_size // 16 - 2)],
         f"{heap_iter():#x}\t{0:#018x}\t                  \t........",
     ]
