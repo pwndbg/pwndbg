@@ -25,7 +25,7 @@ def main(debugger: lldb.SBDebugger, lldb_version: tuple[int, ...], debug: bool =
 
     import pwndbg  # noqa: F811
 
-    pre_debugger_init()
+    log_handler = pre_debugger_init()
 
     import pwndbg.dbg_mod.lldb
 
@@ -33,4 +33,4 @@ def main(debugger: lldb.SBDebugger, lldb_version: tuple[int, ...], debug: bool =
     pwndbg.dbg = pwndbg.dbg_mod.lldb.LLDB()
     pwndbg.dbg.setup(debugger, "pwndbglldbhandler", debug=debug)
 
-    post_debugger_init(profiler, load_profile_start_time)
+    post_debugger_init(profiler, load_profile_start_time, log_handler)

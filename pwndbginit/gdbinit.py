@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import logging
 import os
 import sys
 import traceback
-from typing import TextIO
 
 import gdb
 
@@ -13,21 +11,6 @@ from pwndbginit.common import post_debugger_init
 from pwndbginit.common import pre_debugger_init
 from pwndbginit.common import setup_load_profiler
 from pwndbginit.common import verify_venv
-
-
-def init_logger() -> logging.StreamHandler[TextIO]:
-    log_level_env = os.environ.get("PWNDBG_LOGLEVEL", "WARNING")
-    log_level = getattr(logging, log_level_env.upper())
-
-    root_logger = logging.getLogger()
-    root_logger.setLevel(log_level)
-
-    # Add a custom StreamHandler we will use to customize log message formatting. We
-    # configure the handler later, after pwndbg has been imported.
-    handler = logging.StreamHandler()
-    root_logger.addHandler(handler)
-
-    return handler
 
 
 def check_doubleload() -> None:
@@ -42,7 +25,6 @@ def check_doubleload() -> None:
 
 
 def main() -> None:
-    handler = init_logger()
     profiler, load_profile_start_time = setup_load_profiler()
 
     check_doubleload()
@@ -57,25 +39,14 @@ def main() -> None:
 
     import pwndbg  # noqa: F811
 
-    # Mark that pwndbg was loaded from `pwndbg` binary (for double-load detection)
-    pwndbg._is_loaded_from_pwndbg = True
-
-    # FIXME: move above line here?
-    pre_debugger_init()
+    log_handler = pre_debugger_init()
 
     import pwndbg.dbg_mod.gdb
 
     pwndbg.dbg = pwndbg.dbg_mod.gdb.GDB()
     pwndbg.dbg.setup()
 
-    # ColorFormatter relies on pwndbg being loaded, so we can't set it up until now
-    import pwndbg.log
-
-    handler.setFormatter(pwndbg.log.ColorFormatter())
-
-    # FIXME: put log handler in here?
-    # FIXME: put this below `py import pwndbg`?
-    post_debugger_init(profiler, load_profile_start_time)
+    post_debugger_init(profiler, load_profile_start_time, log_handler)
 
     # We need reimport it here so that it's available at the global scope
     # when some starts a Python interpreter in GDB

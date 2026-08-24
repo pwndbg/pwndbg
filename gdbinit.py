@@ -72,7 +72,9 @@ def get_venv_path(src_root: Path):
 
 
 def main() -> None:
-    # Check if pwndbg was already loaded from `pwndbg` binary
+    # Check if pwndbg was already loaded
+    # Can happen if you run `pwndbg /bin/sh` and have `source /path/to/gdbinit.py`
+    # in your `~/.gdbinit`.
     if "pwndbg" in sys.modules and hasattr(sys.modules["pwndbg"], "_is_loaded_from_pwndbg"):
         print(
             "\033[90m~/.gdbinit: Skipped loading Pwndbg from `source path/gdbinit.py` - already loaded.\033[0m",

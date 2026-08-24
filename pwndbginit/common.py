@@ -8,7 +8,9 @@ import shutil
 import subprocess
 import sys
 import time
+from logging import StreamHandler
 from pathlib import Path
+from typing import TextIO
 
 
 def hash_file(file_path: str | Path) -> str:
@@ -170,18 +172,44 @@ def set_debuginfod_timeouts() -> None:
         os.environ["DEBUGINFOD_RETRY_LIMIT"] = "0"
 
 
-def pre_debugger_init() -> None:
+def init_logger() -> logging.StreamHandler[TextIO]:
+    log_level_env = os.environ.get("PWNDBG_LOGLEVEL", "WARNING")
+    log_level = getattr(logging, log_level_env.upper())
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+
+    # Add a custom StreamHandler we will use to customize log message formatting. We
+    # configure the handler later, after pwndbg has been imported.
+    handler = logging.StreamHandler()
+    root_logger.addHandler(handler)
+
+    return handler
+
+
+def pre_debugger_init() -> StreamHandler[TextIO]:
     """
     Initialization to run before any debugger-specific stuff gets loaded.
     """
+    import pwndbg
+
+    # Marker used to detect double-loading (checked in ../gdbinit.py).
+    # Can happen if you run `pwndbg /bin/sh` and have `source /path/to/gdbinit.py`
+    # in your `~/.gdbinit`.
+    pwndbg._pwndbg_is_loaded = True
+
     set_debuginfod_timeouts()
+    return init_logger()
 
 
-def post_debugger_init(profiler, load_profile_start_time: float | None) -> None:
+def post_debugger_init(
+    profiler, load_profile_start_time: float | None, log_handler: StreamHandler[TextIO]
+) -> None:
     """
     Initialization to run after Debugger.setup() gets run.
     """
     import pwndbg
+    import pwndbg.log
     import pwndbg.profiling
 
     pwndbg.profiling.init(profiler, load_profile_start_time)
@@ -190,3 +218,6 @@ def post_debugger_init(profiler, load_profile_start_time: float | None) -> None:
     if os.environ.get("PWNDBG_PROFILE") == "1":
         pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
         pwndbg.profiling.profiler.start()
+
+    # ColorFormatter relies on pwndbg being loaded, so we can't set it up until now
+    log_handler.setFormatter(pwndbg.log.ColorFormatter())
