@@ -719,13 +719,16 @@ def near(
     if show_prev_insns:
         saveptr = InstructionSequenceSavePointer(None)
 
+        linear_prev_fetch = linear
         prev_instruction_fetch = get_previous_instruction(
-            address, use_cache=use_cache, linear=linear, saveptr=saveptr
+            address, use_cache=use_cache, linear=linear_prev_fetch, saveptr=saveptr
         )
         while prev_instruction_fetch is not None and len(insns) < backward_count:
             insn, was_linear = prev_instruction_fetch
 
             if was_linear:
+                # Once one instruction has been linear, we cannot go back to dynamic caching method
+                linear_prev_fetch = True
                 count_backwards_linear += 1
                 if (
                     max_backwards_linear_count is not None
@@ -744,7 +747,7 @@ def near(
             prev_instruction_fetch = get_previous_instruction(
                 insn.address,
                 use_cache=use_cache,
-                linear=linear,
+                linear=linear_prev_fetch,
                 saveptr=saveptr,
             )
         insns.reverse()
@@ -794,6 +797,7 @@ def near(
         return ([], -1, -1)
 
     insns.append(current)
+    addresses.add(current.address)
 
     # A linked list that contains the order of instructions that emulation
     # determines will run upon uses of the "nexti" command.
@@ -877,6 +881,7 @@ def near(
                     break
 
                 insns.append(split_insn)
+                addresses.add(split_insn.address)
 
                 ### Start manually handling caching related to delay slots
                 next_addresses_cache.add(split_insn.address)
@@ -951,6 +956,7 @@ def near(
                 instruction_sequence_linked_list_map[target] = instruction_sequence_head
 
             insns.append(insn)
+            addresses.add(insn.address)
 
     # Remove repeated instructions at the end of disassembly.
     # Always ensure we display the current and *next* instruction,
