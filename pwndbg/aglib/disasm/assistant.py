@@ -148,8 +148,13 @@ class DisassemblyAssistant:
 
     _can_reason_about_process_state: bool = False
     """
-    While enhancing an instruction, will we allow it to read from the current process state to read registers.
+    While enhancing an instruction, will we be allowed to read from the current process state to read registers / memory
+    that could provide more context on what the instruction does?
+
+    For example, if the instruction is `LOAD R9, [RAX]`, can we read the register RAX and dereference it?
+
     This is only true in one case: when enhancing the instruction that the CPU is currently paused on!
+    Otherwise, we use the emulator.
     """
 
     def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
