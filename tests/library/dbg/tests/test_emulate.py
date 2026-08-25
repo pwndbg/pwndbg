@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from ....host import Controller
 from . import break_at_sym
 from . import get_binary
@@ -418,6 +420,7 @@ async def test_emulate_double_ret_chain(ctrl: Controller) -> None:
 
     assert dis_0 == expected_0
 
+    # TODO: why is LLDB stepping more than one instruction here?
     await ctrl.step_instruction()
 
     # This second check requires we are careful about our caching!
@@ -524,6 +527,7 @@ async def test_emulate_double_ret_chain_variant_2_dynamic_cache_test(ctrl: Contr
     """
     Once we go back in history to "linear" instructions, don't allow it to go back to dynamic fetching.
     """
+    import pwndbg.color
 
     # Do not allow the disassembly section to run to populate the caches automatically
 
@@ -571,6 +575,8 @@ async def test_emulate_double_ret_chain_variant_2_dynamic_cache_test(ctrl: Contr
     # for a given instance of the instruction at that address.
     dis_1 = await ctrl.execute_and_capture("context disasm")
 
+    dis_1 = pwndbg.color.strip(dis_1)
+
     # The nop has backfilled due to "context-disasm-back-linear-lines" being 1.
     # While disassembing in the first `ctx disasm`, we discovered that this instruction is behind the ret.
     # But it does not backfill more than that
@@ -594,3 +600,48 @@ async def test_emulate_double_ret_chain_variant_2_dynamic_cache_test(ctrl: Contr
     )
 
     assert dis_1 == expected_1
+
+
+NEXTRET_TO_DOUBLE_RET_BINARY = get_binary("nextret_to_double_ret_chain.x86-64.out")
+
+
+@pytest.mark.xfail(
+    reason="TODO: FIX THIS. The dynamic flow of instructions is incorrect here. The history of instructions from where nextret stops is backfilled incorrectly. The fallback dynamic caching method is at fault"
+)
+@pwndbg_test
+async def test_emulate_nextret_to_double_ret(ctrl: Controller) -> None:
+    """
+    Make sure caching works correctly on nextret (and it's family of commands) when ending on
+    a "same instruction seen twice" scenario
+    """
+
+    await ctrl.launch(NEXTRET_TO_DOUBLE_RET_BINARY)
+
+    await ctrl.execute("nextret")
+
+    dis = await ctrl.execute_and_capture("context disasm")
+
+    # TODO: THIS IS THE CURRENT OUTPUT. IT IS INCORRECT. This should not be happening, but with current cache system it is!
+    # The ret at the PC (noted by ►) should not have a bunch of rets before it! This is flaw of our caching system
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "   0x4000be <self_ret>      nop   \n"
+        "   0x4000bf <self_ret+1>    ret                                <self_ret>\n"
+        "    ↓\n"
+        "   0x4000be <self_ret>      nop   \n"
+        "   0x4000bf <self_ret+1>    ret                                <self_ret>\n"
+        "    ↓\n"
+        "   0x4000be <self_ret>      nop   \n"
+        " ► 0x4000bf <self_ret+1>    ret                                <self_ret>\n"
+        "    ↓\n"
+        "   0x4000be <self_ret>      nop   \n"
+        "   0x4000bf <self_ret+1>    ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000c0 <nop_sled>      nop   \n"
+        "   0x4000c1 <nop_sled+1>    nop   \n"
+        "   0x4000c2 <nop_sled+2>    nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
