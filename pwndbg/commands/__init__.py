@@ -882,7 +882,18 @@ def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
 def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> T | None:
-        if pwndbg.aglib.heap.current is not None and pwndbg.aglib.heap.current.is_initialized():
+        # An allocator we can't resolve can't tell us whether the heap is initialized
+        # either, so leave it to @OnlyWithResolvedHeapSyms below us to pick one that we
+        # can and to report why we couldn't. Note that can_be_resolved() and
+        # is_initialized() both need the process to be alive.
+        if (
+            isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+            and pwndbg.aglib.proc.alive()
+            and (
+                not pwndbg.aglib.heap.current.can_be_resolved()
+                or pwndbg.aglib.heap.current.is_initialized()
+            )
+        ):
             return function(*a, **kw)
         log.error(f"{func_name(function)}: Heap is not initialized yet.")
         return None

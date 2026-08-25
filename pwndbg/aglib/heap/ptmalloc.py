@@ -1513,7 +1513,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             return self.largebin_index_32_big(sz)
         return self.largebin_index_32(sz)
 
-    def is_initialized(self):
+    def is_initialized(self) -> bool:
         raise NotImplementedError()
 
     def is_statically_linked(self) -> bool:

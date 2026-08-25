@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
@@ -172,6 +173,27 @@ async def test_heap_command_range_and_count(ctrl: Controller) -> None:
 
     invalid_range_output = await ctrl.execute_and_capture(f"heap {range_start:#x} {range_start:#x}")
     assert "`addr_end` must be greater than `addr_start`." in invalid_range_output
+
+
+@pwndbg_test
+async def test_heap_command_without_libc_debug_info(ctrl: Controller) -> None:
+    """Nothing may be asked of `DebugSymsHeap` when the libc has no debug info, see #4076."""
+    import pwndbg.aglib
+    from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
+
+    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
+    # Pretend the libc is stripped, so that the heuristics have to take over.
+    with (
+        patch("pwndbg.libc.has_debug_info", return_value=False),
+        patch.object(DebugSymsHeap, "is_initialized") as is_initialized,
+    ):
+        output = await ctrl.execute_and_capture("heap")
+
+    is_initialized.assert_not_called()
+    assert "Allocated chunk" in output
 
 
 async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: list[str]) -> None:
