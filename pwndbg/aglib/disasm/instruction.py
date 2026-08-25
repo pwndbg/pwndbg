@@ -198,7 +198,6 @@ class CacheSource(Enum):
     LINKED_LIST_DYNAMIC = "L"
     FALLBACK_DYNAMIC = "F"
     CACHE_LINEAR = "C"
-    HEURISTIC_LINEAR = "H"
 
     NOT_FROM_CACHE = ""
 

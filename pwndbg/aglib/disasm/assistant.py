@@ -529,11 +529,9 @@ class DisassemblyAssistant:
         The list that the function returns is guaranteed have len >= 1
         """
 
-        can_read_process_state = self.can_reason_about_process_state()
-
         if emu:
             return emu.telescope(address, limit, read_size=read_size)
-        if can_read_process_state:
+        if self.can_reason_about_process_state():
             # Can reason about memory in this case.
 
             if read_size is not None and read_size < pwndbg.aglib.arch.ptrsize:
