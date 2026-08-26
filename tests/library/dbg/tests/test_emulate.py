@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import pytest
+
 from ....host import Controller
+from . import break_at_sym
 from . import get_binary
 from . import pwndbg_test
 
@@ -277,3 +280,420 @@ async def test_backwards_linear_cache_misaligned_disasm(ctrl: Controller) -> Non
         "   0x4000ee                           add    byte ptr [rax], al\n"
     )
     assert dis_2 == expected_2
+
+
+DOUBLE_RET_ROP_CHAIN_BINARY = get_binary("rop_duplicate_ret.x86-64.out")
+DOUBLE_RET_ROP_CHAIN_BINARY_VARIANT_2 = get_binary("rop_duplicate_ret_variant_2.x86-64.out")
+
+
+@pwndbg_test
+async def test_emulate_double_ret_chain_with_leadup(ctrl: Controller) -> None:
+    """
+    This makes sure we handle the check for allowing to read from current process state during enhancement correctly.
+
+    This test involves a double "ret" to the same "ret" instruction in memory (two instructions, at the same address executed back to back!)
+    We should treat allow enhancement for the current `ret` (the one the CPU PC is on) to read from memory, and not future ones that we emulate through.
+    """
+
+    # Do not allow the disassembly section to run to populate the caches automatically
+    await ctrl.execute_and_capture("set context-sections ''")
+
+    await ctrl.launch(DOUBLE_RET_ROP_CHAIN_BINARY)
+
+    break_at_sym("one_before_self_ret")
+
+    await ctrl.cont()
+
+    dis_0 = await ctrl.execute_and_capture("context disasm")
+
+    expected_0 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "b► 0x4000c8 <one_before_self_ret>    nop   \n"
+        "   0x4000c9 <self_ret>               ret                                <self_ret>\n"
+        "    ↓\n"
+        "   0x4000c9 <self_ret>               ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000ca <nop_sled>               nop   \n"
+        "   0x4000cb <nop_sled+1>             nop   \n"
+        "   0x4000cc <nop_sled+2>             nop   \n"
+        "   0x4000cd <nop_sled+3>             nop   \n"
+        "   0x4000ce <nop_sled+4>             nop   \n"
+        "   0x4000cf <nop_sled+5>             nop   \n"
+        "   0x4000d0 <nop_sled+6>             nop   \n"
+        "   0x4000d1 <nop_sled+7>             nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_0 == expected_0
+
+    await ctrl.step_instruction()
+
+    dis_1 = await ctrl.execute_and_capture("context disasm")
+
+    expected_1 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "b+ 0x4000c8 <one_before_self_ret>    nop   \n"
+        " ► 0x4000c9 <self_ret>               ret                                <self_ret>\n"
+        "    ↓\n"
+        "   0x4000c9 <self_ret>               ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000ca <nop_sled>               nop   \n"
+        "   0x4000cb <nop_sled+1>             nop   \n"
+        "   0x4000cc <nop_sled+2>             nop   \n"
+        "   0x4000cd <nop_sled+3>             nop   \n"
+        "   0x4000ce <nop_sled+4>             nop   \n"
+        "   0x4000cf <nop_sled+5>             nop   \n"
+        "   0x4000d0 <nop_sled+6>             nop   \n"
+        "   0x4000d1 <nop_sled+7>             nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_1 == expected_1
+
+    await ctrl.step_instruction()
+
+    dis_2 = await ctrl.execute_and_capture("context disasm")
+
+    expected_2 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "b+ 0x4000c8 <one_before_self_ret>    nop   \n"
+        "   0x4000c9 <self_ret>               ret                                <self_ret>\n"
+        "    ↓\n"
+        " ► 0x4000c9 <self_ret>               ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000ca <nop_sled>               nop   \n"
+        "   0x4000cb <nop_sled+1>             nop   \n"
+        "   0x4000cc <nop_sled+2>             nop   \n"
+        "   0x4000cd <nop_sled+3>             nop   \n"
+        "   0x4000ce <nop_sled+4>             nop   \n"
+        "   0x4000cf <nop_sled+5>             nop   \n"
+        "   0x4000d0 <nop_sled+6>             nop   \n"
+        "   0x4000d1 <nop_sled+7>             nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    # LLDB does not support single stepping when the subsequent instructions are at the same PC
+    # See: https://reviews.llvm.org/D81810
+    # Therefore, we modify what we are checking for LLDB (it steps an additional instruction)
+    import pwndbg
+    from pwndbg.dbg_mod import DebuggerType
+
+    if pwndbg.dbg.name() == DebuggerType.LLDB:
+        expected_2 = (
+            "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+            "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+            "b+ 0x4000c8 <one_before_self_ret>    nop   \n"
+            "   0x4000c9 <self_ret>               ret                                <self_ret>\n"
+            "    ↓\n"
+            "   0x4000c9 <self_ret>               ret                                <nop_sled>\n"
+            "    ↓\n"
+            " ► 0x4000ca <nop_sled>               nop   \n"
+            "   0x4000cb <nop_sled+1>             nop   \n"
+            "   0x4000cc <nop_sled+2>             nop   \n"
+            "   0x4000cd <nop_sled+3>             nop   \n"
+            "   0x4000ce <nop_sled+4>             nop   \n"
+            "   0x4000cf <nop_sled+5>             nop   \n"
+            "   0x4000d0 <nop_sled+6>             nop   \n"
+            "   0x4000d1 <nop_sled+7>             nop   \n"
+            "────────────────────────────────────────────────────────────────────────────────\n"
+        )
+
+    assert dis_2 == expected_2
+
+
+@pwndbg_test
+async def test_emulate_double_ret_chain(ctrl: Controller) -> None:
+    """
+    Similar to the above test, except we go directly to the first ret (we don't know the instruction flow into it)
+
+    If this fails with the result show a bunch of ret instructions before the ret we are on (where there should be none),
+    it means that while handling the current pc's ret, we are corrupting the cache, affecting how we pull instructions from "backwards"
+    (it may be writing "this ret comes back the next ret" (which is at the same), which is a fact that pollutes pulling values from "behind" us).
+    """
+
+    # Do not allow the disassembly section to run to populate the caches automatically
+    await ctrl.execute_and_capture("set context-sections ''")
+
+    await ctrl.launch(DOUBLE_RET_ROP_CHAIN_BINARY)
+
+    break_at_sym("self_ret")
+
+    await ctrl.cont()
+
+    dis_0 = await ctrl.execute_and_capture("context disasm")
+
+    expected_0 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "b► 0x4000c9 <self_ret>      ret                                <self_ret>\n"
+        "    ↓\n"
+        "b+ 0x4000c9 <self_ret>      ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000ca <nop_sled>      nop   \n"
+        "   0x4000cb <nop_sled+1>    nop   \n"
+        "   0x4000cc <nop_sled+2>    nop   \n"
+        "   0x4000cd <nop_sled+3>    nop   \n"
+        "   0x4000ce <nop_sled+4>    nop   \n"
+        "   0x4000cf <nop_sled+5>    nop   \n"
+        "   0x4000d0 <nop_sled+6>    nop   \n"
+        "   0x4000d1 <nop_sled+7>    nop   \n"
+        "   0x4000d2 <nop_sled+8>    nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_0 == expected_0
+
+    # TODO: why is LLDB stepping more than one instruction here?
+    await ctrl.step_instruction()
+
+    # This second check requires we are careful about our caching!
+    # Having two of the same instruction, if a cache is keyed off of only the
+    # instruction address, can cause the remembered control flow to be incorrect
+    # for a given instance of the instruction at that address.
+    dis_1 = await ctrl.execute_and_capture("context disasm")
+
+    expected_1 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "b+ 0x4000c9 <self_ret>      ret                                <self_ret>\n"
+        "    ↓\n"
+        "b► 0x4000c9 <self_ret>      ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000ca <nop_sled>      nop   \n"
+        "   0x4000cb <nop_sled+1>    nop   \n"
+        "   0x4000cc <nop_sled+2>    nop   \n"
+        "   0x4000cd <nop_sled+3>    nop   \n"
+        "   0x4000ce <nop_sled+4>    nop   \n"
+        "   0x4000cf <nop_sled+5>    nop   \n"
+        "   0x4000d0 <nop_sled+6>    nop   \n"
+        "   0x4000d1 <nop_sled+7>    nop   \n"
+        "   0x4000d2 <nop_sled+8>    nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    # LLDB does not support single stepping when the subsequent instructions are at the same PC
+    # See: https://reviews.llvm.org/D81810
+    # Therefore, we modify what we are checking for LLDB (it steps an additional instruction)
+    import pwndbg
+    from pwndbg.dbg_mod import DebuggerType
+
+    if pwndbg.dbg.name() == DebuggerType.LLDB:
+        expected_1 = (
+            "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+            "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+            "b+ 0x4000c9 <self_ret>      ret                                <self_ret>\n"
+            "    ↓\n"
+            "b+ 0x4000c9 <self_ret>      ret                                <nop_sled>\n"
+            "    ↓\n"
+            " ► 0x4000ca <nop_sled>      nop   \n"
+            "   0x4000cb <nop_sled+1>    nop   \n"
+            "   0x4000cc <nop_sled+2>    nop   \n"
+            "   0x4000cd <nop_sled+3>    nop   \n"
+            "   0x4000ce <nop_sled+4>    nop   \n"
+            "   0x4000cf <nop_sled+5>    nop   \n"
+            "   0x4000d0 <nop_sled+6>    nop   \n"
+            "   0x4000d1 <nop_sled+7>    nop   \n"
+            "   0x4000d2 <nop_sled+8>    nop   \n"
+            "────────────────────────────────────────────────────────────────────────────────\n"
+        )
+
+    assert dis_1 == expected_1
+
+
+@pwndbg_test
+async def test_emulate_double_ret_chain_variant_2(ctrl: Controller) -> None:
+    """
+    Even if the gadgets are multiple instructions long, we shouldn't backfill history incorrectly.
+    """
+
+    # Do not allow the disassembly section to run to populate the caches automatically
+    await ctrl.execute_and_capture("set context-sections ''")
+
+    await ctrl.launch(DOUBLE_RET_ROP_CHAIN_BINARY_VARIANT_2)
+
+    break_at_sym("self_ret")
+
+    await ctrl.cont()
+
+    # We want to end up on self_ret+1
+    await ctrl.step_instruction()
+
+    dis_0 = await ctrl.execute_and_capture("context disasm")
+
+    expected_0 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        " ► 0x4000ca <self_ret+1>    ret                                <self_ret>\n"
+        "    ↓\n"
+        "b+ 0x4000c9 <self_ret>      nop   \n"
+        "   0x4000ca <self_ret+1>    ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000cb <nop_sled>      nop   \n"
+        "   0x4000cc <nop_sled+1>    nop   \n"
+        "   0x4000cd <nop_sled+2>    nop   \n"
+        "   0x4000ce <nop_sled+3>    nop   \n"
+        "   0x4000cf <nop_sled+4>    nop   \n"
+        "   0x4000d0 <nop_sled+5>    nop   \n"
+        "   0x4000d1 <nop_sled+6>    nop   \n"
+        "   0x4000d2 <nop_sled+7>    nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_0 == expected_0
+
+    await ctrl.step_instruction()
+
+    # This second check requires we are careful about our caching!
+    # Having two of the same instruction, if a cache is keyed off of only the
+    # instruction address, can cause the remembered control flow to be incorrect
+    # for a given instance of the instruction at that address.
+    dis_1 = await ctrl.execute_and_capture("context disasm")
+
+    expected_1 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "   0x4000ca <self_ret+1>    ret                                <self_ret>\n"
+        "    ↓\n"
+        "b► 0x4000c9 <self_ret>      nop   \n"
+        "   0x4000ca <self_ret+1>    ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000cb <nop_sled>      nop   \n"
+        "   0x4000cc <nop_sled+1>    nop   \n"
+        "   0x4000cd <nop_sled+2>    nop   \n"
+        "   0x4000ce <nop_sled+3>    nop   \n"
+        "   0x4000cf <nop_sled+4>    nop   \n"
+        "   0x4000d0 <nop_sled+5>    nop   \n"
+        "   0x4000d1 <nop_sled+6>    nop   \n"
+        "   0x4000d2 <nop_sled+7>    nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_1 == expected_1
+
+
+@pwndbg_test
+async def test_emulate_double_ret_chain_variant_2_dynamic_cache_test(ctrl: Controller) -> None:
+    """
+    Once we go back in history to "linear" instructions, don't allow it to go back to dynamic fetching.
+    """
+    import pwndbg.color
+
+    # Do not allow the disassembly section to run to populate the caches automatically
+
+    await ctrl.launch(DOUBLE_RET_ROP_CHAIN_BINARY_VARIANT_2)
+
+    await ctrl.execute_and_capture("set context-sections ''")
+
+    await ctrl.execute_and_capture("set context-disasm-back-linear-lines 1")
+
+    break_at_sym("self_ret")
+
+    await ctrl.cont()
+
+    # We want to end up on self_ret+1
+    await ctrl.step_instruction()
+
+    dis_0 = await ctrl.execute_and_capture("context disasm")
+
+    expected_0 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        " ► 0x4000ca <self_ret+1>    ret                                <self_ret>\n"
+        "    ↓\n"
+        "b+ 0x4000c9 <self_ret>      nop   \n"
+        "   0x4000ca <self_ret+1>    ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000cb <nop_sled>      nop   \n"
+        "   0x4000cc <nop_sled+1>    nop   \n"
+        "   0x4000cd <nop_sled+2>    nop   \n"
+        "   0x4000ce <nop_sled+3>    nop   \n"
+        "   0x4000cf <nop_sled+4>    nop   \n"
+        "   0x4000d0 <nop_sled+5>    nop   \n"
+        "   0x4000d1 <nop_sled+6>    nop   \n"
+        "   0x4000d2 <nop_sled+7>    nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_0 == expected_0
+
+    await ctrl.step_instruction()
+
+    # This second check requires we are careful about our caching!
+    # Having two of the same instruction, if a cache is keyed off of only the
+    # instruction address, can cause the remembered control flow to be incorrect
+    # for a given instance of the instruction at that address.
+    dis_1 = await ctrl.execute_and_capture("context disasm")
+
+    dis_1 = pwndbg.color.strip(dis_1)
+
+    # The nop has backfilled due to "context-disasm-back-linear-lines" being 1.
+    # While disassembing in the first `ctx disasm`, we discovered that this instruction is behind the ret.
+    # But it does not backfill more than that
+    expected_1 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "b+ 0x4000c9 <self_ret>      nop   \n"
+        "   0x4000ca <self_ret+1>    ret                                <self_ret>\n"
+        "    ↓\n"
+        "b► 0x4000c9 <self_ret>      nop   \n"
+        "   0x4000ca <self_ret+1>    ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000cb <nop_sled>      nop   \n"
+        "   0x4000cc <nop_sled+1>    nop   \n"
+        "   0x4000cd <nop_sled+2>    nop   \n"
+        "   0x4000ce <nop_sled+3>    nop   \n"
+        "   0x4000cf <nop_sled+4>    nop   \n"
+        "   0x4000d0 <nop_sled+5>    nop   \n"
+        "   0x4000d1 <nop_sled+6>    nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_1 == expected_1
+
+
+NEXTRET_TO_DOUBLE_RET_BINARY = get_binary("nextret_to_double_ret_chain.x86-64.out")
+
+
+@pytest.mark.xfail(
+    reason="TODO: FIX THIS. The dynamic flow of instructions is incorrect here. The history of instructions from where nextret stops is backfilled incorrectly. The fallback dynamic caching method is at fault"
+)
+@pwndbg_test
+async def test_emulate_nextret_to_double_ret(ctrl: Controller) -> None:
+    """
+    Make sure caching works correctly on nextret (and it's family of commands) when ending on
+    a "same instruction seen twice" scenario
+    """
+
+    await ctrl.launch(NEXTRET_TO_DOUBLE_RET_BINARY)
+
+    await ctrl.execute("nextret")
+
+    dis = await ctrl.execute_and_capture("context disasm")
+
+    # TODO: THIS IS THE CURRENT OUTPUT. IT IS INCORRECT. This should not be happening, but with current cache system it is!
+    # The ret at the PC (noted by ►) should not have a bunch of rets before it! This is flaw of our caching system
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "   0x4000be <self_ret>      nop   \n"
+        "   0x4000bf <self_ret+1>    ret                                <self_ret>\n"
+        "    ↓\n"
+        "   0x4000be <self_ret>      nop   \n"
+        "   0x4000bf <self_ret+1>    ret                                <self_ret>\n"
+        "    ↓\n"
+        "   0x4000be <self_ret>      nop   \n"
+        " ► 0x4000bf <self_ret+1>    ret                                <self_ret>\n"
+        "    ↓\n"
+        "   0x4000be <self_ret>      nop   \n"
+        "   0x4000bf <self_ret+1>    ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000c0 <nop_sled>      nop   \n"
+        "   0x4000c1 <nop_sled+1>    nop   \n"
+        "   0x4000c2 <nop_sled+2>    nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected

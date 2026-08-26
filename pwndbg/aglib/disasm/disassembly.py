@@ -31,6 +31,7 @@ import pwndbg.lib.cache
 import pwndbg.lib.config
 from pwndbg.aglib.disasm.assistant import DEBUG_ENHANCEMENT
 from pwndbg.aglib.disasm.assistant import DisassemblyAssistant
+from pwndbg.aglib.disasm.instruction import CacheSource
 from pwndbg.aglib.disasm.instruction import DisassemblySource
 from pwndbg.aglib.disasm.instruction import ManualPwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -203,10 +204,14 @@ def get_previous_instruction(
                 put_linear_backward_cache=False,
                 linear=linear,
                 enhance=False,
+                current_cpu_instruction=False,
             )
             if prev_address
             else None
         )
+
+        if insn:
+            insn.cache_source = CacheSource.CACHE_LINEAR
 
         return (insn, True) if insn is not None else None
 
@@ -217,6 +222,8 @@ def get_previous_instruction(
         prev_node = sequence_node.previous
         saveptr.node = prev_node
         if prev_node is not None:
+            prev_node.instruction.cache_source = CacheSource.LINKED_LIST_DYNAMIC
+
             return (prev_node.instruction, False)
 
     prev_address = dynamic_backward_address_cache[address]
@@ -228,7 +235,11 @@ def get_previous_instruction(
             put_linear_backward_cache=False,
             put_dynamic_backward_cache=False,
             enhance=False,
+            current_cpu_instruction=False,
         )
+
+        if insn:
+            insn.cache_source = CacheSource.FALLBACK_DYNAMIC
 
         return (insn, False) if insn is not None else None
 
@@ -242,10 +253,14 @@ def get_previous_instruction(
             put_linear_backward_cache=False,
             put_dynamic_backward_cache=False,
             enhance=False,
+            current_cpu_instruction=False,
         )
         if prev_address
         else None
     )
+
+    if insn:
+        insn.cache_source = CacheSource.CACHE_LINEAR
 
     return (insn, True) if insn is not None else None
 
@@ -389,13 +404,27 @@ def one(
     put_linear_backward_cache: bool = True,
     put_dynamic_backward_cache: bool = True,
     linear: bool = False,
+    current_cpu_instruction: bool | None = None,
+    previously_seen_addresses: set[int] | None = None,
 ) -> PwndbgInstruction | None:
     """
     Return None on failure to fetch an instruction
+
+
+    current_cpu_instruction:
+        If True, it means we already know this instruction is the one the CPU is paused on/
+        If False, we know it's not (even if it shares the same instruction address as the one the CPU is paused on.
+            This can happen during emulation in loops, for example).
+        If set to None (default), it simply checks if instruction.address == program counter.
+            In most contexts, this is desirable, when we want to do the "best effort enhancing" at a given moment,
+            or where the caller doesn't know if we are at the program counter or not.
     """
 
     if address is None:
         address = pwndbg.aglib.regs.pc
+
+    if current_cpu_instruction is None:
+        current_cpu_instruction = address == pwndbg.aglib.regs.pc
 
     if not pwndbg.aglib.memory.peek(address):
         return None
@@ -406,7 +435,13 @@ def one(
             return cached
 
     if (
-        insn := get_one_instruction(address, emu, enhance=enhance, assistant=assistant)
+        insn := get_one_instruction(
+            address,
+            emu,
+            enhance=enhance,
+            assistant=assistant,
+            current_cpu_instruction=current_cpu_instruction,
+        )
     ) is not None:
         if put_cache:
             computed_instruction_cache[address] = insn
@@ -415,7 +450,11 @@ def one(
             linear_backward_address_cache[insn.address + insn.size] = insn.address
 
         if put_dynamic_backward_cache and not linear:
-            dynamic_backward_address_cache[insn.next] = insn.address
+            # TODO: this check is bad What about next insn.....
+            if previously_seen_addresses is None or (
+                insn.next not in previously_seen_addresses and insn.next != insn.address
+            ):
+                dynamic_backward_address_cache[insn.next] = insn.address
         return insn
 
     return None
@@ -469,6 +508,7 @@ def get_one_instruction(
     enhance: bool = True,
     assistant: DisassemblyAssistant | None = None,
     padding: int = 6,
+    current_cpu_instruction: bool = False,
 ) -> PwndbgInstruction | None:
     """
     If passed an emulator, this will pass it to the DisassemblyAssistant which will
@@ -488,10 +528,8 @@ def get_one_instruction(
 
         if enhance:
             if assistant is None:
-                assistant = (
-                    pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
-                )
-            assistant.enhance(pwn_ins, emu)
+                assistant = get_disassembly_assistant_for_current_arch()
+            assistant.enhance(pwn_ins, current_cpu_instruction=current_cpu_instruction, emu=emu)
 
         return pwn_ins
 
@@ -590,6 +628,7 @@ def enhance_instruction(
     instruction: PwndbgInstruction,
     assistant: DisassemblyAssistant | None = None,
     emu: pwndbg.emu.emulator.Emulator | None = None,
+    current_cpu_instruction: bool = False,
 ) -> None:
 
     if instruction.enhanced:
@@ -598,10 +637,8 @@ def enhance_instruction(
     match instruction.disassembly_source:
         case DisassemblySource.CAPSTONE:
             if assistant is None:
-                assistant = (
-                    pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
-                )
-            assistant.enhance(instruction, emu)
+                assistant = get_disassembly_assistant_for_current_arch()
+            assistant.enhance(instruction, current_cpu_instruction=current_cpu_instruction, emu=emu)
 
         case DisassemblySource.DEBUGGER:
             pwndbg.aglib.disasm.assistant.basic_enhance(instr)
@@ -668,6 +705,7 @@ def near(
     assistant = get_disassembly_assistant_for_current_arch()
 
     insns: list[PwndbgInstruction] = []
+    addresses: set[int] = set()
 
     # Get previously executed instructions from the cache.
     if DEBUG_ENHANCEMENT:
@@ -681,13 +719,16 @@ def near(
     if show_prev_insns:
         saveptr = InstructionSequenceSavePointer(None)
 
+        linear_prev_fetch = linear
         prev_instruction_fetch = get_previous_instruction(
-            address, use_cache=use_cache, linear=linear, saveptr=saveptr
+            address, use_cache=use_cache, linear=linear_prev_fetch, saveptr=saveptr
         )
         while prev_instruction_fetch is not None and len(insns) < backward_count:
             insn, was_linear = prev_instruction_fetch
 
             if was_linear:
+                # Once one instruction has been linear, we cannot go back to dynamic caching method
+                linear_prev_fetch = True
                 count_backwards_linear += 1
                 if (
                     max_backwards_linear_count is not None
@@ -701,11 +742,12 @@ def near(
             if insn.jump_like and insn.split == SplitType.NO_SPLIT and not insn.causes_branch_delay:
                 insn.split = SplitType.BRANCH_NOT_TAKEN
             insns.append(insn)
+            addresses.add(insn.address)
 
             prev_instruction_fetch = get_previous_instruction(
                 insn.address,
                 use_cache=use_cache,
-                linear=linear,
+                linear=linear_prev_fetch,
                 saveptr=saveptr,
             )
         insns.reverse()
@@ -743,6 +785,8 @@ def near(
         put_linear_backward_cache=disassembling_from_pc,
         assistant=assistant,
         linear=linear,
+        current_cpu_instruction=disassembling_from_pc,
+        previously_seen_addresses=addresses,
     )
 
     if DEBUG_ENHANCEMENT:
@@ -753,6 +797,7 @@ def near(
         return ([], -1, -1)
 
     insns.append(current)
+    addresses.add(current.address)
 
     # A linked list that contains the order of instructions that emulation
     # determines will run upon uses of the "nexti" command.
@@ -827,6 +872,8 @@ def near(
                     put_linear_backward_cache=populate_backward_linear_cache,
                     put_cache=True,
                     linear=linear,
+                    previously_seen_addresses=addresses,
+                    current_cpu_instruction=False,
                 )
 
                 # There might not be a valid instruction at the branch delay slot
@@ -834,6 +881,7 @@ def near(
                     break
 
                 insns.append(split_insn)
+                addresses.add(split_insn.address)
 
                 ### Start manually handling caching related to delay slots
                 next_addresses_cache.add(split_insn.address)
@@ -893,6 +941,8 @@ def near(
             put_linear_backward_cache=populate_backward_linear_cache,
             assistant=assistant,
             linear=linear,
+            previously_seen_addresses=addresses,
+            current_cpu_instruction=False,
         )
 
         if insn:
@@ -906,6 +956,7 @@ def near(
                 instruction_sequence_linked_list_map[target] = instruction_sequence_head
 
             insns.append(insn)
+            addresses.add(insn.address)
 
     # Remove repeated instructions at the end of disassembly.
     # Always ensure we display the current and *next* instruction,
