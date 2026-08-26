@@ -375,6 +375,32 @@ async def test_emulate_double_ret_chain_with_leadup(ctrl: Controller) -> None:
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
+    # LLDB does not support single stepping when the subsequent instructions are at the same PC
+    # See: https://reviews.llvm.org/D81810
+    # Therefore, we modify what we are checking for LLDB (it steps an additional instruction)
+    import pwndbg
+    from pwndbg.dbg_mod import DebuggerType
+
+    if pwndbg.dbg.name() == DebuggerType.LLDB:
+        expected_2 = (
+            "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+            "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+            "b+ 0x4000c8 <one_before_self_ret>    nop   \n"
+            "   0x4000c9 <self_ret>               ret                                <self_ret>\n"
+            "    ↓\n"
+            "   0x4000c9 <self_ret>               ret                                <nop_sled>\n"
+            "    ↓\n"
+            " ► 0x4000ca <nop_sled>               nop   \n"
+            "   0x4000cb <nop_sled+1>             nop   \n"
+            "   0x4000cc <nop_sled+2>             nop   \n"
+            "   0x4000cd <nop_sled+3>             nop   \n"
+            "   0x4000ce <nop_sled+4>             nop   \n"
+            "   0x4000cf <nop_sled+5>             nop   \n"
+            "   0x4000d0 <nop_sled+6>             nop   \n"
+            "   0x4000d1 <nop_sled+7>             nop   \n"
+            "────────────────────────────────────────────────────────────────────────────────\n"
+        )
+
     assert dis_2 == expected_2
 
 
@@ -447,6 +473,32 @@ async def test_emulate_double_ret_chain(ctrl: Controller) -> None:
         "   0x4000d2 <nop_sled+8>    nop   \n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
+
+    # LLDB does not support single stepping when the subsequent instructions are at the same PC
+    # See: https://reviews.llvm.org/D81810
+    # Therefore, we modify what we are checking for LLDB (it steps an additional instruction)
+    import pwndbg
+    from pwndbg.dbg_mod import DebuggerType
+
+    if pwndbg.dbg.name() == DebuggerType.LLDB:
+        expected_1 = (
+            "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+            "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+            "b+ 0x4000c9 <self_ret>      ret                                <self_ret>\n"
+            "    ↓\n"
+            "b+ 0x4000c9 <self_ret>      ret                                <nop_sled>\n"
+            "    ↓\n"
+            " ► 0x4000ca <nop_sled>      nop   \n"
+            "   0x4000cb <nop_sled+1>    nop   \n"
+            "   0x4000cc <nop_sled+2>    nop   \n"
+            "   0x4000cd <nop_sled+3>    nop   \n"
+            "   0x4000ce <nop_sled+4>    nop   \n"
+            "   0x4000cf <nop_sled+5>    nop   \n"
+            "   0x4000d0 <nop_sled+6>    nop   \n"
+            "   0x4000d1 <nop_sled+7>    nop   \n"
+            "   0x4000d2 <nop_sled+8>    nop   \n"
+            "────────────────────────────────────────────────────────────────────────────────\n"
+        )
 
     assert dis_1 == expected_1
 
