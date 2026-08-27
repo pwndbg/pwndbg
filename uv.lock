@@ -564,7 +564,7 @@ name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0b/9f/a65090624ecf468cdca03533906e7c69ed7588582240cfe7cc9e770b50eb/exceptiongroup-1.3.0.tar.gz", hash = "sha256:b241f5885f560bc56a59ee63ca4c6a8bfa46ae4ad651af316d4e81817bb9fd88", size = 29749, upload-time = "2025-05-10T17:42:51.123Z" }
 wheels = [
@@ -874,17 +874,17 @@ resolution-markers = [
     "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "colorama", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
-    { name = "decorator", marker = "python_full_version < '3.12'" },
-    { name = "exceptiongroup", marker = "python_full_version < '3.11'" },
-    { name = "jedi", marker = "python_full_version < '3.12'" },
-    { name = "matplotlib-inline", marker = "python_full_version < '3.12'" },
-    { name = "pexpect", marker = "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'" },
-    { name = "prompt-toolkit", marker = "python_full_version < '3.12'" },
-    { name = "pygments", marker = "python_full_version < '3.12'" },
-    { name = "stack-data", marker = "python_full_version < '3.12'" },
-    { name = "traitlets", marker = "python_full_version < '3.12'" },
-    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "decorator" },
+    { name = "exceptiongroup", marker = "python_full_version != '3.11'" },
+    { name = "jedi" },
+    { name = "matplotlib-inline" },
+    { name = "pexpect", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "prompt-toolkit" },
+    { name = "pygments" },
+    { name = "stack-data" },
+    { name = "traitlets" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/40/18/f8598d287006885e7136451fdea0755af4ebcbfe342836f24deefaed1164/ipython-8.39.0.tar.gz", hash = "sha256:4110ae96012c379b8b6db898a07e186c40a2a1ef5d57a7fa83166047d9da7624", size = 5513971, upload-time = "2026-03-27T10:02:13.94Z" }
 wheels = [
@@ -906,17 +906,17 @@ resolution-markers = [
     "(python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
 ]
 dependencies = [
-    { name = "colorama", marker = "python_full_version >= '3.12' and sys_platform == 'win32'" },
-    { name = "decorator", marker = "python_full_version >= '3.12'" },
-    { name = "ipython-pygments-lexers", marker = "python_full_version >= '3.12'" },
-    { name = "jedi", marker = "python_full_version >= '3.12'" },
-    { name = "matplotlib-inline", marker = "python_full_version >= '3.12'" },
-    { name = "pexpect", marker = "python_full_version >= '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'" },
-    { name = "prompt-toolkit", marker = "python_full_version >= '3.12'" },
-    { name = "psutil", marker = "python_full_version >= '3.12' and sys_platform != 'cygwin' and sys_platform != 'emscripten'" },
-    { name = "pygments", marker = "python_full_version >= '3.12'" },
-    { name = "stack-data", marker = "python_full_version >= '3.12'" },
-    { name = "traitlets", marker = "python_full_version >= '3.12'" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "decorator" },
+    { name = "ipython-pygments-lexers" },
+    { name = "jedi" },
+    { name = "matplotlib-inline" },
+    { name = "pexpect", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "prompt-toolkit" },
+    { name = "psutil", marker = "sys_platform != 'cygwin' and sys_platform != 'emscripten'" },
+    { name = "pygments" },
+    { name = "stack-data" },
+    { name = "traitlets" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/53/59/165d3b4d75cc34add3122c4417ecb229085140ac573103c223cd01dde96f/ipython-9.15.0.tar.gz", hash = "sha256:da2819ce2aa83135257df830660b1176d986c3d2876db24df01974fa955b2756", size = 4442580, upload-time = "2026-06-26T11:03:35.913Z" }
 wheels = [
@@ -928,7 +928,7 @@ name = "ipython-pygments-lexers"
 version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pygments", marker = "python_full_version >= '3.12'" },
+    { name = "pygments" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ef/4c/5dd1d8af08107f88c7f741ead7a40854b8ac24ddf9ae850afbcf698aa552/ipython_pygments_lexers-1.1.1.tar.gz", hash = "sha256:09c0138009e56b6854f9535736f4171d855c8c08a563a0dcd8022f78355c7e81", size = 8393, upload-time = "2025-01-17T11:24:34.505Z" }
 wheels = [
@@ -985,7 +985,7 @@ resolution-markers = [
     "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "packaging", marker = "platform_machine != 'arm64' and platform_machine != 'x86_64'" },
+    { name = "packaging" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/34/49/6090a131d84b22c6aae13b1853092028b060fd17da1af87c0e42ad69d50f/jpype1-1.6.0.tar.gz", hash = "sha256:2d46b2a14f8f0e6f17d8aa22b4fc3a64b2790851ebf1409ad79a37c698fd6e9a", size = 1057888, upload-time = "2025-07-07T14:04:11.244Z" }
 wheels = [
@@ -1025,7 +1025,7 @@ resolution-markers = [
     "(python_full_version < '3.11' and platform_machine == 'arm64') or (python_full_version < '3.11' and platform_machine == 'x86_64')",
 ]
 dependencies = [
-    { name = "packaging", marker = "platform_machine == 'arm64' or platform_machine == 'x86_64'" },
+    { name = "packaging" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/48/a2/5d27e81d24eef64668bf702bfe0e091cc48388b4666f36e025243eb9d827/jpype1-1.7.1.tar.gz", hash = "sha256:3cd88838dc3d2d546f7eaeadaaff864e590010c15f2b6a44b6f37e60796a14b2", size = 783791, upload-time = "2026-05-06T23:55:10.664Z" }
 wheels = [
@@ -1166,18 +1166,18 @@ wheels = [
 
 [[package]]
 name = "lldb-for-pwndbg"
-version = "23.1.0.post1"
+version = "23.1.0.post2"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4d/54/c75f06781d408a7adbbd5dfac189183113a147eace552bf13cd9c31bd6ef/lldb_for_pwndbg-23.1.0.post1-cp310-abi3-macosx_10_13_x86_64.whl", hash = "sha256:0d4d5d3d528797cbc7b2010c9c0b25d379248b9691f0e6351d721650a1ab93a0", size = 59608886, upload-time = "2026-08-09T18:46:00.482Z" },
-    { url = "https://files.pythonhosted.org/packages/18/c7/4bfb39c31521cdc209b136caaeec5bb93976ae5acaf144513e49b1d8aa1a/lldb_for_pwndbg-23.1.0.post1-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:b3ea9804cf0126d7132ad3cccf3c5cfbdfda83110052d4050fd26c3e20ebeab1", size = 57443910, upload-time = "2026-08-09T18:46:05.679Z" },
-    { url = "https://files.pythonhosted.org/packages/11/4b/c40bd67cab2dafe5b2ef8365a3cdf259f3b81531a95aabc3a6f685dbe720/lldb_for_pwndbg-23.1.0.post1-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:b8c430eb050af73f6e9f5f66b808493320da0ce78036aaa16a1172e7b01df90b", size = 66511413, upload-time = "2026-08-09T18:46:10.912Z" },
-    { url = "https://files.pythonhosted.org/packages/85/a2/5e3765aee4d3db53bd74cb8fd961728e276c3506c3433d85622ffbe92372/lldb_for_pwndbg-23.1.0.post1-cp310-abi3-manylinux_2_28_i686.whl", hash = "sha256:231dc5f0730173f186422428fb37bae1c91d280d3b0526ba51e6ca156385edb0", size = 71668997, upload-time = "2026-08-09T18:46:16.07Z" },
-    { url = "https://files.pythonhosted.org/packages/50/d7/90d95cf3afaf53c7f14ab61c73afbb4f5979528a19fdd3d6284ff05b30a3/lldb_for_pwndbg-23.1.0.post1-cp310-abi3-manylinux_2_28_ppc64le.whl", hash = "sha256:8247e438190ed5d39943584701ad5d174bbfcfc6ffff099fd13e4ec96d02d2ae", size = 96312953, upload-time = "2026-08-09T18:46:24.103Z" },
-    { url = "https://files.pythonhosted.org/packages/b5/ef/fd137b62b04fb55f43816a7de2f32d155421654db267273020599d4b0458/lldb_for_pwndbg-23.1.0.post1-cp310-abi3-manylinux_2_28_s390x.whl", hash = "sha256:a827bbe04b5e40415241fe0632063af6a29b08041ffae43e680c5e8f6b85799d", size = 72709840, upload-time = "2026-08-09T18:46:30.693Z" },
-    { url = "https://files.pythonhosted.org/packages/c7/cc/e40e2fdb36cbb23310047253a8c88fa5254f30161a4a368a66d6b4ab82aa/lldb_for_pwndbg-23.1.0.post1-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:4a7b4e5886e8de162df5011e6b3f4ed25960b09e780e8f7b59cb3b7aee38c52f", size = 67558489, upload-time = "2026-08-09T18:46:37.676Z" },
-    { url = "https://files.pythonhosted.org/packages/3f/2f/d5e0ae397e92700d79c24e6a56e1750b58d9ea8667f91bb6fb2908a5d1c9/lldb_for_pwndbg-23.1.0.post1-cp310-abi3-manylinux_2_31_armv7l.whl", hash = "sha256:9c57275f07aba59c03c206358505f9c6a68063fabc7d4091857cee16af6b172a", size = 67717221, upload-time = "2026-08-09T18:46:43.849Z" },
-    { url = "https://files.pythonhosted.org/packages/44/6e/f51b2aee5dca92a3351d87ced4ef301ebaa2ca287de25f9366bfb433cb60/lldb_for_pwndbg-23.1.0.post1-cp310-abi3-manylinux_2_39_riscv64.whl", hash = "sha256:6178044a9af804a71758c0afe5eab5064474e66d8fbfb110a19ed6acf9bbfe39", size = 103042011, upload-time = "2026-08-09T18:46:52.22Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/19/c10f70f8180a607dca6ca23eb347584ecfd32392a6c8633f4abd3dc8c759/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-macosx_10_13_x86_64.whl", hash = "sha256:cf00676ca301a4e8cd6ea937551e8d36bba838d0f234733cfe2cbbc30b4209f7", size = 59613165, upload-time = "2026-08-27T19:40:23.734Z" },
+    { url = "https://files.pythonhosted.org/packages/55/dd/d1feaf3d9cdae4fa14e864cecdb6660696283735a58f211398bf9c840b44/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:5c66606ee98ec474e51bafa507715f5d02539e213cbe4eeed0bc31eca82c679f", size = 57455700, upload-time = "2026-08-27T19:40:27.474Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/69/7475544499fe277f28ed31f83d402d2ce11bcefa86ecc6fa574f94545ed5/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:af234c1b34a97e392689a5e2535c6782c942a3267c8a613d5098b78ef20a76fe", size = 66516098, upload-time = "2026-08-27T19:40:31.123Z" },
+    { url = "https://files.pythonhosted.org/packages/21/b1/4b459fce8e404e2e201952dccb61afed5ff8a56d74a09e54729e8df9bb34/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_i686.whl", hash = "sha256:ea92643993cb73c57cfdbf212cbeba0aed8bfc1e0f641f35f5970f981c607552", size = 71673333, upload-time = "2026-08-27T19:40:35.228Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/3f/31e8b0b42e2044be0188b5f554f60140e9eccb73f6c1df7bc441cf0a2bfa/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_ppc64le.whl", hash = "sha256:ba01d33f0f13b9d76db09597f9a74eaec3e287f9c21a2b7353c83c6aa11a91f7", size = 96323715, upload-time = "2026-08-27T19:40:39.657Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/ad/ab8824ee78675f1e71d8a1c60ebeaa792f995a2a8aa56aa34eaf39ee76ea/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_s390x.whl", hash = "sha256:d28beda87191050777a35417755fdb364cede9ab617615682527ffd1710479c3", size = 72718143, upload-time = "2026-08-27T19:40:44.583Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/ea/96bfba9dcc7bf8c511462e3500c3cde2553e0bf1fc87e3a312042d4d0bee/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:450dc28e15f9b381368ee2a4afe65788646d6b82249affe0e9c473fc7e44df25", size = 67564244, upload-time = "2026-08-27T19:40:49.147Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/40/04f292f913846a81d523792f623d9d56f276c60729cecc03bf430e50a310/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_31_armv7l.whl", hash = "sha256:af1e4039399703933a510c8bdcd28490bbb075d78f904d94fb2f8c824c04a47a", size = 67725985, upload-time = "2026-08-27T19:40:53.217Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/df/23f5446489196c1bc5a1a84cb3fd156034a60f9e0d9c76b028c252b9be75/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_39_riscv64.whl", hash = "sha256:4998545d9306b196a9e9bc9e3297e47922a1d152b330add4c011df6b6345edea", size = 103058840, upload-time = "2026-08-27T19:40:58.254Z" },
 ]
 
 [[package]]
@@ -1925,7 +1925,7 @@ requires-dist = [
     { name = "ipython", marker = "python_full_version >= '3.12'", specifier = ">=8.39.0,<10" },
     { name = "jpype1", marker = "platform_machine != 'arm64' and platform_machine != 'x86_64'", specifier = "==1.6.0" },
     { name = "jpype1", marker = "platform_machine == 'arm64' or platform_machine == 'x86_64'", specifier = "==1.7.1" },
-    { name = "lldb-for-pwndbg", marker = "extra == 'lldb'", specifier = "==23.1.0.post1" },
+    { name = "lldb-for-pwndbg", marker = "extra == 'lldb'", specifier = "==23.1.0.post2" },
     { name = "niche-elf", specifier = "==0.3.6" },
     { name = "psutil", specifier = ">=7.0.0,<8" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
