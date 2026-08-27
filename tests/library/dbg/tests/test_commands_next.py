@@ -70,3 +70,25 @@ async def test_next_command_doesnt_freeze_crashed_binary(ctrl: Controller, comma
 
     # This should not halt/freeze the program
     await ctrl.execute(command)
+
+LOOP_BINARY = get_binary("loop_instruction_ending_in_ret.x86-64.out")
+
+@pwndbg_test
+async def test_nextret_loop(ctrl: Controller) -> None:
+    """
+    Test nextret on a program that will encounter an loop
+    """
+
+    import pwndbg.aglib.disasm.disassembly
+    from capstone6pwndbg.x86 import X86_INS_RET
+
+    await ctrl.launch(LOOP_BINARY)
+
+    await ctrl.execute("nextret")
+
+    current_instruction = pwndbg.aglib.disasm.disassembly.one()
+
+    assert current_instruction.id == X86_INS_RET
+
+
+
