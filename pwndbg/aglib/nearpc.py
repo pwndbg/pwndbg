@@ -426,6 +426,7 @@ def nearpc(
     address_to_highlight: int | None = None,
     end_address: int | None = None,
     max_backwards_linear_count: int | None = None,
+    instruction_flow_cache: pwndbg.aglib.disasm.disassembly.InstructionFlowCache | None = None,
 ) -> list[str]:
     """
     Disassemble near a specified address.
@@ -491,6 +492,7 @@ def nearpc(
             linear=linear,
             end_address=end_address,
             max_backwards_linear_count=max_backwards_linear_count,
+            instruction_flow_cache=instruction_flow_cache,
         )
     )
 

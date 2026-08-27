@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import pytest
+from collections.abc import Awaitable
+from collections.abc import Callable
 
 from ....host import Controller
 from . import break_at_sym
@@ -286,8 +287,9 @@ DOUBLE_RET_ROP_CHAIN_BINARY = get_binary("rop_duplicate_ret.x86-64.out")
 DOUBLE_RET_ROP_CHAIN_BINARY_VARIANT_2 = get_binary("rop_duplicate_ret_variant_2.x86-64.out")
 
 
-@pwndbg_test
-async def test_emulate_double_ret_chain_with_leadup(ctrl: Controller) -> None:
+async def emulate_double_ret_chain_with_leadup_helper(
+    ctrl: Controller, callback: Callable[[Controller], Awaitable[None]] | None
+) -> None:
     """
     This makes sure we handle the check for allowing to read from current process state during enhancement correctly.
 
@@ -329,6 +331,9 @@ async def test_emulate_double_ret_chain_with_leadup(ctrl: Controller) -> None:
 
     await ctrl.step_instruction()
 
+    if callback is not None:
+        await callback(ctrl)
+
     dis_1 = await ctrl.execute_and_capture("context disasm")
 
     expected_1 = (
@@ -353,6 +358,9 @@ async def test_emulate_double_ret_chain_with_leadup(ctrl: Controller) -> None:
     assert dis_1 == expected_1
 
     await ctrl.step_instruction()
+
+    if callback is not None:
+        await callback(ctrl)
 
     dis_2 = await ctrl.execute_and_capture("context disasm")
 
@@ -402,6 +410,26 @@ async def test_emulate_double_ret_chain_with_leadup(ctrl: Controller) -> None:
         )
 
     assert dis_2 == expected_2
+
+
+@pwndbg_test
+async def test_emulate_double_ret_chain_with_leadup(ctrl: Controller):
+    await emulate_double_ret_chain_with_leadup_helper(ctrl, None)
+
+
+@pwndbg_test
+async def test_emulate_double_ret_chain_with_leadup_intermediate_context_disasm(ctrl: Controller):
+    """
+    This checks that "context disasm" run multiple times during the same stop does not mess with the caches
+
+    If this fails with a new "ret" being backfilled into the history, it means the multiple "context disasm" calls
+    are mutating the cache!
+    """
+
+    async def ctx_disasm(ctrl: Controller) -> None:
+        await ctrl.execute("context disasm")
+
+    await emulate_double_ret_chain_with_leadup_helper(ctrl, ctx_disasm)
 
 
 @pwndbg_test
@@ -657,43 +685,66 @@ async def test_emulate_double_ret_chain_variant_2_dynamic_cache_test(ctrl: Contr
 NEXTRET_TO_DOUBLE_RET_BINARY = get_binary("nextret_to_double_ret_chain.x86-64.out")
 
 
-@pytest.mark.xfail(
-    reason="TODO: FIX THIS. The dynamic flow of instructions is incorrect here. The history of instructions from where nextret stops is backfilled incorrectly. The fallback dynamic caching method is at fault"
-)
 @pwndbg_test
 async def test_emulate_nextret_to_double_ret(ctrl: Controller) -> None:
     """
-    Make sure caching works correctly on nextret (and it's family of commands) when ending on
-    a "same instruction seen twice" scenario
+    Test caching works correctly on nextret (and it's family of commands) when ending on
+    a "same instruction seen twice" scenario.
+
+    This particularly tests the fallback dynamic cache, which, if used incorrectly, would cause the second "context disasm"
+    in this test to backfill an incorrect history. Once we pull from this fallback cache (which the nextret populates) while
+    disassembling backwards, we cannot go back to the "linked list" method (which a lookup might cause if not handled correctly).
     """
 
     await ctrl.launch(NEXTRET_TO_DOUBLE_RET_BINARY)
 
     await ctrl.execute("nextret")
 
-    dis = await ctrl.execute_and_capture("context disasm")
+    dis_0 = await ctrl.execute_and_capture("context disasm")
 
-    # TODO: THIS IS THE CURRENT OUTPUT. IT IS INCORRECT. This should not be happening, but with current cache system it is!
-    # The ret at the PC (noted by ►) should not have a bunch of rets before it! This is flaw of our caching system
-    expected = (
+    expected_0 = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
-        "   0x4000be <self_ret>      nop   \n"
-        "   0x4000bf <self_ret+1>    ret                                <self_ret>\n"
+        "   0x4000aa <rop_setup+10>           mov    qword ptr [rsp], rax\n"
+        "   0x4000ae <rop_setup+14>           movabs rax, nop_sled                RAX => 0x4000c0 (nop_sled) ◂— nop\n"
+        "   0x4000b8 <rop_setup+24>           mov    qword ptr [rsp + 8], rax\n"
+        "   0x4000bd <one_before_self_ret>    nop   \n"
+        "   0x4000be <self_ret>               nop   \n"
+        " ► 0x4000bf <self_ret+1>             ret                                <self_ret>\n"
         "    ↓\n"
-        "   0x4000be <self_ret>      nop   \n"
-        "   0x4000bf <self_ret+1>    ret                                <self_ret>\n"
+        "   0x4000be <self_ret>               nop   \n"
+        "   0x4000bf <self_ret+1>             ret                                <nop_sled>\n"
         "    ↓\n"
-        "   0x4000be <self_ret>      nop   \n"
-        " ► 0x4000bf <self_ret+1>    ret                                <self_ret>\n"
-        "    ↓\n"
-        "   0x4000be <self_ret>      nop   \n"
-        "   0x4000bf <self_ret+1>    ret                                <nop_sled>\n"
-        "    ↓\n"
-        "   0x4000c0 <nop_sled>      nop   \n"
-        "   0x4000c1 <nop_sled+1>    nop   \n"
-        "   0x4000c2 <nop_sled+2>    nop   \n"
+        "   0x4000c0 <nop_sled>               nop   \n"
+        "   0x4000c1 <nop_sled+1>             nop   \n"
+        "   0x4000c2 <nop_sled+2>             nop   \n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
-    assert dis == expected
+    assert dis_0 == expected_0
+
+    await ctrl.step_instruction()
+
+    dis_1 = await ctrl.execute_and_capture("context disasm")
+
+    # THIS IS INCORRECT
+    expected_1 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        "   0x4000ae <rop_setup+14>           movabs rax, nop_sled                RAX => 0x4000c0 (nop_sled) ◂— nop\n"
+        "   0x4000b8 <rop_setup+24>           mov    qword ptr [rsp + 8], rax\n"
+        "   0x4000bd <one_before_self_ret>    nop   \n"
+        "   0x4000be <self_ret>               nop   \n"
+        "   0x4000bf <self_ret+1>             ret                                <self_ret>\n"
+        "    ↓\n"
+        " ► 0x4000be <self_ret>               nop   \n"
+        "   0x4000bf <self_ret+1>             ret                                <nop_sled>\n"
+        "    ↓\n"
+        "   0x4000c0 <nop_sled>               nop   \n"
+        "   0x4000c1 <nop_sled+1>             nop   \n"
+        "   0x4000c2 <nop_sled+2>             nop   \n"
+        "   0x4000c3 <nop_sled+3>             nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_1 == expected_1
