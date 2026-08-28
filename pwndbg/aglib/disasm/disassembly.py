@@ -479,7 +479,6 @@ def one(
             linear_backward_address_cache[insn.address + insn.size] = insn.address
 
         if put_dynamic_backward_cache and not linear:
-            # TODO: this check is bad What about next insn.....
             if previously_seen_addresses is None or (
                 insn.next not in previously_seen_addresses and insn.next != insn.address
             ):
