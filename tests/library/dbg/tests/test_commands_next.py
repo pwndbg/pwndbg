@@ -87,6 +87,10 @@ async def test_nextret_loop(ctrl: Controller) -> None:
 
     await ctrl.launch(LOOP_BINARY)
 
+    # WORKAROUND FOR LLDB BUG: https://github.com/pwndbg/pwndbg/issues/4097
+    # Need to step once so that nextret works
+    await ctrl.step_instruction()
+
     await ctrl.execute("nextret")
 
     current_instruction = pwndbg.aglib.disasm.disassembly.one()
