@@ -205,6 +205,38 @@ async def test_heap_bins(ctrl: Controller) -> None:
 
 
 @pwndbg_test
+async def test_tcache_bins_respects_heap_dereference_limit(ctrl: Controller) -> None:
+    """Ensure tcache rendering uses heap-dereference-limit for chains longer than seven."""
+    import pwndbg.aglib.heap
+    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+
+    await ctrl.execute("set context-output /dev/null")
+    await ctrl.launch(BINARY, env={"GLIBC_TUNABLES": "glibc.malloc.tcache_count=16"})
+
+    # Free 11 chunks into one tcache bin
+    break_at_sym("breakpoint")
+    await ctrl.cont()
+    await ctrl.cont()
+    await ctrl.cont()
+
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.current
+
+    await ctrl.execute("set heap-dereference-limit 12")
+
+    bins = allocator.tcachebins()
+    assert bins is not None
+    tcache_bin = bins.bins[allocator._request2size(0x20)]
+    assert tcache_bin.count == 11
+    assert len(tcache_bin.fd_chain) == 12
+    assert tcache_bin.fd_chain[-1] == 0
+
+    output = await ctrl.execute_and_capture("bins")
+    for address in tcache_bin.fd_chain[:-1]:
+        assert hex(address) in output
+
+
+@pwndbg_test
 async def test_heap_bins_2_43(ctrl: Controller) -> None:
     """
     Tests pwndbg.aglib.heap bins commands (Only for glibc 2.43+ targets)
