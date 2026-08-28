@@ -698,6 +698,10 @@ async def test_emulate_nextret_to_double_ret(ctrl: Controller) -> None:
 
     await ctrl.launch(NEXTRET_TO_DOUBLE_RET_BINARY)
 
+    # WORKAROUND FOR LLDB BUG: https://github.com/pwndbg/pwndbg/issues/4097
+    # Need to step once so that nextret works
+    await ctrl.step_instruction()
+
     await ctrl.execute("nextret")
 
     dis_0 = await ctrl.execute_and_capture("context disasm")
