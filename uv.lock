@@ -8,9 +8,9 @@ resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.12.*' and platform_machine == 'arm64') or (python_full_version == '3.12.*' and platform_machine == 'x86_64')",
     "(python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.11.*' and platform_machine == 'arm64') or (python_full_version == '3.11.*' and platform_machine == 'x86_64')",
     "(python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "(python_full_version < '3.11' and platform_machine == 'arm64') or (python_full_version < '3.11' and platform_machine == 'x86_64')",
@@ -978,8 +978,8 @@ resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "(python_full_version < '3.11' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version < '3.11' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
@@ -1166,7 +1166,7 @@ wheels = [
 
 [[package]]
 name = "lldb-for-pwndbg"
-version = "22.1.0.post3"
+version = "23.1.0.post2"
 source = { registry = "https://mirrors.loong64.com/pypi/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
@@ -1177,12 +1177,12 @@ resolution-markers = [
     "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 wheels = [
-    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/45aa0175f370a348c754842c866e92de246b99383f0ed80361e6e6eb8c1a1ec5/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_36_loongarch64.whl", hash = "sha256:45aa0175f370a348c754842c866e92de246b99383f0ed80361e6e6eb8c1a1ec5" },
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/c016da38804ba6331094f2a4bc128a6ffa3ea3dd813bfca77669f11b8964c766/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_36_loongarch64.whl", hash = "sha256:c016da38804ba6331094f2a4bc128a6ffa3ea3dd813bfca77669f11b8964c766" },
 ]
 
 [[package]]
 name = "lldb-for-pwndbg"
-version = "22.1.0.post3"
+version = "23.1.0.post2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine == 'arm64') or (python_full_version >= '3.13' and platform_machine == 'x86_64')",
@@ -1195,15 +1195,15 @@ resolution-markers = [
     "(python_full_version < '3.11' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version < '3.11' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9f/4f/5093233f6f11a4d7d3beae26083c89c86d8daa86a2aaee4316d89e15457e/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-macosx_10_13_x86_64.whl", hash = "sha256:fd7b1af990628f3f6f396fa82c51b1076bb9cc4722c209370b17ea5c12da03fd", size = 57103233, upload-time = "2026-07-23T15:26:07.491Z" },
-    { url = "https://files.pythonhosted.org/packages/d1/a4/554006a67c8c0adbbd53c736f1f6a443232963ca4c83e3e105f3ad591c23/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:0ae344a63724012fdd6e8505d47d0b9471698ee102f3d564ab1acb44f75058e3", size = 55034232, upload-time = "2026-07-23T15:26:11.151Z" },
-    { url = "https://files.pythonhosted.org/packages/96/d2/ecc73efb9b91ef7ab1ecf51d9514044f57a233c650bf44c2385165fea094/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:fd65a53cb7f07c8777e1b1f2c1a662e5e3ce8686ff41432b2471036d66dc2e05", size = 61439988, upload-time = "2026-07-23T15:26:14.73Z" },
-    { url = "https://files.pythonhosted.org/packages/d7/9b/5b19fe8ba5d3dbed2831436778013eb373809abc601f4049bc89e2192a46/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_28_i686.whl", hash = "sha256:3735b345da8e58f85c7584c7ee2d537b31f2ad461eb99405b2ead5db692771ea", size = 66047113, upload-time = "2026-07-23T15:26:18.901Z" },
-    { url = "https://files.pythonhosted.org/packages/d3/0f/9665a34cc22d531a0b9d8b5f1b746f0aad76c1cd23999bdf2a4d35cb0357/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_28_ppc64le.whl", hash = "sha256:4258381363eb0d5f3eae9714fd1e61a88cf97a245e17a0014b65a3fcb1eaa9b6", size = 91475950, upload-time = "2026-07-23T15:26:23.504Z" },
-    { url = "https://files.pythonhosted.org/packages/c9/cf/ea047a86f77238025203cea288a645fd3c778a7f109a861ed7d1322553ee/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_28_s390x.whl", hash = "sha256:0eb6bc6ca05d0267422ab4b49be3fdec3a59e0ba962f9ba1baa1144cf971fced", size = 66740767, upload-time = "2026-07-23T15:26:27.544Z" },
-    { url = "https://files.pythonhosted.org/packages/68/6e/75d2737701e949d57da34bb067ec22bec85dd084b109fefc7b6b84977383/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:b48040ee696bf1183223cc27b438097d747e43455b8fee5035f44af2e9d0f8d2", size = 62308468, upload-time = "2026-07-23T15:26:31.265Z" },
-    { url = "https://files.pythonhosted.org/packages/e0/6e/b767c537b95fbcff1fe0ce42facb72a3d0f236a03c37c2e775e4e7405a6e/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_31_armv7l.whl", hash = "sha256:45cb635f5cec9443c461339fa31aa1973c06c50719df6abd04f06fb4832adfa2", size = 62246424, upload-time = "2026-07-23T15:26:35.07Z" },
-    { url = "https://files.pythonhosted.org/packages/24/8d/d96ca533630aae753cc4fef56008c66eb235dbfabffed03d70886ba3fb3b/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_39_riscv64.whl", hash = "sha256:857f062517d328d6dc08f489be30f73df5f54ea837296cd497559dfb1865d3f9", size = 95255263, upload-time = "2026-07-23T15:26:39.299Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/19/c10f70f8180a607dca6ca23eb347584ecfd32392a6c8633f4abd3dc8c759/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-macosx_10_13_x86_64.whl", hash = "sha256:cf00676ca301a4e8cd6ea937551e8d36bba838d0f234733cfe2cbbc30b4209f7", size = 59613165, upload-time = "2026-08-27T19:40:23.734Z" },
+    { url = "https://files.pythonhosted.org/packages/55/dd/d1feaf3d9cdae4fa14e864cecdb6660696283735a58f211398bf9c840b44/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:5c66606ee98ec474e51bafa507715f5d02539e213cbe4eeed0bc31eca82c679f", size = 57455700, upload-time = "2026-08-27T19:40:27.474Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/69/7475544499fe277f28ed31f83d402d2ce11bcefa86ecc6fa574f94545ed5/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:af234c1b34a97e392689a5e2535c6782c942a3267c8a613d5098b78ef20a76fe", size = 66516098, upload-time = "2026-08-27T19:40:31.123Z" },
+    { url = "https://files.pythonhosted.org/packages/21/b1/4b459fce8e404e2e201952dccb61afed5ff8a56d74a09e54729e8df9bb34/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_i686.whl", hash = "sha256:ea92643993cb73c57cfdbf212cbeba0aed8bfc1e0f641f35f5970f981c607552", size = 71673333, upload-time = "2026-08-27T19:40:35.228Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/3f/31e8b0b42e2044be0188b5f554f60140e9eccb73f6c1df7bc441cf0a2bfa/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_ppc64le.whl", hash = "sha256:ba01d33f0f13b9d76db09597f9a74eaec3e287f9c21a2b7353c83c6aa11a91f7", size = 96323715, upload-time = "2026-08-27T19:40:39.657Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/ad/ab8824ee78675f1e71d8a1c60ebeaa792f995a2a8aa56aa34eaf39ee76ea/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_s390x.whl", hash = "sha256:d28beda87191050777a35417755fdb364cede9ab617615682527ffd1710479c3", size = 72718143, upload-time = "2026-08-27T19:40:44.583Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/ea/96bfba9dcc7bf8c511462e3500c3cde2553e0bf1fc87e3a312042d4d0bee/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:450dc28e15f9b381368ee2a4afe65788646d6b82249affe0e9c473fc7e44df25", size = 67564244, upload-time = "2026-08-27T19:40:49.147Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/40/04f292f913846a81d523792f623d9d56f276c60729cecc03bf430e50a310/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_31_armv7l.whl", hash = "sha256:af1e4039399703933a510c8bdcd28490bbb075d78f904d94fb2f8c824c04a47a", size = 67725985, upload-time = "2026-08-27T19:40:53.217Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/df/23f5446489196c1bc5a1a84cb3fd156034a60f9e0d9c76b028c252b9be75/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_39_riscv64.whl", hash = "sha256:4998545d9306b196a9e9bc9e3297e47922a1d152b330add4c011df6b6345edea", size = 103058840, upload-time = "2026-08-27T19:40:58.254Z" },
 ]
 
 [[package]]
@@ -1665,9 +1665,9 @@ resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.12.*' and platform_machine == 'arm64') or (python_full_version == '3.12.*' and platform_machine == 'x86_64')",
     "(python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.11.*' and platform_machine == 'arm64') or (python_full_version == '3.11.*' and platform_machine == 'x86_64')",
     "(python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
 ]
@@ -1896,8 +1896,8 @@ gdb = [
 ]
 lldb = [
     { name = "gnureadline", marker = "sys_platform != 'win32'" },
-    { name = "lldb-for-pwndbg", version = "22.1.0.post3", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
-    { name = "lldb-for-pwndbg", version = "22.1.0.post3", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
+    { name = "lldb-for-pwndbg", version = "23.1.0.post2", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
+    { name = "lldb-for-pwndbg", version = "23.1.0.post2", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
     { name = "pyreadline3", marker = "sys_platform == 'win32'" },
 ]
 
@@ -1952,8 +1952,8 @@ requires-dist = [
     { name = "ipython", marker = "python_full_version >= '3.12'", specifier = ">=8.39.0,<10" },
     { name = "jpype1", marker = "platform_machine != 'arm64' and platform_machine != 'x86_64'", specifier = "==1.6.0" },
     { name = "jpype1", marker = "platform_machine == 'arm64' or platform_machine == 'x86_64'", specifier = "==1.7.1" },
-    { name = "lldb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", specifier = "==22.1.0.post3", index = "https://mirrors.loong64.com/pypi/simple" },
-    { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'lldb') or (sys_platform != 'linux' and extra == 'lldb')", specifier = "==22.1.0.post3" },
+    { name = "lldb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", specifier = "==23.1.0.post2", index = "https://mirrors.loong64.com/pypi/simple" },
+    { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'lldb') or (sys_platform != 'linux' and extra == 'lldb')", specifier = "==23.1.0.post2" },
     { name = "niche-elf", specifier = "==0.3.6" },
     { name = "psutil", specifier = ">=7.0.0,<8" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
