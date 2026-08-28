@@ -129,7 +129,7 @@ class InstructionFlowCache:
     Any larger changes of the program counter will cause the cache to reset.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.current_instruction_sequence_linked_list_map = collections.defaultdict(lambda: None)
         self.next_instruction_sequence_linked_list_map = (
             self.current_instruction_sequence_linked_list_map
@@ -490,7 +490,7 @@ def one(
 
 
 # Get one instruction without enhancement
-def one_raw(address=None) -> PwndbgInstruction | None:
+def one_raw(address: int | None = None) -> PwndbgInstruction | None:
     if address is None:
         address = pwndbg.aglib.regs.pc
 
@@ -601,21 +601,21 @@ def can_run_first_emulate() -> bool:
 first_time_emulate = True
 
 
-def no_emulate_one():
+def no_emulate_one() -> PwndbgInstruction | None:
     result = near(pwndbg.aglib.regs.pc, emulate=False, show_prev_insns=False)
     if result:
         return result[0][0]
     return None
 
 
-def emulate_one():
+def emulate_one() -> PwndbgInstruction | None:
     result = near(pwndbg.aglib.regs.pc, emulate=True, show_prev_insns=False)
     if result:
         return result[0][0]
     return None
 
 
-def one_with_config():
+def one_with_config() -> PwndbgInstruction | None:
     """
     Returns a single Pwndbg Instruction at the current PC.
 
