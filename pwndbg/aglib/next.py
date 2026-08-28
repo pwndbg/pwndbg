@@ -57,7 +57,7 @@ def next_branch(address=None, including_current=False) -> PwndbgInstruction | No
     Return the next branch instruction that the process will encounter with repeated usage of the "nexti" command.
 
     If including_current == True, then if the instruction at the address is already a branch, return it.
-    
+
     Returns the next branch instruction, or None if cannot disassemble anymore.
     """
     if address is None:
