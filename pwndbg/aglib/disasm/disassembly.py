@@ -150,18 +150,19 @@ class InstructionFlowCache:
 
 
 # This tracks the order of instructions based on the last time we disassembled them in a dynamic context.
-# It is only used in a specific case: if the linked list method fails (we cannot be 100% certain of instruction order),
-# it is still nice to be able to display instructions behind the instruction pointer. For dynamic cases,
-# it's most likely that we arrived at a location the same way we previously arrived there, which this tracks.
+# The linked list method may not always apply to get the previous flow of instruction (running `fin` to end a function)
+# so this structure is used as a fallback.
+# The rationale is that for dynamic cases, it's most likely that we arrived at a location the same way we previously arrived there, which this tracks.
 # Map of address to previous address
-dynamic_backward_address_cache: collections.defaultdict[int, int | None] = collections.defaultdict(
-    lambda: None
-)
-
-# This allows use to retain the annotation strings from previous instructions
-computed_instruction_cache: collections.defaultdict[int, PwndbgInstruction | None] = (
+global_fallback_dynamic_backward_address_cache: collections.defaultdict[int, int | None] = (
     collections.defaultdict(lambda: None)
 )
+
+# Used alongside the previous cache, this stores the "enhanced" instructions from the last time
+# the instruction was disassembled in a dynamic context
+global_fallback_computed_instruction_cache: collections.defaultdict[
+    int, PwndbgInstruction | None
+] = collections.defaultdict(lambda: None)
 
 
 # Dict of Address -> previous instruction sequentially in memory
@@ -254,7 +255,7 @@ def get_previous_instruction(
                 return (prev_node.instruction, CacheSource.LINKED_LIST_DYNAMIC)
 
     # Fallback to other dynamic cache method
-    prev_address = dynamic_backward_address_cache[address]
+    prev_address = global_fallback_dynamic_backward_address_cache[address]
 
     if prev_address is not None:
         insn = one(
@@ -458,7 +459,7 @@ def one(
         return None
 
     if from_cache:
-        cached = computed_instruction_cache[address]
+        cached = global_fallback_computed_instruction_cache[address]
         if cached is not None:
             return cached
 
@@ -472,7 +473,7 @@ def one(
         )
     ) is not None:
         if put_cache:
-            computed_instruction_cache[address] = insn
+            global_fallback_computed_instruction_cache[address] = insn
 
         if put_linear_backward_cache:
             linear_backward_address_cache[insn.address + insn.size] = insn.address
@@ -482,7 +483,7 @@ def one(
             if previously_seen_addresses is None or (
                 insn.next not in previously_seen_addresses and insn.next != insn.address
             ):
-                dynamic_backward_address_cache[insn.next] = insn.address
+                global_fallback_dynamic_backward_address_cache[insn.next] = insn.address
         return insn
 
     return None
@@ -944,11 +945,11 @@ def near(
 
                 delay_slot_cache[split_insn.address] = insn
 
-                dynamic_backward_address_cache[insn.next] = split_insn.address
-                dynamic_backward_address_cache[split_insn.address + split_insn.size] = (
-                    split_insn.address
-                )
-                dynamic_backward_address_cache[split_insn.address] = insn.address
+                global_fallback_dynamic_backward_address_cache[insn.next] = split_insn.address
+                global_fallback_dynamic_backward_address_cache[
+                    split_insn.address + split_insn.size
+                ] = split_insn.address
+                global_fallback_dynamic_backward_address_cache[split_insn.address] = insn.address
 
                 if instruction_flow_cache is not None:
                     instruction_sequence_head = InstructionSequenceNode(

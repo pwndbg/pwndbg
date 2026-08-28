@@ -1365,7 +1365,7 @@ def enhance_cache_listener() -> None:
 
     if pwndbg.aglib.regs.pc not in context_disasm_instruction_flow_cache.next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
-        pwndbg.aglib.disasm.disassembly.computed_instruction_cache.clear()
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.clear()
         context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.clear()
 
 
@@ -1374,13 +1374,15 @@ def enhance_cache_listener() -> None:
 def clear_on_reg_mem_change() -> None:
     # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
     # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
-    pwndbg.aglib.disasm.disassembly.computed_instruction_cache.pop(pwndbg.aglib.regs.pc, None)
+    pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.pop(
+        pwndbg.aglib.regs.pc, None
+    )
     context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.pop(
         pwndbg.aglib.regs.pc, None
     )
 
     for addr in context_disasm_instruction_flow_cache.next_addresses_cache:
-        pwndbg.aglib.disasm.disassembly.computed_instruction_cache.pop(addr, None)
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.pop(addr, None)
         context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.pop(
             addr, None
         )
@@ -1408,7 +1410,7 @@ def context_disasm(
         and (cs.syntax & pwndbg.aglib.disasm.disassembly.CAPSTONE_SYNTAX_OPTIONS_MASK) != syntax
     ):
         pwndbg.lib.cache.clear_caches()
-        pwndbg.aglib.disasm.disassembly.computed_instruction_cache.clear()
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.clear()
 
     additional_disasm_lines = max(int(disasm_lines), height or 0)
 
