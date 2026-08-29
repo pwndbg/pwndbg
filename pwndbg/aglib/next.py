@@ -215,11 +215,21 @@ async def break_next_call(ec: pwndbg.dbg_mod.ExecutionController, symbol_regex=N
             return ins
 
 
-async def break_next_ret(ec: pwndbg.dbg_mod.ExecutionController, address=None):
+async def break_next_ret(
+    ec: pwndbg.dbg_mod.ExecutionController, address=None, including_current: bool = False
+):
+    """
+    If including_current == True, do not step in case we are currently on a ret
+    """
     while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
         if pwndbg.aglib.proc.stopped_with_signal():
             return None
+
+        if including_current:
+            ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
+            if CS_GRP_RET in ins.groups:
+                return ins
 
         ins = await break_next_branch(ec, address)
 
@@ -300,7 +310,7 @@ async def break_on_program_code(ec: pwndbg.dbg_mod.ExecutionController) -> bool:
         if pwndbg.aglib.proc.stopped_with_signal():
             return False
 
-        await break_next_ret(ec)
+        await break_next_ret(ec, including_current=True)
         await ec.single_step()
 
         for start, end in binary_exec_page_ranges:
