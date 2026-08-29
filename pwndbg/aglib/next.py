@@ -228,6 +228,8 @@ async def break_next_ret(
 
         if including_current:
             ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
+            if not ins:
+                return None
             if CS_GRP_RET in ins.groups:
                 return ins
 
