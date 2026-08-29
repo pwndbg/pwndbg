@@ -80,14 +80,16 @@ async def _stepret(ec: pwndbg.dbg_mod.ExecutionController):
     """
     Execution controller for the `stepret` command.
     """
-    first = True
+
+    # We may be starting on a ret. This prevents us from just sitting on the ret
+    if pwndbg.aglib.proc.alive():
+        await ec.single_step()
+
     while pwndbg.aglib.proc.alive() and (
         ins := await pwndbg.aglib.next.break_next_branch(ec, including_current=True)
     ):
-        # If we are already on a RET when starting this command, we skip
-        if not first and CS_GRP_RET in ins.groups:
+        if CS_GRP_RET in ins.groups:
             break
-        first = False
         # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
         # We need to step so that we take this branch instead of ignoring it
         await ec.single_step()
