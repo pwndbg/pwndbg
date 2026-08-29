@@ -70,20 +70,32 @@ def main():
         print("ERROR: Could not find 'gdb' binary")
         sys.exit(1)
 
-    envs = os.environ.copy()
-    envs["PYTHONNOUSERSITE"] = "1"
-    envs["PYTHONPATH"] = ":".join(site.getsitepackages())
-
     # Ensure arg0 points to the gdb binary; otherwise GDB can pick up a wrong PYTHONHOME.
     sys.argv[0] = gdb_path
 
-    # sys.prefix/sys.exec_prefix must point to the virtual environment,
-    # otherwise our auto-upgrade mechanism won't work when the package is installed in editable mode
-    prefix_cmd = (
-        f"py import sys; sys.prefix = {sys.prefix!r}; sys.exec_prefix = {sys.exec_prefix!r}"
-    )
-    sys.argv.insert(1, prefix_cmd)
-    sys.argv.insert(1, "-iex")
+    envs = os.environ.copy()
+    if sys.version_info >= (3, 11):
+        envs.setdefault("PYTHONNOUSERSITE", "1")
+        envs["__PYVENV_LAUNCHER__"] = sys.executable
+    else:
+        # site.addsitedir() is what expands the .pth files. Unlike the venv handling above
+        # it runs after interpreter startup and only appends, so it cannot get the order
+        # right on its own: PYTHONPATH is what keeps our site-packages ahead of GDB's
+        # own, and PYTHONNOUSERSITE keeps a stale copy in ~/.local from winning too.
+        envs.setdefault("PYTHONNOUSERSITE", "1")
+        envs["PYTHONPATH"] = ":".join(site.getsitepackages())
+
+        sitedirs_cmd = f"py import site; [site.addsitedir(d) for d in {site.getsitepackages()!r}]"
+        sys.argv.insert(1, sitedirs_cmd)
+        sys.argv.insert(1, "-iex")
+
+        # sys.prefix/sys.exec_prefix must point to the virtual environment,
+        # otherwise our auto-upgrade mechanism won't work when the package is installed in editable mode
+        prefix_cmd = (
+            f"py import sys; sys.prefix = {sys.prefix!r}; sys.exec_prefix = {sys.exec_prefix!r}"
+        )
+        sys.argv.insert(1, prefix_cmd)
+        sys.argv.insert(1, "-iex")
 
     expected = (sysconfig.get_config_var("INSTSONAME"), sysconfig.get_config_var("VERSION"))
     have = get_gdb_version(gdb_path)
