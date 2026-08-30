@@ -89,6 +89,7 @@ def nearpc(
     linear: bool = True,
     no_branch: bool = False,
     function: int | None = None,
+    max_backwards_linear_count: int | None = None,
 ) -> None:
     """
     Disassemble near a specified address.
@@ -164,6 +165,7 @@ def nearpc(
                 branch_visualization=not no_branch,
                 address_to_highlight=address_to_highlight,
                 end_address=end_address,
+                max_backwards_linear_count=max_backwards_linear_count,
             )
         )
     )
@@ -212,4 +214,5 @@ def emulate(pc=None, lines=None, reverse=None, total=None, emulate_=True) -> Non
         use_cache=True,
         linear=False,
         no_branch=True,
+        max_backwards_linear_count=0,
     )

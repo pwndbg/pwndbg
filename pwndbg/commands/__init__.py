@@ -23,6 +23,7 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
+import pwndbg.color
 import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.exception
@@ -319,7 +320,8 @@ class CommandObj:
             # Workaround until https://github.com/pwndbg/pwndbg/issues/3523
             # is fixed.
             parser.prog = (
-                parser.prog.replace("pwndbg-lldb", "")
+                pwndbg.color.strip(parser.prog)
+                .replace("pwndbg-lldb", "")
                 .replace("launch_guest.py", "")
                 .replace("python3 -m tests.host.lldb.launch_guest", "")
             )
@@ -571,13 +573,15 @@ class Command:
         *,  # All further parameters are not positional
         category: CommandCategory,
         command_name: str | None = None,
-        aliases: list[str] = [],
+        aliases: list[str] = None,
         examples: str = "",
         notes: str = "",
         only_debuggers: set[pwndbg.dbg_mod.DebuggerType] | None = None,
         exclude_debuggers: set[pwndbg.dbg_mod.DebuggerType] | None = None,
     ) -> None:
         # Setup an ArgumentParser even if we were only passed a description.
+        if aliases is None:
+            aliases = []
         if isinstance(parser_or_desc, str):
             self.parser = argparse.ArgumentParser(description=parser_or_desc)
         else:
@@ -1099,6 +1103,7 @@ def load_commands() -> None:
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
     import pwndbg.commands.errno
+    import pwndbg.commands.exithandlers
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
     import pwndbg.commands.godbg
@@ -1153,6 +1158,7 @@ def load_commands() -> None:
     import pwndbg.commands.sigreturn
     import pwndbg.commands.slab
     import pwndbg.commands.spray
+    import pwndbg.commands.stackvis
     import pwndbg.commands.start
     import pwndbg.commands.strings
     import pwndbg.commands.telescope
