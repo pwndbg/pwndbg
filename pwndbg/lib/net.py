@@ -176,6 +176,23 @@ def tcp6(data: str, endianness: str) -> list[Connection]:
     return _tcp_parser(data, socket.AF_INET6, endianness)
 
 
+def _is_unix_entry(fields: list[str]) -> bool:
+    # A valid /proc/net/unix entry looks like:
+    # "0000000000000000: 00000002 00000000 00010000 0001 01 12345 /some/path"
+    # i.e. a hex slot number ending with ":", five hex fields, a decimal
+    # inode, and an optional path.
+    if len(fields) < 7 or not fields[0].endswith(":"):
+        return False
+    try:
+        int(fields[0][:-1], 16)
+        for f in fields[1:6]:
+            int(f, 16)
+        int(fields[6])
+    except ValueError:
+        return False
+    return True
+
+
 def unix(data: str) -> list[UnixSocket]:
     if not data:
         return []
@@ -186,6 +203,7 @@ def unix(data: str) -> list[UnixSocket]:
     # "0000000000000000: 00000002 00000000 00000000 0002 01 23302 @@@@\x9e\x05@@\x01=\r@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
     # and splitlines will also split by \r which we do not want here
     # We also finish at -1 index since with .split() the empty last line is kept in the result
+    prev_had_path = False
     for line in data.split("\n")[1:-1]:
         """
         Num       RefCount Protocol Flags    Type St Inode Path
@@ -193,8 +211,14 @@ def unix(data: str) -> list[UnixSocket]:
         """
         fields = line.split(maxsplit=7)
 
+        if not _is_unix_entry(fields):
+            if prev_had_path:
+                result[-1].path += "\n" + line
+            continue
+
         u = UnixSocket()
-        if len(fields) >= 8:
+        prev_had_path = len(fields) >= 8
+        if prev_had_path:
             u.path = fields[7]
         u.inode = int(fields[6])
         result.append(u)

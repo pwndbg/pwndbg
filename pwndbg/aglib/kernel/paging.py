@@ -587,7 +587,7 @@ class x86_64PagingInfo(ArchPagingInfo):
                     page.objfile = self.KERNELRO
         if not stack:
             return
-        for i, page in enumerate(pages):
+        for page in pages:
             if stack in page:
                 page.objfile += " [stack]"
 

@@ -141,13 +141,10 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         except ValueError:
             pass
 
-        # FIXME: how to sanitize symbol name better?
-        if not re.match(r"^[a-zA-Z0-9_.:@*/$]+$", name):
-            raise pwndbg.dbg_mod.Error(f"Symbol {name!r} contains invalid characters")
-
         value = None
         with suppress(pwndbg.dbg_mod.Error):
-            value = self.evaluate_expression(f"&{name}")
+            if re.match(r"^[a-zA-Z0-9_.:@*/$]+$", name):
+                value = self.evaluate_expression(f"&{name}")
 
         if value is None:
             # Fallback because `evaluate_expression` may fail to resolve symbols for TLS variables.
@@ -624,7 +621,7 @@ class LLDBType(pwndbg.dbg_mod.Type):
                 0,
                 False,
                 False,  # TODO: Handle base class members differently.
-                field.bitfield_bit_size if field.is_bitfield else field.type.GetByteSize(),
+                (field.bitfield_bit_size if field.is_bitfield else field.type.GetByteSize()),
             )
             for field in fields
         ]
@@ -742,7 +739,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         # Read strings up to 4GB.
         last_str = None
         buf = 256
-        for i in range(8, 33):  # log2(256) = 8, log2(4GB) = 32
+        for _ in range(8, 33):  # log2(256) = 8, log2(4GB) = 32
             s = self.inner.process.ReadCStringFromMemory(addr, buf, error)
             if error.Fail():
                 raise pwndbg.dbg_mod.Error(f"could not read value as string: {error.description}")
@@ -956,7 +953,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     _created_value_serial: int
 
     def __init__(
-        self, dbg: LLDB, process: lldb.SBProcess, target: lldb.SBTarget, is_gdb_remote: bool
+        self,
+        dbg: LLDB,
+        process: lldb.SBProcess,
+        target: lldb.SBTarget,
+        is_gdb_remote: bool,
     ):
         self.dbg = dbg
         self.process = process
@@ -1649,7 +1650,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         return None
 
     def _iter_symbols(
-        self, name: str, type: pwndbg.dbg_mod.SymbolLookupType, objfile: lldb.SBModule | None = None
+        self,
+        name: str,
+        type: pwndbg.dbg_mod.SymbolLookupType,
+        objfile: lldb.SBModule | None = None,
     ) -> Iterator[tuple[lldb.SBSymbol, pwndbg.dbg_mod.Type, int]]:
         # Info from commit: https://github.com/llvm/llvm-project/commit/bcf2cfbdc5f7b8998d1a06e2e4b640dd42a5b10f
         # eSymbolTypeFunction: eSymbolTypeCode with IsDebug() == true
@@ -1679,7 +1683,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # NOTE: `FindGlobalVariables` returns ONLY variables that have DEBUG INFO.
         variables_types: dict[tuple[int, str], LLDBType] = {}
 
-        if type in (pwndbg.dbg_mod.SymbolLookupType.VARIABLE, pwndbg.dbg_mod.SymbolLookupType.ANY):
+        if type in (
+            pwndbg.dbg_mod.SymbolLookupType.VARIABLE,
+            pwndbg.dbg_mod.SymbolLookupType.ANY,
+        ):
             variables: lldb.SBValueList
             if objfile:
                 variables = objfile.FindGlobalVariables(self.target, name, 0)
@@ -1699,7 +1706,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         domains = {
             pwndbg.dbg_mod.SymbolLookupType.ANY: (lldb.eSymbolTypeAny,),
             # TLS variables are included under `eSymbolTypeAny`, so we need to check
-            pwndbg.dbg_mod.SymbolLookupType.VARIABLE: (lldb.eSymbolTypeData, lldb.eSymbolTypeAny),
+            pwndbg.dbg_mod.SymbolLookupType.VARIABLE: (
+                lldb.eSymbolTypeData,
+                lldb.eSymbolTypeAny,
+            ),
             pwndbg.dbg_mod.SymbolLookupType.FUNCTION: (lldb.eSymbolTypeCode,),
         }[type]
 
@@ -1758,9 +1768,19 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                         cast_type = pwndbg.aglib.typeinfo.pvoid
 
                 sym_type = sym.GetType()
-                if addr.section.name in (".tbss", ".tdata") and sym_type == lldb.eSymbolTypeInvalid:
+                is_tls_section = (
+                    LLDB_VERSION[0] <= 22
+                    and addr.section.name in (".tbss", ".tdata")
+                    and sym_type == lldb.eSymbolTypeInvalid
+                ) or (
+                    LLDB_VERSION[0] >= 23
+                    and addr.section.name in (".tbss", ".tdata")
+                    and sym_type == lldb.eSymbolTypeData
+                )
+
+                if is_tls_section:
                     # Additionally, we check only TLS sections (.tbss and .tdata).
-                    # Symbols with type eSymbolTypeInvalid might represent TLS symbols.
+                    # Symbols with type eSymbolTypeData might represent TLS symbols.
                     # Attempt to resolve this symbol and verify if it provides a valid result.
                     tls = self._resolve_tls_symbol(sym)
                     if tls:
@@ -1872,7 +1892,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         elif isinstance(location, pwndbg.dbg_mod.WatchpointLocation):
             e = lldb.SBError()
             bp = self.target.WatchAddress(
-                location.address, location.size, location.watch_read, location.watch_write, e
+                location.address,
+                location.size,
+                location.watch_read,
+                location.watch_write,
+                e,
             )
 
         if not bp.IsValid():
@@ -2037,7 +2061,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def dispatch_execution_controller(
-        self, procedure: Callable[[pwndbg.dbg_mod.ExecutionController], Coroutine[Any, Any, None]]
+        self,
+        procedure: Callable[[pwndbg.dbg_mod.ExecutionController], Coroutine[Any, Any, None]],
     ):
         # Queue the coroutine up for execution by the Pwndbg CLI.
         self.dbg.controllers.append((self, procedure(EXECUTION_CONTROLLER)))
@@ -2128,6 +2153,8 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self._exception_relay = None
         self.lldb_python_state_callback = _default_lldb_python_state_callback
         self.should_suspend_ctx = False
+        self._history_list = []
+        self._history_index = 0
 
         import pwndbg
 
@@ -2161,6 +2188,17 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         # Register event hooks.
         # (We can't do them in this file because pwndbg.dbg isn't initialized yet.)
         from pwndbg.dbg_mod.lldb import hooks as hooks
+
+        if "debuginfod.ubuntu.com" in self._execute_lldb_command(
+            "settings show plugin.symbol-locator.debuginfod.server-urls"
+        ):
+            print(
+                message.warn(
+                    "\nYou have debuginfod.ubuntu.com in your debuginfod urls and will experience stalls"
+                    " because of this.\nWe recommend you remove it until ubuntu fixes their server.\n"
+                    "See https://github.com/pwndbg/pwndbg/pull/4079 for more info.\n"
+                )
+            )
 
     def relay_exceptions(self) -> None:
         """
@@ -2217,6 +2255,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
                         "Execution state mismatch on command handler"
                     )
 
+            def get_repeat_command(self, command: str) -> str:
+                return f"{name} {command}" if command else name
+
         # LLDB is very particular with the object paths it will accept. It is at
         # its happiest when its pulling objects straight off the module that was
         # first imported with `command script import`, so, we install the class
@@ -2237,9 +2278,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def history(self, last: int = 10) -> list[tuple[int, str]]:
-        # Figure out a way to retrieve history later.
-        # Just need to parse the result of `self.inner.HandleCommand("history")`
-        return []
+        return self._history_list[-last:]
 
     @override
     def commands(self) -> list[str]:

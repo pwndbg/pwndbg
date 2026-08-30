@@ -254,4 +254,4 @@ def clear_function_cache(func: Callable[..., T]) -> None:
     clears the cache for all object instances.
     """
     assert hasattr(func, "cache")
-    getattr(func, "cache").clear()
+    func.cache.clear()

@@ -248,7 +248,6 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
             )
 
     def handle_pop(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        pc_is_at_instruction = self.can_reason_about_process_state(instruction)
 
         if len(instruction.operands) != 1:
             return
@@ -266,7 +265,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
                         pwndbg.dintegration.manager.get_stack_var_dict_all(),
                     ),
                 )
-            elif pc_is_at_instruction:
+            elif self.can_reason_about_process_state():
                 # Attempt to read from the top of the stack
                 try:
                     value = pwndbg.aglib.memory.read_pointer_width(pwndbg.aglib.regs.sp)
@@ -389,7 +388,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
             return super()._resolve_target(instruction, emu)
 
         # Stop disassembling at RET if we won't know where it goes to without emulation
-        if instruction.address != pwndbg.aglib.regs.pc:
+        if not self.can_reason_about_process_state():
             return super()._resolve_target(instruction, emu)
 
         # Otherwise, resolve the return on the stack

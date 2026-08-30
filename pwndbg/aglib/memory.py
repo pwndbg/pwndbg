@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from string import printable
 from typing import TypeGuard
 from typing import Union
 
@@ -469,3 +471,162 @@ def is_pagefault_supported() -> bool:
 
 def is_kernel(addr: int | None) -> TypeGuard[int]:
     return addr is not None and (addr >> 63 == 1) and peek(addr) is not None
+
+
+VALID_CHARS = list(map(ord, set(printable) - set("\t\r\n\x0c\x0b")))
+
+
+def bin_ascii(bs: bytes | bytearray | list[int]) -> str:
+    return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
+
+
+def pprint_blocks(
+    start: int,
+    block_delims: list[int],
+    color_funcs: list[Callable[[object], str]],
+    labels_map: dict[int, list[str]],
+    cell_size: int,
+    no_truncate: bool,
+    no_skip: bool,
+) -> None:
+    """
+    Pretty-prints specified memory range, changing colors at provided boundaries.
+    """
+
+    # round up to align with 4*cell_size and get half
+    half_max_size = (
+        pwndbg.lib.memory.round_up(int(pwndbg.config.max_visualize_chunk_size), cell_size << 2) >> 1
+    )
+
+    printed = 0
+    out = ""
+    asc = ""
+
+    # For collapsing repeated lines
+    skip_repeating: bool = False if no_skip else bool(pwndbg.config.vis_skip_repeating_val)
+    prev_line_content: str | None = None
+    repeat_count: int = 0
+    line_buffer: str = ""  # Temporary buffer for building current line (holds first cell)
+    saved_line_addr: str = ""  # Saved address for the current line
+
+    def flush_repeats() -> None:
+        """Add collapse message for accumulated repeated lines."""
+        nonlocal out, repeat_count, prev_line_content
+        if repeat_count > 0:
+            out += f"\n\t... ↓     {repeat_count:>3} repeated lines skipped"
+            repeat_count = 0
+        prev_line_content = None
+
+    labels = []
+    cursor = start
+
+    for c, stop in enumerate(block_delims):
+        color_func = color_funcs[c % len(color_funcs)]
+
+        first_cut = True
+        # round down to align with 2*cell_size
+        begin_addr = pwndbg.lib.memory.round_down(cursor, cell_size << 1)
+        end_addr = pwndbg.lib.memory.round_down(stop, cell_size << 1)
+
+        # Reset repeat tracking at block boundaries (only if skip_repeating is enabled)
+        if skip_repeating:
+            flush_repeats()
+
+        while cursor != stop:
+            # skip the middle part of a huge block
+            if (
+                not no_truncate
+                and half_max_size > 0
+                and begin_addr + half_max_size <= cursor < end_addr - half_max_size
+            ):
+                if first_cut:
+                    out += "\n" + "." * len(hex(cursor))
+                    first_cut = False
+                cursor += cell_size
+                continue
+
+            if printed % 2 == 0:
+                saved_line_addr = f"0x{cursor:x}"
+
+            data = pwndbg.aglib.memory.read(cursor, cell_size)
+            cell = pwndbg.aglib.arch.unpack(data)
+            cell_hex = f"\t0x{cell:0{cell_size * 2}x}"
+
+            # Temporarily store colored cell_hex
+            colored_cell_hex = color_func(cell_hex)
+
+            printed += 1
+
+            labels.extend(labels_map.get(cursor, []))
+
+            # Build up the cell part (2 cells per line)
+            asc += bin_ascii(data)
+
+            if printed % 2 == 1:
+                # First cell of the line, just accumulate
+                line_buffer += colored_cell_hex
+            else:
+                # Second cell - complete the line
+                line_label_part = "\t <-- " + ", ".join(labels) if labels else ""
+                colored_asc = color_func(asc)
+
+                # Build complete line content (address + cells + ascii + labels)
+                complete_line = (
+                    ("\n" if out else "")
+                    + saved_line_addr
+                    + line_buffer
+                    + colored_cell_hex
+                    + "\t"
+                    + colored_asc
+                    + line_label_part
+                )
+
+                if skip_repeating:
+                    # When skip_repeating is enabled, check for and collapse repeated lines
+                    # Don't collapse lines with labels (they're important markers)
+                    if not labels:
+                        # Compare just the hex values and ASCII part (exclude address and labels)
+                        current_hex_and_ascii = line_buffer + colored_cell_hex + "\t" + asc
+                        if prev_line_content == current_hex_and_ascii:
+                            # This line repeats the previous one, increment counter
+                            repeat_count += 1
+                        else:
+                            # Different line, flush any accumulated repeats and output this line
+                            flush_repeats()
+                            out += complete_line
+                            prev_line_content = current_hex_and_ascii
+                    else:
+                        # Line has labels, always output it
+                        flush_repeats()
+                        out += complete_line
+                        prev_line_content = None
+                else:
+                    # When skip_repeating is disabled, output every line directly
+                    out += complete_line
+
+                # Reset line building vars
+                line_buffer = ""
+                asc = ""
+                labels = []
+
+            cursor += cell_size
+
+    # Flush any remaining repeats (only matters if skip_repeating is enabled)
+    if skip_repeating:
+        flush_repeats()
+
+    if printed % 2 != 0:
+        # We have an incomplete line with only one cell
+        # Need to add the address, first cell, and padding
+        machine_word_string_length = 2 + (2 * cell_size)
+        out += (
+            ("\n" if out else "")
+            + saved_line_addr
+            + line_buffer
+            + "\t"
+            + " " * machine_word_string_length
+            + "\t"
+            + color_func(asc)
+        )
+
+    print(out)
