@@ -57,6 +57,8 @@ def next_branch(address=None, including_current=False) -> PwndbgInstruction | No
     Return the next branch instruction that the process will encounter with repeated usage of the "nexti" command.
 
     If including_current == True, then if the instruction at the address is already a branch, return it.
+
+    Returns the next branch instruction, or None if cannot disassemble anymore.
     """
     if address is None:
         ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
@@ -131,7 +133,7 @@ async def break_next_branch(
     inf = pwndbg.dbg.selected_inferior()
     # If the branch we found was not at the current program counter, we should step to it.
     # Otherwise, return the current instruction.
-    if ins.address != pwndbg.aglib.regs.pc:
+    if not including_current or ins.address != pwndbg.aglib.regs.pc:
         with inf.break_at(BreakpointLocation(ins.address), internal=True) as bp:
             await ec.cont(bp)
     return ins

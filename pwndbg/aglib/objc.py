@@ -14,6 +14,7 @@ from collections.abc import Generator
 from typing import Generic
 from typing import TypeVar
 
+from typing_extensions import assert_never
 from typing_extensions import override
 
 import pwndbg
@@ -552,11 +553,9 @@ class Class(Object):
                 return ro_or_rw_ext.ro()
             if isinstance(ro_or_rw_ext, _ClassRoPtr):
                 return ro_or_rw_ext
-            # FIXME: Should be `typing.assert_never`, needs Python 3.11
-            assert False
+            assert_never(ro_or_rw_ext)
         else:
-            # FIXME: Should be `typing.assert_never`, needs Python 3.11
-            assert False
+            assert_never(data)
 
     def _rw_ext(self) -> _ClassRwExtPtr | None:
         data = self._data_bits().data()
@@ -568,11 +567,9 @@ class Class(Object):
                 return ro_or_rw_ext
             if isinstance(ro_or_rw_ext, _ClassRoPtr):
                 return None
-            # FIXME: Should be `typing.assert_never`, needs Python 3.11
-            assert False
+            assert_never(ro_or_rw_ext)
         else:
-            # FIXME: Should be `typing.assert_never`, needs Python 3.11
-            assert False
+            assert_never(data)
 
     @property
     def superclass(self) -> Class | None:

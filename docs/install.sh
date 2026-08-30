@@ -105,7 +105,7 @@ OS="$(uname -s)"
 ARCH="$(uname -m)"
 DISTRO_NAME=$(get_distro_name)
 
-VERSION="2026.02.18"
+VERSION="2026.07.29"
 TYPE=""
 ROOTLESS=false
 

@@ -29,6 +29,8 @@ config_branch_off = theme.add_param(
     "disasm-branch-off", "✘", "marker for branches that will NOT be taken"
 )
 
+DEBUG_CACHE = False
+
 
 def one_instruction(ins: PwndbgInstruction, linear: bool) -> str:
     """
@@ -60,6 +62,8 @@ def one_instruction(ins: PwndbgInstruction, linear: bool) -> str:
     else:
         asm = f"  {asm}"
 
+    if DEBUG_CACHE:
+        asm = f"{ins.cache_source.value} {asm}"
     return asm
 
 
@@ -152,7 +156,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
     final_result = []
 
     # Final pass to apply final paddings to make alignment of blocks of instructions cleaner
-    for i, (ins, asm, padding) in enumerate(zip(instructions, result, paddings)):
+    for ins, asm, padding in zip(instructions, result, paddings):
         # Padding being None implies a jump target - this is already baked into "asm"
         if ins.annotation and padding is not None:
             asm = f"{ljust_colored(asm, padding)}{ins.annotation}"

@@ -6,15 +6,18 @@ from __future__ import annotations
 
 import argparse
 import codecs
+import math
 from itertools import chain
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
 import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.commands.next
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 
 if pwndbg.dbg.is_gdblib_available():
@@ -22,15 +25,60 @@ if pwndbg.dbg.is_gdblib_available():
 
 
 def enhex(size, value):
-    value = value & ((1 << 8 * size) - 1)
+    value &= (1 << 8 * size) - 1
     x = f"{abs(value):x}"
     x = x.rjust(size * 2, "0")
     return x
 
 
-# `pwndbg.hexdump` imports `enhex` from this module, so we have to import it
-# after it's been defined in order to avoid circular import errors.
-import pwndbg.hexdump
+def hexdump_windbg(
+    address: int = 0,
+    size: int = 0,
+    count: int = 0,
+    repeat: bool = False,
+):
+
+    # Traditionally, windbg will display 16 bytes of data per line.
+    values = []
+
+    if repeat:
+        count = getattr(hexdump_windbg, "last_count", count)
+        address = getattr(hexdump_windbg, "last_address", address)
+    else:
+        address = int(address) & pwndbg.aglib.arch.ptrmask
+        count = int(count)
+
+    size_type = pwndbg.aglib.typeinfo.get_type(size)
+
+    for i in range(count):
+        try:
+            gval = pwndbg.aglib.memory.get_typed_pointer_value(size_type, address + i * size)
+            values.append(int(gval))
+        except pwndbg.dbg_mod.Error:
+            break
+
+    if not values:
+        print("Could not access the provided address")
+        return
+
+    n_rows = int(math.ceil(count * size / 16.0))
+    row_sz = 16 // size
+    rows = [values[i * row_sz : (i + 1) * row_sz] for i in range(n_rows)]
+    lines = []
+
+    for i, row in enumerate(rows):
+        if not row:
+            continue
+        line = [enhex(pwndbg.aglib.arch.ptrsize, address + (i * 16)), "   "]
+        for value in row:
+            line.append(enhex(size, value))
+        lines.append(" ".join(line))
+
+    hexdump_windbg.last_count = count  # type: ignore[attr-defined]
+    hexdump_windbg.last_address = address + len(rows) * 16  # type: ignore[attr-defined]
+
+    yield lines
+
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N bytes.")
 parser.add_argument(
@@ -149,11 +197,7 @@ def dX(size, address, count, to_string=False, repeat=False):
     """
 
     lines = list(
-        chain.from_iterable(
-            pwndbg.hexdump.hexdump(
-                data=None, size=size, count=count, address=address, repeat=repeat, dX_call=True
-            )
-        )
+        chain.from_iterable(hexdump_windbg(size=size, count=count, address=address, repeat=repeat))
     )
 
     if not to_string and lines:
@@ -303,19 +347,30 @@ def eX(size, address, data, hex=True) -> None:
             return
 
 
-parser = argparse.ArgumentParser(description="Dump pointers and symbols at the specified address.")
-parser.add_argument("addr", type=pwndbg.commands.HexOrAddressExpr, help="The address to dump from.")
+dds_parser = argparse.ArgumentParser(
+    description="Dump pointers and symbols at the specified address."
+)
+dds_parser.add_argument(
+    "addr", type=pwndbg.commands.HexOrAddressExpr, help="The address to dump from."
+)
+dds_parser.add_argument(
+    "count",
+    type=int,
+    default=None,
+    nargs="?",
+    help="The number of pointers to dump.",
+)
 
 
-@pwndbg.commands.Command(
-    parser, aliases=["kd", "dps", "dqs"], category=CommandCategory.WINDBG
-)  # TODO are these really all the same? They had identical implementation...
+@pwndbg.commands.Command(dds_parser, aliases=["kd", "dps", "dqs"], category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
-def dds(addr):
+def dds(addr: int, count: int | None = None):
     """
     Dump pointers and symbols at the specified address.
     """
-    return pwndbg.commands.telescope.telescope(addr)
+    if count is None:
+        return pwndbg.commands.telescope.telescope(addr, repeat=dds.repeat)
+    return pwndbg.commands.telescope.telescope(addr, count=int(count), repeat=dds.repeat)
 
 
 da_parser = argparse.ArgumentParser(description="Dump a string at the specified address.")

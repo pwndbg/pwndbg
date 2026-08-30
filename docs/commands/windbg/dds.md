@@ -2,7 +2,7 @@
 # dds
 
 ```text
-usage: dds [-h] addr
+usage: dds [-h] addr [count]
 
 ```
 
@@ -14,6 +14,7 @@ Dump pointers and symbols at the specified address.
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|The address to dump from.|
+|count|The number of pointers to dump.|
 
 ### Optional arguments
 

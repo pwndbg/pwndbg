@@ -231,7 +231,7 @@ def walk_stack2(offset: int = 0) -> AUXV:
         # This check is needed because the above loop isn't
         # guaranteed to actually get us to AT_NULL, just to some
         # consecutive NULLs.  QEMU is pretty generous with NULLs.
-        for i in range(1024):
+        for _ in range(1024):
             if int(p.dereference()) == AT_CONSTANT_NAMES["AT_BASE"]:
                 break
             p -= 2
