@@ -81,6 +81,6 @@ class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
 
         if instruction.id == LOONGARCH_INS_JIRL:
             if (offset_reg := instruction.operands[1].before_value) is not None:
-                return offset_reg + (instruction.operands[2].before_value << 2)
+                return offset_reg + (instruction.operands[2].before_value)
 
         return super()._resolve_target(instruction, emu)
