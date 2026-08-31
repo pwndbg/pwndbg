@@ -413,7 +413,7 @@ async def emulate_double_ret_chain_with_leadup_helper(
 
 
 @pwndbg_test
-async def test_emulate_double_ret_chain_with_leadup(ctrl: Controller):
+async def test_emulate_double_ret_chain_with_leadup(ctrl: Controller) -> None:
     await emulate_double_ret_chain_with_leadup_helper(ctrl, None)
 
 
