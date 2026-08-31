@@ -138,6 +138,7 @@ def test_arm_interworking_branch(qemu_assembly_run):
     qemu_assembly_run(ARM_INTERWORKING_BRANCH, "arm")
 
     dis_0 = gdb.execute("context disasm", to_string=True)
+    dis_0 = pwndbg.color.strip(dis_0)
 
     expected_0 = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
@@ -164,6 +165,7 @@ def test_arm_interworking_branch(qemu_assembly_run):
     gdb.execute("si 2")
 
     dis_1 = gdb.execute("context disasm", to_string=True)
+    dis_1 = pwndbg.color.strip(dis_1)
 
     expected_1 = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"

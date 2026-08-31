@@ -115,7 +115,7 @@ class InstructionFlowCache:
     unless we commit the change.
     """
 
-    next_addresses_cache: set[int] = set()
+    next_addresses_cache: set[int]
     """
     To ensure we don't have stale register/memory information in our cached PwndbgInstruction,
     we clear the cache whenever we DON'T do a `stepi`, `nexti`, `step`, or `next` command.
@@ -134,6 +134,7 @@ class InstructionFlowCache:
         self.next_instruction_sequence_linked_list_map = (
             self.current_instruction_sequence_linked_list_map
         )
+        self.next_addresses_cache = set()
 
     def commit_next_instruction_flow(self) -> None:
         self.current_instruction_sequence_linked_list_map = (

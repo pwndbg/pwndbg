@@ -731,7 +731,6 @@ async def test_emulate_nextret_to_double_ret(ctrl: Controller) -> None:
 
     dis_1 = await ctrl.execute_and_capture("context disasm")
 
-    # THIS IS INCORRECT
     expected_1 = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"

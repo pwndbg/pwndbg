@@ -53,7 +53,7 @@ mov     0, %o0
 
 def test_sparc64_delay_slot(qemu_assembly_run):
     """
-    MIPS has delay slots, meaning that when a branch is encountered, they is a "delay" in the branch taking effect.
+    SPARC has delay slots, meaning that when a branch is encountered, there is a "delay" in the branch taking effect.
     The next instruction sequentially in memory is always executed, and then the result of the branch is applied.
 
     In the disasm output, we group the delay slot with the branch. After the delay slot instruction we put the blank line/line with a down arrow.
