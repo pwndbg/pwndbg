@@ -32,12 +32,12 @@ async def _step_and_log(
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.MISC)
 def instr_trace(end_address: int) -> None:
     vmmap_object = pwndbg.aglib.vmmap.get_memory_map()
-    with open("/tmp/trace.txt","w+") as f:
-        async def dump_trace_log(ec: pwndbg.dbg_mod.ExecutionController) -> None: 
+    async def dump_trace_log(ec: pwndbg.dbg_mod.ExecutionController) -> None: 
+        with open("/tmp/trace.txt","w+") as f:
             await _step_and_log(ec, file_handle=f, vmmap_object=vmmap_object,  end_address=end_address)
-        try:
-          print(f"Argument is {end_address}")
-          pwndbg.dbg.selected_inferior().dispatch_execution_controller(dump_trace_log)
-        except pwndbg.dbg_mod.Error as e:
-          print(f"ERROR: {e}")
-        return
+    try:
+      print(f"Argument is {end_address}")
+      pwndbg.dbg.selected_inferior().dispatch_execution_controller(dump_trace_log)
+    except pwndbg.dbg_mod.Error as e:
+      print(f"ERROR: {e}")
+    return
