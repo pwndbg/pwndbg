@@ -30,7 +30,7 @@ jobs:
       contents: write  # IMPORTANT: this permission is mandatory for github-release upload
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-    - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+    - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
@@ -44,7 +44,7 @@ jobs:
         path: ./dist-tarball/*
 
     - name: release
-      uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+      uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
       with:
         files: |
           ./dist-tarball/*
@@ -76,7 +76,7 @@ jobs:
       contents: write  # IMPORTANT: this permission is mandatory for github-release upload
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-    - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+    - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
@@ -90,7 +90,7 @@ jobs:
         path: ./dist-tarball/*
 
     - name: release
-      uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+      uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
       with:
         files: |
           ./dist-tarball/*
@@ -114,7 +114,7 @@ jobs:
       contents: write  # IMPORTANT: this permission is mandatory for github-release upload
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-    - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+    - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
@@ -128,7 +128,7 @@ jobs:
         path: ./dist-tarball/*
 
     - name: release
-      uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+      uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
       with:
         files: |
           ./dist-tarball/*
