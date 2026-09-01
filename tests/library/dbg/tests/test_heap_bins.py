@@ -211,6 +211,8 @@ async def test_tcache_bins_respects_heap_dereference_limit(ctrl: Controller) -> 
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     await ctrl.execute("set context-output /dev/null")
+    # Glibc 2.43 changed tcache binsize to 16.
+    # GLIBC_TUNABLES allows for testing that on the standard binary
     await ctrl.launch(BINARY, env={"GLIBC_TUNABLES": "glibc.malloc.tcache_count=16"})
 
     # Free 11 chunks into one tcache bin
