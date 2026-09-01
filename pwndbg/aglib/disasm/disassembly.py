@@ -144,7 +144,6 @@ class InstructionFlowCache:
     def copy_current_instruction_flow_to_next(self) -> None:
         # Do a shallow copy of the linked list + map structure
         # A shallow copy is sufficient: during computation, existing nodes do not get modified
-        # Except for the current instruction, but it is safe to edit that one.
         self.next_instruction_sequence_linked_list_map = (
             self.current_instruction_sequence_linked_list_map.copy()
         )
@@ -852,18 +851,20 @@ def near(
     # determines will run upon uses of the "nexti" command.
 
     if instruction_flow_cache is not None:
-        instruction_sequence_head = (
-            instruction_flow_cache.current_instruction_sequence_linked_list_map.get(address)
+        current_head = instruction_flow_cache.current_instruction_sequence_linked_list_map.get(
+            address
         )
 
-        if instruction_sequence_head is None:
+        if current_head is None:
+            # We didn't emulate this far in the past. Start linked list here
             instruction_sequence_head = InstructionSequenceNode(None, current)
-            instruction_flow_cache.next_instruction_sequence_linked_list_map[address] = (
-                instruction_sequence_head
-            )
         else:
             # We re-disassembled the instruction and enhanced it, so save the new value
-            instruction_sequence_head.instruction = current
+            instruction_sequence_head = InstructionSequenceNode(current_head.previous, current)
+
+        instruction_flow_cache.next_instruction_sequence_linked_list_map[address] = (
+            instruction_sequence_head
+        )
 
     # Now, continue forwards.
 
