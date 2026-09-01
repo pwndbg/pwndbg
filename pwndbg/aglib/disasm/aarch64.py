@@ -364,11 +364,15 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
 
         elif instruction.id == AARCH64_INS_CBNZ:
             op_val = instruction.operands[0].before_value
-            return boolean_to_instruction_condition(op_val is not None and op_val != 0)
+            if op_val is None:
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+            return boolean_to_instruction_condition(op_val != 0)
 
         elif instruction.id == AARCH64_INS_CBZ:
             op_val = instruction.operands[0].before_value
-            return boolean_to_instruction_condition(op_val is not None and op_val == 0)
+            if op_val is None:
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+            return boolean_to_instruction_condition(op_val == 0)
 
         elif instruction.id == AARCH64_INS_TBNZ:
             op_val, bit = (
@@ -376,8 +380,9 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
                 instruction.operands[1].before_value,
             )
 
-            if op_val is not None and bit is not None:
-                return boolean_to_instruction_condition(bool((op_val >> bit) & 1))
+            if op_val is None or bit is None:
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+            return boolean_to_instruction_condition(bool((op_val >> bit) & 1))
 
         elif instruction.id == AARCH64_INS_TBZ:
             op_val, bit = (
@@ -385,8 +390,9 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
                 instruction.operands[1].before_value,
             )
 
-            if op_val is not None and bit is not None:
-                return boolean_to_instruction_condition(not ((op_val >> bit) & 1))
+            if op_val is None or bit is None:
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+            return boolean_to_instruction_condition(not ((op_val >> bit) & 1))
         elif instruction.id in CONDITIONAL_SELECT_INSTRUCTIONS:
             # Capstone places the condition to be satisfied in the `cc` field of the instruction
             # for all conditional select instructions
