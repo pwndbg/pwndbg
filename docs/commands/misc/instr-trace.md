@@ -8,7 +8,7 @@ usage: instr-trace [-h] [-v] trace_file end_address
 
 Dumps an instruction trace to disk.
 
-This command will execute consecutive single steps from the current pc, until the end_address is reached or the program exits. 
+This command will execute consecutive single steps from the current pc, until the end_address is reached or the program exits.
 Saving each pc to a file on disk. If -v is passed the backing file of the memory region will also be saved.
 ### Positional arguments
 
