@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(
     description="""
 Dumps an instruction trace to disk.
 
-This command will execute consecutive single steps from the current pc, until the end_address is reached or the program exits. 
+This command will execute consecutive single steps from the current pc, until the end_address is reached or the program exits.
 Saving each pc to a file on disk. If -v is passed the backing file of the memory region will also be saved.
 """
 )
@@ -40,7 +40,7 @@ async def _step_and_log(
             break
         current_symbol = pwndbg.aglib.symbol.resolve_addr(int(current_pc))
         await ec.single_step()
-        if vmmap_object != None:
+        if vmmap_object is not None:
             page_ = vmmap_object.lookup_page(current_pc)
 
             if page_:
