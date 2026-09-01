@@ -126,6 +126,9 @@ def _get_frame_stack_variables(frame: gdb.Frame) -> tuple[tuple[int, int, str], 
             try:
                 value = sym.value(frame)
 
+                # If a variable is optimized out, it surely has no memory location
+                # This check also prevents GDB from calling `malloc` within the inferior process
+                # which can cause a crash. See https://github.com/pwndbg/pwndbg/pull/4112
                 if value.is_optimized_out:
                     continue
 
