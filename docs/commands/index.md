@@ -170,6 +170,7 @@
 -  [getfile](misc/getfile.md) - Gets the current file.
 -  [hex2ptr](misc/hex2ptr.md) - Converts a space-separated hex string to a little-endian address.
 -  [hijack-fd](misc/hijack-fd.md) - Replace a file descriptor of a debugged process.
+-  [instr-trace](misc/instr-trace.md) - Dumps an instruction trace to disk.
 -  [ipi](misc/ipi.md) - Start an interactive IPython prompt.
 -  [patch-list](misc/patch-list.md) - List all patches.
 -  [patch-revert](misc/patch-revert.md) - Revert patch at given address.
