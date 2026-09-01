@@ -1411,6 +1411,7 @@ def context_disasm(
     ):
         pwndbg.lib.cache.clear_caches()
         pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.clear()
+        context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.clear()
 
     additional_disasm_lines = max(int(disasm_lines), height or 0)
 
