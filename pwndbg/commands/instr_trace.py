@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs_mod
@@ -27,8 +28,8 @@ parser.add_argument(
 
 async def _step_and_log(
     ec: pwndbg.dbg_mod.ExecutionController,
-    file_handle,
-    vmmap_object,
+    file_handle: io.TextIOWrapper,
+    vmmap_object: pwndbg.dbg_mod.MemoryMap,
     end_address: int | None = None,
 ) -> None:
     if end_address == 0:
