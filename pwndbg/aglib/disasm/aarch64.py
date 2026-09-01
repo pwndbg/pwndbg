@@ -359,8 +359,9 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
                 instruction.declare_is_unconditional_jump = True
             else:
                 flags = super()._read_register_name(instruction, "cpsr", emu)
-                if flags is not None:
-                    return resolve_condition(instruction.cs_insn.cc, flags)
+                if flags is None:
+                    return InstructionCondition.UNDETERMINED_CONDITIONAL
+                return resolve_condition(instruction.cs_insn.cc, flags)
 
         elif instruction.id == AARCH64_INS_CBNZ:
             op_val = instruction.operands[0].before_value
@@ -398,8 +399,10 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
             # for all conditional select instructions
             flags = self._read_register_name(instruction, "cpsr", emu)
 
-            if flags is not None:
-                return resolve_condition(instruction.cs_insn.cc, flags)
+            if flags is None:
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+
+            return resolve_condition(instruction.cs_insn.cc, flags)
 
         return super()._condition(instruction, emu)
 
