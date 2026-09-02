@@ -1774,9 +1774,19 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                         cast_type = pwndbg.aglib.typeinfo.pvoid
 
                 sym_type = sym.GetType()
-                if addr.section.name in (".tbss", ".tdata") and sym_type == lldb.eSymbolTypeInvalid:
+                is_tls_section = (
+                    LLDB_VERSION[0] <= 22
+                    and addr.section.name in (".tbss", ".tdata")
+                    and sym_type == lldb.eSymbolTypeInvalid
+                ) or (
+                    LLDB_VERSION[0] >= 23
+                    and addr.section.name in (".tbss", ".tdata")
+                    and sym_type == lldb.eSymbolTypeData
+                )
+
+                if is_tls_section:
                     # Additionally, we check only TLS sections (.tbss and .tdata).
-                    # Symbols with type eSymbolTypeInvalid might represent TLS symbols.
+                    # Symbols with type eSymbolTypeData might represent TLS symbols.
                     # Attempt to resolve this symbol and verify if it provides a valid result.
                     tls = self._resolve_tls_symbol(sym)
                     if tls:
@@ -2184,6 +2194,17 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         # Register event hooks.
         # (We can't do them in this file because pwndbg.dbg isn't initialized yet.)
         from pwndbg.dbg_mod.lldb import hooks as hooks
+
+        if "debuginfod.ubuntu.com" in self._execute_lldb_command(
+            "settings show plugin.symbol-locator.debuginfod.server-urls"
+        ):
+            print(
+                message.warn(
+                    "\nYou have debuginfod.ubuntu.com in your debuginfod urls and will experience stalls"
+                    " because of this.\nWe recommend you remove it until ubuntu fixes their server.\n"
+                    "See https://github.com/pwndbg/pwndbg/pull/4079 for more info.\n"
+                )
+            )
 
     def relay_exceptions(self) -> None:
         """

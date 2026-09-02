@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import ctypes
-from string import printable
 
 from tabulate import tabulate
 
@@ -1185,153 +1184,31 @@ def vis_heap_chunks(
         # specific heap.
         bin_collections.insert(0, allocator.tcachebins(None))
 
-    printed = 0
-    out = ""
-    asc = ""
-    labels = []
-
     cursor = cursor_backup
-    chunk = Chunk(cursor)
 
     reached_top = False
     has_huge_chunk = False
-    # round up to align with 4*ptr_size and get half
-    half_max_size = (
-        pwndbg.lib.memory.round_up(int(pwndbg.config.max_visualize_chunk_size), ptr_size << 2) >> 1
-    )
 
-    bin_labels_map: dict[int, list[str]] = bin_labels_mapping(bin_collections)
-
-    # For collapsing repeated lines
-    skip_repeating: bool = False if no_skip else bool(pwndbg.config.vis_skip_repeating_val)
-    prev_line_content: str | None = None
-    repeat_count: int = 0
-    line_buffer: str = ""  # Temporary buffer for building current line (holds first cell)
-    saved_line_addr: str = ""  # Saved address for the current line
-
-    def flush_repeats() -> None:
-        """Add collapse message for accumulated repeated lines."""
-        nonlocal out, repeat_count, prev_line_content
-        if repeat_count > 0:
-            out += f"\n\t... ↓     {repeat_count:>3} repeated lines skipped"
-            repeat_count = 0
-        prev_line_content = None
-
-    for c, stop in enumerate(chunk_delims):
-        color_func = color_funcs[c % len(color_funcs)]
-
-        if stop - cursor > 0x10000:
+    for start, stop in zip([cursor] + chunk_delims, chunk_delims):
+        if stop - start > 0x10000:
             has_huge_chunk = True
-        first_cut = True
-        # round down to align with 2*ptr_size
-        begin_addr = pwndbg.lib.memory.round_down(cursor, ptr_size << 1)
-        end_addr = pwndbg.lib.memory.round_down(stop, ptr_size << 1)
 
-        # Reset repeat tracking at chunk boundaries (only if skip_repeating is enabled)
-        if skip_repeating:
-            flush_repeats()
+    labels_map: dict[int, list[str]] = bin_labels_mapping(bin_collections)
+    if arena is not None and cursor <= arena.top <= chunk_delims[-1]:
+        if arena.top not in labels_map:
+            labels_map[arena.top] = []
+        labels_map[arena.top].append("Top chunk")
+        reached_top = True
 
-        while cursor != stop:
-            # skip the middle part of a huge chunk
-            if (
-                not no_truncate
-                and half_max_size > 0
-                and begin_addr + half_max_size <= cursor < end_addr - half_max_size
-            ):
-                if first_cut:
-                    out += "\n" + "." * len(hex(cursor))
-                    first_cut = False
-                cursor += ptr_size
-                continue
-
-            if printed % 2 == 0:
-                saved_line_addr = f"0x{cursor:x}"
-
-            data = pwndbg.aglib.memory.read(cursor, ptr_size)
-            cell = pwndbg.aglib.arch.unpack(data)
-            cell_hex = f"\t0x{cell:0{ptr_size * 2}x}"
-
-            # Temporarily store colored cell_hex
-            colored_cell_hex = color_func(cell_hex)
-
-            printed += 1
-
-            labels.extend(bin_labels_map.get(cursor, []))
-            if arena is not None and cursor == arena.top:
-                labels.append("Top chunk")
-                reached_top = True
-
-            # Build up the cell part (2 cells per line)
-            asc += bin_ascii(data)
-
-            if printed % 2 == 1:
-                # First cell of the line, just accumulate
-                line_buffer += colored_cell_hex
-            else:
-                # Second cell - complete the line
-                line_label_part = "\t <-- " + ", ".join(labels) if labels else ""
-                colored_asc = color_func(asc)
-
-                # Build complete line content (address + cells + ascii + labels)
-                complete_line = (
-                    ("\n" if out else "")
-                    + saved_line_addr
-                    + line_buffer
-                    + colored_cell_hex
-                    + "\t"
-                    + colored_asc
-                    + line_label_part
-                )
-
-                if skip_repeating:
-                    # When skip_repeating is enabled, check for and collapse repeated lines
-                    # Don't collapse lines with labels (they're important markers)
-                    if not labels:
-                        # Compare just the hex values and ASCII part (exclude address and labels)
-                        current_hex_and_ascii = line_buffer + colored_cell_hex + "\t" + asc
-                        if prev_line_content == current_hex_and_ascii:
-                            # This line repeats the previous one, increment counter
-                            repeat_count += 1
-                        else:
-                            # Different line, flush any accumulated repeats and output this line
-                            flush_repeats()
-                            out += complete_line
-                            prev_line_content = current_hex_and_ascii
-                    else:
-                        # Line has labels, always output it
-                        flush_repeats()
-                        out += complete_line
-                        prev_line_content = None
-                else:
-                    # When skip_repeating is disabled, output every line directly
-                    out += complete_line
-
-                # Reset line building vars
-                line_buffer = ""
-                asc = ""
-                labels = []
-
-            cursor += ptr_size
-
-    # Flush any remaining repeats (only matters if skip_repeating is enabled)
-    if skip_repeating:
-        flush_repeats()
-
-    if printed % 2 != 0:
-        # We have an incomplete line with only one cell
-        # Need to add the address, first cell, and padding
-        machine_word_string_length = 2 + (2 * ptr_size)
-        out += (
-            ("\n" if out else "")
-            + saved_line_addr
-            + line_buffer
-            + "\t"
-            + " " * machine_word_string_length
-            + "\t"
-            + color_func(asc)
-        )
-
-    print(out)
+    pwndbg.aglib.memory.pprint_blocks(
+        start=cursor,
+        block_delims=chunk_delims,
+        color_funcs=color_funcs,
+        labels_map=labels_map,
+        cell_size=ptr_size,
+        no_truncate=no_truncate,
+        no_skip=no_skip,
+    )
 
     if reached_mapping_end:
         print(f"Reached end of memory mapping ({hex(heap_region.end)}).")
@@ -1345,13 +1222,6 @@ def vis_heap_chunks(
 
     if not reached_top and nothing_supplied:
         print(message.hint("Not all chunks were shown, see `vis --help` for more information."))
-
-
-VALID_CHARS = list(map(ord, set(printable) - set("\t\r\n\x0c\x0b")))
-
-
-def bin_ascii(bs: bytes | bytearray | list[int]) -> str:
-    return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 
 def bin_labels_mapping(collections: list[Bins | None]) -> dict[int, list[str]]:

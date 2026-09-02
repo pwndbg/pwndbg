@@ -52,6 +52,8 @@ class _GDBController(host.Controller):
         self._gdb_execute("set exception-verbose on")
         self._gdb_execute("set width 80")
         self._gdb_execute("set context-reserve-lines never")
+        self._gdb_execute("set heuristic-backwards-disasm off")
+        self._gdb_execute("set context-disasm-back-linear-lines 0")
         os.environ["COLUMNS"] = "80"
         for k, v in env.items():
             self._gdb_execute(f"set environment {k}={v}")

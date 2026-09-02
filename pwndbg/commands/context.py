@@ -1335,6 +1335,12 @@ disasm_lines = pwndbg.config.add_param(
     "context-disasm-lines", 10, "number of additional lines to print in the disasm context"
 )
 
+disasm_backwards_linear_lines = pwndbg.config.add_param(
+    "context-disasm-back-linear-lines",
+    "auto",
+    "maximum number of lines to disassemble backwards linearly in memory",
+)
+
 
 def try_emulate_if_bug_disable(handler: Callable[[], T]) -> T:
     try:
@@ -1374,12 +1380,18 @@ def context_disasm(
 
     additional_disasm_lines = max(int(disasm_lines), height or 0)
 
+    if disasm_backwards_linear_lines == "auto":
+        max_backwards_linear_count = min(10, additional_disasm_lines // 3)
+    else:
+        max_backwards_linear_count = int(disasm_backwards_linear_lines)
+
     result = try_emulate_if_bug_disable(
         lambda: pwndbg.aglib.nearpc.nearpc(
             back_lines=additional_disasm_lines // 2,
             total_lines=additional_disasm_lines + 1,
             emulate=pwndbg.config.emulate != "off",
             use_cache=True,
+            max_backwards_linear_count=max_backwards_linear_count,
         )
     )
 
@@ -1570,10 +1582,10 @@ def context_backtrace(
     inactive_prefix = Text(" " * active_prefix.cell_len)
 
     table = Table.grid(expand=False, padding=(0, 1))
-    table.add_column(no_wrap=True)
-    table.add_column(justify="right", no_wrap=True)
-    table.add_column(justify="right", no_wrap=True)
-    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)  # active indicator
+    table.add_column(justify="right")  # frame number
+    table.add_column(justify="right", overflow="ignore", no_wrap=True)  # address
+    table.add_column(overflow="fold")  # symbol
 
     offset_regex = re.compile(r"^(.+)\+(\d+)$")
 

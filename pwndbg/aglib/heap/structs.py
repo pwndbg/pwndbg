@@ -58,7 +58,7 @@ else:
     PTR = ctypes.c_uint64  # type: ignore[misc]
     SIZE_T = ctypes.c_uint64  # type: ignore[misc]
 
-DEFAULT_THP_MODE = 0x3
+DEFAULT_THP_MODE = 0x0 if GLIBC_VERSION >= (2, 44) else 0x3
 DEFAULT_TOP_PAD = 131072
 DEFAULT_MMAP_MAX = 65536
 DEFAULT_MMAP_THRESHOLD = 128 * 1024
@@ -1133,7 +1133,7 @@ class c_malloc_par_2_43(Structure):
     """
     This class represents the malloc_par struct for GLIBC >= 2.43 as a ctypes struct.
 
-    https://elixir.bootlin.com/glibc/glibc-2.43/source/malloc/malloc.c#L1864 (doesn't exist yet)
+    https://elixir.bootlin.com/glibc/glibc-2.43/source/malloc/malloc.c#L1761
 
     struct malloc_par
     {
@@ -1206,12 +1206,88 @@ class c_malloc_par_2_43(Structure):
     ]
 
 
+class c_malloc_par_2_44(Structure):
+    """
+    This class represents the malloc_par struct for GLIBC >= 2.44 as a ctypes struct.
+
+    https://elixir.bootlin.com/glibc/glibc-2.44/source/malloc/malloc.c#L1761 (doesn't exist yet)
+
+    struct malloc_par
+    {
+      /* Tunable parameters */
+      unsigned long trim_threshold;
+      INTERNAL_SIZE_T top_pad;
+      INTERNAL_SIZE_T mmap_threshold;
+      INTERNAL_SIZE_T arena_test;
+      INTERNAL_SIZE_T arena_max;
+
+      /* Transparent Large Page support.  */
+      enum thp_mode_t thp_mode;
+      INTERNAL_SIZE_T thp_pagesize;
+      /* A value different than 0 means to align mmap allocation to hp_pagesize
+         add hp_flags on flags.  */
+      INTERNAL_SIZE_T hp_pagesize;
+      int hp_flags;
+
+      /* Memory map support */
+      int n_mmaps;
+      int n_mmaps_max;
+      int max_n_mmaps;
+      /* the mmap_threshold is dynamic, until the user sets
+         it manually, at which point we need to disable any
+         dynamic behavior. */
+      int no_dyn_threshold;
+
+      /* Statistics */
+      INTERNAL_SIZE_T mmapped_mem;
+      INTERNAL_SIZE_T max_mmapped_mem;
+
+      /* First address handed out by MORECORE/sbrk.  */
+      char *sbrk_base;
+
+    #if USE_TCACHE
+      /* Maximum number of small buckets to use.  */
+      size_t tcache_small_bins;
+      size_t tcache_max_bytes;
+      /* Maximum number of chunks in each bucket.  */
+      size_t tcache_count;
+    #endif
+    };
+
+    (note that `tcache_unsorted_limit` was removed)
+    """
+
+    _fields_ = [
+        ("trim_threshold", c_size_t),
+        ("top_pad", c_size_t),
+        ("mmap_threshold", c_size_t),
+        ("arena_test", c_size_t),
+        ("arena_max", c_size_t),
+        ("thp_mode", ctypes.c_int32),
+        ("thp_pagesize", c_size_t),
+        ("hp_pagesize", c_size_t),
+        ("hp_flags", ctypes.c_int32),
+        ("n_mmaps", ctypes.c_int32),
+        ("n_mmaps_max", ctypes.c_int32),
+        ("max_n_mmaps", ctypes.c_int32),
+        ("no_dyn_threshold", ctypes.c_int32),
+        ("mmapped_mem", c_size_t),
+        ("max_mmapped_mem", c_size_t),
+        ("sbrk_base", c_pvoid),
+        ("tcache_small_bins", c_size_t),
+        ("tcache_max_bytes", c_size_t),
+        ("tcache_count", c_size_t),
+    ]
+
+
 class MallocPar(CStruct2GDB):
     """
     This class represents the malloc_par struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
-    if GLIBC_VERSION >= (2, 43):
+    if GLIBC_VERSION >= (2, 44):
+        _c_struct = c_malloc_par_2_44
+    elif GLIBC_VERSION >= (2, 43):
         _c_struct = c_malloc_par_2_43
     elif GLIBC_VERSION >= (2, 42):
         _c_struct = c_malloc_par_2_42
@@ -1251,10 +1327,11 @@ DEFAULT_MP_.n_mmaps_max = DEFAULT_MMAP_MAX
 DEFAULT_MP_.mmap_threshold = DEFAULT_MMAP_THRESHOLD
 DEFAULT_MP_.trim_threshold = DEFAULT_TRIM_THRESHOLD
 DEFAULT_MP_.arena_test = 2 if pwndbg.aglib.arch.ptrsize == 4 else 8
-if MallocPar._c_struct not in (c_malloc_par_2_23, c_malloc_par_2_12):
+
+if GLIBC_VERSION not in (c_malloc_par_2_23, c_malloc_par_2_12):
     # the only difference between 2.23 and the rest is the lack of tcache
     DEFAULT_MP_.tcache_count = TCACHE_FILL_COUNT
-    if MallocPar._c_struct in (c_malloc_par_2_42, c_malloc_par_2_43):
+    if GLIBC_VERSION >= (2, 42):
         DEFAULT_MP_.tcache_small_bins = TCACHE_SMALL_BINS
         DEFAULT_MP_.tcache_max_bytes = (
             MAX_TCACHE_SMALL_SIZE + SIZE_SZ + MALLOC_ALIGN_MASK
@@ -1263,8 +1340,9 @@ if MallocPar._c_struct not in (c_malloc_par_2_23, c_malloc_par_2_12):
     else:
         DEFAULT_MP_.tcache_bins = TCACHE_SMALL_BINS
         DEFAULT_MP_.tcache_max_bytes = MAX_TCACHE_SMALL_SIZE
-if MallocPar._c_struct == c_malloc_par_2_12:
+
+if GLIBC_VERSION == (2, 12):
     DEFAULT_MP_.pagesize = DEFAULT_PAGE_SIZE
 
-if MallocPar._c_struct == c_malloc_par_2_43:
+if GLIBC_VERSION >= (2, 43):
     DEFAULT_MP_.thp_mode = DEFAULT_THP_MODE
