@@ -1335,6 +1335,12 @@ disasm_lines = pwndbg.config.add_param(
     "context-disasm-lines", 10, "number of additional lines to print in the disasm context"
 )
 
+disasm_backwards_linear_lines = pwndbg.config.add_param(
+    "context-disasm-back-linear-lines",
+    "auto",
+    "maximum number of lines to disassemble backwards linearly in memory",
+)
+
 
 def try_emulate_if_bug_disable(handler: Callable[[], T]) -> T:
     try:
@@ -1361,9 +1367,7 @@ def context_disasm(
     syntax = pwndbg.aglib.disasm.disassembly.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(
-        iter(getattr(pwndbg.aglib.disasm.disassembly.get_disassembler, "cache").values()), None
-    )
+    cs = next(iter(pwndbg.aglib.disasm.disassembly.get_disassembler.cache.values()), None)
 
     # Clear the caches when user changes disassembly syntax during session.
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
@@ -1376,12 +1380,18 @@ def context_disasm(
 
     additional_disasm_lines = max(int(disasm_lines), height or 0)
 
+    if disasm_backwards_linear_lines == "auto":
+        max_backwards_linear_count = min(10, additional_disasm_lines // 3)
+    else:
+        max_backwards_linear_count = int(disasm_backwards_linear_lines)
+
     result = try_emulate_if_bug_disable(
         lambda: pwndbg.aglib.nearpc.nearpc(
             back_lines=additional_disasm_lines // 2,
             total_lines=additional_disasm_lines + 1,
             emulate=pwndbg.config.emulate != "off",
             use_cache=True,
+            max_backwards_linear_count=max_backwards_linear_count,
         )
     )
 
@@ -1548,7 +1558,7 @@ def context_backtrace(
     oldest_frame = this_frame
 
     tui_backtrace_lines = max(int(backtrace_lines), height or 0)
-    for i in range(tui_backtrace_lines - 1):
+    for _ in range(tui_backtrace_lines - 1):
         try:
             candidate = oldest_frame.parent()
         # We catch an error in case of a `gdb.error: PC not saved` case
@@ -1559,7 +1569,7 @@ def context_backtrace(
             break
         oldest_frame = candidate
 
-    for i in range(tui_backtrace_lines - 1):
+    for _ in range(tui_backtrace_lines - 1):
         candidate = newest_frame.child()
         if not candidate:
             break
@@ -1572,10 +1582,10 @@ def context_backtrace(
     inactive_prefix = Text(" " * active_prefix.cell_len)
 
     table = Table.grid(expand=False, padding=(0, 1))
-    table.add_column(no_wrap=True)
-    table.add_column(justify="right", no_wrap=True)
-    table.add_column(justify="right", no_wrap=True)
-    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)  # active indicator
+    table.add_column(justify="right")  # frame number
+    table.add_column(justify="right", overflow="ignore", no_wrap=True)  # address
+    table.add_column(overflow="fold")  # symbol
 
     offset_regex = re.compile(r"^(.+)\+(\d+)$")
 

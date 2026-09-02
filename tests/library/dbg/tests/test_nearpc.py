@@ -370,3 +370,40 @@ async def test_nearpc_function(ctrl: Controller) -> None:
     dis = await ctrl.execute_and_capture("nearpc -f (char*)break_here+2")
     # no "►" prefix this time cause we switched to the parent frame:
     assert dis == expected_break_here.replace("►", " ")
+
+
+STEPSYSCALL_X64_BINARY = get_binary("stepsyscall.x86-64.out")
+
+
+@pwndbg_test
+async def test_syscall_annotated_on_pc_address(ctrl: Controller) -> None:
+    import pwndbg.aglib
+
+    await ctrl.launch(STEPSYSCALL_X64_BINARY)
+
+    # Enable the heuristic
+    await ctrl.execute_and_capture("set heuristic-backwards-disasm on")
+
+    dis = await ctrl.execute_and_capture("nearpc $rip-3 -n -t 11")
+
+    # Data region location can differ based on the system
+    buf_addr = int(pwndbg.aglib.symbol.lookup_symbol_addr("buf"))
+
+    expected = (
+        "   0x4000b7 <syscall_write_stderr_label+2>    ret   \n"
+        " \n"
+        "   0x4000b8 <do_read>                         mov    eax, 0          EAX => 0\n"
+        "   0x4000bd <do_read+5>                       mov    edi, 0          EDI => 0\n"
+        f"   0x4000c2 <do_read+10>                      movabs rsi, buf        RSI => 0x{buf_addr:x} (buf)\n"
+        "   0x4000cc <do_read+20>                      mov    edx, 1          EDX => 1\n"
+        " ► 0x4000d1 <syscall_read_label>              syscall <SYS_read>\n"
+        "   0x4000d3 <syscall_read_label+2>            ret   \n"
+        " \n"
+        "   0x4000d4 <_start>                          nop   \n"
+        "   0x4000d5 <_start+1>                        jmp    label1                      <label1>\n"
+        " \n"
+        "   0x4000d7 <_start+3>                        nop   \n"
+        "   0x4000d8 <label1>                          call   write_stdout                <write_stdout>\n"
+    )
+
+    assert dis == expected

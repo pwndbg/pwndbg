@@ -31,13 +31,19 @@ class _GDBController(host.Controller):
         """
         self._gdb_execute("context")
 
-    async def launch(self, binary: Path, args: list[str] = [], env: dict[str, str] = {}) -> None:
+    async def launch(
+        self, binary: Path, args: list[str] = None, env: dict[str, str] = None
+    ) -> None:
         """
         Launch the given binary.
 
         GDB hides the asynchronous heavy lifting from us, so this call is
         synchronous.
         """
+        if env is None:
+            env = {}
+        if args is None:
+            args = []
         if not os.path.exists(binary):
             pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
 
@@ -46,6 +52,8 @@ class _GDBController(host.Controller):
         self._gdb_execute("set exception-verbose on")
         self._gdb_execute("set width 80")
         self._gdb_execute("set context-reserve-lines never")
+        self._gdb_execute("set heuristic-backwards-disasm off")
+        self._gdb_execute("set context-disasm-back-linear-lines 0")
         os.environ["COLUMNS"] = "80"
         for k, v in env.items():
             self._gdb_execute(f"set environment {k}={v}")

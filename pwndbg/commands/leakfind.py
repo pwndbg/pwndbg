@@ -202,7 +202,7 @@ def leakfind(
                 output_map[chain_length] = [line]
 
     # Output sorted by length of chain
-    for chain_length, lines in output_map.items():
+    for lines in output_map.values():
         for line in lines:
             print(line)
 

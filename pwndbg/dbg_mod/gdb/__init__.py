@@ -125,6 +125,13 @@ def _get_frame_stack_variables(frame: gdb.Frame) -> tuple[tuple[int, int, str], 
 
             try:
                 value = sym.value(frame)
+
+                # If a variable is optimized out, it surely has no memory location
+                # This check also prevents GDB from calling `malloc` within the inferior process
+                # which can cause a crash. See https://github.com/pwndbg/pwndbg/pull/4112
+                if value.is_optimized_out:
+                    continue
+
                 # value.address can be None
                 # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Values-From-Inferior.html#Values-From-Inferior:~:text=Variable%3A%20Value%2Eaddress
                 # https://sourceware.org/bugzilla/show_bug.cgi?id=33860
@@ -1453,7 +1460,13 @@ class GDBType(pwndbg.dbg_mod.Type):
         # For GDB, we can do a little better than the default implementation, as
         # it has a specific convenience function that checks for this condition
         # exactly.
-        return gdb.types.has_field(self.inner, name)
+        try:
+            return gdb.types.has_field(self.inner, name)
+        except TypeError:
+            # GDB throws an exception for stuff that does not resolve to a struct or union
+            # after typedefs have been stripped.
+            # https://git.sr.ht/~sourceware/binutils-gdb/tree/05c660d1d7ca754a9607084e606c263b1fd74a94/item/gdb/python/lib/gdb/types.py#L61
+            return False
 
     @override
     def array(self, count: int) -> pwndbg.dbg_mod.Type:
@@ -1763,8 +1776,19 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         self._load_gdbinit()
 
-        # show_hint must be called after loading ~/.gdbinit, this order allow disabling show_hint
+        # show_hint must be called after loading ~/.gdbinit, this order allows disabling show_hint
         prompt.show_hint()
+
+        # Check if the user has ubuntu in their debuginfod urls, and warn them about
+        # it if so.
+        if "debuginfod.ubuntu.com" in gdb.execute("show debuginfod urls", to_string=True):
+            print(
+                message.warn(
+                    "\nYou have debuginfod.ubuntu.com in your debuginfod urls and will experience stalls"
+                    " because of this.\nWe recommend you remove it until ubuntu fixes their server.\n"
+                    "See https://github.com/pwndbg/pwndbg/pull/4079 for more info.\n"
+                )
+            )
 
     @override
     def add_command(
