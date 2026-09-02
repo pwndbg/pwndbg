@@ -137,9 +137,12 @@ def test_arm_interworking_branch(qemu_assembly_run):
     """
     qemu_assembly_run(ARM_INTERWORKING_BRANCH, "arm")
 
-    dis = gdb.execute("emulate 7", to_string=True)
+    dis_0 = gdb.execute("context disasm", to_string=True)
+    dis_0 = pwndbg.color.strip(dis_0)
 
-    expected = (
+    expected_0 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
         " ► 0x200b4 <_start>       add    r0, pc, #1     R0 => 0x200bd (_start+9) (0x200bc + 0x1)\n"
         "   0x200b8 <_start+4>     bx     r0                          <_start+8>\n"
         "    ↓\n"
@@ -148,17 +151,25 @@ def test_arm_interworking_branch(qemu_assembly_run):
         "   0x200c2 <end>          mov.w  r0, #0                  R0 => 0\n"
         "   0x200c6 <end+4>        mov.w  r7, #0xf8               R7 => 0xf8\n"
         "   0x200ca <end+8>        svc    #0 <SYS_exit_group>\n"
+        "   0x200cc <end+10>       nop   \n"
+        "   0x200ce <end+12>       nop   \n"
+        "   0x200d0 <end+14>       nop   \n"
+        "   0x200d2 <end+16>       nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
-    assert dis == expected
+    assert dis_0 == expected_0
 
     # Make sure the transition is remembered
 
     gdb.execute("si 2")
 
-    dis = gdb.execute("emulate 5", to_string=True)
+    dis_1 = gdb.execute("context disasm", to_string=True)
+    dis_1 = pwndbg.color.strip(dis_1)
 
-    expected = (
+    expected_1 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────[ DISASM / arm / thumb mode / set emulate on ]─────────────────\n"
         "   0x200b4 <_start>       add    r0, pc, #1     R0 => 0x200bd (_start+9) (0x200bc + 0x1)\n"
         "   0x200b8 <_start+4>     bx     r0                          <_start+8>\n"
         "    ↓\n"
@@ -167,9 +178,14 @@ def test_arm_interworking_branch(qemu_assembly_run):
         "   0x200c2 <end>          mov.w  r0, #0                  R0 => 0\n"
         "   0x200c6 <end+4>        mov.w  r7, #0xf8               R7 => 0xf8\n"
         "   0x200ca <end+8>        svc    #0 <SYS_exit_group>\n"
+        "   0x200cc <end+10>       nop   \n"
+        "   0x200ce <end+12>       nop   \n"
+        "   0x200d0 <end+14>       nop   \n"
+        "   0x200d2 <end+16>       nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
-    assert dis == expected
+    assert dis_1 == expected_1
 
 
 ARM_IMPLICIT_BRANCH = f"""
