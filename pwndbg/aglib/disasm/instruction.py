@@ -19,6 +19,7 @@ from capstone6pwndbg.aarch64 import AARCH64_INS_BR
 from capstone6pwndbg.arm import ARM_INS_TBB
 from capstone6pwndbg.arm import ARM_INS_TBH
 from capstone6pwndbg.loongarch import LOONGARCH_INS_ALIAS_JR
+from capstone6pwndbg.loongarch import LOONGARCH_INS_ALIAS_RET
 from capstone6pwndbg.loongarch import LOONGARCH_INS_B
 from capstone6pwndbg.loongarch import LOONGARCH_INS_BL
 from capstone6pwndbg.loongarch import LOONGARCH_INS_CALL36
@@ -125,6 +126,7 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
         LOONGARCH_INS_JIRL,
         LOONGARCH_INS_ALIAS_JR,
         LOONGARCH_INS_CALL36,
+        LOONGARCH_INS_ALIAS_RET,
     },
 }
 
