@@ -13,9 +13,11 @@ from capstone6pwndbg import *  # noqa: F403
 from capstone6pwndbg import CS_AC
 from capstone6pwndbg import CS_GRP
 from capstone6pwndbg import CS_OP
+from capstone6pwndbg.aarch64 import AARCH64_INS_ALIAS_RET
 from capstone6pwndbg.aarch64 import AARCH64_INS_BL
 from capstone6pwndbg.aarch64 import AARCH64_INS_BLR
 from capstone6pwndbg.aarch64 import AARCH64_INS_BR
+from capstone6pwndbg.aarch64 import AARCH64_INS_RET
 from capstone6pwndbg.arm import ARM_INS_TBB
 from capstone6pwndbg.arm import ARM_INS_TBH
 from capstone6pwndbg.loongarch import LOONGARCH_INS_ALIAS_JR
@@ -95,7 +97,13 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
         ARM_INS_TBB,
         ARM_INS_TBH,
     },
-    CS_ARCH_AARCH64: {AARCH64_INS_BL, AARCH64_INS_BLR, AARCH64_INS_BR},
+    CS_ARCH_AARCH64: {
+        AARCH64_INS_BL,
+        AARCH64_INS_BLR,
+        AARCH64_INS_BR,
+        AARCH64_INS_RET,
+        AARCH64_INS_ALIAS_RET,
+    },
     CS_ARCH_RISCV: {
         RISCV_INS_ALIAS_RET,
         RISCV_INS_JALR,
