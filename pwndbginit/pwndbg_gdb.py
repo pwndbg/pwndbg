@@ -74,21 +74,12 @@ def main():
     sys.argv[0] = gdb_path
 
     envs = os.environ.copy()
+    envs.setdefault("PYTHONNOUSERSITE", "1")
+    envs["PYTHONPATH"] = ":".join([p for p in sys.path if p and not p.startswith(sys.base_prefix)])
+
     if sys.version_info >= (3, 11):
-        envs.setdefault("PYTHONNOUSERSITE", "1")
-        envs["__PYVENV_LAUNCHER__"] = sys.executable
+        envs["PYTHONEXECUTABLE"] = sys.executable
     else:
-        # site.addsitedir() is what expands the .pth files. Unlike the venv handling above
-        # it runs after interpreter startup and only appends, so it cannot get the order
-        # right on its own: PYTHONPATH is what keeps our site-packages ahead of GDB's
-        # own, and PYTHONNOUSERSITE keeps a stale copy in ~/.local from winning too.
-        envs.setdefault("PYTHONNOUSERSITE", "1")
-        envs["PYTHONPATH"] = ":".join(site.getsitepackages())
-
-        sitedirs_cmd = f"py import site; [site.addsitedir(d) for d in {site.getsitepackages()!r}]"
-        sys.argv.insert(1, sitedirs_cmd)
-        sys.argv.insert(1, "-iex")
-
         # sys.prefix/sys.exec_prefix must point to the virtual environment,
         # otherwise our auto-upgrade mechanism won't work when the package is installed in editable mode
         prefix_cmd = (
