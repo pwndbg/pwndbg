@@ -124,16 +124,26 @@ class StopPoint:
 class BreakpointLocation:
     """
     This is the location specification for a breakpoint.
+
+    A location is either an absolute address or a symbol name. The debugger
+    resolves symbol locations when the breakpoint is created or when the
+    relevant module is loaded, which makes them suitable for position
+    independent executables and for libraries that are not loaded yet.
     """
 
-    address: int
+    address: int | None
+    symbol: str | None
 
-    def __init__(self, address: int):
+    def __init__(self, address: int | None = None, symbol: str | None = None):
+        if (address is None) == (symbol is None):
+            raise ValueError("Exactly one of 'address' or 'symbol' must be specified")
+
         self.address = address
+        self.symbol = symbol
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, BreakpointLocation):
-            return self.address == other.address
+            return self.address == other.address and self.symbol == other.symbol
         if isinstance(other, int):
             return self.address == other
         return False

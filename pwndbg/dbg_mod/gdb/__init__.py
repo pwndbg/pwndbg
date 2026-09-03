@@ -1176,8 +1176,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             )
 
         if isinstance(location, pwndbg.dbg_mod.BreakpointLocation):
+            spec = f"*{location.address:#x}" if location.symbol is None else location.symbol
             bp = BreakpointAdapter(
-                f"*{location.address:#x}",
+                spec,
                 gdb.BP_BREAKPOINT,
                 internal=internal,
             )
