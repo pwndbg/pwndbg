@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 import shutil
-import site
 import subprocess
 import sys
 import sysconfig
@@ -16,16 +15,16 @@ def get_gdb_version(path: str) -> tuple[str, ...]:
             "-nx",
             "--batch",
             "-iex",
-            "py import sysconfig; print(sysconfig.get_config_var('INSTSONAME'), sysconfig.get_config_var('VERSION'))",
+            "py import sysconfig; sys.__stdout__.write(chr(0).join([sysconfig.get_config_var('INSTSONAME'), sysconfig.get_config_var('VERSION'), sys.base_prefix]))",
         ],
         capture_output=True,
         text=True,
     )
 
-    arr = result.stdout.strip().split(" ", 1)
-    if len(arr) != 2:
-        return "", ""
-    return arr[0], arr[1]
+    arr = result.stdout.strip().split("\x00", 2)
+    if len(arr) != 3:
+        return "", "", ""
+    return arr[0], arr[1], arr[2]
 
 
 def get_venv_bin_path() -> str:
@@ -73,23 +72,9 @@ def main():
     # Ensure arg0 points to the gdb binary; otherwise GDB can pick up a wrong PYTHONHOME.
     sys.argv[0] = gdb_path
 
-    envs = os.environ.copy()
-    envs.setdefault("PYTHONNOUSERSITE", "1")
-    envs["PYTHONPATH"] = ":".join([p for p in sys.path if p and not p.startswith(sys.base_prefix)])
-
-    if sys.version_info >= (3, 11):
-        envs["PYTHONEXECUTABLE"] = sys.executable
-    else:
-        # sys.prefix/sys.exec_prefix must point to the virtual environment,
-        # otherwise our auto-upgrade mechanism won't work when the package is installed in editable mode
-        prefix_cmd = (
-            f"py import sys; sys.prefix = {sys.prefix!r}; sys.exec_prefix = {sys.exec_prefix!r}"
-        )
-        sys.argv.insert(1, prefix_cmd)
-        sys.argv.insert(1, "-iex")
-
     expected = (sysconfig.get_config_var("INSTSONAME"), sysconfig.get_config_var("VERSION"))
-    have = get_gdb_version(gdb_path)
+    *have, gdb_base_prefix = get_gdb_version(gdb_path)
+    have = tuple(have)
     if have != expected:
         print(
             f"ERROR: GDB is compiled for Python {have}, but your Python interpreter is {expected} .\n\n"
@@ -100,6 +85,24 @@ def main():
             "(the python version may be wrong because our development scripts switch between them)"
         )
         sys.exit(1)
+
+    is_gdb_python_same_as_in_venv = sys.base_prefix == gdb_base_prefix
+
+    envs = os.environ.copy()
+    envs.setdefault("PYTHONNOUSERSITE", "1")
+
+    if is_gdb_python_same_as_in_venv:
+        envs["__PYVENV_LAUNCHER__"] = sys.executable
+    else:
+        envs["PYTHONPATH"] = ":".join(
+            [p for p in sys.path if p and not p.startswith(sys.base_prefix)]
+        )
+
+        # sys.prefix/sys.exec_prefix must point to the virtual environment,
+        # otherwise our auto-upgrade mechanism won't work when the package is installed in editable mode
+        setprefix_py = f"sys.prefix={sys.prefix!r};sys.exec_prefix={sys.exec_prefix!r}"
+        sys.argv.insert(1, f"py import sys;{setprefix_py}")
+        sys.argv.insert(1, "-iex")
 
     os.execve(gdb_path, sys.argv, env=envs)
 
