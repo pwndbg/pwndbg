@@ -91,7 +91,7 @@ def main():
     envs = os.environ.copy()
     envs.setdefault("PYTHONNOUSERSITE", "1")
 
-    if is_gdb_python_same_as_in_venv:
+    if is_gdb_python_same_as_in_venv and sys.version_info >= (3, 11):
         envs["__PYVENV_LAUNCHER__"] = sys.executable
     else:
         envs["PYTHONPATH"] = ":".join(
