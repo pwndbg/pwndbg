@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+import functools
+import logging
+from collections.abc import Callable
+from typing import TypeVar
 
-from tabulate import tabulate
+from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib.heap
@@ -29,10 +33,18 @@ from pwndbg.aglib.heap.ptmalloc import Chunk
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import Heap
+from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
 from pwndbg.color import generate_color_function
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.lib import SymbolNotRecoveredError
+
+log = logging.getLogger(__name__)
+
+
+T = TypeVar("T")
+P = ParamSpec("P")
 
 
 def read_chunk(addr: int) -> dict[str, int]:
@@ -153,6 +165,140 @@ def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
     )
 
 
+def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
+    @functools.wraps(function)
+    def _OnlyWithTcache(*a: P.args, **kw: P.kwargs) -> T | None:
+        assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+        if pwndbg.aglib.heap.current.has_tcache():
+            return function(*a, **kw)
+        log.error(
+            f"{func_name(function)}: This version of GLIBC was not compiled with tcache support."
+        )
+        return None
+
+    return _OnlyWithTcache
+
+
+def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, T | None]:
+    @functools.wraps(function)
+    def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> T | None:
+        if pwndbg.aglib.heap.current is not None and pwndbg.aglib.heap.current.is_initialized():
+            return function(*a, **kw)
+        log.error(f"{func_name(function)}: Heap is not initialized yet.")
+        return None
+
+    return _OnlyWhenHeapIsInitialized
+
+
+def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) -> T | None:
+    e = log.error
+    w = log.warning
+    # Note: We will still raise the error for developers when exception-* is set to "on"
+    try:
+        return function(*a, **kw)
+    except SymbolNotRecoveredError as err:
+        e(f"{func_name(function)}: Fail to resolve the symbol: `{err.name}`")
+        if "thread_arena" == err.name:
+            w(
+                "You are probably debugging a multi-threaded target without debug symbols, so we failed to determine which arena is used by the current thread.\n"
+                "To resolve this issue, you can use the `arenas` command to list all arenas, and use `set thread-arena <addr>` to set the current thread's arena address you think is correct.\n"
+            )
+        else:
+            w(
+                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap-config` command output and set the config for `{err.name}`."
+            )
+        if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
+            raise err
+
+        pwndbg.exception.inform_verbose_and_debug()
+    except Exception as err:
+        e(f"{func_name(function)}: An unknown error occurred when running this command.")
+        if isinstance(pwndbg.aglib.heap.current, HeuristicHeap):
+            w(
+                "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap-config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
+            )
+        else:
+            w("You can try `set resolve-heap-via-heuristic force` and re-run this command.\n")
+        if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
+            raise err
+
+        pwndbg.exception.inform_verbose_and_debug()
+    return None
+
+
+def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
+    @functools.wraps(function)
+    def _OnlyWithResolvedHeapSyms(*a: P.args, **kw: P.kwargs) -> T | None:
+        e = log.error
+        w = log.warning
+
+        # Operating under the assumption that the pwndbg/libc/ code can figure out
+        # that we are using glibc with at least as good accuracy as the ptmalloc code.
+        if pwndbg.libc.which() != pwndbg.libc.LibcType.GLIBC:
+            e(f"The currently active libc isn't glibc. It's {pwndbg.libc.which().value}.")
+            return None
+
+        if (
+            isinstance(pwndbg.aglib.heap.current, HeuristicHeap)
+            and pwndbg.config.resolve_heap_via_heuristic == "auto"
+            and DebugSymsHeap().can_be_resolved()
+        ):
+            # In auto mode, we will try to use the debug symbols if possible
+            pwndbg.aglib.heap.current = DebugSymsHeap()
+
+        if (
+            pwndbg.aglib.heap.current is not None
+            and isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+            and pwndbg.aglib.heap.current.can_be_resolved()
+        ):
+            return _try2run_heap_command(function, *a, **kw)
+
+        static = not pwndbg.dbg.selected_inferior().is_dynamically_linked()
+        if (
+            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
+            and pwndbg.config.resolve_heap_via_heuristic == "auto"
+        ):
+            # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
+            heuristic_heap = HeuristicHeap()
+            if heuristic_heap.can_be_resolved():
+                pwndbg.aglib.heap.current = heuristic_heap
+                w(
+                    "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
+                    "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
+                )
+                return _try2run_heap_command(function, *a, **kw)
+            if static:
+                e(
+                    "Can't find GLIBC version required for this command to work since this is a statically linked binary"
+                )
+                w(
+                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
+                )
+            else:
+                e(
+                    "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
+                )
+                w(
+                    "If you believe the GLIBC is loaded or this is a statically linked binary. "
+                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
+                )
+        elif (
+            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
+            and pwndbg.config.resolve_heap_via_heuristic == "force"
+        ):
+            e(
+                "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
+            )
+            w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
+        else:
+            # Note: Should not see this error, but just in case
+            e("An unknown error occurred when resolved the heap.")
+            pwndbg.exception.inform_report_issue("An unknown error occurred when resolved the heap")
+        return None
+
+    return _OnlyWithResolvedHeapSyms
+
+
 parser = argparse.ArgumentParser(
     description="""Iteratively print chunks on a heap.
 
@@ -202,8 +348,8 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def heap(
     addr_start: int | None = None,
     addr_end: int | None = None,
@@ -282,8 +428,8 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def hi(addr: int, verbose: bool = False, simple: bool = False, fake: bool = False) -> None:
     try:
         heap = Heap(addr)
@@ -321,8 +467,8 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def arena(addr: int | None = None) -> None:
     """Print the contents of an arena, default to the current thread's arena."""
     allocator = pwndbg.aglib.heap.current
@@ -351,8 +497,8 @@ parser = argparse.ArgumentParser(description="List this process's arenas.")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def arenas() -> None:
     """Lists this process's arenas."""
     allocator = pwndbg.aglib.heap.current
@@ -417,9 +563,9 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
-@pwndbg.commands.OnlyWithTcache
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
+@OnlyWithTcache
 def tcache(addr: int | None = None) -> None:
     """Print a thread's tcache contents, default to the current thread's
     tcache.
@@ -447,8 +593,8 @@ parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def mp() -> None:
     """Print the mp_ struct's contents."""
     allocator = pwndbg.aglib.heap.current
@@ -468,8 +614,8 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def top_chunk(addr: int | None = None) -> None:
     """Print relevant information about an arena's top chunk, default to the
     current thread's arena.
@@ -509,8 +655,8 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def malloc_chunk(
     addr: int,
     fake: bool = False,
@@ -630,8 +776,8 @@ parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Addr
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def bins(addr: int | None = None, tcache_addr: int | None = None) -> None:
     """Print the contents of all an arena's bins and a thread's tcache,
     default to the current thread's arena and tcache.
@@ -667,8 +813,8 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def fastbins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's fastbins, default to the current
     thread's arena.
@@ -706,8 +852,8 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def unsortedbin(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's unsortedbin, default to the current
     thread's arena.
@@ -741,8 +887,8 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def smallbins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's smallbins, default to the current
     thread's arena.
@@ -776,8 +922,8 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def largebins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's largebins, default to the current
     thread's arena.
@@ -810,9 +956,9 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
-@pwndbg.commands.OnlyWithTcache
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
+@OnlyWithTcache
 def tcachebins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of a tcache, default to the current thread's tcache."""
     allocator = pwndbg.aglib.heap.current
@@ -869,8 +1015,8 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def find_fake_fast(
     target_address: int,
     max_candidate_size: int | None = None,
@@ -1065,8 +1211,8 @@ group.add_argument(
 
 @pwndbg.commands.Command(parser, aliases=["vis"], category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def vis_heap_chunks(
     addr: int | None = None,
     count: int | None = None,
@@ -1251,8 +1397,8 @@ try_free_parser.add_argument("addr", type=int, help="Address passed to free")
 
 @pwndbg.commands.Command(try_free_parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@OnlyWhenHeapIsInitialized
+@OnlyWithResolvedHeapSyms
 def try_free(addr: str | int) -> None:
     addr = int(addr)
 
