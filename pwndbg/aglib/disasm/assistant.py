@@ -514,7 +514,7 @@ class DisassemblyAssistant:
         if operand.type == CS_OP_MEM:
             # Assume that we are reading ptrsize - subclasses should override this function
             # to provide a more specific value if needed
-            self._read_memory(value, pwndbg.aglib.arch.ptrsize, instruction, emu)
+            return self._read_memory(value, pwndbg.aglib.arch.ptrsize, instruction, emu)
 
         return None
 
