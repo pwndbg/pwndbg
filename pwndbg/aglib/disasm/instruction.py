@@ -742,16 +742,16 @@ class EnhancedOperand:
     def __repr__(self) -> str:
         info = (
             f"'{self.str}': Symbol: {self.symbol}, "
-            f"Before: {hex(self.before_value) if self.before_value is not None else None}, "
-            f"After: {hex(self.after_value) if self.after_value is not None else None}, "
+            f"Before: {hex(self.before_value) if self.before_value is not None else None}: resolved: {hex(self.before_value_resolved) if self.before_value_resolved is not None else None}, "
+            f"After: {hex(self.after_value) if self.after_value is not None else None}, resolved: {hex(self.after_value_resolved) if self.after_value_resolved is not None else None}, "
             f"type={CS_OP.get(self.type, self.type)}"
         )
 
         if isinstance(self.cs_op, X86Op):
-            info += (
-                f", size={self.cs_op.size}, "
-                f"access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
-            )
+            info += f", size={self.cs_op.size}"
+
+        if hasattr(self.cs_op, "access"):
+            info += f", access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
 
         return f"[{info}]"
 

@@ -310,7 +310,18 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
-        target = super()._resolve_target(instruction, emu)
+
+        target: int | None = None
+        if instruction.jump_like and instruction.id == ARM_INS_LDR:
+            # This is one we could potentially handle manually while stepped on it
+            if len(instruction.operands) == 2 and (
+                (branch_target := instruction.operands[1].before_value_resolved) is not None
+            ):
+                target = branch_target
+        elif instruction.id not in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
+            # For the instructions in the list guarding this branch, the default resolver cannot determine the branch target
+            target = super()._resolve_target(instruction, emu)
+
         if target is not None:
             # On interworking branches - branches that can enable Thumb mode - the target of a jump
             # has the least significant bit set to 1. This is not actually written to the PC
