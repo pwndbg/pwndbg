@@ -240,7 +240,7 @@ def heap(
         while chunk is not None:
             if should_stop(chunk.address):
                 break
-            malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+            malloc_chunk(chunk.address, verbose=verbose, simple=simple, compact=True)
             printed_chunks += 1
             chunk = chunk.next_chunk()
         return
@@ -255,7 +255,7 @@ def heap(
     for chunk in h:
         if should_stop(chunk.address):
             break
-        malloc_chunk(chunk.address, verbose=verbose, simple=simple)
+        malloc_chunk(chunk.address, verbose=verbose, simple=simple, compact=True)
         printed_chunks += 1
 
 
@@ -518,6 +518,7 @@ def malloc_chunk(
     simple: bool = False,
     next: int = 0,
     dump: bool = False,
+    compact: bool = False,
 ) -> None:
     """Print a malloc_chunk struct's contents."""
     allocator = pwndbg.aglib.heap.current
@@ -528,7 +529,8 @@ def malloc_chunk(
     headers_to_print: list[str] = []  # both state (free/allocated) and flags
     fields_to_print: set[str] = set()  # in addition to addr and size
     out_fields = f"Addr: {mem_color.get(chunk.address)}\n"
-
+    if compact:
+        out_fields += f"Data: {mem_color.get(chunk.address + 2 * pwndbg.aglib.arch.ptrsize)}\n"
     if fake:
         headers_to_print.append(message.on("Fake chunk"))
         verbose = True  # print all fields for fake chunks
@@ -576,6 +578,7 @@ def malloc_chunk(
     else:
         out_fields += f"Size: 0x{chunk.real_size:02x} (with flag bits: 0x{chunk.size:02x})\n"
 
+    chunk_headers = headers_to_print.copy()
     prev_inuse, is_mmapped, non_main_arena = allocator.chunk_flags(chunk.size)
     if prev_inuse:
         headers_to_print.append(message.hint("PREV_INUSE"))
@@ -585,6 +588,8 @@ def malloc_chunk(
         headers_to_print.append(message.hint("NON_MAIN_ARENA"))
 
     fields_ordered = ["prev_size", "size", "fd", "bk", "fd_nextsize", "bk_nextsize"]
+    flags_to_print = headers_to_print[len(chunk_headers) :]
+
     for field_to_print in fields_ordered:
         if field_to_print not in fields_to_print:
             continue
@@ -598,7 +603,14 @@ def malloc_chunk(
                 message.system(field_to_print) + f": 0x{getattr(chunk, field_to_print):02x}\n"
             )
 
-    print(" | ".join(headers_to_print) + "\n" + out_fields)
+    if compact:
+        chunk_type = " | ".join(chunk_headers)
+        flags = ", ".join(flags_to_print)
+        fields = out_fields.rstrip("\n").replace("\n", " | ")
+
+        print(f"{chunk_type} | {fields} | Flags: {flags}")
+    else:
+        print(" | ".join(headers_to_print) + "\n" + out_fields)
 
     if dump:
         print(ctx_color.banner("hexdump"))
