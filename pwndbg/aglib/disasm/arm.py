@@ -310,7 +310,18 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
-        target = super()._resolve_target(instruction, emu)
+
+        target: int | None = None
+        if instruction.id in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
+            # The default target resolver does not apply to these instructions, since `pc` is an explicit operand,
+            # but it's not being read from.
+            if len(instruction.operands) == 2:
+                right_operand = instruction.operands[1]
+                if right_operand.before_value is not None:
+                    target = right_operand.before_value
+        else:
+            target = super()._resolve_target(instruction, emu)
+
         if target is not None:
             # On interworking branches - branches that can enable Thumb mode - the target of a jump
             # has the least significant bit set to 1. This is not actually written to the PC

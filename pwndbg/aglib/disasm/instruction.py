@@ -748,10 +748,10 @@ class EnhancedOperand:
         )
 
         if isinstance(self.cs_op, X86Op):
-            info += (
-                f", size={self.cs_op.size}, "
-                f"access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
-            )
+            info += f", size={self.cs_op.size}"
+
+        if hasattr(self.cs_op, "access"):
+            info += f", access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
 
         return f"[{info}]"
 
