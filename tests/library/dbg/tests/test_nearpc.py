@@ -431,7 +431,7 @@ async def test_nearpc_plt_jumps_lazy_binding_x86_64(
         )
 
     PLT_ADDRESS = 0x555555555670
-    dis_0 = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 15")
+    dis_0 = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 -t 15")
     dis_0 = pwndbg.color.strip(dis_0)
 
     expected_0 = (
@@ -465,7 +465,7 @@ async def test_nearpc_plt_jumps_lazy_binding_x86_64(
     break_at_sym("break_here")
     await ctrl.cont()
 
-    dis_1 = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 15")
+    dis_1 = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 -t 15")
     dis_1 = pwndbg.color.strip(dis_1)
 
     for line in dis_1.split("\n"):
@@ -522,7 +522,7 @@ async def test_nearpc_plt_jumps_lazy_binding_i386(
         )
 
     PLT_ADDRESS = 0x11520
-    dis = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} 21 -r 0")
+    dis = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 -t 21")
     dis = pwndbg.color.strip(dis)
 
     for line in dis.split("\n"):
