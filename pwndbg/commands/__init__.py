@@ -1087,6 +1087,7 @@ def load_commands() -> None:
     import pwndbg.commands.decompiler_integration
     import pwndbg.commands.dev
     import pwndbg.commands.distance
+    import pwndbg.commands.dp
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
