@@ -2,942 +2,942 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://pwndbg.re/stable/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/features/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/setup/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/blog/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/blog/2022/08/21/pwndbg-coding-sprints-report/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/allocators/jemalloc/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/allocators/mallocng/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/breakpoint/break-if-not-taken/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/breakpoint/break-if-taken/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/breakpoint/breakrva/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/breakpoint/ignore/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/context/context/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/context/contextnext/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/context/contextoutput/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/context/contextprev/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/context/contextsearch/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/context/contextunwatch/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/context/contextwatch/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/context/regs/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/darwin_libsystem_mach-o/commpage/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/developer/dev-dump-instruction/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/developer/log-level/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/developer/memoize/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/developer/profiler/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/developer/reinit-pwndbg/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/developer/reload/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/disassemble/emulate/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/disassemble/nearpc/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/arena/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/arenas/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/bins/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/fastbins/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/find-fake-fast/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/heap/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/hi/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/largebins/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/malloc-chunk/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/mp/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/smallbins/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/tcache/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/tcachebins/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/top-chunk/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/try-free/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/unsortedbin/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/vis-heap-chunks/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/integrations/ai/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/integrations/decomp/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/integrations/decompiler-integration/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/integrations/r2/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/integrations/r2pipe/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/integrations/rop/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/integrations/ropper/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/integrations/rz/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/integrations/rzpipe/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/binder/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/buddydump/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kbase/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kbpf/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kchecksec/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kcmdline/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kconfig/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kcurrent/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kdmabuf/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kdmesg/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kfile/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/klookup/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kmem-trace/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kmod/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/knamespace/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/knft/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kseccomp/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/ksighand/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kstack/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/ksyscalls/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/ktask/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/kversion/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/msr/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/p2v/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/pageinfo/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/pagewalk/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/slab/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/kernel/v2p/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/argc/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/argv/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/aslr/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/auxv-explore/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/auxv/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/elfsections/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/envp/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/errno/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/exithandlers/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/got/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/gotplt/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/libcinfo/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/linkmap/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/onegadget/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/parse-seccomp/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/piebase/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/plt/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/strings/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/threads/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/tls/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/track-got/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/track-heap/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/distance/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/dump-register-frame/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/gdt/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/go-dump/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/go-type/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/hexdump/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/leakfind/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/memfrob/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/mmap/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/mprotect/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/p2p/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/probeleak/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/search/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/telescope/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/vmmap-add/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/vmmap-clear/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/vmmap-explore/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/vmmap/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/xinfo/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/memory/xor/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/asm/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/checksec/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/comm/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/cyclic/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/cymbol/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/down/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/dt/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/dumpargs/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/getfile/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/hex2ptr/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/hijack-fd/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/ipi/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/patch-list/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/patch-revert/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/patch/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/plist/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/sigreturn/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/spray/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/tips/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/up/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/valist/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/misc/vmmap-load/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/process/killthreads/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/process/pid/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/process/procinfo/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/pwndbg/bugreport/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/pwndbg/config/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/pwndbg/configfile/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/pwndbg/heap-config/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/pwndbg/pwndbg/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/pwndbg/theme/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/pwndbg/themefile/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/pwndbg/version/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/register/cpsr/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/register/fsbase/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/register/gsbase/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/register/setflag/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/stack/canary/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/stack/retaddr/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/stack/stack-explore/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/stack/stack-vis/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/stack/stack/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/stack/stackf/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/start/attachp/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/start/entry/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/start/sstart/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/start/start/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/step_next_continue/nextcall/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/step_next_continue/nextjmp/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/step_next_continue/nextproginstr/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/step_next_continue/nextret/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/step_next_continue/nextsyscall/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/step_next_continue/stepover/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/step_next_continue/stepret/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/step_next_continue/stepsyscall/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/step_next_continue/stepuntilasm/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/step_next_continue/xuntil/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/bc/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/bd/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/be/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/bl/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/bp/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/da/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/db/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/dc/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/dd/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/dds/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/dq/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/ds/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/dw/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/eb/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/ed/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/eq/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/ew/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/ez/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/eza/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/go/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/k/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/ln/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/pc/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/windbg/peb/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/configuration/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/configuration/config/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/configuration/heap/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/configuration/theme/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/adding-a-command/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/adding-a-parameter/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/allocator/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/common-pitfalls/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/dev-notes/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/improving-annotations/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/libc-provider/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/making-a-gif/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/setup-pwndbg-dev/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/stacked-pr/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/testing-crossarch/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/contributing/writing-tests/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/functions/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/tutorials/bare-metal-debugging/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/tutorials/decompiler-integration/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/tutorials/env-vars/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/tutorials/gdb-lldb-commands/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/tutorials/gdb-tui/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/tutorials/go-debugging/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/tutorials/packaging/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/tutorials/pwndbg-users/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/tutorials/pycharm-debugging/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/tutorials/splitting-the-context/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/stable/blog/archive/2022/</loc>
-         <lastmod>2026-09-02</lastmod>
+         <lastmod>2026-09-04</lastmod>
     </url>
 </urlset>
