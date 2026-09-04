@@ -338,23 +338,6 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
         return target
 
-    # Currently not used
-    def _memory_string_old(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
-        parts = []
-
-        if op.mem.base != 0:
-            parts.append(instruction.cs_insn.reg_name(op.mem.base))
-
-        if op.mem.disp != 0:
-            parts.append(f"{op.mem.disp:#x}")
-
-        if op.mem.index != 0:
-            index = pwndbg.aglib.regs.read_reg(instruction.cs_insn.reg_name(op.mem.index))
-            scale = op.mem.scale
-            parts.append(f"{index}*{scale:#x}")
-
-        return f"[{(', '.join(parts))}]"
-
     def read_thumb_bit(self, instruction: PwndbgInstruction, emu: Emulator) -> int | None:
         return 1 if instruction.cs_insn._cs._mode & CS_MODE_THUMB else 0
 

@@ -407,3 +407,117 @@ async def test_syscall_annotated_on_pc_address(ctrl: Controller) -> None:
     )
 
     assert dis == expected
+
+
+PLT_NO_RELRO_LAZY_BINDING_BINARY = get_binary("reference_bin_plt_pie_no_relro.x86-64.out")
+
+
+@pwndbg_test
+async def test_nearpc_plt_jumps_lazy_binding(
+    ctrl: Controller, request: pytest.FixtureRequest
+) -> None:
+    """
+    Checks that we handle `jmp [rip+offset]` where the address is in writable memory
+    """
+    import pwndbg.color
+    from pwndbg.dbg_mod import DebuggerType
+
+    await launch_to(ctrl, PLT_NO_RELRO_LAZY_BINDING_BINARY, "break_here")
+
+    if pwndbg.dbg.name() != DebuggerType.GDB:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="LLDB does not correctly find the symbol names", strict=True)
+        )
+
+    dis = await ctrl.execute_and_capture("nearpc 0x555555555660 -r 0 15")
+
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        " ► 0x555555555660                                 ┌┌┌┌>   push   qword ptr [rip + 0x11b2]\n"
+        "   0x555555555666                                 ╎╎╎╎    jmp    qword ptr [rip + 0x11b4]    <[0x555555556820], now=_dl_runtime_resolve_xsavec>\n"
+        "                                                  ╎╎╎╎ \n"
+        "   0x55555555566c                                 ╎╎╎╎    nop    dword ptr [rax]\n"
+        "   0x555555555670 <puts@plt>                      ╎╎╎╎    jmp    qword ptr [rip + 0x11b2]    <[puts@got[plt]], now=puts>\n"
+        "                                                  ╎╎╎╎ \n"
+        "   0x555555555676 <puts@plt+6>                    ╎╎╎╎    push   0\n"
+        "   0x55555555567b <puts@plt+11>                   ╎╎╎└<   jmp    0x555555555660              <0x555555555660>\n"
+        "                                                  ╎╎╎  \n"
+        "   0x555555555680 <printf@plt>                    ╎╎╎     jmp    qword ptr [rip + 0x11aa]    <[printf@got[plt]], now=printf>\n"
+        "                                                  ╎╎╎  \n"
+        "   0x555555555686 <printf@plt+6>                  ╎╎╎     push   1\n"
+        "   0x55555555568b <printf@plt+11>                 ╎╎└─<   jmp    0x555555555660              <0x555555555660>\n"
+        "                                                  ╎╎   \n"
+        "   0x555555555690 <write@plt>                     ╎╎      jmp    qword ptr [rip + 0x11a2]    <[write@got[plt]], now=write>\n"
+        "                                                  ╎╎   \n"
+        "   0x555555555696 <write@plt+6>                   ╎╎      push   2\n"
+        "   0x55555555569b <write@plt+11>                  ╎└──<   jmp    0x555555555660              <0x555555555660>\n"
+        "                                                  ╎    \n"
+        "   0x5555555556a0 <srand@plt>                     ╎       jmp    qword ptr [rip + 0x119a]    <[srand@got[plt]], now=srandom>\n"
+        "                                                  ╎    \n"
+        "   0x5555555556a6 <srand@plt+6>                   ╎       push   3\n"
+        "   0x5555555556ab <srand@plt+11>                  └───<   jmp    0x555555555660              <0x555555555660>\n"
+    )
+
+    assert dis == expected
+
+
+I386_PLT_NO_RELRO_LAZY_BINDING_BINARY = get_binary("reference_bin_plt_no_pie_no_relro.i386.out")
+
+
+@pwndbg_test
+async def test_nearpc_plt_jumps_lazy_binding_i386(
+    ctrl: Controller, request: pytest.FixtureRequest
+) -> None:
+    """
+    Checks that we handle `jmp [literal_address]` where the address is in writable memory
+    """
+    import pwndbg.color
+    from pwndbg.dbg_mod import DebuggerType
+
+    await launch_to(ctrl, I386_PLT_NO_RELRO_LAZY_BINDING_BINARY, "break_here")
+
+    if pwndbg.dbg.name() != DebuggerType.GDB:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="LLDB does not correctly find the symbol names", strict=True)
+        )
+
+    dis = await ctrl.execute_and_capture("nearpc 0x11510 21 -r 0")
+
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        " ► 0x11510                                           ┌┌┌┌┌>   push   dword ptr [_GLOBAL_OFFSET_TABLE_+4]\n"
+        "   0x11516                                           ╎╎╎╎╎    jmp    dword ptr [_GLOBAL_OFFSET_TABLE_+8] <[_GLOBAL_OFFSET_TABLE_+8], now=_dl_runtime_resolve>\n"
+        "                                                     ╎╎╎╎╎ \n"
+        "   0x1151c                                           ╎╎╎╎╎    nop   \n"
+        "   0x1151d                                           ╎╎╎╎╎    nop   \n"
+        "   0x1151e                                           ╎╎╎╎╎    nop   \n"
+        "   0x1151f                                           ╎╎╎╎╎    nop   \n"
+        "   0x11520 <__libc_start_main@plt>                   ╎╎╎╎╎    jmp    dword ptr [__libc_start_main@got.plt] <[__libc_start_main@got.plt], now=__libc_start_main>\n"
+        "                                                     ╎╎╎╎╎ \n"
+        "   0x11526 <__libc_start_main@plt+6>                 ╎╎╎╎╎    push   0\n"
+        "   0x1152b <__libc_start_main@plt+11>                ╎╎╎╎└<   jmp    0x11510                     <0x11510>\n"
+        "                                                     ╎╎╎╎  \n"
+        "   0x11530 <puts@plt>                                ╎╎╎╎     jmp    dword ptr [puts@got[plt]]   <[puts@got[plt]], now=puts>\n"
+        "                                                     ╎╎╎╎  \n"
+        "   0x11536 <puts@plt+6>                              ╎╎╎╎     push   8\n"
+        "   0x1153b <puts@plt+11>                             ╎╎╎└─<   jmp    0x11510                     <0x11510>\n"
+        "                                                     ╎╎╎   \n"
+        "   0x11540 <printf@plt>                              ╎╎╎      jmp    dword ptr [printf@got[plt]] <[printf@got[plt]], now=printf>\n"
+        "                                                     ╎╎╎   \n"
+        "   0x11546 <printf@plt+6>                            ╎╎╎      push   0x10\n"
+        "   0x1154b <printf@plt+11>                           ╎╎└──<   jmp    0x11510                     <0x11510>\n"
+        "                                                     ╎╎    \n"
+        "   0x11550 <write@plt>                               ╎╎       jmp    dword ptr [write@got[plt]]  <[write@got[plt]], now=write>\n"
+        "                                                     ╎╎    \n"
+        "   0x11556 <write@plt+6>                             ╎╎       push   0x18\n"
+        "   0x1155b <write@plt+11>                            ╎└───<   jmp    0x11510                     <0x11510>\n"
+        "                                                     ╎     \n"
+        "   0x11560 <srand@plt>                               ╎        jmp    dword ptr [srand@got[plt]]  <[srand@got[plt]], now=srandom>\n"
+        "                                                     ╎     \n"
+        "   0x11566 <srand@plt+6>                             ╎        push   0x20\n"
+        "   0x1156b <srand@plt+11>                            └────<   jmp    0x11510                     <0x11510>\n"
+    )
+
+    assert dis == expected

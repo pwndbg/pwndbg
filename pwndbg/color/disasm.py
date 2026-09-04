@@ -94,9 +94,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
         zip(instructions, (one_instruction(i, linear) for i in instructions))
     ):
         if ins.has_jump_target:
-            sym = ins.target_string
-
-            asm = f"{ljust_colored(asm, 36)} <{sym}>"
+            asm = f"{ljust_colored(asm, 36)} <{ins.target_string}>"
 
             paddings.append(None)
             if current_group:
@@ -129,10 +127,8 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
 
             raw_len = len(strip(asm))
 
-            if cur_padding_len is None:
-                cur_padding_len = raw_len + MIN_SPACING
-            elif cur_padding_len - raw_len < MIN_SPACING:
-                # Annotations are getting too close to the disasm, push them to the right again
+            if cur_padding_len is None or cur_padding_len - raw_len < MIN_SPACING:
+                # First time setting padding, or annotations are getting too close to the disasm, push them to the right again
                 cur_padding_len = raw_len + MIN_SPACING
             # This path allows the padding to be smaller again
             # If the instruction has too much whitespace, put the annotation more to the left
