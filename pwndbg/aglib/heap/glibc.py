@@ -126,15 +126,15 @@ NON_MAIN_ARENA = 4
 SIZE_BITS = PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA
 NONCONTIGUOUS_BIT = 2
 
-# The `pwndbg.aglib.heap.structs` module is only imported at runtime when
+# The `pwndbg.aglib.heap.glibc_structs` module is only imported at runtime when
 # the heap heuristics are used in `HeuristicHeap.struct_module` and
 # uses runtime information to select the correct structs.
 # Only import it globally during static type checking.
 if typing.TYPE_CHECKING:
     import pwndbg.aglib.heap.glibc_structs
 
-    TheType = TypeVar("TheType", pwndbg.dbg_mod.Type, type[pwndbg.aglib.heap.structs.CStruct2GDB])
-    TheValue = TypeVar("TheValue", pwndbg.dbg_mod.Value, pwndbg.aglib.heap.structs.CStruct2GDB)
+    TheType = TypeVar("TheType", pwndbg.dbg_mod.Type, type[pwndbg.aglib.heap.glibc_structs.CStruct2GDB])
+    TheValue = TypeVar("TheValue", pwndbg.dbg_mod.Value, pwndbg.aglib.heap.glibc_structs.CStruct2GDB)
 else:
     TheType = TypeVar("TheType")
     TheValue = TypeVar("TheValue")
@@ -235,7 +235,7 @@ class Bins:
             chunk += ptr_size * 2
 
             # fmt: off
-            if size > pwndbg.aglib.heap.structs.DEFAULT_MP_.tcache_max_bytes.value \
+            if size > pwndbg.aglib.heap.glibc_structs.DEFAULT_MP_.tcache_max_bytes.value \
                 and pwndbg.libc.version() >= (2, 42):
             # fmt: on
                 # we need to enlarge it to match large tcache size
@@ -1817,7 +1817,7 @@ class HeuristicHeap(
         if not self._structs_module and pwndbg.libc.version() != (-1, -1):
             try:
                 self._structs_module = importlib.reload(
-                    importlib.import_module("pwndbg.aglib.heap.structs")
+                    importlib.import_module("pwndbg.aglib.heap.glibc_structs")
                 )
             except AssertionError:
                 raise
@@ -2060,7 +2060,7 @@ class HeuristicHeap(
 
     @property
     @override
-    def thread_cache(self) -> pwndbg.aglib.heap.structs.TcachePerthreadStruct | None:
+    def thread_cache(self) -> pwndbg.aglib.heap.glibc_structs.TcachePerthreadStruct | None:
         """Locate a thread's tcache struct. We try to find its address in Thread Local Storage (TLS) first,
         and if that fails, we guess it's at the first chunk of the heap.
         """
@@ -2107,7 +2107,7 @@ class HeuristicHeap(
 
     @property
     @override
-    def mp(self) -> pwndbg.aglib.heap.structs.CStruct2GDB:
+    def mp(self) -> pwndbg.aglib.heap.glibc_structs.CStruct2GDB:
         mp_via_config = int(str(pwndbg.config.mp), 0)
         mp_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr("mp_", prefer_static=True)
         if mp_via_config or mp_via_symbol:
@@ -2167,7 +2167,7 @@ class HeuristicHeap(
     @property
     @pwndbg.lib.cache.cache_until("objfile")
     @override
-    def heap_info(self) -> type[pwndbg.aglib.heap.structs.HeapInfo] | None:
+    def heap_info(self) -> type[pwndbg.aglib.heap.glibc_structs.HeapInfo] | None:
         if not self.struct_module:
             return None
         return self.struct_module.HeapInfo
@@ -2175,7 +2175,7 @@ class HeuristicHeap(
     @property
     @pwndbg.lib.cache.cache_until("objfile")
     @override
-    def malloc_chunk(self) -> type[pwndbg.aglib.heap.structs.MallocChunk] | None:
+    def malloc_chunk(self) -> type[pwndbg.aglib.heap.glibc_structs.MallocChunk] | None:
         if not self.struct_module:
             return None
         return self.struct_module.MallocChunk
@@ -2183,7 +2183,7 @@ class HeuristicHeap(
     @property
     @pwndbg.lib.cache.cache_until("objfile")
     @override
-    def malloc_state(self) -> type[pwndbg.aglib.heap.structs.MallocState] | None:
+    def malloc_state(self) -> type[pwndbg.aglib.heap.glibc_structs.MallocState] | None:
         if not self.struct_module:
             return None
         return self.struct_module.MallocState
@@ -2193,7 +2193,7 @@ class HeuristicHeap(
     @override
     def tcache_perthread_struct(
         self,
-    ) -> type[pwndbg.aglib.heap.structs.TcachePerthreadStruct] | None:
+    ) -> type[pwndbg.aglib.heap.glibc_structs.TcachePerthreadStruct] | None:
         if not self.struct_module:
             return None
         return self.struct_module.TcachePerthreadStruct
@@ -2201,7 +2201,7 @@ class HeuristicHeap(
     @property
     @pwndbg.lib.cache.cache_until("objfile")
     @override
-    def tcache_entry(self) -> type[pwndbg.aglib.heap.structs.TcacheEntry] | None:
+    def tcache_entry(self) -> type[pwndbg.aglib.heap.glibc_structs.TcacheEntry] | None:
         if not self.struct_module:
             return None
         return self.struct_module.TcacheEntry
@@ -2209,20 +2209,20 @@ class HeuristicHeap(
     @property
     @pwndbg.lib.cache.cache_until("objfile")
     @override
-    def mallinfo(self) -> type[pwndbg.aglib.heap.structs.CStruct2GDB] | None:
+    def mallinfo(self) -> type[pwndbg.aglib.heap.glibc_structs.CStruct2GDB] | None:
         # TODO/FIXME: Currently, we don't need to create a new class for `struct mallinfo` because we never use it.
         raise NotImplementedError("`struct mallinfo` is not implemented yet.")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
     @override
-    def malloc_par(self) -> type[pwndbg.aglib.heap.structs.MallocPar] | None:
+    def malloc_par(self) -> type[pwndbg.aglib.heap.glibc_structs.MallocPar] | None:
         if not self.struct_module:
             return None
         return self.struct_module.MallocPar
 
     @override
-    def get_heap(self, addr: int) -> pwndbg.aglib.heap.structs.HeapInfo | None:
+    def get_heap(self, addr: int) -> pwndbg.aglib.heap.glibc_structs.HeapInfo | None:
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
         hi = self.heap_info
         return hi(heap_for_ptr(addr))
@@ -2230,7 +2230,7 @@ class HeuristicHeap(
     @override
     def get_tcache(
         self, tcache_addr: int | None = None
-    ) -> pwndbg.aglib.heap.structs.TcachePerthreadStruct | None:
+    ) -> pwndbg.aglib.heap.glibc_structs.TcachePerthreadStruct | None:
         if tcache_addr is None:
             return self.thread_cache
 
@@ -2259,9 +2259,8 @@ class HeuristicHeap(
             if self.get_region(self.mp.get_field_address("sbrk_base")) and self.get_region(
                 self.mp["sbrk_base"]
             ):
-                assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
                 sbrk_base = pwndbg.lib.memory.align_up(
-                    int(self.mp["sbrk_base"]), pwndbg.aglib.heap.current.size_sz * 2
+                    int(self.mp["sbrk_base"]), glibc_allocator.size_sz * 2
                 )
 
                 sbrk_region = self.get_region(sbrk_base)
