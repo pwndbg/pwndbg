@@ -19,6 +19,7 @@ from contextlib import suppress
 from typing import Any
 from typing import Generic
 from typing import TypeVar
+from typing import override
 
 import pwndbg
 import pwndbg.aglib.heap
@@ -1601,6 +1602,7 @@ class GlibcMemoryAllocator(Generic[TheType, TheValue]):
 
 
 class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Value]):
+    @override
     def can_be_resolved(self) -> bool:
         if not pwndbg.libc.has_debug_info():
             return False
@@ -1613,6 +1615,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         )
 
     @property
+    @override
     def main_arena(self) -> Arena | None:
         self._main_arena_addr = pwndbg.aglib.symbol.lookup_symbol_addr(
             "main_arena", prefer_static=True
@@ -1622,6 +1625,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
         return self._main_arena
 
+    @override
     def has_tcache(self) -> bool:
         # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
         return self.mp is not None and any(
@@ -1630,6 +1634,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         )
 
     @property
+    @override
     def thread_arena(self) -> Arena | None:
         if self.multithreaded:
             thread_arena_addr = pwndbg.aglib.symbol.lookup_symbol_addr(
@@ -1644,6 +1649,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         return self.main_arena
 
     @property
+    @override
     def thread_cache(self) -> pwndbg.dbg_mod.Value | None:
         """Locate a thread's tcache struct. If it doesn't have one, use the main
         thread's tcache.
@@ -1681,6 +1687,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         return self._thread_cache
 
     @property
+    @override
     def mp(self) -> pwndbg.dbg_mod.Value | None:
         self._mp_addr = pwndbg.aglib.symbol.lookup_symbol_addr("mp_", prefer_static=True)
         if self._mp_addr is not None and self.malloc_par is not None:
@@ -1689,6 +1696,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         return self._mp
 
     @property
+    @override
     def global_max_fast(self) -> int | None:
         self._global_max_fast_addr = pwndbg.aglib.symbol.lookup_symbol_addr(
             "global_max_fast", prefer_static=True
@@ -1700,39 +1708,47 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def heap_info(self) -> pwndbg.dbg_mod.Type | None:
         return pwndbg.aglib.typeinfo.load("heap_info")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def malloc_chunk(self) -> pwndbg.dbg_mod.Type | None:
         return pwndbg.aglib.typeinfo.load("struct malloc_chunk")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def malloc_state(self) -> pwndbg.dbg_mod.Type | None:
         return pwndbg.aglib.typeinfo.load("struct malloc_state")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def tcache_perthread_struct(self) -> pwndbg.dbg_mod.Type | None:
         return pwndbg.aglib.typeinfo.load("struct tcache_perthread_struct")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def tcache_entry(self) -> pwndbg.dbg_mod.Type | None:
         return pwndbg.aglib.typeinfo.load("struct tcache_entry")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def mallinfo(self) -> pwndbg.dbg_mod.Type | None:
         return pwndbg.aglib.typeinfo.load("struct mallinfo")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def malloc_par(self) -> pwndbg.dbg_mod.Type | None:
         return pwndbg.aglib.typeinfo.load("struct malloc_par")
 
+    @override
     def get_heap(self, addr: int) -> pwndbg.dbg_mod.Value | None:
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
         if self.heap_info is None:
@@ -1742,6 +1758,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
             return None
         return pwndbg.aglib.memory.get_typed_pointer_value(self.heap_info, haddr)
 
+    @override
     def get_tcache(
         self, tcache_addr: int | pwndbg.dbg_mod.Value | None = None
     ) -> pwndbg.dbg_mod.Value | None:
@@ -1752,6 +1769,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
             self.tcache_perthread_struct, tcache_addr
         )
 
+    @override
     def get_sbrk_heap_region(self) -> pwndbg.lib.memory.Page | None:
         """Return a Page object representing the sbrk heap region.
         Ensure the region's start address is aligned to SIZE_SZ * 2,
@@ -1771,6 +1789,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
         return sbrk_region
 
+    @override
     def is_initialized(self) -> bool:
         addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_malloc_initialized")
         if addr is None:
@@ -1783,8 +1802,8 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
 class HeuristicHeap(
     GlibcMemoryAllocator[
-        type["pwndbg.aglib.heap.structs.CStruct2GDB"],
-        "pwndbg.aglib.heap.structs.CStruct2GDB",
+        type["pwndbg.aglib.heap.glibc_structs.CStruct2GDB"],
+        "pwndbg.aglib.heap.glibc_structs.CStruct2GDB",
     ]
 ):
     def __init__(self) -> None:
@@ -1810,6 +1829,7 @@ class HeuristicHeap(
         return self.struct_module is not None
 
     @property
+    @override
     def main_arena(self) -> Arena | None:
         main_arena_via_config = int(str(pwndbg.config.main_arena), 0)
         main_arena_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
@@ -1918,6 +1938,7 @@ class HeuristicHeap(
 
         raise SymbolNotRecoveredError("main_arena", "heuristic failed")
 
+    @override
     def has_tcache(self) -> bool:
         # TODO/FIXME: Can we determine the tcache_bins existence more reliable?
 
@@ -2000,6 +2021,7 @@ class HeuristicHeap(
         return self._is_tcache_dummy(addr)
 
     @property
+    @override
     def thread_arena(self) -> Arena | None:
         thread_arena_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
             "thread_arena", prefer_static=True
@@ -2037,6 +2059,7 @@ class HeuristicHeap(
         return None
 
     @property
+    @override
     def thread_cache(self) -> pwndbg.aglib.heap.structs.TcachePerthreadStruct | None:
         """Locate a thread's tcache struct. We try to find its address in Thread Local Storage (TLS) first,
         and if that fails, we guess it's at the first chunk of the heap.
@@ -2083,6 +2106,7 @@ class HeuristicHeap(
         return result
 
     @property
+    @override
     def mp(self) -> pwndbg.aglib.heap.structs.CStruct2GDB:
         mp_via_config = int(str(pwndbg.config.mp), 0)
         mp_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr("mp_", prefer_static=True)
@@ -2112,6 +2136,7 @@ class HeuristicHeap(
         raise SymbolNotRecoveredError("mp_", "could not find mp_ in the .data section")
 
     @property
+    @override
     def global_max_fast(self) -> int:
         global_max_fast_via_config = int(str(pwndbg.config.global_max_fast), 0)
         global_max_fast_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
@@ -2141,6 +2166,7 @@ class HeuristicHeap(
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def heap_info(self) -> type[pwndbg.aglib.heap.structs.HeapInfo] | None:
         if not self.struct_module:
             return None
@@ -2148,6 +2174,7 @@ class HeuristicHeap(
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def malloc_chunk(self) -> type[pwndbg.aglib.heap.structs.MallocChunk] | None:
         if not self.struct_module:
             return None
@@ -2155,6 +2182,7 @@ class HeuristicHeap(
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def malloc_state(self) -> type[pwndbg.aglib.heap.structs.MallocState] | None:
         if not self.struct_module:
             return None
@@ -2162,6 +2190,7 @@ class HeuristicHeap(
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def tcache_perthread_struct(
         self,
     ) -> type[pwndbg.aglib.heap.structs.TcachePerthreadStruct] | None:
@@ -2171,6 +2200,7 @@ class HeuristicHeap(
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def tcache_entry(self) -> type[pwndbg.aglib.heap.structs.TcacheEntry] | None:
         if not self.struct_module:
             return None
@@ -2178,22 +2208,26 @@ class HeuristicHeap(
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def mallinfo(self) -> type[pwndbg.aglib.heap.structs.CStruct2GDB] | None:
         # TODO/FIXME: Currently, we don't need to create a new class for `struct mallinfo` because we never use it.
         raise NotImplementedError("`struct mallinfo` is not implemented yet.")
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    @override
     def malloc_par(self) -> type[pwndbg.aglib.heap.structs.MallocPar] | None:
         if not self.struct_module:
             return None
         return self.struct_module.MallocPar
 
+    @override
     def get_heap(self, addr: int) -> pwndbg.aglib.heap.structs.HeapInfo | None:
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
         hi = self.heap_info
         return hi(heap_for_ptr(addr))
 
+    @override
     def get_tcache(
         self, tcache_addr: int | None = None
     ) -> pwndbg.aglib.heap.structs.TcachePerthreadStruct | None:
@@ -2203,6 +2237,7 @@ class HeuristicHeap(
         tps = self.tcache_perthread_struct
         return tps(tcache_addr)
 
+    @override
     def get_sbrk_heap_region(self) -> pwndbg.lib.memory.Page:
         """Return a Page object representing the sbrk heap region.
         Ensure the region's start address is aligned to SIZE_SZ * 2,
@@ -2239,6 +2274,7 @@ class HeuristicHeap(
             raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
         raise SymbolNotRecoveredError("mp_", "Heuristic failed.")
 
+    @override
     def is_initialized(self) -> bool:
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
         # try to use vmmap or main_arena.top to find the heap
@@ -2248,6 +2284,7 @@ class HeuristicHeap(
 
 
 glibc_allocator: HeuristicHeap | DebugSymsHeap = HeuristicHeap()
+
 
 @pwndbg.dbg.event_handler(EventType.START)
 def update() -> None:
