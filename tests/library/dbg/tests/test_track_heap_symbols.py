@@ -58,3 +58,24 @@ async def test_track_heap_without_symbols_is_unchanged(ctrl: Controller) -> None
     output = await ctrl.execute_and_capture("continue")
 
     assert "@" not in output
+
+
+@pwndbg_test
+async def test_track_heap_failed_realloc_preserves_original_allocation(
+    ctrl: Controller,
+) -> None:
+    import pwndbg
+    import pwndbg.aglib.proc
+    from pwndbg.dbg_mod import DebuggerType
+
+    if pwndbg.dbg.name() != DebuggerType.GDB:
+        pytest.skip("track-heap hooks a GDB-only event (inferior_call_post)")
+        return
+
+    await launch_to(ctrl, REFERENCE_BINARY, "main")
+
+    await ctrl.execute("track-heap enable")
+    output = await ctrl.execute_and_capture("continue")
+
+    assert not pwndbg.aglib.proc.alive()
+    assert "[*] free(" in output
