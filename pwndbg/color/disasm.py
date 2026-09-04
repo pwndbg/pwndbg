@@ -29,6 +29,8 @@ config_branch_off = theme.add_param(
     "disasm-branch-off", "✘", "marker for branches that will NOT be taken"
 )
 
+DEBUG_CACHE = False
+
 
 def one_instruction(ins: PwndbgInstruction, linear: bool) -> str:
     """
@@ -60,6 +62,8 @@ def one_instruction(ins: PwndbgInstruction, linear: bool) -> str:
     else:
         asm = f"  {asm}"
 
+    if DEBUG_CACHE:
+        asm = f"{ins.cache_source.value} {asm}"
     return asm
 
 

@@ -24,22 +24,24 @@ from pwndbg.dbg_mod import BreakpointLocation
 interrupts = {CS_GRP_INT}
 
 
-def next_int(address=None, honor_current_branch=False):
+def next_int(address: int | None = None, honor_current_branch: bool = False):
     """
-    If there is a syscall in the current basic black,
-    return the instruction of the one closest to $PC.
+    Start at `address`, disassembling forwards to find the next syscall.
+    If there is a branch before the syscall, return None.
 
     If honor_current_branch is True, then if the address is already a branch, return None.
 
     If no interrupt exists or a jump is in the way, return None.
     """
     if address is None:
-        ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
-        if not ins:
-            return None
-        if honor_current_branch and ins.jump_like:
-            return None
-        address = ins.next
+        address = pwndbg.aglib.regs.pc
+
+    ins = pwndbg.aglib.disasm.disassembly.one(address)
+    if not ins:
+        return None
+    if honor_current_branch and ins.jump_like:
+        return None
+    address = ins.next
 
     ins = pwndbg.aglib.disasm.disassembly.one(address)
     while ins:
@@ -52,19 +54,25 @@ def next_int(address=None, honor_current_branch=False):
     return None
 
 
-def next_branch(address=None, including_current=False) -> PwndbgInstruction | None:
+def next_branch(
+    address: int | None = None, including_current: bool = False
+) -> PwndbgInstruction | None:
     """
-    Return the next branch instruction that the process will encounter with repeated usage of the "nexti" command.
+    Starting at `address`, return the next branch instruction that the process will encounter with repeated usage of the "nexti" command.
 
     If including_current == True, then if the instruction at the address is already a branch, return it.
+
+    Returns the next branch instruction, or None if cannot disassemble anymore.
     """
     if address is None:
-        ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
-        if not ins:
-            return None
-        if including_current and ins.jump_like:
-            return ins
-        address = ins.next
+        address = pwndbg.aglib.regs.pc
+
+    ins = pwndbg.aglib.disasm.disassembly.one(address)
+    if not ins:
+        return None
+    if including_current and ins.jump_like:
+        return ins
+    address = ins.next
 
     ins = pwndbg.aglib.disasm.disassembly.one(address)
     while ins:
@@ -131,7 +139,7 @@ async def break_next_branch(
     inf = pwndbg.dbg.selected_inferior()
     # If the branch we found was not at the current program counter, we should step to it.
     # Otherwise, return the current instruction.
-    if ins.address != pwndbg.aglib.regs.pc:
+    if not including_current or ins.address != pwndbg.aglib.regs.pc:
         with inf.break_at(BreakpointLocation(ins.address), internal=True) as bp:
             await ec.cont(bp)
     return ins
@@ -213,13 +221,26 @@ async def break_next_call(ec: pwndbg.dbg_mod.ExecutionController, symbol_regex=N
             return ins
 
 
-async def break_next_ret(ec: pwndbg.dbg_mod.ExecutionController, address=None):
+async def break_next_ret(ec: pwndbg.dbg_mod.ExecutionController, including_current: bool = False):
+    """
+    If including_current == True, do not step in case we are currently on a ret
+    """
+
+    if including_current:
+        ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
+        if not ins:
+            return None
+        if CS_GRP_RET in ins.groups:
+            return ins
+
     while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
         if pwndbg.aglib.proc.stopped_with_signal():
             return None
 
-        ins = await break_next_branch(ec, address)
+        # 'rets' are assumed to be a subset of branches
+        # Keep stepping between branches, until one of them is a ret
+        ins = await break_next_branch(ec)
 
         if not ins:
             break
@@ -298,7 +319,7 @@ async def break_on_program_code(ec: pwndbg.dbg_mod.ExecutionController) -> bool:
         if pwndbg.aglib.proc.stopped_with_signal():
             return False
 
-        await break_next_ret(ec)
+        await break_next_ret(ec, including_current=True)
         await ec.single_step()
 
         for start, end in binary_exec_page_ranges:
