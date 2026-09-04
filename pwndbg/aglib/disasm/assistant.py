@@ -371,7 +371,7 @@ class DisassemblyAssistant:
                     op.symbol = mem_color.attempt_colorized_symbol(op.before_value, stack_vars)
 
                 op.before_value_resolved = self._resolve_used_value(
-                    op.before_value, instruction, op, emu, force_allow_process_read=True
+                    op.before_value, instruction, op, emu
                 )
 
                 if (
@@ -477,7 +477,6 @@ class DisassemblyAssistant:
             return reg_value
         return None
 
-    # Read memory of given size, taking into account emulation and being able to reason about the memory location
     def _read_memory(
         self,
         address: int,
@@ -486,6 +485,9 @@ class DisassemblyAssistant:
         emu: Emulator | None,
         force_allow_process_read: bool = False,
     ) -> int | None:
+        """
+        Read memory of given size, taking into account emulation and being able to reason about the memory location
+        """
         address_list = self._telescope(
             address,
             1,
@@ -596,10 +598,6 @@ class DisassemblyAssistant:
                 break
 
         return address_list
-
-        # We cannot telescope, but we can still return the address.
-        # Just without any further information
-        return [address]
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
     def _telescope_format_list(self, addresses: list[int], limit: int, emu: Emulator) -> str:

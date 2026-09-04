@@ -372,6 +372,9 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
             op.is_mem_with_constant_addr = op.mem.base == X86_REG_RIP
         else:
             mem_base = 0
+            # If these is no mem_base address (with the exception of RIP), then we
+            # could still have a constant literal address
+            op.is_mem_with_constant_addr = op.mem.index == 0 and op.mem.segment == 0
 
         if op.mem.index != 0:
             index = self._read_register(instruction, op.mem.index, emu)
