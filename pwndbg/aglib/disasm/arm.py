@@ -315,7 +315,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         if instruction.jump_like and instruction.id == ARM_INS_LDR:
             # This is one we could potentially handle manually while stepped on it
             if len(instruction.operands) == 2 and (
-                (branch_target := instruction.operands[1].before_value) is not None
+                (branch_target := instruction.operands[1].before_value_resolved) is not None
             ):
                 target = branch_target
         elif instruction.id not in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
