@@ -68,7 +68,9 @@ elif [ "$ARCH" == "x86_64" ]; then
 fi
 
 KERNEL=$(echo ${TESTING_KERNEL_IMAGES_DIR}/*Image-${KERNEL_NAME})
-ROOTFS=$(echo ${TESTING_KERNEL_IMAGES_DIR}/*-${ARCH}.img)
+# in case there are multiple ROOTFS
+set -- ${TESTING_KERNEL_IMAGES_DIR}/*-${ARCH}.img
+ROOTFS="$1"
 
 QEMU_ARGS+=(
     -kernel $KERNEL
