@@ -60,7 +60,7 @@ def musl_test_versions() -> list[str]:
 def glibc_version_binaries(
     stem: str, *, suffix: str = "", include_system: bool = True
 ) -> list[tuple[str, Path]]:
-    """(id, path) for each existing build of `stem`; id is "system" or a glibc version.
+    """(id, path) for each expected build of `stem`; id is "system" or a glibc version.
 
     e.g. stem="heap_malloc_chunk" -> [("system", heap_malloc_chunk.native.out),
     ("2.35", heap_malloc_chunk.glibc-2.35.out), ..., ("2.43", heap_malloc_chunk.glibc-2.43.out)].
@@ -73,7 +73,7 @@ def glibc_version_binaries(
         targets.append(("system", get_binary(f"{stem}.native.out")))
     for ver in glibc_test_versions():
         targets.append((ver, get_binary(f"{stem}.glibc-{ver}{suffix}.out")))
-    return [(name, b) for name, b in targets if b.exists()]
+    return targets
 
 
 def glibc_version_params(
@@ -91,6 +91,8 @@ def glibc_version_params(
     params = []
     for ident, b in binaries:
         marks = [pytest.mark.xfail(reason=xfails[ident], strict=False)] if ident in xfails else []
+        if not b.exists():
+            marks.append(pytest.mark.skip(reason=f"glibc {ident} test binary not available"))
         values = (ident, b) if with_version else (b,)
         params.append(pytest.param(*values, id=ident, marks=marks))
     return pytest.mark.parametrize("glibc_version,binary" if with_version else "binary", params)

@@ -8,9 +8,9 @@ resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.12.*' and platform_machine == 'arm64') or (python_full_version == '3.12.*' and platform_machine == 'x86_64')",
     "(python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.11.*' and platform_machine == 'arm64') or (python_full_version == '3.11.*' and platform_machine == 'x86_64')",
     "(python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "(python_full_version < '3.11' and platform_machine == 'arm64') or (python_full_version < '3.11' and platform_machine == 'x86_64')",
@@ -164,22 +164,22 @@ wheels = [
 
 [[package]]
 name = "capstone6pwndbg"
-version = "6.0.0a9"
+version = "8.0.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2e/08/40d233bd656b6f2b1e7b1f74941653be9b8d8ac86df961e535c89a555491/capstone6pwndbg-6.0.0a9.tar.gz", hash = "sha256:d865ae69940dda1a595460dcdb250e6652b699a80dfdcf2f0b8f40c08645d853", size = 5693698, upload-time = "2026-05-12T21:08:38.967Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c5/ee/c18b862ad6b254e6c2fdd6f6a9ed3e465dccc9617beb655500963c1f774f/capstone6pwndbg-8.0.0.tar.gz", hash = "sha256:8ba12480ba09562bd1cec5e714d851ce5490c2559939df7717622c9a6f4756de", size = 5710290, upload-time = "2026-08-27T21:50:31.112Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3c/a8/7d160300f2c6a111e819223470cdb43eacdd6344769511b8fe7d36b827da/capstone6pwndbg-6.0.0a9-cp314-cp314t-macosx_10_15_x86_64.whl", hash = "sha256:5661ef710fcb9f2c961b74b9acd297fe2fa9d808dd43b04a44cca20f89633cf7", size = 2071227, upload-time = "2026-05-12T21:13:00.379Z" },
-    { url = "https://files.pythonhosted.org/packages/bf/2e/974702ed91e353c2413b493ca94f4a38ce3617d2e5ed389d4fb34a276511/capstone6pwndbg-6.0.0a9-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:57cae16033f67c7648006524577a08b2530e067d7bafe905118fc662da147a67", size = 2240950, upload-time = "2026-05-12T21:14:07.582Z" },
-    { url = "https://files.pythonhosted.org/packages/9c/a9/71a278a66a9926775141e4b7e1a8ea93eb549cfbf8bd28fa65b3e0735675/capstone6pwndbg-6.0.0a9-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:7555211dfb7299ab40517734bc331499b9dc800601e9446977a96bb11f659c5a", size = 2492674, upload-time = "2026-05-12T21:11:16.675Z" },
-    { url = "https://files.pythonhosted.org/packages/78/7c/701c72dba0a3c12631d1d65ba08737cb2dbb5aec24a91c227b45f43f1fe6/capstone6pwndbg-6.0.0a9-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:1591880fdf4d47414ab5a4b214ac01a6cf67c48d240ebc8e4b1bc2107f1d21d8", size = 2547302, upload-time = "2026-05-12T21:10:54.906Z" },
-    { url = "https://files.pythonhosted.org/packages/fe/f8/b13799f055eeb5fbcab3663cfe3ae270399963d77889bbc66f5daed46d88/capstone6pwndbg-6.0.0a9-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:932ac5514598af4c39c5284b1592e209ffab00c0990d75695cc86f3ab78874e4", size = 2497699, upload-time = "2026-05-12T21:11:17.973Z" },
-    { url = "https://files.pythonhosted.org/packages/95/64/812f3362476e55a9acd7e05d360eef65e878c29660fe8d5138ee7a78ee2e/capstone6pwndbg-6.0.0a9-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:cc902451ebe33be6b3dfd40d8a62c406afa70aa02b545b3174da0f137ca105b4", size = 2549807, upload-time = "2026-05-12T21:10:56.602Z" },
-    { url = "https://files.pythonhosted.org/packages/d4/8e/d03c1fe1cfcbcfc5b63453565fb8d3e81aacfcfc567c4566bb0c9bd96f61/capstone6pwndbg-6.0.0a9-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:333682235899fbc32b2c943cbd2c12f9910536ae842ae02c541d80c62309f6a3", size = 2070953, upload-time = "2026-05-12T21:13:01.754Z" },
-    { url = "https://files.pythonhosted.org/packages/64/b1/458e83bb7a0178a3ba9be4a44170dbbbe885132ecf3a34915a694daf9e1a/capstone6pwndbg-6.0.0a9-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:ce896e8f79bc6417810a2db8d1eaebd5bd73af4352ea6ef2412972190e21f1a7", size = 2240680, upload-time = "2026-05-12T21:14:08.891Z" },
-    { url = "https://files.pythonhosted.org/packages/39/77/f727da9c24a35ea50e57d224b6367fcda6fe6677f2cdec598161862e9c85/capstone6pwndbg-6.0.0a9-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:e74a44590205ad19101fc82f874efdc3ca7f004079d647397e744e7ba1a73652", size = 2492420, upload-time = "2026-05-12T21:11:19.799Z" },
-    { url = "https://files.pythonhosted.org/packages/15/08/cd655525054321d310407de4e70cebaed3facef4752b455bedf681d6ddb0/capstone6pwndbg-6.0.0a9-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8ec9536375bafb69fafaf0ed175f20c58a47971b68c6f2e285cf25154e8b459b", size = 2547049, upload-time = "2026-05-12T21:10:58.135Z" },
-    { url = "https://files.pythonhosted.org/packages/24/0e/02adf7791e538f8b1f1a0bcb669a3a7f23d7fca6dee0c485e6e0a46fbd15/capstone6pwndbg-6.0.0a9-cp38-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:03ea4e82b5d5eb9efee5def422b3098edee7525496d9b77fa626578f51df1508", size = 2497445, upload-time = "2026-05-12T21:11:21.612Z" },
-    { url = "https://files.pythonhosted.org/packages/d6/92/ac8d095920861650c1494f45600fee08435038a2891d99a0b43281fe3010/capstone6pwndbg-6.0.0a9-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:fad4f94f884c5d53fcfb541cfea8501124d216a6b7b2617595a855e58433204e", size = 2549555, upload-time = "2026-05-12T21:10:59.355Z" },
+    { url = "https://files.pythonhosted.org/packages/63/de/27c65cb104b35659f1f9ecc913c62982618b4fcb80c9052bf14b208108e8/capstone6pwndbg-8.0.0-cp314-cp314t-macosx_10_15_x86_64.whl", hash = "sha256:489e6bb0364da45dd5a6976cece0ad731ae7deed9241c0fb318781ff7ae10578", size = 2079474, upload-time = "2026-08-27T21:55:07.975Z" },
+    { url = "https://files.pythonhosted.org/packages/92/4a/824ef2f5b0bb92ec1833427d78784b81229be86c84dc15d60cb10bb2ad18/capstone6pwndbg-8.0.0-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:187de6c73de7d1bb17896a4ae948cd92ab5952102918fcd808e8a3c122607bae", size = 2243729, upload-time = "2026-08-27T21:58:07.87Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/27/d324ab52a3eb30074f0ea376186fa6d11f601b6c01bac3b5f8fb4ab02d1b/capstone6pwndbg-8.0.0-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:9ec2a8da80032cb3581295790109b1af7d95849ef3fb45c462a0c418ea494d8f", size = 2499389, upload-time = "2026-08-27T21:52:36.926Z" },
+    { url = "https://files.pythonhosted.org/packages/70/2e/b91a5f26d28b51db4e5fb5fe619ad6988bb5d2d65e088ac457c3bf246267/capstone6pwndbg-8.0.0-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:038903623c7f44f3d7bab93b27c522723e4b4d315a21dda5aa728b2ce96540cd", size = 2553926, upload-time = "2026-08-27T21:53:06.56Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/bf/6fc8da792de2b06813f44f590a65c704acdb837c97340f17280f49ccca3d/capstone6pwndbg-8.0.0-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:4c87e69d54a44160a6012c809375eee3d1cd907958eecbb631abc30e1d5add93", size = 2504973, upload-time = "2026-08-27T21:52:38.269Z" },
+    { url = "https://files.pythonhosted.org/packages/78/85/f4eb47236c141b211a605f3ffb484a1f72fab50cb67579c6adb595d55a12/capstone6pwndbg-8.0.0-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:ae04929f8ac27eac657525ea1a17030d8b568bdc3bb1dd5448b9b54f1cbe3d93", size = 2554728, upload-time = "2026-08-27T21:53:08.042Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/7a/5ddb0b8af36c3367ec43652eb2c724fb3f5f88afbc38571fffc3278a4f4e/capstone6pwndbg-8.0.0-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:359e4c8bcc0eea26e5469517606ab5c057de546545291cb9e360834a74d49dab", size = 2079208, upload-time = "2026-08-27T21:55:09.277Z" },
+    { url = "https://files.pythonhosted.org/packages/46/0e/83874d5e8912b574d06680c29571a2ca5706bbd3698eb0bd86d3e0b56698/capstone6pwndbg-8.0.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:c765e6bb8aaeaadb8b07dfcdd2b952ea5474767bbd0109e6d8c8a12329743a35", size = 2243462, upload-time = "2026-08-27T21:58:09.028Z" },
+    { url = "https://files.pythonhosted.org/packages/98/2e/26592fd32c0291df11fe6a1f5e05b0e7bd7a0ec52349cb9524bace6a34cf/capstone6pwndbg-8.0.0-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:0c64072bf8c4e32e9fd762cca78299ffb0b76e103194b32661276f3ee9f97ff3", size = 2499138, upload-time = "2026-08-27T21:52:39.635Z" },
+    { url = "https://files.pythonhosted.org/packages/09/a5/97c8d4d68ee788000224f7f52c3f1fc9990df4ec69931f57e3c0803720e4/capstone6pwndbg-8.0.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:6b87170c7a62aa36723b28bffbd02c9aab8a08ebf6897414cc73adc280d02172", size = 2553678, upload-time = "2026-08-27T21:53:09.474Z" },
+    { url = "https://files.pythonhosted.org/packages/69/7d/4e909015f6fa5a144fd5b826263c59321d7df409fc8eedefdee715061839/capstone6pwndbg-8.0.0-cp38-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:4f254cc43942df0bcacfba722bd9b3eba36f375a4da1ae0cc9b1a42652cf8132", size = 2504725, upload-time = "2026-08-27T21:52:40.776Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/f9/6179f190fe390fb7a748642dfb649a26fee526cb563de4de2c1fbb4045fd/capstone6pwndbg-8.0.0-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:5c72cad8babfb58a01db7d8d13fce6ba1ae7f14105d1cb52cb8d5a442c092be3", size = 2554478, upload-time = "2026-08-27T21:53:10.789Z" },
 ]
 
 [[package]]
@@ -978,8 +978,8 @@ resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "(python_full_version < '3.11' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version < '3.11' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
@@ -1166,7 +1166,7 @@ wheels = [
 
 [[package]]
 name = "lldb-for-pwndbg"
-version = "22.1.0.post3"
+version = "23.1.0.post2"
 source = { registry = "https://mirrors.loong64.com/pypi/simple" }
 resolution-markers = [
     "python_full_version >= '3.15' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
@@ -1177,12 +1177,12 @@ resolution-markers = [
     "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 wheels = [
-    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/45aa0175f370a348c754842c866e92de246b99383f0ed80361e6e6eb8c1a1ec5/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_36_loongarch64.whl", hash = "sha256:45aa0175f370a348c754842c866e92de246b99383f0ed80361e6e6eb8c1a1ec5" },
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/c016da38804ba6331094f2a4bc128a6ffa3ea3dd813bfca77669f11b8964c766/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_36_loongarch64.whl", hash = "sha256:c016da38804ba6331094f2a4bc128a6ffa3ea3dd813bfca77669f11b8964c766" },
 ]
 
 [[package]]
 name = "lldb-for-pwndbg"
-version = "22.1.0.post3"
+version = "23.1.0.post2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine == 'arm64') or (python_full_version >= '3.13' and platform_machine == 'x86_64')",
@@ -1195,15 +1195,15 @@ resolution-markers = [
     "(python_full_version < '3.11' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version < '3.11' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9f/4f/5093233f6f11a4d7d3beae26083c89c86d8daa86a2aaee4316d89e15457e/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-macosx_10_13_x86_64.whl", hash = "sha256:fd7b1af990628f3f6f396fa82c51b1076bb9cc4722c209370b17ea5c12da03fd", size = 57103233, upload-time = "2026-07-23T15:26:07.491Z" },
-    { url = "https://files.pythonhosted.org/packages/d1/a4/554006a67c8c0adbbd53c736f1f6a443232963ca4c83e3e105f3ad591c23/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:0ae344a63724012fdd6e8505d47d0b9471698ee102f3d564ab1acb44f75058e3", size = 55034232, upload-time = "2026-07-23T15:26:11.151Z" },
-    { url = "https://files.pythonhosted.org/packages/96/d2/ecc73efb9b91ef7ab1ecf51d9514044f57a233c650bf44c2385165fea094/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:fd65a53cb7f07c8777e1b1f2c1a662e5e3ce8686ff41432b2471036d66dc2e05", size = 61439988, upload-time = "2026-07-23T15:26:14.73Z" },
-    { url = "https://files.pythonhosted.org/packages/d7/9b/5b19fe8ba5d3dbed2831436778013eb373809abc601f4049bc89e2192a46/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_28_i686.whl", hash = "sha256:3735b345da8e58f85c7584c7ee2d537b31f2ad461eb99405b2ead5db692771ea", size = 66047113, upload-time = "2026-07-23T15:26:18.901Z" },
-    { url = "https://files.pythonhosted.org/packages/d3/0f/9665a34cc22d531a0b9d8b5f1b746f0aad76c1cd23999bdf2a4d35cb0357/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_28_ppc64le.whl", hash = "sha256:4258381363eb0d5f3eae9714fd1e61a88cf97a245e17a0014b65a3fcb1eaa9b6", size = 91475950, upload-time = "2026-07-23T15:26:23.504Z" },
-    { url = "https://files.pythonhosted.org/packages/c9/cf/ea047a86f77238025203cea288a645fd3c778a7f109a861ed7d1322553ee/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_28_s390x.whl", hash = "sha256:0eb6bc6ca05d0267422ab4b49be3fdec3a59e0ba962f9ba1baa1144cf971fced", size = 66740767, upload-time = "2026-07-23T15:26:27.544Z" },
-    { url = "https://files.pythonhosted.org/packages/68/6e/75d2737701e949d57da34bb067ec22bec85dd084b109fefc7b6b84977383/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:b48040ee696bf1183223cc27b438097d747e43455b8fee5035f44af2e9d0f8d2", size = 62308468, upload-time = "2026-07-23T15:26:31.265Z" },
-    { url = "https://files.pythonhosted.org/packages/e0/6e/b767c537b95fbcff1fe0ce42facb72a3d0f236a03c37c2e775e4e7405a6e/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_31_armv7l.whl", hash = "sha256:45cb635f5cec9443c461339fa31aa1973c06c50719df6abd04f06fb4832adfa2", size = 62246424, upload-time = "2026-07-23T15:26:35.07Z" },
-    { url = "https://files.pythonhosted.org/packages/24/8d/d96ca533630aae753cc4fef56008c66eb235dbfabffed03d70886ba3fb3b/lldb_for_pwndbg-22.1.0.post3-cp310-abi3-manylinux_2_39_riscv64.whl", hash = "sha256:857f062517d328d6dc08f489be30f73df5f54ea837296cd497559dfb1865d3f9", size = 95255263, upload-time = "2026-07-23T15:26:39.299Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/19/c10f70f8180a607dca6ca23eb347584ecfd32392a6c8633f4abd3dc8c759/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-macosx_10_13_x86_64.whl", hash = "sha256:cf00676ca301a4e8cd6ea937551e8d36bba838d0f234733cfe2cbbc30b4209f7", size = 59613165, upload-time = "2026-08-27T19:40:23.734Z" },
+    { url = "https://files.pythonhosted.org/packages/55/dd/d1feaf3d9cdae4fa14e864cecdb6660696283735a58f211398bf9c840b44/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:5c66606ee98ec474e51bafa507715f5d02539e213cbe4eeed0bc31eca82c679f", size = 57455700, upload-time = "2026-08-27T19:40:27.474Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/69/7475544499fe277f28ed31f83d402d2ce11bcefa86ecc6fa574f94545ed5/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:af234c1b34a97e392689a5e2535c6782c942a3267c8a613d5098b78ef20a76fe", size = 66516098, upload-time = "2026-08-27T19:40:31.123Z" },
+    { url = "https://files.pythonhosted.org/packages/21/b1/4b459fce8e404e2e201952dccb61afed5ff8a56d74a09e54729e8df9bb34/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_i686.whl", hash = "sha256:ea92643993cb73c57cfdbf212cbeba0aed8bfc1e0f641f35f5970f981c607552", size = 71673333, upload-time = "2026-08-27T19:40:35.228Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/3f/31e8b0b42e2044be0188b5f554f60140e9eccb73f6c1df7bc441cf0a2bfa/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_ppc64le.whl", hash = "sha256:ba01d33f0f13b9d76db09597f9a74eaec3e287f9c21a2b7353c83c6aa11a91f7", size = 96323715, upload-time = "2026-08-27T19:40:39.657Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/ad/ab8824ee78675f1e71d8a1c60ebeaa792f995a2a8aa56aa34eaf39ee76ea/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_s390x.whl", hash = "sha256:d28beda87191050777a35417755fdb364cede9ab617615682527ffd1710479c3", size = 72718143, upload-time = "2026-08-27T19:40:44.583Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/ea/96bfba9dcc7bf8c511462e3500c3cde2553e0bf1fc87e3a312042d4d0bee/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:450dc28e15f9b381368ee2a4afe65788646d6b82249affe0e9c473fc7e44df25", size = 67564244, upload-time = "2026-08-27T19:40:49.147Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/40/04f292f913846a81d523792f623d9d56f276c60729cecc03bf430e50a310/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_31_armv7l.whl", hash = "sha256:af1e4039399703933a510c8bdcd28490bbb075d78f904d94fb2f8c824c04a47a", size = 67725985, upload-time = "2026-08-27T19:40:53.217Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/df/23f5446489196c1bc5a1a84cb3fd156034a60f9e0d9c76b028c252b9be75/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-manylinux_2_39_riscv64.whl", hash = "sha256:4998545d9306b196a9e9bc9e3297e47922a1d152b330add4c011df6b6345edea", size = 103058840, upload-time = "2026-08-27T19:40:58.254Z" },
 ]
 
 [[package]]
@@ -1665,9 +1665,9 @@ resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
     "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.12.*' and platform_machine == 'arm64') or (python_full_version == '3.12.*' and platform_machine == 'x86_64')",
     "(python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.11.*' and platform_machine == 'arm64') or (python_full_version == '3.11.*' and platform_machine == 'x86_64')",
     "(python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.11.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
 ]
@@ -1896,8 +1896,8 @@ gdb = [
 ]
 lldb = [
     { name = "gnureadline", marker = "sys_platform != 'win32'" },
-    { name = "lldb-for-pwndbg", version = "22.1.0.post3", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
-    { name = "lldb-for-pwndbg", version = "22.1.0.post3", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
+    { name = "lldb-for-pwndbg", version = "23.1.0.post2", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
+    { name = "lldb-for-pwndbg", version = "23.1.0.post2", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
     { name = "pyreadline3", marker = "sys_platform == 'win32'" },
 ]
 
@@ -1943,7 +1943,7 @@ tests = [
 
 [package.metadata]
 requires-dist = [
-    { name = "capstone6pwndbg", specifier = "==6.0.0a9" },
+    { name = "capstone6pwndbg", specifier = "==8.0.0" },
     { name = "decomp2dbg", specifier = "==3.14.1" },
     { name = "gdb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", specifier = "==17.2.0.post5", index = "https://mirrors.loong64.com/pypi/simple" },
     { name = "gdb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'gdb') or (sys_platform != 'linux' and extra == 'gdb')", specifier = "==17.2.0.post5" },
@@ -1952,8 +1952,8 @@ requires-dist = [
     { name = "ipython", marker = "python_full_version >= '3.12'", specifier = ">=8.39.0,<10" },
     { name = "jpype1", marker = "platform_machine != 'arm64' and platform_machine != 'x86_64'", specifier = "==1.6.0" },
     { name = "jpype1", marker = "platform_machine == 'arm64' or platform_machine == 'x86_64'", specifier = "==1.7.1" },
-    { name = "lldb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", specifier = "==22.1.0.post3", index = "https://mirrors.loong64.com/pypi/simple" },
-    { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'lldb') or (sys_platform != 'linux' and extra == 'lldb')", specifier = "==22.1.0.post3" },
+    { name = "lldb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", specifier = "==23.1.0.post2", index = "https://mirrors.loong64.com/pypi/simple" },
+    { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'lldb') or (sys_platform != 'linux' and extra == 'lldb')", specifier = "==23.1.0.post2" },
     { name = "niche-elf", specifier = "==0.3.6" },
     { name = "psutil", specifier = ">=7.0.0,<8" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
@@ -2200,11 +2200,11 @@ wheels = [
 
 [[package]]
 name = "pygments"
-version = "2.19.2"
+version = "2.21.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b0/77/a5b8c569bf593b0140bde72ea885a803b82086995367bf2037de0159d924/pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887", size = 4968631, upload-time = "2025-06-21T13:39:12.283Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/49/2e/ced460408999b33da6b31b0021b0f37d329e202d4169aeb164493778f25b/pygments-2.21.0.tar.gz", hash = "sha256:610ca751c9bc2492b38eb9a38a7fbc93edbbb2d7182edaf34e66ae493dee5c8c", size = 5005329, upload-time = "2026-08-17T08:02:48.824Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c7/21/705964c7812476f378728bdf590ca4b771ec72385c533964653c68e86bdc/pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b", size = 1225217, upload-time = "2025-06-21T13:39:07.939Z" },
+    { url = "https://files.pythonhosted.org/packages/71/46/17f022dd3e953bf20a04a028a21ec746d942f8d2af30fa0f124fa0e6a684/pygments-2.21.0-py3-none-any.whl", hash = "sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9", size = 1250147, upload-time = "2026-08-17T08:02:44.912Z" },
 ]
 
 [[package]]

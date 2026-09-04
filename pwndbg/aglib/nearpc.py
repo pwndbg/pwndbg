@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 
 from capstone6pwndbg import *  # noqa: F403
 
@@ -145,7 +146,7 @@ END_SYMBOL = ">"
 DOTTED_VERTICAL = "╎"
 UP_SYMBOL = "▲"
 
-offset_to_color_map = {
+offset_to_color_map: dict[int, Callable[[str], str]] = {
     0: white,
     1: red,
     2: green,
@@ -165,7 +166,7 @@ offset_to_color_map = {
 last_run_ids: dict[JumpRange, int] = {}
 
 
-def colorize_branch_vis_line(offset: int, string: str):
+def colorize_branch_vis_line(offset: int, string: str) -> str:
     return offset_to_color_map.get(offset, lambda x: str(x))(string)
 
 
@@ -426,6 +427,7 @@ def nearpc(
     address_to_highlight: int | None = None,
     end_address: int | None = None,
     max_backwards_linear_count: int | None = None,
+    instruction_flow_cache: pwndbg.aglib.disasm.disassembly.InstructionFlowCache | None = None,
 ) -> list[str]:
     """
     Disassemble near a specified address.
@@ -491,6 +493,7 @@ def nearpc(
             linear=linear,
             end_address=end_address,
             max_backwards_linear_count=max_backwards_linear_count,
+            instruction_flow_cache=instruction_flow_cache,
         )
     )
 
