@@ -18,7 +18,6 @@ from typing_extensions import ParamSpec
 from typing_extensions import override
 
 import pwndbg.aglib
-import pwndbg.aglib.heap
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
@@ -43,7 +42,7 @@ class CommandCategory(str, Enum):
     START = "Start"
     NEXT = "Step/Next/Continue"
     CONTEXT = "Context"
-    PTMALLOC2 = "GLibc ptmalloc2 Heap"
+    GLIBC_MALLOC = "GLibc Heap"
     ALLOCATORS = "Allocators"
     BREAKPOINT = "Breakpoint"
     MEMORY = "Memory"
@@ -926,7 +925,7 @@ def load_commands() -> None:
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.killthreads
         import pwndbg.commands.peda
-        import pwndbg.commands.ptmalloc2_tracking
+        import pwndbg.commands.glibc_malloc_tracking
         import pwndbg.commands.reload
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
@@ -997,7 +996,7 @@ def load_commands() -> None:
     import pwndbg.commands.probeleak
     import pwndbg.commands.procinfo
     import pwndbg.commands.profiler
-    import pwndbg.commands.ptmalloc2
+    import pwndbg.commands.glibc_malloc
     import pwndbg.commands.pwndbg_
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr

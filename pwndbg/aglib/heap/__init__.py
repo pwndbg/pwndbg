@@ -145,11 +145,11 @@ def reset() -> None:
 @pwndbg.config.trigger(resolve_heap_via_heuristic)
 def resolve_heap(is_first_run: bool = False) -> None:
     global pwndbg
-    import pwndbg.aglib.heap.ptmalloc
+    import pwndbg.aglib.heap.glibc
 
     global current
     if resolve_heap_via_heuristic == "force":
-        current = pwndbg.aglib.heap.ptmalloc.HeuristicHeap()
+        current = pwndbg.aglib.heap.glibc.HeuristicHeap()
         if not is_first_run and pwndbg.aglib.proc.alive() and pwndbg.libc.has_debug_info():
             print(
                 message.warn(
@@ -158,4 +158,4 @@ def resolve_heap(is_first_run: bool = False) -> None:
                 )
             )
     else:
-        current = pwndbg.aglib.heap.ptmalloc.DebugSymsHeap()
+        current = pwndbg.aglib.heap.glibc.DebugSymsHeap()

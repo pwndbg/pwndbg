@@ -17,7 +17,7 @@ from __future__ import annotations
 import gdb
 
 import pwndbg.aglib.heap
-from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
 from .. import get_binary
 

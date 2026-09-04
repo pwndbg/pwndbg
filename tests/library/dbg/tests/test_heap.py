@@ -29,7 +29,7 @@ def extract_chunk_addrs(output: str) -> list[int]:
 
 def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, Any]:
     import pwndbg.aglib.heap
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
@@ -136,7 +136,7 @@ async def test_heap_command_count(ctrl: Controller) -> None:
 async def test_heap_command_range_and_count(ctrl: Controller) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.symbol
-    from pwndbg.aglib.heap.ptmalloc import Chunk
+    from pwndbg.aglib.heap.glibc import Chunk
 
     await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
     if pwndbg.aglib.arch.name != "x86-64":
@@ -180,7 +180,7 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
     import pwndbg.dbg_mod
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
@@ -346,7 +346,7 @@ async def test_malloc_chunk_dump_command(ctrl: Controller) -> None:
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     await launch_to(ctrl, HEAP_MALLOC_CHUNK_DUMP, "break_here")
 
@@ -448,7 +448,7 @@ async def test_main_arena_heuristic(ctrl: Controller) -> None:
     import pwndbg.aglib.heap
     import pwndbg.aglib.symbol
     import pwndbg.aglib.typeinfo
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     await ctrl.launch(HEAP_MALLOC_CHUNK)
     await ctrl.execute("set resolve-heap-via-heuristic force")
@@ -486,7 +486,7 @@ async def test_mp_heuristic(ctrl: Controller) -> None:
     import pwndbg.aglib.heap
     import pwndbg.aglib.symbol
     import pwndbg.aglib.typeinfo
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     await ctrl.launch(HEAP_MALLOC_CHUNK)
     await ctrl.execute("set resolve-heap-via-heuristic force")
@@ -527,7 +527,7 @@ async def test_thread_cache_heuristic(ctrl: Controller, is_multi_threaded: bool)
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
     import pwndbg.aglib.typeinfo
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
@@ -592,7 +592,7 @@ async def test_thread_arena_heuristic(ctrl: Controller, is_multi_threaded: bool)
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
@@ -641,7 +641,7 @@ async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
     import pwndbg.libc
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
@@ -684,7 +684,7 @@ async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
 @pwndbg_test
 async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bool) -> None:
     import pwndbg.aglib.heap
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
     from pwndbg.lib import SymbolNotRecoveredError
 
     # TODO: Support other architectures or different libc versions

@@ -46,25 +46,25 @@
 -  [emulate](disassemble/emulate.md) - Like nearpc, but will emulate instructions from the current $PC forward.
 -  [nearpc](disassemble/nearpc.md) - Disassemble near a specified address.
 
-## GLibc ptmalloc2 Heap
+## GLibc Heap
 
--  [arena](glibc_ptmalloc2_heap/arena.md) - Print the contents of an arena.
--  [arenas](glibc_ptmalloc2_heap/arenas.md) - List this process's arenas.
--  [bins](glibc_ptmalloc2_heap/bins.md) - Print the contents of all an arena's bins and a thread's tcache.
--  [fastbins](glibc_ptmalloc2_heap/fastbins.md) - Print the contents of an arena's fastbins.
--  [find-fake-fast](glibc_ptmalloc2_heap/find-fake-fast.md) - Find candidate fake fast or tcache chunks overlapping the specified address.
--  [heap](glibc_ptmalloc2_heap/heap.md) - Iteratively print chunks on a heap.
--  [hi](glibc_ptmalloc2_heap/hi.md) - Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.
--  [largebins](glibc_ptmalloc2_heap/largebins.md) - Print the contents of an arena's largebins.
--  [malloc-chunk](glibc_ptmalloc2_heap/malloc-chunk.md) - Print a chunk.
--  [mp](glibc_ptmalloc2_heap/mp.md) - Print the mp_ struct's contents.
--  [smallbins](glibc_ptmalloc2_heap/smallbins.md) - Print the contents of an arena's smallbins.
--  [tcache](glibc_ptmalloc2_heap/tcache.md) - Print a thread's tcache contents.
--  [tcachebins](glibc_ptmalloc2_heap/tcachebins.md) - Print the contents of a tcache.
--  [top-chunk](glibc_ptmalloc2_heap/top-chunk.md) - Print relevant information about an arena's top chunk.
--  [try-free](glibc_ptmalloc2_heap/try-free.md) - Check what would happen if free was called with given address.
--  [unsortedbin](glibc_ptmalloc2_heap/unsortedbin.md) - Print the contents of an arena's unsortedbin.
--  [vis-heap-chunks](glibc_ptmalloc2_heap/vis-heap-chunks.md) - Visualize chunks on a heap.
+-  [arena](glibc_heap/arena.md) - Print the contents of an arena.
+-  [arenas](glibc_heap/arenas.md) - List this process's arenas.
+-  [bins](glibc_heap/bins.md) - Print the contents of all an arena's bins and a thread's tcache.
+-  [fastbins](glibc_heap/fastbins.md) - Print the contents of an arena's fastbins.
+-  [find-fake-fast](glibc_heap/find-fake-fast.md) - Find candidate fake fast or tcache chunks overlapping the specified address.
+-  [heap](glibc_heap/heap.md) - Iteratively print chunks on a heap.
+-  [hi](glibc_heap/hi.md) - Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.
+-  [largebins](glibc_heap/largebins.md) - Print the contents of an arena's largebins.
+-  [malloc-chunk](glibc_heap/malloc-chunk.md) - Print a chunk.
+-  [mp](glibc_heap/mp.md) - Print the mp_ struct's contents.
+-  [smallbins](glibc_heap/smallbins.md) - Print the contents of an arena's smallbins.
+-  [tcache](glibc_heap/tcache.md) - Print a thread's tcache contents.
+-  [tcachebins](glibc_heap/tcachebins.md) - Print the contents of a tcache.
+-  [top-chunk](glibc_heap/top-chunk.md) - Print relevant information about an arena's top chunk.
+-  [try-free](glibc_heap/try-free.md) - Check what would happen if free was called with given address.
+-  [unsortedbin](glibc_heap/unsortedbin.md) - Print the contents of an arena's unsortedbin.
+-  [vis-heap-chunks](glibc_heap/vis-heap-chunks.md) - Visualize chunks on a heap.
 
 ## Integrations
 

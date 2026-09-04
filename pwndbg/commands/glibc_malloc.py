@@ -25,15 +25,15 @@ import pwndbg.lib.memory
 import pwndbg.libc
 import pwndbg.libc.glibc
 from pwndbg.aglib.heap import heap_chain_limit
-from pwndbg.aglib.heap.ptmalloc import Arena
-from pwndbg.aglib.heap.ptmalloc import Bins
-from pwndbg.aglib.heap.ptmalloc import BinType
-from pwndbg.aglib.heap.ptmalloc import BinVariant
-from pwndbg.aglib.heap.ptmalloc import Chunk
-from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
-from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
-from pwndbg.aglib.heap.ptmalloc import Heap
-from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
+from pwndbg.aglib.heap.glibc import Arena
+from pwndbg.aglib.heap.glibc import Bins
+from pwndbg.aglib.heap.glibc import BinType
+from pwndbg.aglib.heap.glibc import BinVariant
+from pwndbg.aglib.heap.glibc import Chunk
+from pwndbg.aglib.heap.glibc import DebugSymsHeap
+from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
+from pwndbg.aglib.heap.glibc import Heap
+from pwndbg.aglib.heap.glibc import HeuristicHeap
 from pwndbg.color import generate_color_function
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
@@ -233,7 +233,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
         w = log.warning
 
         # Operating under the assumption that the pwndbg/libc/ code can figure out
-        # that we are using glibc with at least as good accuracy as the ptmalloc code.
+        # that we are using glibc with at least as good accuracy as the glibc malloc code.
         if pwndbg.libc.which() != pwndbg.libc.LibcType.GLIBC:
             e(f"The currently active libc isn't glibc. It's {pwndbg.libc.which().value}.")
             return None
@@ -346,7 +346,7 @@ parser.add_argument(
 # is above @OnlyWithResolvedHeapSyms otherwise we get assertion failure if the process is not alive.
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -427,7 +427,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
 def hi(addr: int, verbose: bool = False, simple: bool = False, fake: bool = False) -> None:
@@ -465,7 +465,7 @@ Default to the current thread's arena.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -495,7 +495,7 @@ def arena(addr: int | None = None) -> None:
 parser = argparse.ArgumentParser(description="List this process's arenas.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -561,7 +561,7 @@ Default to the current thread's tcache.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -591,7 +591,7 @@ def tcache(addr: int | None = None) -> None:
 parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -612,7 +612,7 @@ Default to current thread's arena.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -653,7 +653,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -774,7 +774,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -811,7 +811,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -850,7 +850,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -885,7 +885,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -920,7 +920,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -954,7 +954,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -1013,7 +1013,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -1209,7 +1209,7 @@ group.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, aliases=["vis"], category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, aliases=["vis"], category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -1395,7 +1395,7 @@ try_free_parser = argparse.ArgumentParser(
 try_free_parser.add_argument("addr", type=int, help="Address passed to free")
 
 
-@pwndbg.commands.Command(try_free_parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(try_free_parser, category=CommandCategory.GLIBC_MALLOC)
 @pwndbg.commands.OnlyWhenUserspace
 @OnlyWhenHeapIsInitialized
 @OnlyWithResolvedHeapSyms
@@ -1439,7 +1439,7 @@ def try_free(addr: str | int) -> None:
         return x
 
     def chunksize(chunk_size: int) -> int:
-        # maybe move this to ptmalloc.py
+        # maybe move this to glibc.py
         return chunk_size & (~7)
 
     def finalize(errors_found: int, returned_before_error: bool) -> None:

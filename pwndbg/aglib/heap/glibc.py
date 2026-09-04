@@ -975,7 +975,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     )
 
     def __init__(self) -> None:
-        # Global ptmalloc objects
+        # Global glibc malloc objects
         self._global_max_fast_addr: int | None = None
         self._global_max_fast: int | None = None
         self._main_arena_addr: int | None = None
@@ -984,7 +984,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         self._mp = None
         # List of arenas/heaps
         self._arenas = None
-        # ptmalloc cache for current thread
+        # glibc malloc cache for current thread
         self._thread_cache: TheValue | None = None
 
     def largebin_reverse_lookup(self, index: int) -> int:

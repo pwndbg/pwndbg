@@ -169,7 +169,7 @@ async def test_try_free_invalid_fastbin_entry(ctrl: Controller) -> None:
 async def test_try_free_double_free_or_corruption_top(ctrl: Controller) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.heap
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     await setup_heap(ctrl, 9)
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)

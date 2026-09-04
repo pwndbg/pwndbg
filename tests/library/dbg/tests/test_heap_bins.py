@@ -23,8 +23,8 @@ async def test_heap_bins(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
     import pwndbg.aglib.vmmap
     import pwndbg.libc
-    from pwndbg.aglib.heap.ptmalloc import BinType
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import BinType
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     await ctrl.launch(BINARY)
 
@@ -208,7 +208,7 @@ async def test_heap_bins(ctrl: Controller) -> None:
 async def test_tcache_bins_respects_heap_dereference_limit(ctrl: Controller) -> None:
     """Ensure tcache rendering uses heap-dereference-limit for chains longer than seven."""
     import pwndbg.aglib.heap
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     await ctrl.execute("set context-output /dev/null")
     # Glibc 2.43 changed tcache binsize to 16.
@@ -249,8 +249,8 @@ async def test_heap_bins_2_43(ctrl: Controller) -> None:
     import pwndbg.aglib.heap
     import pwndbg.aglib.vmmap
     import pwndbg.libc
-    from pwndbg.aglib.heap.ptmalloc import BinType
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import BinType
+    from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 
     await ctrl.launch(GLIBC_2_43, env={"GLIBC_TUNABLES": "glibc.malloc.tcache_max=0x1000"})
 
