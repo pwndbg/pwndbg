@@ -1099,6 +1099,7 @@ def load_commands() -> None:
     import pwndbg.commands.hex2ptr
     import pwndbg.commands.hexdump
     import pwndbg.commands.hijack_fd
+    import pwndbg.commands.instr_trace
     import pwndbg.commands.jemalloc
     import pwndbg.commands.kbase
     import pwndbg.commands.kbpf
