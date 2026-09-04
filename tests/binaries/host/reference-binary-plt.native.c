@@ -5,11 +5,14 @@
 void break_here() {};
 
 int main(int argc, char const* argv[]) {
+    break_here();
+
     puts("Hello World");
     printf("Hello world again %d", argc);
 
-    write(0,"Hello",6);
+    break_here();
 
+    write(0,"Hello",6);
     srand(0);
 
     break_here();
