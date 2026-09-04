@@ -1,19 +1,28 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from ....host import Controller
 from . import break_at_sym
 from . import get_binary
+from . import glibc_version_binaries
+from . import glibc_version_params
 from . import launch_to
 from . import pwndbg_test
+
+_BINS_BINARIES = glibc_version_binaries("heap_bins")
+
+parametrize_glibc_versions = glibc_version_params(_BINS_BINARIES)
 
 BINARY = get_binary("heap_bins.native.out")
 GLIBC_2_43 = get_binary("heap_glibc2.43.native.out")
 
 
+@parametrize_glibc_versions
 @pwndbg_test
-async def test_heap_bins(ctrl: Controller) -> None:
+async def test_heap_bins(ctrl: Controller, binary: Path) -> None:
     """
     Tests pwndbg.aglib.heap bins commands
     """
@@ -26,14 +35,13 @@ async def test_heap_bins(ctrl: Controller) -> None:
     from pwndbg.aglib.heap.ptmalloc import BinType
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
-    await ctrl.launch(BINARY)
-
+    await ctrl.launch(binary)
     await ctrl.execute("set context-output /dev/null")
     await ctrl.execute("b breakpoint")
     await ctrl.cont()
 
     if pwndbg.libc.version() >= (2, 43):
-        pytest.skip("Test is not applicable above glibc 2.43")
+        pytest.skip("Test is not applicable for glibc 2.43+")
 
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
@@ -659,8 +667,9 @@ async def test_smallbins_sizes_32bit_big(ctrl: Controller) -> None:
         assert bin_size.split(":")[0] == expected[bin_index]
 
 
+@parametrize_glibc_versions
 @pwndbg_test
-async def test_heap_corruption_low_dereference(ctrl: Controller) -> None:
+async def test_heap_corruption_low_dereference(ctrl: Controller, binary: Path) -> None:
     """
     Tests that the bins corruption check doesn't report
     corrupted bins when heap-dereference-limit is less
@@ -668,13 +677,13 @@ async def test_heap_corruption_low_dereference(ctrl: Controller) -> None:
     """
 
     await ctrl.execute("set context-output /dev/null")
-    await launch_to(ctrl, BINARY, "breakpoint")
+    await launch_to(ctrl, binary, "breakpoint")
 
     await ctrl.cont()
     await ctrl.cont()
     await ctrl.cont()
 
-    # unsorted bin now has 3 chunks
+    # the 3 leftover chunks are in the unsorted bin (pre-2.42) or a smallbin (2.42+)
 
     await ctrl.execute("set heap-dereference-limit 1")
 

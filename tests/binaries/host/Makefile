@@ -13,6 +13,22 @@ else ifeq ($(HOST_ARCH),i686)
     HOST_ARCH := i386
 endif
 
+ifeq ($(HOST_ARCH),x86-64)
+    LIBC_VER_ARCH_OK := yes
+    MUSL_DYNAMIC_OK  := yes
+    GLIBC_LD_NAME    := ld-linux-x86-64.so.2
+    MUSL_LD_NAME     := ld-musl-x86_64.so.1
+    ZIG_LIBC_TARGET  := x86_64-linux-gnu
+else ifeq ($(HOST_ARCH),aarch64)
+    LIBC_VER_ARCH_OK := yes
+    MUSL_DYNAMIC_OK  := no
+    GLIBC_LD_NAME    := ld-linux-aarch64.so.1
+    MUSL_LD_NAME     := ld-musl-aarch64.so.1
+    ZIG_LIBC_TARGET  := aarch64-linux-gnu
+else
+    LIBC_VER_ARCH_OK := no
+endif
+
 ZIGCC           = uv run python3 -m ziglang cc
 PKG_CONFIG      ?=     pkg-config
 CC              =      gcc
@@ -38,9 +54,10 @@ JEMALLOC_CFLAGS := $(shell $(PKG_CONFIG) --cflags jemalloc)
 JEMALLOC_LIBS   := $(shell $(PKG_CONFIG) --libs jemalloc)
 endif
 
-# musl is "available" only if musl-gcc actually compiles+links a trivial program.
-# Some distros (e.g. Arch) ship a musl-gcc whose spec is broken against the current
-# GCC, so an existence check alone is not enough.
+# musl is available if musl-gcc compiles+links a trivial program,
+# GCC 16's specs add -latomic_asneeded, which musl-gcc can't find
+# (it doesn't search /usr/lib), so the link fails even when musl-gcc is installed.
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=123654
 HAVE_MUSL := $(shell printf 'int main(void){return 0;}' | $(MUSLCC) -x c -o /dev/null - >/dev/null 2>&1 && echo yes || echo no)
 
 ifeq ($(DEBUG), 1)
@@ -70,12 +87,129 @@ ifeq ($(HAVE_MUSL),yes)
 ALL_MUSL_TARGETS += heap_musl_dyn.native.out heap_musl_static.native.out heap_musl_static_stripped.native.out
 endif
 
+# Versions come from the build-<version> stages in Dockerfile.glibc-test-libs (the source of truth).
+GLIBC_TEST_VERSIONS := $(shell sed -n 's/^FROM base-builder AS build-\([0-9][0-9.]*\).*/\1/p' $(PWD)/../../../Dockerfile.glibc-test-libs)
+# Add a binary by creating <stem>.native.c and listing it here; add a version via a Dockerfile stage.
+GLIBC_VERSION_BINARIES := heap_malloc_chunk heap_malloc_chunk_dump heap_bins heap_find_fake_fast
+
+AVAILABLE_GLIBC_VERSIONS := $(foreach ver,$(GLIBC_TEST_VERSIONS),\
+    $(if $(wildcard $(PWD)/glibcs/$(ver)/$(GLIBC_LD_NAME)),$(ver)))
+
+ifeq ($(LIBC_VER_ARCH_OK),yes)
+ifeq ($(strip $(GLIBC_TEST_VERSIONS)),)
+$(error Could not parse glibc versions from Dockerfile.glibc-test-libs - expected 'FROM base-builder AS build-<version>' stages)
+endif
+define GLIBC_VERSION_TARGET
+$(1).glibc-$(2).out: $(1).native.c
+	@echo "[+] Building '$$@' against glibc $(2)"
+	$${ZIGCC} $${CFLAGS} -w \
+	-target $(ZIG_LIBC_TARGET).$(2) \
+	-Wl,-rpath=$$(PWD)/glibcs/$(2) \
+	-Wl,--dynamic-linker=$$(PWD)/glibcs/$(2)/$(GLIBC_LD_NAME) \
+	-o $$@ $$< -pthread -lpthread
+endef
+
+$(foreach bin,$(GLIBC_VERSION_BINARIES),\
+    $(foreach ver,$(AVAILABLE_GLIBC_VERSIONS),\
+        $(eval $(call GLIBC_VERSION_TARGET,$(bin),$(ver)))))
+
+ALL_GLIBC_VERSION_TARGETS := $(foreach bin,$(GLIBC_VERSION_BINARIES),\
+    $(foreach ver,$(AVAILABLE_GLIBC_VERSIONS),$(bin).glibc-$(ver).out))
+
+GLIBC_NODEBUG_BINARIES := heap_malloc_chunk
+AVAILABLE_GLIBC_NODEBUG_VERSIONS := $(foreach ver,$(GLIBC_TEST_VERSIONS),\
+    $(if $(wildcard $(PWD)/glibcs-nodebug/$(ver)/$(GLIBC_LD_NAME)),$(ver)))
+
+define GLIBC_VERSION_NODEBUG_TARGET
+$(1).glibc-$(2)-nodebug.out: $(1).native.c
+	@echo "[+] Building '$$@' against no-debug glibc $(2)"
+	$${ZIGCC} $${CFLAGS} -w \
+	-target $(ZIG_LIBC_TARGET).$(2) \
+	-Wl,-rpath=$$(PWD)/glibcs-nodebug/$(2) \
+	-Wl,--dynamic-linker=$$(PWD)/glibcs-nodebug/$(2)/$(GLIBC_LD_NAME) \
+	-o $$@ $$< -pthread -lpthread
+endef
+
+$(foreach bin,$(GLIBC_NODEBUG_BINARIES),\
+    $(foreach ver,$(AVAILABLE_GLIBC_NODEBUG_VERSIONS),\
+        $(eval $(call GLIBC_VERSION_NODEBUG_TARGET,$(bin),$(ver)))))
+
+ALL_GLIBC_VERSION_TARGETS += $(foreach bin,$(GLIBC_NODEBUG_BINARIES),\
+    $(foreach ver,$(AVAILABLE_GLIBC_NODEBUG_VERSIONS),$(bin).glibc-$(ver)-nodebug.out))
+else
+ALL_GLIBC_VERSION_TARGETS :=
+endif
+
+# Versions come from the build-<version> stages in Dockerfile.musl-test-libs (the source of truth).
+MUSL_TEST_VERSIONS := $(shell sed -n 's/^FROM base-builder AS build-\([0-9][0-9.]*\).*/\1/p' $(PWD)/../../../Dockerfile.musl-test-libs)
+# Add a binary by creating <stem>.native.c and listing it here; add a version via a Dockerfile stage.
+MUSL_VERSION_BINARIES := heap_musl
+
+AVAILABLE_MUSL_VERSIONS := $(foreach ver,$(MUSL_TEST_VERSIONS),\
+    $(if $(wildcard $(PWD)/musls/$(ver)/lib/libc.a),$(ver)))
+
+
+MUSL_MALLOCNG_MIN := 1.2.1
+MUSL_STATIC_VERSIONS := $(shell printf '%s\n' $(AVAILABLE_MUSL_VERSIONS) | \
+    awk -F. -v min="$(MUSL_MALLOCNG_MIN)" 'BEGIN{split(min,m,".")} \
+    ($$1>m[1])||($$1==m[1]&&$$2>m[2])||($$1==m[1]&&$$2==m[2]&&$$3>=m[3])')
+
+ifeq ($(LIBC_VER_ARCH_OK),yes)
+ifeq ($(strip $(MUSL_TEST_VERSIONS)),)
+$(error Could not parse musl versions from Dockerfile.musl-test-libs - expected 'FROM base-builder AS build-<version>' stages)
+endif
+
+define MUSL_VERSION_STATIC_TARGET
+$(1).musl-$(2)-static.out: $(1).native.c $(PWD)/musls/$(2)/lib/libc.a $(PWD)/musls/$(2)/lib/crt1.o $(PWD)/musls/$(2)/lib/crti.o $(PWD)/musls/$(2)/lib/crtn.o
+	@echo "[+] Building '$$@' against musl $(2) (static)"
+	$${ZIGCC} $${CFLAGS} -static -no-pie -fno-pie -nostdlibinc -nostdlib \
+	-isystem $$(PWD)/musls/$(2)/include \
+	-Wl,-u,__libc_version \
+	-o $$@ \
+	$$(PWD)/musls/$(2)/lib/crt1.o $$(PWD)/musls/$(2)/lib/crti.o \
+	$$< \
+	$$(PWD)/musls/$(2)/lib/libc.a $$(PWD)/musls/$(2)/lib/crtn.o
+endef
+
+define MUSL_VERSION_DYNAMIC_TARGET
+$(1).musl-$(2)-dynamic.out: $(1).native.c $(PWD)/musls/$(2)/lib/libc.so $(PWD)/musls/$(2)/lib/crt1.o $(PWD)/musls/$(2)/lib/crti.o $(PWD)/musls/$(2)/lib/crtn.o
+	@echo "[+] Building '$$@' against musl $(2) (dynamic)"
+	$${ZIGCC} $${CFLAGS} -no-pie -fno-pie -nostdlibinc -nostdlib \
+	-isystem $$(PWD)/musls/$(2)/include \
+	-DMUSL_DYNAMIC_INTERP=\"$$(PWD)/musls/$(2)/lib/$(MUSL_LD_NAME)\" \
+	-Wl,-rpath=$$(PWD)/musls/$(2)/lib \
+	-o $$@ \
+	$$(PWD)/musls/$(2)/lib/crt1.o $$(PWD)/musls/$(2)/lib/crti.o \
+	$$< \
+	$$(PWD)/musls/$(2)/lib/libc.so $$(PWD)/musls/$(2)/lib/crtn.o
+endef
+
+$(foreach bin,$(MUSL_VERSION_BINARIES),\
+    $(foreach ver,$(MUSL_STATIC_VERSIONS),\
+        $(eval $(call MUSL_VERSION_STATIC_TARGET,$(bin),$(ver)))))
+
+ALL_MUSL_VERSION_TARGETS := $(foreach bin,$(MUSL_VERSION_BINARIES),\
+    $(foreach ver,$(MUSL_STATIC_VERSIONS),$(bin).musl-$(ver)-static.out))
+
+ifeq ($(MUSL_DYNAMIC_OK),yes)
+$(foreach bin,$(MUSL_VERSION_BINARIES),\
+    $(foreach ver,$(AVAILABLE_MUSL_VERSIONS),\
+        $(eval $(call MUSL_VERSION_DYNAMIC_TARGET,$(bin),$(ver)))))
+ALL_MUSL_VERSION_TARGETS += $(foreach bin,$(MUSL_VERSION_BINARIES),\
+    $(foreach ver,$(AVAILABLE_MUSL_VERSIONS),$(bin).musl-$(ver)-dynamic.out))
+endif
+else
+ALL_MUSL_VERSION_TARGETS :=
+endif
+
 CUSTOM_TARGETS = heap_find_fake_fast.native.out reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out symbol_1600_and_752.native.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_musl_dyn.native.out heap_musl_static.native.out heap_musl_static_stripped.native.out gosample.i386.out gosample.x86-64.out exithandlers.native.out
 NATIVE_CUSTOM_TARGETS  := $(filter %.native.out %.$(HOST_ARCH).out %.$(HOST_ARCH_32).out,$(CUSTOM_TARGETS))
 
 ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(NATIVE_CUSTOM_TARGETS) \
     $(ALL_JEMALLOC_TARGETS) \
-    $(ALL_MUSL_TARGETS)
+    $(ALL_MUSL_TARGETS) \
+    $(ALL_GLIBC_VERSION_TARGETS) \
+    $(ALL_MUSL_VERSION_TARGETS)
 
 all: $(ALL_TARGETS)
 

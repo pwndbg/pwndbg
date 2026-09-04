@@ -1,0 +1,79 @@
+# This Dockerfile is used by ./.github/workflows/heap-libc-tests.yml and ./scripts/download-test-libs.sh
+#
+# Each /glibcs/<version>/ contains:
+#   ld-X.XX.so              (dynamic linker)
+#   ld-linux-x86-64.so.2 / ld-linux-aarch64.so.1 (per-arch symlink -> ld-X.XX.so)
+#   libc-X.XX.so            (stripped libc)
+#   libc.so.6               (symlink -> libc-X.XX.so)
+#   .debug/libc-X.XX.so     (separate debug info)
+
+FROM debian:12@sha256:ed4fcc40bb1162b6d2d32e7bec15044d13963779abbe63f67f1cd62b06220519 AS base-builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    linux-libc-dev \
+    wget \
+    ca-certificates \
+    bison \
+    gawk \
+    python3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && MA="$(uname -m)-linux-gnu" \
+    && ln -sf "/usr/include/${MA}/asm" /usr/include/asm \
+    && ln -sf "/usr/include/${MA}/gnu" /usr/include/gnu \
+    && ln -sf "/usr/include/${MA}/bits" /usr/include/bits \
+    && ln -sf "/usr/include/${MA}/sys" /usr/include/sys
+
+# Also create a no-debug variant of each libc into /glibcs-nodebug/<version>/
+ENV GLIBC_BUILD_NODEBUG=1
+COPY scripts/build-one-glibc.sh /build-one-glibc.sh
+RUN chmod +x /build-one-glibc.sh
+
+# Build each glibc version in a separate stage for caching. (stages don't invalidate each other like layers do)
+# Add a version here only: a stage + its RUN (with the tarball sha256) and the two COPY lines below.
+FROM base-builder AS build-2.35
+RUN /build-one-glibc.sh 2.35 3e8e0c6195da8dfbd31d77c56fb8d99576fb855fafd47a9e0a895e51fd5942d4
+
+FROM base-builder AS build-2.36
+RUN /build-one-glibc.sh 2.36 02efa6ffbbaf3e10e88f16818a862608d04b0ef838c66f6025ae120530792c9c
+
+FROM base-builder AS build-2.37
+RUN /build-one-glibc.sh 2.37 811f19f9200118ff94ede28a6e12307584152cdcbf3d366cd729ea2f855db255
+
+FROM base-builder AS build-2.38
+RUN /build-one-glibc.sh 2.38 16e51e0455e288f03380b436e41d5927c60945abd86d0c9852b84be57dd6ed5e
+
+FROM base-builder AS build-2.39
+RUN /build-one-glibc.sh 2.39 97f84f3b7588cd54093a6f6389b0c1a81e70d99708d74963a2e3eab7c7dc942d
+
+FROM base-builder AS build-2.40
+RUN /build-one-glibc.sh 2.40 2abc038f5022949cb67e996c3cae0e7764f99b009f0b9b7fd954dfc6577b599e
+
+FROM base-builder AS build-2.41
+RUN /build-one-glibc.sh 2.41 c7be6e25eeaf4b956f5d4d56a04d23e4db453fc07760f872903bb61a49519b80
+
+FROM base-builder AS build-2.42
+RUN /build-one-glibc.sh 2.42 d4468d3e3267068c1b0623ca6424aac9a28766df774c8d8fb4978127fca7125a
+
+FROM base-builder AS build-2.43
+RUN /build-one-glibc.sh 2.43 e1e622cbd635019090fa23260e5d9ec219b12f97ae7ae02f033d4ae42cf2c004
+
+FROM scratch
+COPY --from=build-2.35 /glibcs/2.35 /glibcs/2.35
+COPY --from=build-2.36 /glibcs/2.36 /glibcs/2.36
+COPY --from=build-2.37 /glibcs/2.37 /glibcs/2.37
+COPY --from=build-2.38 /glibcs/2.38 /glibcs/2.38
+COPY --from=build-2.39 /glibcs/2.39 /glibcs/2.39
+COPY --from=build-2.40 /glibcs/2.40 /glibcs/2.40
+COPY --from=build-2.41 /glibcs/2.41 /glibcs/2.41
+COPY --from=build-2.42 /glibcs/2.42 /glibcs/2.42
+COPY --from=build-2.43 /glibcs/2.43 /glibcs/2.43
+COPY --from=build-2.35 /glibcs-nodebug/2.35 /glibcs-nodebug/2.35
+COPY --from=build-2.36 /glibcs-nodebug/2.36 /glibcs-nodebug/2.36
+COPY --from=build-2.37 /glibcs-nodebug/2.37 /glibcs-nodebug/2.37
+COPY --from=build-2.38 /glibcs-nodebug/2.38 /glibcs-nodebug/2.38
+COPY --from=build-2.39 /glibcs-nodebug/2.39 /glibcs-nodebug/2.39
+COPY --from=build-2.40 /glibcs-nodebug/2.40 /glibcs-nodebug/2.40
+COPY --from=build-2.41 /glibcs-nodebug/2.41 /glibcs-nodebug/2.41
+COPY --from=build-2.42 /glibcs-nodebug/2.42 /glibcs-nodebug/2.42
+COPY --from=build-2.43 /glibcs-nodebug/2.43 /glibcs-nodebug/2.43
