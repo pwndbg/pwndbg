@@ -25,7 +25,6 @@ import pwndbg.exception
 import pwndbg.lib.memory
 import pwndbg.libc
 import pwndbg.libc.glibc
-from pwndbg.aglib.heap import heap_chain_limit
 from pwndbg.aglib.heap.glibc import Arena
 from pwndbg.aglib.heap.glibc import Bins
 from pwndbg.aglib.heap.glibc import BinType
