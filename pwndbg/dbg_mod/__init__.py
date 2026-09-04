@@ -1396,12 +1396,6 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def string_limit(self) -> int:
-        """
-        The maximum size of a string.
-        """
-        raise NotImplementedError()
-
     def addrsz(self, address: Any) -> str:
         """
         Format the given address value.
