@@ -312,14 +312,14 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
 
         target: int | None = None
-        if instruction.id in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
-            # The default target resolver does not apply to these instructions, since `pc` is an explicit operand,
-            # but it's not being read from.
-            if len(instruction.operands) == 2:
-                right_operand = instruction.operands[1]
-                if right_operand.before_value is not None:
-                    target = right_operand.before_value
-        else:
+        if instruction.jump_like and instruction.id == ARM_INS_LDR:
+            # This is one we could potentially handle manually while stepped on it
+            if len(instruction.operands) == 2 and (
+                (branch_target := instruction.operands[1].before_value) is not None
+            ):
+                target = branch_target
+        elif instruction.id not in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
+            # For the instructions in the list guarding this branch, the default resolver cannot determine the branch target
             target = super()._resolve_target(instruction, emu)
 
         if target is not None:
