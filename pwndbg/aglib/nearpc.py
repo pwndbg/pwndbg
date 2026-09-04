@@ -202,6 +202,7 @@ def preprocess_branch_visualization(
                 if target is None:
                     continue
 
+                target &= pwndbg.aglib.arch.ptrmask
                 # The branch visualization is nice to show for things like the initial state of PLT/GOT,
                 # where the jump at the plt goes to a nearby address. But otherwise, the target is likely
                 # very far away in memory. This just tries to make the output nicer, because otherwise
