@@ -22,7 +22,6 @@ from typing import TypeVar
 
 import pwndbg
 import pwndbg.aglib.heap
-import pwndbg.aglib.heap.heap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
@@ -2165,3 +2164,6 @@ class HeuristicHeap(
         return (
             bool(self._get_heap_page()) or (self.can_be_resolved() and self.main_arena.top != 0)
         ) and (int(self.mp["sbrk_base"]) != 0)
+
+
+glibc_allocator: HeuristicHeap | DebugSymsHeap = HeuristicHeap()

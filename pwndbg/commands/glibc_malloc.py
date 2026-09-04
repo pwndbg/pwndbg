@@ -21,6 +21,7 @@ import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.dbg_mod
+import pwndbg.exception
 import pwndbg.lib.memory
 import pwndbg.libc
 import pwndbg.libc.glibc

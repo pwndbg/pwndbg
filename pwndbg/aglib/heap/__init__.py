@@ -4,58 +4,21 @@ from collections.abc import Sequence
 from typing import Any
 
 import pwndbg
-import pwndbg.aglib.heap.heap
 import pwndbg.aglib.proc
 import pwndbg.dbg_mod
 import pwndbg.lib.config
 import pwndbg.libc
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
-from pwndbg.lib.config import Scope
 
-current: pwndbg.aglib.heap.heap.MemoryAllocator | None = None
-
-
-def add_heap_param(
-    name: str,
-    default: Any,
-    set_show_doc: str,
-    *,
-    help_docstring: str = "",
-    param_class: int | None = None,
-    enum_sequence: Sequence[str] | None = None,
-):
-    return pwndbg.config.add_param(
-        name,
-        default,
-        set_show_doc,
-        help_docstring=help_docstring,
-        param_class=param_class,
-        enum_sequence=enum_sequence,
-        scope=Scope.heap,
-    )
-
-
-main_arena = add_heap_param("main-arena", "0", "the address of main_arena")
-
-thread_arena = add_heap_param("thread-arena", "0", "the address pointed by thread_arena")
-
-mp_ = add_heap_param("mp", "0", "the address of mp_")
-
-tcache = add_heap_param("tcache", "0", "the address pointed by tcache")
-
-global_max_fast = add_heap_param("global-max-fast", "0", "the address of global_max_fast")
-
-symbol_list = [main_arena, thread_arena, mp_, tcache, global_max_fast]
-
-heap_chain_limit = add_heap_param(
+heap_chain_limit = pwndbg.config.add_param(
     "heap-dereference-limit",
     8,
     "number of chunks to dereference in each bin",
     param_class=pwndbg.lib.config.PARAM_UINTEGER,
 )
 
-heap_corruption_check_limit = add_heap_param(
+heap_corruption_check_limit = pwndbg.config.add_param(
     "heap-corruption-check-limit",
     64,
     "amount of chunks to traverse for the bin corruption check",
@@ -84,7 +47,7 @@ Then, restart your program to enable proper thread debugging.
 else:
     extra_hint_for_gdb = ""
 
-resolve_heap_via_heuristic = add_heap_param(
+resolve_heap_via_heuristic = pwndbg.config.add_param(
     "resolve-heap-via-heuristic",
     "auto",
     "the strategy to resolve heap via heuristic",
@@ -138,8 +101,6 @@ def reset() -> None:
     # Re-initialize the heap
     if current:
         current = type(current)()
-    for symbol in symbol_list:
-        symbol.value = "0"
 
 
 @pwndbg.config.trigger(resolve_heap_via_heuristic)
