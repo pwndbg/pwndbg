@@ -17,10 +17,15 @@ import pwndbg.aglib.memory
 import pwndbg.color
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg.aglib import kernel
 from pwndbg.aglib.kernel.slab import CpuCache
 from pwndbg.aglib.kernel.slab import Freelist
+from pwndbg.aglib.kernel.slab import NodeBarn
 from pwndbg.aglib.kernel.slab import NodeCache
+from pwndbg.aglib.kernel.slab import PercpuSheaves
+from pwndbg.aglib.kernel.slab import Sheaf
 from pwndbg.aglib.kernel.slab import Slab
+from pwndbg.aglib.kernel.slab import SlabCache
 from pwndbg.aglib.kernel.slab import find_containing_slab_cache
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -62,6 +67,16 @@ parser_contains = subparsers.add_parser(
 )
 parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", help="")
 
+parser_sheaf = subparsers.add_parser(
+    "sheaf",
+    description="Dump a slab sheaf (struct slab_sheaf) at the given address. "
+    "Requires a kernel with SLUB percpu sheaves (Linux >= 7.0).",
+    help="Dump a slab sheaf at the given address.",
+)
+parser_sheaf.add_argument(
+    "addresses", metavar="addr", type=str, nargs="+", help="address of a struct slab_sheaf"
+)
+
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
@@ -91,6 +106,10 @@ def slab(
         assert addresses
         for addr in addresses:
             slab_contains(addr)
+    elif command == "sheaf":
+        assert addresses
+        for addr in addresses:
+            slab_sheaf(addr)
 
 
 def emphasize(s):
@@ -180,6 +199,55 @@ def print_slab(slab: Slab, verbose: bool) -> None:
                     indent.print(f"{prefix} ({desc})")
 
 
+def print_sheaf(name: str, sheaf: Sheaf | None, verbose: bool, bullet: bool = False) -> None:
+    if sheaf is None:
+        return
+
+    prefix = "- " if bullet else ""
+    indent.print(
+        f"{prefix}{indent.prefix(name)} @ {indent.addr_hex(sheaf.address)} [size: {indent.aux_hex(sheaf.size)}]"
+    )
+    if verbose:
+        with indent:
+            for i, obj in enumerate(sheaf.objects):
+                indent.print(f"- {indent.prefix(f'[0x{i:02x}]')} {indent.addr_hex(obj)}")
+
+
+def print_sheaves(sheaves: PercpuSheaves, verbose: bool) -> None:
+    indent.print(
+        f"{indent.prefix('percpu_sheaves')} @ {indent.addr_hex(sheaves.address)} [CPU {sheaves.cpu}]:"
+    )
+    with indent:
+        print_sheaf("main", sheaves.main, verbose)
+        print_sheaf("spare", sheaves.spare, verbose)
+        print_sheaf("rcu_free", sheaves.rcu_free, verbose)
+    indent.print()
+
+
+def print_node_barn(barn: NodeBarn, verbose: bool) -> None:
+    full = barn.sheaves_full
+    empty = barn.sheaves_empty
+    if not full and not empty:
+        return
+
+    indent.print(
+        f"{indent.prefix('node_barn')} @ {indent.addr_hex(barn.address)} [NODE {barn.node}]:"
+    )
+    with indent:
+        if full:
+            indent.print(f"{indent.prefix('sheaves_full')}")
+            with indent:
+                for sheaf in full:
+                    print_sheaf("Sheaf", sheaf, verbose, bullet=True)
+
+        if empty:
+            indent.print(f"{indent.prefix('sheaves_empty')}")
+            with indent:
+                for sheaf in empty:
+                    print_sheaf("Sheaf", sheaf, verbose, bullet=True)
+    indent.print()
+
+
 def print_cpu_cache(cpu_cache: CpuCache, verbose: bool, active: bool, partial: bool) -> None:
     indent.print(
         f"{indent.prefix('kmem_cache_cpu')} @ {indent.addr_hex(cpu_cache.address)} [CPU {cpu_cache.cpu}]:"
@@ -224,9 +292,7 @@ def print_node_cache(node_cache: NodeCache, verbose: bool) -> None:
         node_cache.node,
     )
     # https://elixir.bootlin.com/linux/v6.13/source/mm/slub.c#L3140
-    indent.print(
-        f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(address)} [NUMA node {node}]:"
-    )
+    indent.print(f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(address)} [NODE {node}]:")
     with indent:
         partial_slabs = node_cache.partial_slabs
         if not partial_slabs:
@@ -239,6 +305,7 @@ def print_node_cache(node_cache: NodeCache, verbose: bool) -> None:
         with indent:
             for slab in partial_slabs:
                 print_slab(slab, verbose)
+    indent.print()
 
 
 def slab_info(
@@ -271,10 +338,23 @@ def slab_info(
             indent.print(f"{indent.prefix('Usercopy region offset')}: {useroffset}")
             indent.print(f"{indent.prefix('Usercopy region size')}: {usersize}")
 
-        for cpu_cache in slab_cache.cpu_caches:
-            if cpu is not None and cpu_cache.cpu != cpu:
-                continue
-            print_cpu_cache(cpu_cache, verbose, active, partial)
+        if kernel.krelease() >= (7, 0):
+            # display per-cpu sheaves
+            for sheaves in slab_cache.percpu_sheaves:
+                if cpu is not None and sheaves.cpu != cpu:
+                    continue
+                print_sheaves(sheaves, verbose)
+
+            # display per-node sheaves in node_barn
+            for node_barn in slab_cache.node_barns:
+                if node is not None and node != node_barn.node:
+                    continue
+                print_node_barn(node_barn, verbose)
+        else:
+            for cpu_cache in slab_cache.cpu_caches:
+                if cpu is not None and cpu_cache.cpu != cpu:
+                    continue
+                print_cpu_cache(cpu_cache, verbose, active, partial)
 
         if not partial:
             return
@@ -343,3 +423,23 @@ def slab_contains(address: str) -> None:
         indent.print("status:", message.hint(inuse))
     except Exception as e:
         print(message.warn(f"address does not belong to a SLUB cache: {e}"))
+
+
+def slab_sheaf(address: str) -> None:
+    try:
+        addr = int(pwndbg.dbg.selected_frame().evaluate_expression(address)) & ((1 << 64) - 1)
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(f"Could not parse '{address}'"))
+        print(message.error(f"Message: {e}"))
+        return
+
+    try:
+        sheaf_ptr = pwndbg.aglib.memory.get_typed_pointer("struct slab_sheaf", addr)
+        slab_cache = SlabCache(sheaf_ptr["cache"])
+        indent.print(
+            f"{indent.prefix('Slab Cache')}: {message.hint(slab_cache.name)} "
+            f"@ {indent.addr_hex(slab_cache.address)}"
+        )
+        print_sheaf("Sheaf", Sheaf(sheaf_ptr, slab_cache), True)
+    except Exception as e:
+        print(message.error(f"could not read a slab sheaf at {addr:#x}: {e}"))
