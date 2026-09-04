@@ -2047,15 +2047,6 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return literal
 
     @override
-    def string_limit(self) -> int:
-        message = gdb.execute("show print elements", from_tty=False, to_string=True)
-        message = message.split("\n")[0].split()[-1]
-        message = message.strip(".")
-        if message == "unlimited":
-            return 0
-        return int(message)
-
-    @override
     def addrsz(self, address: Any) -> str:
         address = int(address) & pwndbg.aglib.arch.ptrmask
         return f"%#{2 * pwndbg.aglib.arch.ptrsize}x" % address

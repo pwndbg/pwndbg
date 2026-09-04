@@ -14,18 +14,7 @@ import pwndbg.aglib.memory
 import pwndbg.dbg_mod
 from pwndbg.lib.memory import Page
 
-length = 15
-
-
-def update_length() -> None:
-    r"""
-    Unfortunately there's not a better way to get at this info.
-
-    >>> gdb.execute('show print elements', from_tty=False, to_string=True)
-    'Limit on string chars or array elements to print is 21.\n'
-    """
-    global length
-    length = pwndbg.dbg.string_limit()
+length = 200
 
 
 def get(address: int, maxlen: int | None = None, maxread: int | None = None) -> str | None:
