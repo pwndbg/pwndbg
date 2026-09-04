@@ -662,7 +662,7 @@ class Emulator:
         try:
             data = pwndbg.aglib.memory.read(page, size)
             data = bytes(data)
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             debug(DEBUG_MEM_MAP, "Could not map page %#x during emulation! [exception]", page)
             return False
 

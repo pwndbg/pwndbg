@@ -351,7 +351,7 @@ def find_upper_boundary(addr: int, max_pages: int = 1024) -> int:
             # (this is most likely redundant, but its ok to keep it?)
             if addr > pwndbg.aglib.arch.ptrmask:
                 return pwndbg.aglib.arch.ptrmask
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         pass
     return addr
 
@@ -374,7 +374,7 @@ def find_lower_boundary(addr: int, max_pages: int = 1024) -> int:
             if addr < 0:
                 return 0
 
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         addr += PAGE_SIZE
     return addr
 
@@ -442,7 +442,7 @@ def convert_pwndbg_value_to_python_value(dbg_value: pwndbg.dbg_mod.Value) -> int
 def resolve_renamed_struct_field(struct_name: str, possible_field_names: set[str]) -> str:
     struct_types = pwndbg.dbg.selected_inferior().types_with_name(f"struct {struct_name}")
     if len(struct_types) == 0:
-        raise pwndbg.dbg_mod.Error(f"could not find type 'struct {struct_name}'")
+        raise pwndbg.dbg_mod.DebuggerError(f"could not find type 'struct {struct_name}'")
     struct_type = struct_types[0]
 
     for field_name in possible_field_names:

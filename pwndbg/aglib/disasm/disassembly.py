@@ -724,7 +724,7 @@ def near(
     if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
         try:
             emu = pwndbg.emu.emulator.Emulator()
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             match = re.search(r"Memory at address (\w+) unavailable\.", str(e))
             if match:
                 return ([], -1, -1)

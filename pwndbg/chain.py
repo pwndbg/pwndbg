@@ -89,7 +89,7 @@ def get(
             address = next_address ^ ((address >> 12) if safe_linking else 0)
             address &= pwndbg.aglib.arch.ptrmask
             result.append(address)
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             break
 
     return result

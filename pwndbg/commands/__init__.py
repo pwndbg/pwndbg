@@ -452,7 +452,7 @@ class CommandObj:
         # Put the arguments through the debugger
         try:
             arg_list = pwndbg.dbg.lex_args(argument)
-        except (TypeError, pwndbg.dbg_mod.Error):
+        except (TypeError, pwndbg.dbg_mod.DebuggerError):
             pwndbg.exception.handle(self.function.__name__)
             return
 
@@ -708,7 +708,7 @@ def fix_reraise_arg(arg: Any) -> pwndbg.dbg_mod.Value:
         fixed = fix(arg, sloppy=False, quiet=True, reraise=True)
         assert isinstance(fixed, pwndbg.dbg_mod.Value)
         return fixed
-    except pwndbg.dbg_mod.Error as dbge:
+    except pwndbg.dbg_mod.DebuggerError as dbge:
         raise argparse.ArgumentTypeError(f"debugger couldn't resolve argument '{arg}': {dbge}")
 
 
@@ -733,7 +733,7 @@ def fix_int_reraise_arg(arg: Any) -> int:
                 )
             return int(func_addr)
         return int(fixed)
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         raise argparse.ArgumentTypeError(
             f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: {e}"
         )
@@ -1023,7 +1023,7 @@ def sloppy_gdb_parse(s: str) -> int | str:
         if val.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
             return int(val.address)
         return int(val)
-    except (TypeError, pwndbg.dbg_mod.Error):
+    except (TypeError, pwndbg.dbg_mod.DebuggerError):
         return s
 
 

@@ -151,7 +151,7 @@ def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
     """
     abi = abi or pwndbg.aglib.arch.function_abi
     if abi is None:
-        raise pwndbg.dbg_mod.Error(
+        raise pwndbg.dbg_mod.DebuggerError(
             f"Function ABI not defined for current architecture, {pwndbg.aglib.arch.function_abi}"
         )
     regs = abi.register_arguments

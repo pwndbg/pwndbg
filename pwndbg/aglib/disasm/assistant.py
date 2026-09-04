@@ -548,7 +548,7 @@ class DisassemblyAssistant:
                         pwndbg.aglib.memory.get_typed_pointer_value(size_type, address)
                     )
                     result.append(read_value)
-                except pwndbg.dbg_mod.Error:
+                except pwndbg.dbg_mod.DebuggerError:
                     pass
 
                 return result
@@ -574,7 +574,7 @@ class DisassemblyAssistant:
                     address = int(pwndbg.aglib.memory.get_typed_pointer_value(size_type, address))
                     address &= pwndbg.aglib.arch.ptrmask
                     address_list.append(address)
-                except pwndbg.dbg_mod.Error:
+                except pwndbg.dbg_mod.DebuggerError:
                     break
             else:
                 break
