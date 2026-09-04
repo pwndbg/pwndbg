@@ -130,7 +130,7 @@ NONCONTIGUOUS_BIT = 2
 # uses runtime information to select the correct structs.
 # Only import it globally during static type checking.
 if typing.TYPE_CHECKING:
-    import pwndbg.aglib.heap.structs
+    import pwndbg.aglib.heap.glibc_structs
 
     TheType = TypeVar("TheType", pwndbg.dbg_mod.Type, type[pwndbg.aglib.heap.structs.CStruct2GDB])
     TheValue = TypeVar("TheValue", pwndbg.dbg_mod.Value, pwndbg.aglib.heap.structs.CStruct2GDB)
@@ -1294,8 +1294,8 @@ class GlibcMemoryAllocator(Generic[TheType, TheValue]):
     def tcachebins(self, tcache_addr: int | None = None) -> Bins | None:
         """Returns: tuple(chain, count) or None"""
         # Delay import so that libc can be loaded
-        from pwndbg.aglib.heap.structs import DEFAULT_MP_
-        from pwndbg.aglib.heap.structs import TCACHE_SMALL_BINS
+        from pwndbg.aglib.heap.glibc_structs import DEFAULT_MP_
+        from pwndbg.aglib.heap.glibc_structs import TCACHE_SMALL_BINS
 
         TCACHE_LARGE_START_SIZE = 1 << (DEFAULT_MP_.tcache_max_bytes.value.bit_length() - 1)
 
