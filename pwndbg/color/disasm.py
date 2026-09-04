@@ -3,6 +3,7 @@ from __future__ import annotations
 import pwndbg.aglib
 import pwndbg.aglib.nearpc
 import pwndbg.color.context as ctx_color
+import pwndbg.color.memory
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -96,6 +97,22 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
             sym = ins.target_string
 
             asm = f"{ljust_colored(asm, 36)} <{sym}>"
+
+            paddings.append(None)
+            if current_group:
+                groups.append(current_group)
+                current_group = []
+        elif (
+            ins.target_memory_operand is not None
+            and ins.target_memory_operand.before_value_resolved is not None
+        ):
+            current_target = pwndbg.color.memory.get_address_or_symbol(
+                ins.target_memory_operand.before_value_resolved & pwndbg.aglib.arch.ptrmask,
+                pwndbg.dintegration.manager.get_stack_var_dict_all(),
+            )
+
+            target_string = f"{ins.target_memory_operand.str}, now={current_target}"
+            asm = f"{ljust_colored(asm, 36)} <{target_string}>"
 
             paddings.append(None)
             if current_group:

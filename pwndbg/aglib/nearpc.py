@@ -192,13 +192,27 @@ def preprocess_branch_visualization(
 
     # Find all instructions eligible for branch visualization
     for instruction in instructions:
-        if instruction.jump_like and instruction.has_jump_target and not instruction.call_like:
-            jumps.append(JumpRange(instruction.address, instruction.target))
+        if instruction.jump_like and not instruction.call_like:
+            if instruction.has_jump_target:
+                jumps.append(JumpRange(instruction.address, instruction.target))
+            elif instruction.target_memory_operand is not None:
+                # This is a `jmp [mem]` instruction, and this value is the target based on the current process state
+                target = instruction.target_memory_operand.before_value_resolved
+
+                if target is None:
+                    continue
+
+                # The branch visualization is nice to show for things like the initial state of PLT/GOT,
+                # where the jump at the plt goes to a nearby address. But otherwise, the target is likely
+                # very far away in memory. This just tries to make the output nicer, because otherwise
+                # the branch visualization would most definitely span a huge address range, where it's no longer helpful
+                if abs(target - instruction.address) < 100:
+                    jumps.append(JumpRange(instruction.address, target))
 
     # Of the jumpranges we processed last time, which ones do we keep? Relevant for repeat nearpc
     continued_ranges: set[JumpRange] = set()
 
-    # Population structure mapping every address to each jump range it belongs to
+    # Populate structure mapping every address to each jump range it belongs to
     for instruction in instructions:
         for pair in jumps:
             if pair.contains(instruction.address):
