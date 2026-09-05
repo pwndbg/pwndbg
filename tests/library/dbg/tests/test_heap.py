@@ -5,9 +5,6 @@ from typing import Any
 
 import pytest
 
-from pwndbg.aglib.heap.glibc import DebugSymsHeap
-from pwndbg.aglib.heap.glibc import HeuristicHeap
-
 from ....host import Controller
 from . import break_at_sym
 from . import get_binary
@@ -183,6 +180,8 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
     import pwndbg.dbg_mod
+    from pwndbg.aglib.heap.glibc import DebugSymsHeap
+    from pwndbg.aglib.heap.glibc import HeuristicHeap
 
     chunks = {}
     results = {}
