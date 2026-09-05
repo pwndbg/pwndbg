@@ -11,6 +11,7 @@ from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib.heap
+import pwndbg.aglib.heap.glibc
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
@@ -25,7 +26,6 @@ import pwndbg.exception
 import pwndbg.lib.memory
 import pwndbg.libc
 import pwndbg.libc.glibc
-import pwndbg.aglib.heap.glibc
 from pwndbg.aglib.heap.glibc import Arena
 from pwndbg.aglib.heap.glibc import Bins
 from pwndbg.aglib.heap.glibc import BinType
@@ -162,6 +162,8 @@ def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
         )
     )
 
+def func_name(function: Callable[P, T]) -> str:
+    return function.__name__.replace("_", "-")
 
 def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
@@ -241,7 +243,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
             and DebugSymsHeap().can_be_resolved()
         ):
             # In auto mode, we will try to use the debug symbols if possible
-            pwndbg.aglib.heap.glibc.get_allocator() = DebugSymsHeap()
+            pwndbg.aglib.heap.glibc.set_allocator(DebugSymsHeap())
 
         if (
             pwndbg.aglib.heap.glibc.get_allocator() is not None
@@ -257,7 +259,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
             # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
             heuristic_heap = HeuristicHeap()
             if heuristic_heap.can_be_resolved():
-                pwndbg.aglib.heap.glibc.get_allocator() = heuristic_heap
+                pwndbg.aglib.heap.glibc.set_allocator(heuristic_heap)
                 w(
                     "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
                     "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"

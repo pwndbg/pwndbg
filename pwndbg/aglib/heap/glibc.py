@@ -1839,12 +1839,11 @@ class HeuristicHeap(
     @property
     @override
     def main_arena(self) -> Arena | None:
-        main_arena_via_config = int(str(pwndbg.config.main_arena), 0)
         main_arena_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
             "main_arena", prefer_static=True
         )
-        if main_arena_via_config or main_arena_via_symbol:
-            self._main_arena_addr = main_arena_via_config or main_arena_via_symbol
+        if  main_arena_via_symbol is not None:
+            self._main_arena_addr = main_arena_via_symbol
 
         if not self._main_arena_addr:
             if self.is_statically_linked():
@@ -2038,10 +2037,6 @@ class HeuristicHeap(
             thread_arena_value = pwndbg.aglib.memory.read_pointer_width(thread_arena_via_symbol)
             return Arena(thread_arena_value) if thread_arena_value else None
 
-        thread_arena_via_config = int(str(pwndbg.config.thread_arena), 0)
-        if thread_arena_via_config:
-            return Arena(thread_arena_via_config)
-
         thread = pwndbg.dbg.selected_thread()
         assert thread
         tidx = thread.index()
@@ -2075,9 +2070,6 @@ class HeuristicHeap(
             return None
 
         tps = self.tcache_perthread_struct
-        thread_cache_via_config = int(str(pwndbg.config.tcache), 0)
-        if thread_cache_via_config:
-            return tps(thread_cache_via_config)
         thread_cache_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
             "tcache", prefer_static=True
         )
@@ -2114,9 +2106,8 @@ class HeuristicHeap(
     @property
     @override
     def mp(self) -> pwndbg.aglib.heap.glibc_structs.CStruct2GDB:
-        mp_via_config = int(str(pwndbg.config.mp), 0)
         mp_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr("mp_", prefer_static=True)
-        if mp_via_config or mp_via_symbol:
+        if mp_via_symbol is not None:
             self._mp_addr = mp_via_symbol
 
         if not self._mp_addr:
@@ -2144,13 +2135,12 @@ class HeuristicHeap(
     @property
     @override
     def global_max_fast(self) -> int:
-        global_max_fast_via_config = int(str(pwndbg.config.global_max_fast), 0)
         global_max_fast_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
             "global_max_fast", prefer_static=True
         )
 
-        if global_max_fast_via_config or global_max_fast_via_symbol:
-            self._global_max_fast_addr = global_max_fast_via_config or global_max_fast_via_symbol
+        if global_max_fast_via_symbol is not None:
+            self._global_max_fast_addr = global_max_fast_via_symbol
             self._global_max_fast = pwndbg.aglib.memory.u(self._global_max_fast_addr)
             return self._global_max_fast
 
