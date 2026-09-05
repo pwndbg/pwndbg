@@ -53,17 +53,16 @@ def read_chunk(addr: int) -> dict[str, int]:
     # In GLIBC versions <= 2.24 the `mchunk_[prev_]size` field was named `[prev_]size`.
     # To support both versions, change the new names to the old ones here so that
     # the rest of the code can deal with uniform names.
-    assert pwndbg.aglib.heap.glibc.get_allocator().malloc_chunk is not None
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
+    assert allocator.malloc_chunk is not None
     renames = {
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    if isinstance(pwndbg.aglib.heap.glibc.get_allocator(), DebugSymsHeap):
-        val = pwndbg.aglib.memory.get_typed_pointer_value(
-            pwndbg.aglib.heap.glibc.get_allocator().malloc_chunk, addr
-        )
+    if isinstance(allocator, DebugSymsHeap):
+        val = pwndbg.aglib.memory.get_typed_pointer_value(allocator.malloc_chunk, addr)
     else:
-        val = pwndbg.aglib.heap.glibc.get_allocator().malloc_chunk(addr)
+        val = allocator.malloc_chunk(addr)
     value_keys: list[str] = val.type.keys()
     return {renames.get(key, key): int(val[key]) for key in value_keys}
 

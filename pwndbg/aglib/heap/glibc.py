@@ -19,7 +19,8 @@ from contextlib import suppress
 from typing import Any
 from typing import Generic
 from typing import TypeVar
-from typing import override
+
+from typing_extensions import override
 
 import pwndbg
 import pwndbg.aglib.heap
