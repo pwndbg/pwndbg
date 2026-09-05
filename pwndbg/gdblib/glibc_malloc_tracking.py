@@ -1,4 +1,6 @@
 """
+TODO: make this allocator agnostic.
+
 Heap Tracking
 
 This module implements runtime tracking of the heap, allowing pwndbg to detect
@@ -53,7 +55,7 @@ import gdb
 from sortedcontainers import SortedDict
 
 import pwndbg.aglib.heap
-import pwndbg.aglib.heap.ptmalloc
+import pwndbg.aglib.heap.glibc
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
@@ -300,8 +302,8 @@ class Tracker:
                 lo_addr = lo_chunk.address
                 hi_addr = hi_chunk.address + hi_chunk.size
 
-                lo_heap = pwndbg.aglib.heap.ptmalloc.Heap(lo_addr)
-                hi_heap = pwndbg.aglib.heap.ptmalloc.Heap(hi_addr - 1)
+                lo_heap = pwndbg.aglib.heap.glibc.Heap(lo_addr)
+                hi_heap = pwndbg.aglib.heap.glibc.Heap(hi_addr - 1)
                 assert lo_heap.arena is not None and hi_heap.arena is not None, (
                     "malloc assert failed"
                 )
@@ -339,10 +341,7 @@ class Tracker:
                 # Add new handlers in their place. We scan over all of the chunks in
                 # the heap in the range of affected chunks, and add the ones that
                 # are free.
-                allocator = pwndbg.aglib.heap.current
-                assert isinstance(allocator, pwndbg.aglib.heap.ptmalloc.GlibcMemoryAllocator), (
-                    "malloc allocator assert failed"
-                )
+                allocator = pwndbg.aglib.heap.glibc.get_allocator()
                 bins_list = [
                     allocator.fastbins(lo_heap.arena.address),
                     allocator.smallbins(lo_heap.arena.address),

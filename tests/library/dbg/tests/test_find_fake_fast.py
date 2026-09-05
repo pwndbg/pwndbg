@@ -17,6 +17,8 @@ target_address = None
 def check_result(result: str, expected_size: int) -> None:
     import pwndbg.aglib
 
+    assert target_address is not None
+
     ptrsize = pwndbg.aglib.arch.ptrsize
 
     matches = re.findall(r"\bAddr: (0x[0-9a-f]+)", result)
@@ -48,6 +50,7 @@ def check_no_results(result: str) -> None:
 async def test_find_fake_fast_command(ctrl: Controller) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.heap
+    import pwndbg.aglib.heap.glibc
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
 
@@ -59,9 +62,9 @@ async def test_find_fake_fast_command(ctrl: Controller) -> None:
         pytest.skip("TODO multiarch")
 
     # Ensure memory at fake_chunk's heap_info struct isn't mapped.
-    unmapped_heap_info = pwndbg.aglib.heap.ptmalloc.heap_for_ptr(
-        pwndbg.aglib.symbol.lookup_symbol_value("fake_chunk")
-    )
+    fake_chunk = pwndbg.aglib.symbol.lookup_symbol_value("fake_chunk")
+    assert fake_chunk is not None
+    unmapped_heap_info = pwndbg.aglib.heap.glibc.heap_for_ptr(fake_chunk)
     assert pwndbg.aglib.memory.peek(unmapped_heap_info) is None
 
     # A gdb.MemoryError raised here indicates a regression from PR #1145

@@ -53,7 +53,6 @@ class Scope(Enum):
     # a command which prints it!
     config = 1
     theme = 2
-    heap = 3
 
 
 # @total_ordering allows us to implement `__eq__` and `__lt__` and have all the
