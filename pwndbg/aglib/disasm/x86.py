@@ -319,14 +319,23 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         value: int | None,
         instruction: PwndbgInstruction,
         operand: EnhancedOperand,
-        emu: Emulator,
+        emu: Emulator | None,
+        force_allow_process_read: bool = False,
     ) -> int | None:
         if value is None:
             return None
 
         if operand.type == CS_OP_MEM:
-            return self._read_memory(value, operand.cs_op.size, instruction, emu)
-        return super()._resolve_used_value(value, instruction, operand, emu)
+            return self._read_memory(
+                value,
+                operand.cs_op.size,
+                instruction,
+                emu,
+                force_allow_process_read=force_allow_process_read,
+            )
+        return super()._resolve_used_value(
+            value, instruction, operand, emu, force_allow_process_read=force_allow_process_read
+        )
 
     @override
     def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
@@ -355,10 +364,17 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
         if op.mem.base != 0:
             mem_base = self._read_register(instruction, op.mem.base, emu)
+
             if mem_base is None:
                 return None
+            # Memory addresses with RIP can only have a constant offset,
+            # so we can know at this point if it's constant
+            op.is_mem_with_constant_addr = op.mem.base == X86_REG_RIP
         else:
             mem_base = 0
+            # If these is no mem_base address (with the exception of RIP), then we
+            # could still have a constant literal address
+            op.is_mem_with_constant_addr = op.mem.index == 0 and op.mem.segment == 0
 
         if op.mem.index != 0:
             index = self._read_register(instruction, op.mem.index, emu)
