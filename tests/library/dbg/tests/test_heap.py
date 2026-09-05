@@ -701,10 +701,10 @@ async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bo
     # Mock all address and mess up the memory
     with mock_for_heuristic(mock_all=True):
         # mock the prompt to avoid input
-        pwndbg.aglib.heap.glibc.get_allocator().prompt_for_brute_force_thread_arena_permission = ( # type: ignore[attr-defined]
+        pwndbg.aglib.heap.glibc.get_allocator().prompt_for_brute_force_thread_arena_permission = (  # type: ignore[attr-defined]
             lambda: False
         )
-        pwndbg.aglib.heap.glibc.get_allocator().prompt_for_brute_force_thread_cache_permission = ( # type: ignore[attr-defined]
+        pwndbg.aglib.heap.glibc.get_allocator().prompt_for_brute_force_thread_cache_permission = (  # type: ignore[attr-defined]
             lambda: False
         )
         _test_heuristic_fail_gracefully("main_arena")

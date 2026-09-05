@@ -2289,11 +2289,19 @@ class HeuristicHeap(
 _allocator: HeuristicHeap | DebugSymsHeap = HeuristicHeap()
 
 
-def get_allocator() -> GlibcMemoryAllocator:
+def get_allocator() -> HeuristicHeap | DebugSymsHeap:
+    """
+    Get the allocator in case you need to acquire something about the glibc heap state.
+
+    Don't store it long term.
+    """
     return _allocator
 
 
-def set_allocator(new_allocator: HeuristicHeap | DebugSymsHeap) -> GlibcMemoryAllocator:
+def set_allocator(new_allocator: HeuristicHeap | DebugSymsHeap) -> HeuristicHeap | DebugSymsHeap:
+    """
+    Set the glibc heap inspector.
+    """
     global _allocator
     _allocator = new_allocator
     return _allocator
