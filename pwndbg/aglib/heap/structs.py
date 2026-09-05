@@ -1333,9 +1333,14 @@ if GLIBC_VERSION not in (c_malloc_par_2_23, c_malloc_par_2_12):
     DEFAULT_MP_.tcache_count = TCACHE_FILL_COUNT
     if GLIBC_VERSION >= (2, 42):
         DEFAULT_MP_.tcache_small_bins = TCACHE_SMALL_BINS
-        DEFAULT_MP_.tcache_max_bytes = (
-            MAX_TCACHE_SMALL_SIZE + SIZE_SZ + MALLOC_ALIGN_MASK
-        ) & ~MALLOC_ALIGN_MASK + 1
+        if GLIBC_VERSION >= (2, 43):
+            # glibc 2.43 made the tcache_max_bytes default the chunk size + 1
+            # (MAX_TCACHE_SMALL_SIZE switched from tidx2usize to tidx2csize)
+            DEFAULT_MP_.tcache_max_bytes = (
+                MAX_TCACHE_SMALL_SIZE + SIZE_SZ + MALLOC_ALIGN_MASK
+            ) & ~MALLOC_ALIGN_MASK + 1
+        else:
+            DEFAULT_MP_.tcache_max_bytes = MAX_TCACHE_SMALL_SIZE
 
     else:
         DEFAULT_MP_.tcache_bins = TCACHE_SMALL_BINS
