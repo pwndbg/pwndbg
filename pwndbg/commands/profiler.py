@@ -19,6 +19,7 @@ Use `./profiling/print_stats.py` to generate a report from a `.pstats` file.
 """
 )
 subparsers = parser.add_subparsers(dest="command")
+subparsers.required = True
 parser_start = subparsers.add_parser(
     "start", description="Starts the profiler.", help="Start the profiler."
 )
