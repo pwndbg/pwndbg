@@ -38,7 +38,6 @@ When this option is set to True, the ng-slotu and ng-slots
 commands will search the heap to try to find the correct meta/group.
     """,
     param_class=pwndbg.lib.config.PARAM_BOOLEAN,
-    scope=pwndbg.lib.config.Scope.heap,
 )
 
 state_alloc_color = color.BLUE
@@ -770,7 +769,6 @@ default_vis_count = pwndbg.config.add_param(
     10,
     "default count for ng-vis",
     param_class=pwndbg.lib.config.PARAM_UINTEGER,
-    scope=pwndbg.lib.config.Scope.heap,
 )
 
 

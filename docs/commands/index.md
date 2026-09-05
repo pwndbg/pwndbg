@@ -193,7 +193,6 @@
 -  [bugreport](pwndbg/bugreport.md) - Generate a bug report.
 -  [config](pwndbg/config.md) - Shows Pwndbg-specific configuration.
 -  [configfile](pwndbg/configfile.md) - Generates a configuration file for the current Pwndbg options.
--  [heap-config](pwndbg/heap-config.md) - Shows heap related configuration.
 -  [pwndbg](pwndbg/pwndbg.md) - Prints out a list of all Pwndbg commands.
 -  [theme](pwndbg/theme.md) - Shows Pwndbg-specific theme configuration.
 -  [themefile](pwndbg/themefile.md) - Generates a configuration file for the current Pwndbg theme options.
