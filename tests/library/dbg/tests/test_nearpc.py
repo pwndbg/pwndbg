@@ -525,9 +525,6 @@ async def test_nearpc_plt_jumps_lazy_binding_i386(
     dis = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 -t 21")
     dis = pwndbg.color.strip(dis)
 
-    for line in dis.split("\n"):
-        print(f'"{line}\\n"')
-
     expected = (
         " ► 0x11520                                           ┌┌┌┌┌>   push   dword ptr [_GLOBAL_OFFSET_TABLE_+4]\n"
         "   0x11526                                           ╎╎╎╎╎    jmp    dword ptr [_GLOBAL_OFFSET_TABLE_+8] <[_GLOBAL_OFFSET_TABLE_+8], now=_dl_runtime_resolve>\n"
@@ -561,5 +558,9 @@ async def test_nearpc_plt_jumps_lazy_binding_i386(
         "   0x11576 <srand@plt+6>                             ╎   └>   push   0x20\n"
         "   0x1157b <srand@plt+11>                            └────<   jmp    0x11520                     <0x11520>\n"
     )
+
+    # In some platforms (Fedora), it uses the `_impl` symbol instead.
+    # This simplifies the test so can just compare against one expected output
+    dis = dis.replace("__libc_start_main_impl", "__libc_start_main")
 
     assert dis == expected
