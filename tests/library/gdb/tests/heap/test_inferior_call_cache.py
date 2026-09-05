@@ -16,9 +16,6 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.aglib.heap
-from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
-
 from .. import get_binary
 
 REFERENCE_BINARY = get_binary("reference_bin_pie.native.out")
@@ -31,14 +28,15 @@ def test_heap_after_many_inferior_mallocs(start_binary):
     read ``thread_arena`` between calls.  Without the inferior_call cache
     fix this crashes after the heap outgrows the cached vmmap.
     """
+    import pwndbg.aglib.heap.glibc
+
     start_binary(REFERENCE_BINARY)
     gdb.execute("entry")
 
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     # Use a large size (0x10000) to force brk expansion quickly.
     print("Will print next thread arenas, their sizes should increase gradually")
     for _ in range(10):
         gdb.execute("call (void *)malloc(0x10000)", to_string=True)
-        print(pwndbg.aglib.heap.current.thread_arena)  # type: ignore[union-attr]
+        print(allocator.thread_arena)

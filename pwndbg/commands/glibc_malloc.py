@@ -25,13 +25,13 @@ import pwndbg.exception
 import pwndbg.lib.memory
 import pwndbg.libc
 import pwndbg.libc.glibc
+import pwndbg.aglib.heap.glibc
 from pwndbg.aglib.heap.glibc import Arena
 from pwndbg.aglib.heap.glibc import Bins
 from pwndbg.aglib.heap.glibc import BinType
 from pwndbg.aglib.heap.glibc import BinVariant
 from pwndbg.aglib.heap.glibc import Chunk
 from pwndbg.aglib.heap.glibc import DebugSymsHeap
-from pwndbg.aglib.heap.glibc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.glibc import Heap
 from pwndbg.aglib.heap.glibc import HeuristicHeap
 from pwndbg.color import generate_color_function
@@ -52,26 +52,24 @@ def read_chunk(addr: int) -> dict[str, int]:
     # In GLIBC versions <= 2.24 the `mchunk_[prev_]size` field was named `[prev_]size`.
     # To support both versions, change the new names to the old ones here so that
     # the rest of the code can deal with uniform names.
-    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
-    assert pwndbg.aglib.heap.current.malloc_chunk is not None
+    assert pwndbg.aglib.heap.glibc.get_allocator().malloc_chunk is not None
     renames = {
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    if isinstance(pwndbg.aglib.heap.current, DebugSymsHeap):
+    if isinstance(pwndbg.aglib.heap.glibc.get_allocator(), DebugSymsHeap):
         val = pwndbg.aglib.memory.get_typed_pointer_value(
-            pwndbg.aglib.heap.current.malloc_chunk, addr
+            pwndbg.aglib.heap.glibc.get_allocator().malloc_chunk, addr
         )
     else:
-        val = pwndbg.aglib.heap.current.malloc_chunk(addr)
+        val = pwndbg.aglib.heap.glibc.get_allocator().malloc_chunk(addr)
     value_keys: list[str] = val.type.keys()
     return {renames.get(key, key): int(val[key]) for key in value_keys}
 
 
 def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> list[str]:
-    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
     assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
-    allocator = pwndbg.aglib.heap.current
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
     if offset is None:
         offset = allocator.chunk_key_offset("fd")
 
@@ -168,8 +166,7 @@ def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
 def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWithTcache(*a: P.args, **kw: P.kwargs) -> T | None:
-        assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
-        if pwndbg.aglib.heap.current.has_tcache():
+        if pwndbg.aglib.heap.glibc.get_allocator().has_tcache():
             return function(*a, **kw)
         log.error(
             f"{func_name(function)}: This version of GLIBC was not compiled with tcache support."
@@ -182,7 +179,7 @@ def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
 def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> T | None:
-        if pwndbg.aglib.heap.current is not None and pwndbg.aglib.heap.current.is_initialized():
+        if pwndbg.aglib.heap.glibc.get_allocator() is not None and pwndbg.aglib.heap.glibc.get_allocator().is_initialized():
             return function(*a, **kw)
         log.error(f"{func_name(function)}: Heap is not initialized yet.")
         return None
@@ -213,7 +210,7 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
         pwndbg.exception.inform_verbose_and_debug()
     except Exception as err:
         e(f"{func_name(function)}: An unknown error occurred when running this command.")
-        if isinstance(pwndbg.aglib.heap.current, HeuristicHeap):
+        if isinstance(pwndbg.aglib.heap.glibc.get_allocator(), HeuristicHeap):
             w(
                 "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap-config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
             )
@@ -239,29 +236,28 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
             return None
 
         if (
-            isinstance(pwndbg.aglib.heap.current, HeuristicHeap)
+            isinstance(pwndbg.aglib.heap.glibc.get_allocator(), HeuristicHeap)
             and pwndbg.config.resolve_heap_via_heuristic == "auto"
             and DebugSymsHeap().can_be_resolved()
         ):
             # In auto mode, we will try to use the debug symbols if possible
-            pwndbg.aglib.heap.current = DebugSymsHeap()
+            pwndbg.aglib.heap.glibc.get_allocator() = DebugSymsHeap()
 
         if (
-            pwndbg.aglib.heap.current is not None
-            and isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
-            and pwndbg.aglib.heap.current.can_be_resolved()
+            pwndbg.aglib.heap.glibc.get_allocator() is not None
+            and pwndbg.aglib.heap.glibc.get_allocator().can_be_resolved()
         ):
             return _try2run_heap_command(function, *a, **kw)
 
         static = not pwndbg.dbg.selected_inferior().is_dynamically_linked()
         if (
-            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
+            isinstance(pwndbg.aglib.heap.glibc.get_allocator(), DebugSymsHeap)
             and pwndbg.config.resolve_heap_via_heuristic == "auto"
         ):
             # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
             heuristic_heap = HeuristicHeap()
             if heuristic_heap.can_be_resolved():
-                pwndbg.aglib.heap.current = heuristic_heap
+                pwndbg.aglib.heap.glibc.get_allocator() = heuristic_heap
                 w(
                     "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
                     "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
@@ -283,7 +279,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
                     "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
                 )
         elif (
-            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
+            isinstance(pwndbg.aglib.heap.glibc.get_allocator(), DebugSymsHeap)
             and pwndbg.config.resolve_heap_via_heuristic == "force"
         ):
             e(
@@ -360,8 +356,7 @@ def heap(
     """Iteratively print chunks on a heap, default to the current thread's
     active heap.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     if count is not None and count <= 0:
         print(message.error("`--count` must be greater than 0."))
@@ -471,8 +466,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 @OnlyWithResolvedHeapSyms
 def arena(addr: int | None = None) -> None:
     """Print the contents of an arena, default to the current thread's arena."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     if addr is not None:
         arena = Arena(addr)
@@ -501,8 +495,7 @@ parser = argparse.ArgumentParser(description="List this process's arenas.")
 @OnlyWithResolvedHeapSyms
 def arenas() -> None:
     """Lists this process's arenas."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     arenas = allocator.arenas
 
@@ -570,8 +563,7 @@ def tcache(addr: int | None = None) -> None:
     """Print a thread's tcache contents, default to the current thread's
     tcache.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     tcache = allocator.get_tcache(addr)
     # if the current thread doesn't allocate the arena, tcache will be NULL
@@ -597,8 +589,7 @@ parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 @OnlyWithResolvedHeapSyms
 def mp() -> None:
     """Print the mp_ struct's contents."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     print(message.notice("mp_ struct at: ") + message.hint(hex(int(allocator.mp.address))))
     print(allocator.mp.value_to_human_readable())
@@ -620,8 +611,7 @@ def top_chunk(addr: int | None = None) -> None:
     """Print relevant information about an arena's top chunk, default to the
     current thread's arena.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     if addr is not None:
         arena = Arena(addr)
@@ -666,8 +656,7 @@ def malloc_chunk(
     dump: bool = False,
 ) -> None:
     """Print a malloc_chunk struct's contents."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     chunk = Chunk(addr)
 
@@ -782,8 +771,7 @@ def bins(addr: int | None = None, tcache_addr: int | None = None) -> None:
     """Print the contents of all an arena's bins and a thread's tcache,
     default to the current thread's arena and tcache.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     if allocator.has_tcache():
         if tcache_addr is None and allocator.thread_cache is None:
@@ -819,8 +807,7 @@ def fastbins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's fastbins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     if pwndbg.libc.version() >= (2, 43):
         print(message.warn("Fastbins were removed in glibc 2.43."))
@@ -858,8 +845,7 @@ def unsortedbin(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's unsortedbin, default to the current
     thread's arena.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     unsortedbin = allocator.unsortedbin(addr)
 
@@ -893,8 +879,7 @@ def smallbins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's smallbins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     smallbins = allocator.smallbins(addr)
 
@@ -928,8 +913,7 @@ def largebins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's largebins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
     largebins = allocator.largebins(addr)
 
     if largebins is None:
@@ -961,8 +945,7 @@ parser.add_argument(
 @OnlyWithTcache
 def tcachebins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of a tcache, default to the current thread's tcache."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     tcachebins = allocator.tcachebins(addr)
 
@@ -1025,8 +1008,7 @@ def find_fake_fast(
     partial_overwrite: bool = False,
 ) -> None:
     """Find candidate fake fast chunks overlapping the specified address."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     size_sz = allocator.size_sz
     min_chunk_size = allocator.min_chunk_size
@@ -1222,8 +1204,7 @@ def vis_heap_chunks(
     all_chunks: bool = False,
 ) -> None:
     """Visualize chunks on a heap, default to the current arena's active heap."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     # Used to determine whether to show command hint
     nothing_supplied = (
@@ -1414,8 +1395,7 @@ def try_free(addr: str | int) -> None:
         return
 
     # constants
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
     arena = allocator.thread_arena
     # arena might be None if the current thread doesn't allocate the arena
     if arena is None:

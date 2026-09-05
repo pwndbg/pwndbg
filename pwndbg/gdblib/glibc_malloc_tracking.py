@@ -341,10 +341,7 @@ class Tracker:
                 # Add new handlers in their place. We scan over all of the chunks in
                 # the heap in the range of affected chunks, and add the ones that
                 # are free.
-                allocator = pwndbg.aglib.heap.current
-                assert isinstance(allocator, pwndbg.aglib.heap.glibc.GlibcMemoryAllocator), (
-                    "malloc allocator assert failed"
-                )
+                allocator = pwndbg.aglib.heap.glibc.get_allocator()
                 bins_list = [
                     allocator.fastbins(lo_heap.arena.address),
                     allocator.smallbins(lo_heap.arena.address),
