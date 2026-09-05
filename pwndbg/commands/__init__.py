@@ -859,7 +859,6 @@ def OnlyWhenRunning(
     return func_when_no_kwargs
 
 
-
 def sloppy_gdb_parse(s: str) -> int | str:
     """
     This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
@@ -920,12 +919,12 @@ def load_commands() -> None:
         import pwndbg.commands.attachp
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
+        import pwndbg.commands.glibc_malloc_tracking
         import pwndbg.commands.got_tracking
         import pwndbg.commands.ignore
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.killthreads
         import pwndbg.commands.peda
-        import pwndbg.commands.glibc_malloc_tracking
         import pwndbg.commands.reload
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
@@ -955,6 +954,7 @@ def load_commands() -> None:
     import pwndbg.commands.exithandlers
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
+    import pwndbg.commands.glibc_malloc
     import pwndbg.commands.godbg
     import pwndbg.commands.got
     import pwndbg.commands.hex2ptr
@@ -996,7 +996,6 @@ def load_commands() -> None:
     import pwndbg.commands.probeleak
     import pwndbg.commands.procinfo
     import pwndbg.commands.profiler
-    import pwndbg.commands.glibc_malloc
     import pwndbg.commands.pwndbg_
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr

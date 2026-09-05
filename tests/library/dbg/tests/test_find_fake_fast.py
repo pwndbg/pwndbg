@@ -64,9 +64,7 @@ async def test_find_fake_fast_command(ctrl: Controller) -> None:
     # Ensure memory at fake_chunk's heap_info struct isn't mapped.
     fake_chunk = pwndbg.aglib.symbol.lookup_symbol_value("fake_chunk")
     assert fake_chunk is not None
-    unmapped_heap_info = pwndbg.aglib.heap.glibc.heap_for_ptr(
-        fake_chunk
-    )
+    unmapped_heap_info = pwndbg.aglib.heap.glibc.heap_for_ptr(fake_chunk)
     assert pwndbg.aglib.memory.peek(unmapped_heap_info) is None
 
     # A gdb.MemoryError raised here indicates a regression from PR #1145

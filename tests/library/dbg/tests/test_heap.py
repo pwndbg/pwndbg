@@ -173,10 +173,10 @@ async def test_heap_command_range_and_count(ctrl: Controller) -> None:
 
 async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: list[str]) -> None:
     import pwndbg.aglib
+    import pwndbg.aglib.heap.glibc
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
     import pwndbg.dbg_mod
-    import pwndbg.aglib.heap.glibc
 
     chunks = {}
     results = {}
@@ -338,9 +338,9 @@ async def test_malloc_chunk_2_43_heuristic(ctrl: Controller) -> None:
 async def test_malloc_chunk_dump_command(ctrl: Controller) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.heap
+    import pwndbg.aglib.heap.glibc
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
-    import pwndbg.aglib.heap.glibc
 
     await launch_to(ctrl, HEAP_MALLOC_CHUNK_DUMP, "break_here")
 
@@ -566,9 +566,8 @@ async def test_thread_cache_heuristic(ctrl: Controller, is_multi_threaded: bool)
         assert thread_cache.address == thread_cache_addr_via_debug_symbol
 
         # Reset the heap object of pwndbg
-        pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
+        allocator = pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
 
-        allocator = pwndbg.aglib.heap.glibc.get_allocator()
         # Check if we can find tcache by using the first chunk
         # # Note: This will NOT work when can NOT find the heap boundaries or the the arena is been shared
         allocator.prompt_for_brute_force_thread_cache_permission = lambda: False  # type: ignore[attr-defined]
@@ -702,12 +701,12 @@ async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bo
     # Mock all address and mess up the memory
     with mock_for_heuristic(mock_all=True):
         # mock the prompt to avoid input
-        pwndbg.aglib.heap.glibc.get_allocator().prompt_for_brute_force_thread_arena_permission = (
+        pwndbg.aglib.heap.glibc.get_allocator().prompt_for_brute_force_thread_arena_permission = ( # type: ignore[attr-defined]
             lambda: False
-        )  # type: ignore[attr-defined]
-        pwndbg.aglib.heap.glibc.get_allocator().prompt_for_brute_force_thread_cache_permission = (
+        )
+        pwndbg.aglib.heap.glibc.get_allocator().prompt_for_brute_force_thread_cache_permission = ( # type: ignore[attr-defined]
             lambda: False
-        )  # type: ignore[attr-defined]
+        )
         _test_heuristic_fail_gracefully("main_arena")
         _test_heuristic_fail_gracefully("mp")
         _test_heuristic_fail_gracefully("global_max_fast")

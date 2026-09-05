@@ -7,6 +7,7 @@ import logging
 from collections.abc import Callable
 from typing import TypeVar
 
+from tabulate import tabulate
 from typing_extensions import ParamSpec
 
 import pwndbg
@@ -14,6 +15,7 @@ import pwndbg.aglib.heap
 import pwndbg.aglib.heap.glibc
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
+import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.chain
@@ -22,7 +24,6 @@ import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.dbg_mod
-import pwndbg.exception
 import pwndbg.lib.memory
 import pwndbg.libc
 import pwndbg.libc.glibc
@@ -105,7 +106,10 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
             continue
 
         formatted_chain = pwndbg.chain.format(
-            chain_fd[0], limit=heap_chain_limit, offset=offset, safe_linking=safe_lnk
+            chain_fd[0],
+            limit=int(pwndbg.config.heap_dereference_limit),
+            offset=offset,
+            safe_linking=safe_lnk,
         )
 
         if isinstance(size, int):
@@ -162,139 +166,137 @@ def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
         )
     )
 
+
 def func_name(function: Callable[P, T]) -> str:
     return function.__name__.replace("_", "-")
 
-def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
-    @functools.wraps(function)
-    def _OnlyWithTcache(*a: P.args, **kw: P.kwargs) -> T | None:
-        if pwndbg.aglib.heap.glibc.get_allocator().has_tcache():
-            return function(*a, **kw)
+
+def heap_is_sane(callee_func_name: str | None) -> bool:
+    """
+    Check that we can perform glibc heap inspection so a command can proceed.
+
+    Sets the correct heap inspector between HeuristicHeap() and DebugSymsHeap() .
+    """
+    if callee_func_name is None:
+        callee_func_name = "heap_is_sane"
+
+    if not pwndbg.aglib.proc.alive():
+        log.error(f"{callee_func_name}: Process is not alive.")
+        return False
+    if pwndbg.aglib.qemu.is_qemu_kernel():
+        log.error(f"{callee_func_name}: Not userspace.")
+        return False
+
+    # Are we certain we're in glibc?
+    # Operating under the assumption that the pwndbg/libc/ code can figure out
+    # that we are using glibc with at least as good accuracy as the glibc malloc code.
+    which_libc = pwndbg.libc.which()
+    if which_libc == pwndbg.libc.LibcType.UNKNOWN:
+        log.error(f"{callee_func_name}: Cannot find glibc in this process, has it been loaded?")
+        return False
+    if which_libc != pwndbg.libc.LibcType.GLIBC:
         log.error(
-            f"{func_name(function)}: This version of GLIBC was not compiled with tcache support."
+            f"{callee_func_name}: The currently active libc isn't glibc. It's {which_libc.value}."
         )
-        return None
+        return False
 
-    return _OnlyWithTcache
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
+
+    # We have to use heuristics
+    if str(pwndbg.config.resolve_heap_via_heuristic) == "force":
+        if isinstance(allocator, DebugSymsHeap):
+            # Use the heuristic one!
+            allocator = pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
+
+        if not allocator.can_be_resolved():
+            log.error(
+                f"{callee_func_name}: You're forcing the usage of heuristics with 'help set resolve-heap-via-heuristic', but the"
+            )
+            log.error("heap cannot be resolved with them. Try 'auto'?")
+            return False
+
+    # We have to use debug syms
+    if str(pwndbg.config.resolve_heap_via_heuristic) == "never":
+        if isinstance(allocator, HeuristicHeap):
+            # Use the debug syms one!
+            allocator = pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
+
+        if not allocator.can_be_resolved():
+            log.error(
+                f"{callee_func_name}: You're forcing the usage of debug symbols with 'help set resolve-heap-via-heuristic', but the"
+            )
+            log.error("heap cannot be resolved with them. Try 'auto'?")
+            return False
+
+    # We can choose
+    if str(pwndbg.config.resolve_heap_via_heuristic) == "auto":
+        # Can we upgrade?
+        upgraded: bool = False
+        if isinstance(allocator, HeuristicHeap):
+            # FIXME: Feels like DebugSymsHeap.can_be_resolved() should be a staticmethod.
+            maybe_debug_syms = DebugSymsHeap()
+            if maybe_debug_syms.can_be_resolved():
+                # Upgrade!
+                allocator = pwndbg.aglib.heap.glibc.set_allocator(maybe_debug_syms)
+                upgraded = True
+
+        # Can we not resolve? (if we upgraded we know we can)
+        if not upgraded and not allocator.can_be_resolved():
+            # Abusing this exception a bit but w/e
+            raise SymbolNotRecoveredError(
+                "glibc heap",
+                "We know its glibc but we could not resolve the heap. This is a bug! Report it!",
+            )
+
+    # Alright, we can resolve, but is the heap initialized?
+    if not allocator.is_initialized():
+        # We used to allow some commands to run with an uninitialized heap, but no need.
+        log.error(f"{callee_func_name}: The heap is not initialized yet.")
+        return False
+
+    # Finally, we let the command pass.
+    return True
 
 
-def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, T | None]:
+def OnlyForSaneHeap(function: Callable[P, T]) -> Callable[P, T | None]:
+    """
+    Can we perform glibc heap inspection?
+
+    Also chooses the correct inspector between HeuristicHeap() and DebugSymsHeap() .
+
+    Decorate a glibc heap command function with this
+    """
+
     @functools.wraps(function)
-    def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> T | None:
-        if pwndbg.aglib.heap.glibc.get_allocator() is not None and pwndbg.aglib.heap.glibc.get_allocator().is_initialized():
-            return function(*a, **kw)
-        log.error(f"{func_name(function)}: Heap is not initialized yet.")
-        return None
-
-    return _OnlyWhenHeapIsInitialized
-
-
-def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) -> T | None:
-    e = log.error
-    w = log.warning
-    # Note: We will still raise the error for developers when exception-* is set to "on"
-    try:
-        return function(*a, **kw)
-    except SymbolNotRecoveredError as err:
-        e(f"{func_name(function)}: Fail to resolve the symbol: `{err.name}`")
-        if "thread_arena" == err.name:
-            w(
-                "You are probably debugging a multi-threaded target without debug symbols, so we failed to determine which arena is used by the current thread.\n"
-                "To resolve this issue, you can use the `arenas` command to list all arenas, and use `set thread-arena <addr>` to set the current thread's arena address you think is correct.\n"
-            )
-        else:
-            w(
-                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap-config` command output and set the config for `{err.name}`."
-            )
-        if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
-            raise err
-
-        pwndbg.exception.inform_verbose_and_debug()
-    except Exception as err:
-        e(f"{func_name(function)}: An unknown error occurred when running this command.")
-        if isinstance(pwndbg.aglib.heap.glibc.get_allocator(), HeuristicHeap):
-            w(
-                "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap-config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
-            )
-        else:
-            w("You can try `set resolve-heap-via-heuristic force` and re-run this command.\n")
-        if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
-            raise err
-
-        pwndbg.exception.inform_verbose_and_debug()
-    return None
-
-
-def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
-    @functools.wraps(function)
-    def _OnlyWithResolvedHeapSyms(*a: P.args, **kw: P.kwargs) -> T | None:
-        e = log.error
-        w = log.warning
-
-        # Operating under the assumption that the pwndbg/libc/ code can figure out
-        # that we are using glibc with at least as good accuracy as the glibc malloc code.
-        if pwndbg.libc.which() != pwndbg.libc.LibcType.GLIBC:
-            e(f"The currently active libc isn't glibc. It's {pwndbg.libc.which().value}.")
+    def _OnlyForSaneHeap(*a: P.args, **kw: P.kwargs) -> T | None:
+        if not heap_is_sane(func_name(function)):
             return None
 
-        if (
-            isinstance(pwndbg.aglib.heap.glibc.get_allocator(), HeuristicHeap)
-            and pwndbg.config.resolve_heap_via_heuristic == "auto"
-            and DebugSymsHeap().can_be_resolved()
-        ):
-            # In auto mode, we will try to use the debug symbols if possible
-            pwndbg.aglib.heap.glibc.set_allocator(DebugSymsHeap())
+        # May raise SymbolNotRecoveredError, let it bubble up.
+        return function(*a, **kw)
 
-        if (
-            pwndbg.aglib.heap.glibc.get_allocator() is not None
-            and pwndbg.aglib.heap.glibc.get_allocator().can_be_resolved()
-        ):
-            return _try2run_heap_command(function, *a, **kw)
+    return _OnlyForSaneHeap
 
-        static = not pwndbg.dbg.selected_inferior().is_dynamically_linked()
-        if (
-            isinstance(pwndbg.aglib.heap.glibc.get_allocator(), DebugSymsHeap)
-            and pwndbg.config.resolve_heap_via_heuristic == "auto"
-        ):
-            # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
-            heuristic_heap = HeuristicHeap()
-            if heuristic_heap.can_be_resolved():
-                pwndbg.aglib.heap.glibc.set_allocator(heuristic_heap)
-                w(
-                    "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
-                    "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
-                )
-                return _try2run_heap_command(function, *a, **kw)
-            if static:
-                e(
-                    "Can't find GLIBC version required for this command to work since this is a statically linked binary"
-                )
-                w(
-                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
-                )
-            else:
-                e(
-                    "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
-                )
-                w(
-                    "If you believe the GLIBC is loaded or this is a statically linked binary. "
-                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
-                )
-        elif (
-            isinstance(pwndbg.aglib.heap.glibc.get_allocator(), DebugSymsHeap)
-            and pwndbg.config.resolve_heap_via_heuristic == "force"
-        ):
-            e(
-                "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
+
+def OnlyForSaneHeapWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
+    """
+    Same as OnlyForSaneHeap but also checks for the presence of tcache.
+    """
+
+    @functools.wraps(function)
+    def _OnlyForSaneHeapWithTcache(*a: P.args, **kw: P.kwargs) -> T | None:
+        if not heap_is_sane(func_name(function)):
+            return None
+
+        if not pwndbg.aglib.heap.glibc.get_allocator().has_tcache():
+            log.error(
+                f"{func_name(function)}: This version of glibc was not compiled with tcache support."
             )
-            w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
-        else:
-            # Note: Should not see this error, but just in case
-            e("An unknown error occurred when resolved the heap.")
-            pwndbg.exception.inform_report_issue("An unknown error occurred when resolved the heap")
-        return None
 
-    return _OnlyWithResolvedHeapSyms
+            return None
+        return function(*a, **kw)
+
+    return _OnlyForSaneHeapWithTcache
 
 
 parser = argparse.ArgumentParser(
@@ -345,9 +347,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def heap(
     addr_start: int | None = None,
     addr_end: int | None = None,
@@ -425,8 +425,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def hi(addr: int, verbose: bool = False, simple: bool = False, fake: bool = False) -> None:
     try:
         heap = Heap(addr)
@@ -463,9 +462,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def arena(addr: int | None = None) -> None:
     """Print the contents of an arena, default to the current thread's arena."""
     allocator = pwndbg.aglib.heap.glibc.get_allocator()
@@ -492,9 +489,7 @@ parser = argparse.ArgumentParser(description="List this process's arenas.")
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def arenas() -> None:
     """Lists this process's arenas."""
     allocator = pwndbg.aglib.heap.glibc.get_allocator()
@@ -557,10 +552,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
-@OnlyWithTcache
+@OnlyForSaneHeapWithTcache
 def tcache(addr: int | None = None) -> None:
     """Print a thread's tcache contents, default to the current thread's
     tcache.
@@ -586,9 +578,7 @@ parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def mp() -> None:
     """Print the mp_ struct's contents."""
     allocator = pwndbg.aglib.heap.glibc.get_allocator()
@@ -606,9 +596,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def top_chunk(addr: int | None = None) -> None:
     """Print relevant information about an arena's top chunk, default to the
     current thread's arena.
@@ -646,9 +634,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def malloc_chunk(
     addr: int,
     fake: bool = False,
@@ -766,9 +752,7 @@ parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Addr
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def bins(addr: int | None = None, tcache_addr: int | None = None) -> None:
     """Print the contents of all an arena's bins and a thread's tcache,
     default to the current thread's arena and tcache.
@@ -802,9 +786,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def fastbins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's fastbins, default to the current
     thread's arena.
@@ -840,9 +822,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def unsortedbin(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's unsortedbin, default to the current
     thread's arena.
@@ -874,9 +854,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def smallbins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's smallbins, default to the current
     thread's arena.
@@ -908,9 +886,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def largebins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's largebins, default to the current
     thread's arena.
@@ -941,10 +917,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
-@OnlyWithTcache
+@OnlyForSaneHeapWithTcache
 def tcachebins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of a tcache, default to the current thread's tcache."""
     allocator = pwndbg.aglib.heap.glibc.get_allocator()
@@ -999,9 +972,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def find_fake_fast(
     target_address: int,
     max_candidate_size: int | None = None,
@@ -1194,9 +1165,7 @@ group.add_argument(
 
 
 @pwndbg.commands.Command(parser, aliases=["vis"], category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def vis_heap_chunks(
     addr: int | None = None,
     count: int | None = None,
@@ -1379,9 +1348,7 @@ try_free_parser.add_argument("addr", type=int, help="Address passed to free")
 
 
 @pwndbg.commands.Command(try_free_parser, category=CommandCategory.GLIBC_MALLOC)
-@pwndbg.commands.OnlyWhenUserspace
-@OnlyWhenHeapIsInitialized
-@OnlyWithResolvedHeapSyms
+@OnlyForSaneHeap
 def try_free(addr: str | int) -> None:
     addr = int(addr)
 

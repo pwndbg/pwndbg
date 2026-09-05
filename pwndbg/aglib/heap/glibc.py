@@ -41,7 +41,7 @@ from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 from pwndbg.lib import SymbolNotRecoveredError
 
-heap_chain_limit = pwndbg.config.add_param(
+heap_dereference_limit = pwndbg.config.add_param(
     "heap-dereference-limit",
     8,
     "number of chunks to dereference in each bin",
@@ -697,8 +697,7 @@ class Arena:
     def is_main_arena(self) -> bool:
         if self._is_main_arena is None:
             self._is_main_arena = (
-                _allocator.main_arena is not None
-                and self.address == _allocator.main_arena.address
+                _allocator.main_arena is not None and self.address == _allocator.main_arena.address
             )
 
         return self._is_main_arena
@@ -843,7 +842,7 @@ class Arena:
             chain = pwndbg.chain.get(
                 int(self.fastbinsY[i]),
                 offset=fd_offset,
-                limit=int(heap_chain_limit),
+                limit=int(heap_dereference_limit),
                 safe_linking=safe_lnk,
             )
 
@@ -1097,6 +1096,13 @@ class GlibcMemoryAllocator(Generic[TheType, TheValue]):
         return (start_size, end_size)
 
     def can_be_resolved(self) -> bool:
+        """
+        When you instantiate this class, you must first run this command to see if you can
+        actually use it.
+
+        If this returns True and we get an exception somewhere or fail to inspect the heap,
+        we consider that a bug.
+        """
         raise NotImplementedError()
 
     @property
@@ -1218,9 +1224,9 @@ class GlibcMemoryAllocator(Generic[TheType, TheValue]):
         """Corresponds to MIN_CHUNK_SIZE in glibc malloc.c"""
         return pwndbg.aglib.arch.ptrsize * 4
 
-    @property
+    @staticmethod
     @pwndbg.lib.cache.cache_until("objfile", "thread")
-    def multithreaded(self) -> bool:
+    def multithreaded() -> bool:
         """Is malloc operating within a multithreaded environment."""
         addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_multiple_threads")
         if addr:
@@ -1346,7 +1352,7 @@ class GlibcMemoryAllocator(Generic[TheType, TheValue]):
             chain = pwndbg.chain.get(
                 int(entries[i]),
                 offset=self.tcache_next_offset,
-                limit=int(heap_chain_limit),
+                limit=int(heap_dereference_limit),
                 safe_linking=safe_lnk,
             )
 
@@ -1458,7 +1464,7 @@ class GlibcMemoryAllocator(Generic[TheType, TheValue]):
         fd_offset = self.chunk_key_offset("fd")
         bk_offset = self.chunk_key_offset("bk")
 
-        chain_size = int(heap_chain_limit)
+        chain_size = int(heap_dereference_limit)
         corrupt_chain_size = int(heap_corruption_check_limit)
 
         get_chain = lambda bin, offset: pwndbg.chain.get(
@@ -1604,6 +1610,11 @@ class GlibcMemoryAllocator(Generic[TheType, TheValue]):
         return self.largebin_index_32(sz)
 
     def is_initialized(self):
+        """
+        Returns true if the heap state has been initialized.
+
+        Usually this is equivalent to asking 'has at least one allocation happened?'
+        """
         raise NotImplementedError()
 
     def is_statically_linked(self) -> bool:
@@ -1618,7 +1629,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         # Check if thread_arena is needed and available, but if the binary is not multithreaded, then we don't care
         # Note: it's possible that we unstripped the libc but still don't have libthread_db.so
         return (
-            not self.multithreaded
+            not self.multithreaded()
             or pwndbg.aglib.symbol.lookup_symbol_addr("thread_arena", prefer_static=True)
             is not None
         )
@@ -1645,7 +1656,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
     @property
     @override
     def thread_arena(self) -> Arena | None:
-        if self.multithreaded:
+        if self.multithreaded():
             thread_arena_addr = pwndbg.aglib.symbol.lookup_symbol_addr(
                 "thread_arena", prefer_static=True
             )
@@ -1673,7 +1684,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         )
         if tcache_ptr and (tcache_addr := pwndbg.aglib.memory.read_pointer_width(tcache_ptr)):
             tcache = tcache_addr
-        elif not self.multithreaded:
+        elif not self.multithreaded():
             tcache = self.main_arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
         else:
             # This thread doesn't have a tcache yet
@@ -1785,9 +1796,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         which compensates for the presence of GLIBC_TUNABLES.
         """
         assert self.mp is not None
-        sbrk_base = pwndbg.lib.memory.align_up(
-            int(self.mp["sbrk_base"]), _allocator.size_sz * 2
-        )
+        sbrk_base = pwndbg.lib.memory.align_up(int(self.mp["sbrk_base"]), _allocator.size_sz * 2)
 
         sbrk_region = self.get_region(sbrk_base)
         if sbrk_region is None:
@@ -1833,6 +1842,7 @@ class HeuristicHeap(
                 pass
         return self._structs_module
 
+    @override
     def can_be_resolved(self) -> bool:
         return self.struct_module is not None
 
@@ -1842,7 +1852,7 @@ class HeuristicHeap(
         main_arena_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
             "main_arena", prefer_static=True
         )
-        if  main_arena_via_symbol is not None:
+        if main_arena_via_symbol is not None:
             self._main_arena_addr = main_arena_via_symbol
 
         if not self._main_arena_addr:
@@ -2044,10 +2054,7 @@ class HeuristicHeap(
         if cached := self._thread_arena_values.get(tidx):
             return Arena(cached)
 
-        if not (
-            self.main_arena.address != _allocator.main_arena.next
-            or self.multithreaded
-        ):
+        if not (self.main_arena.address != _allocator.main_arena.next or self.multithreaded()):
             self._thread_arena_values[tidx] = self.main_arena.address
             return self.main_arena
 
@@ -2278,7 +2285,7 @@ class HeuristicHeap(
         ) and (int(self.mp["sbrk_base"]) != 0)
 
 
-# The allocator object, you may
+"""The allocator object holding the state of the current heap"""
 _allocator: HeuristicHeap | DebugSymsHeap = HeuristicHeap()
 
 
@@ -2286,8 +2293,10 @@ def get_allocator() -> GlibcMemoryAllocator:
     return _allocator
 
 
-def set_allocator(new_allocator: GlibcMemoryAllocator) -> None:
+def set_allocator(new_allocator: HeuristicHeap | DebugSymsHeap) -> GlibcMemoryAllocator:
+    global _allocator
     _allocator = new_allocator
+    return _allocator
 
 
 @pwndbg.dbg.event_handler(EventType.EXIT)
