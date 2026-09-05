@@ -218,7 +218,7 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
     if str(pwndbg.config.resolve_heap_via_heuristic) == "never":
         if isinstance(allocator, HeuristicHeap):
             # Use the debug syms one!
-            allocator = pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
+            allocator = pwndbg.aglib.heap.glibc.set_allocator(DebugSymsHeap())
 
         if not allocator.can_be_resolved():
             log.error(
@@ -239,13 +239,20 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
                 allocator = pwndbg.aglib.heap.glibc.set_allocator(maybe_debug_syms)
                 upgraded = True
 
-        # Can we not resolve? (if we upgraded we know we can)
-        if not upgraded and not allocator.can_be_resolved():
-            # Abusing this exception a bit but w/e
-            raise SymbolNotRecoveredError(
-                "glibc heap",
-                "We know its glibc but we could not resolve the heap. This is a bug! Report it!",
-            )
+        # Can we actually resolve? (if we upgraded we know we can)
+        if not upgraded:
+            if not allocator.can_be_resolved() and isinstance(allocator, DebugSymsHeap):
+                # Maybe we could not resolve because we were already a DebugSymsHeap
+                # and there is no debug info?
+                allocator = pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
+
+            if not allocator.can_be_resolved():
+                # We cannot resolve with either one, bail!
+                # Abusing this exception a bit but w/e
+                raise SymbolNotRecoveredError(
+                    "glibc heap",
+                    "We know its glibc but we could not resolve the heap. This is a bug! Report it!",
+                )
 
     # Alright, we can resolve, but is the heap initialized?
     if not allocator.is_initialized():
