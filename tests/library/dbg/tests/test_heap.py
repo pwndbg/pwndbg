@@ -183,6 +183,9 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
     from pwndbg.aglib.heap.glibc import DebugSymsHeap
     from pwndbg.aglib.heap.glibc import HeuristicHeap
 
+    # Run a heap command to make sure the allocator is resolved to the proper one
+    await ctrl.execute_and_capture("bins")
+
     chunks = {}
     results = {}
     allocator = pwndbg.aglib.heap.glibc.get_allocator()
