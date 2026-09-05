@@ -138,6 +138,9 @@ async def test_heap_command_range_and_count(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
     from pwndbg.aglib.heap.glibc import Chunk
 
+    # We run this without debug info for better test variety
+    await ctrl.disable_debuginfod()
+
     await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")

@@ -2161,11 +2161,6 @@ class HeuristicHeap(
                 f"global_max_fast symbol not found, using the default value: 0x{default:x}"
             )
         )
-        print(
-            message.warn(
-                "Use `set global-max-fast <address>` to set the address of global_max_fast manually if needed."
-            )
-        )
         return default
 
     @property
