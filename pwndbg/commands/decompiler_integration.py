@@ -598,7 +598,7 @@ def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: int | None = None) -> None:
                     if reg_value_raw is not None
                     else color.gray("???")
                 )
-            except pwndbg.dbg_mod.Error:
+            except pwndbg.dbg_mod.DebuggerError:
                 # int(reg_value_raw) failed. Happens for xmm0 for instance.
                 reg_value = "not an int"
             reg_value_part = color.ljust_colored(f"(value: {reg_value})", 28)

@@ -916,7 +916,7 @@ def test_memory_read_error_handling(qemu_assembly_run):
     try:
         pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0xFE, 0xFF, partial=False)
         assert False, "Expected Error due to inaccessible memory address."
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         pass
 
     result = pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0xFF, 0xFF, partial=True)
@@ -934,5 +934,5 @@ def test_memory_read_error_handling(qemu_assembly_run):
     try:
         pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0x0, 0xFF, partial=True)
         assert False, "Expected Error due to inaccessible memory address."
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         pass

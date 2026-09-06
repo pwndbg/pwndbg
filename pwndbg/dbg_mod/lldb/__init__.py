@@ -142,7 +142,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
             pass
 
         value = None
-        with suppress(pwndbg.dbg_mod.Error):
+        with suppress(pwndbg.dbg_mod.DebuggerError):
             if re.match(r"^[a-zA-Z0-9_.:@*/$]+$", name):
                 value = self.evaluate_expression(f"&{name}")
 
@@ -164,7 +164,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         opt_out = _is_optimized_out(value)
 
         if not value.error.Success() and not opt_out:
-            raise pwndbg.dbg_mod.Error(value.error.description)
+            raise pwndbg.dbg_mod.DebuggerError(value.error.description)
 
         return LLDBValue(value, self.proc)
 
@@ -231,12 +231,12 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
                     # Run the command that sets the value of the register.
                     try:
                         self.proc.dbg._execute_lldb_command(f"register write {name} {val}")
-                    except pwndbg.dbg_mod.Error as e:
+                    except pwndbg.dbg_mod.DebuggerError as e:
                         error = str(e)
                         if f"'{name}'" in error and "not found" in error:
                             # Likely "error: Register not found for '{name}'"
                             return False
-                        raise pwndbg.dbg_mod.Error(
+                        raise pwndbg.dbg_mod.DebuggerError(
                             f"could not set value of register '{name}' to '{val}': {error}"
                         )
 
@@ -371,7 +371,7 @@ class LLDBThread(pwndbg.dbg_mod.Thread):
     @contextmanager
     def bottom_frame(self) -> Iterator[pwndbg.dbg_mod.Frame]:
         if self.inner.GetNumFrames() <= 0:
-            raise pwndbg.dbg_mod.Error("no frames")
+            raise pwndbg.dbg_mod.DebuggerError("no frames")
 
         yield LLDBFrame(self.inner.GetFrameAtIndex(0), self.proc)
 
@@ -648,7 +648,9 @@ class LLDBType(pwndbg.dbg_mod.Type):
         if not t.IsValid():
             t = self.inner.GetArrayElementType()
         if not t.IsValid():
-            raise pwndbg.dbg_mod.Error("tried to get target type of non-pointer and non-array type")
+            raise pwndbg.dbg_mod.DebuggerError(
+                "tried to get target type of non-pointer and non-array type"
+            )
 
         return LLDBType(t)
 
@@ -683,7 +685,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         ex = None
         ty: LLDBType = None
         if not deref.GetError().success:
-            ex = pwndbg.dbg_mod.Error(
+            ex = pwndbg.dbg_mod.DebuggerError(
                 f"could not dereference value: {deref.GetError().description}"
             )
 
@@ -701,13 +703,13 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         if self.inner.unsigned == 0:
             try:
                 b = self.proc.read_memory(0, self.inner.GetByteSize(), partial=False)
-            except pwndbg.dbg_mod.Error:
+            except pwndbg.dbg_mod.DebuggerError:
                 # Nope, we really can't read it.
                 raise ex
 
             if len(b) > 0xFF:
                 # SetDataWithOwnership() is limited to 255 bits.
-                raise pwndbg.dbg_mod.Error(
+                raise pwndbg.dbg_mod.DebuggerError(
                     f"could not dereference value: value at 0x0 is too large (is {len(b)} bytes, must be at most 255)"
                 )
 
@@ -716,11 +718,11 @@ class LLDBValue(pwndbg.dbg_mod.Value):
             d.SetDataWithOwnership(e, b, self.proc.process.GetByteOrder(), len(b))
 
             if not e.success:
-                raise pwndbg.dbg_mod.Error(f"could not dereference value: {e.description}")
+                raise pwndbg.dbg_mod.DebuggerError(f"could not dereference value: {e.description}")
 
             deref = self.proc.target.CreateValueFromData("nullderef", d, ty.inner.GetPointeeType())
             if not deref.IsValid():
-                raise pwndbg.dbg_mod.Error(
+                raise pwndbg.dbg_mod.DebuggerError(
                     "could not dereference value: SBTarget::CreateValueFromData failed"
                 )
 
@@ -742,7 +744,9 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         for _ in range(8, 33):  # log2(256) = 8, log2(4GB) = 32
             s = self.inner.process.ReadCStringFromMemory(addr, buf, error)
             if error.Fail():
-                raise pwndbg.dbg_mod.Error(f"could not read value as string: {error.description}")
+                raise pwndbg.dbg_mod.DebuggerError(
+                    f"could not read value as string: {error.description}"
+                )
             if last_str is not None and len(s) == len(last_str):
                 break
             last_str = s
@@ -780,7 +784,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         type: LLDBType = type
 
         if type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            raise pwndbg.dbg_mod.Error("Cast to function type is not allowed, use pointer")
+            raise pwndbg.dbg_mod.DebuggerError("Cast to function type is not allowed, use pointer")
 
         return LLDBValue(self.inner.Cast(type.inner), self.proc)
 
@@ -831,7 +835,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
                 value = self.inner.GetChildAtIndex(key)
 
         if not value.IsValid():
-            raise pwndbg.dbg_mod.Error(
+            raise pwndbg.dbg_mod.DebuggerError(
                 f"cannot get value with key '{key}': {value.error.description}"
             )
 
@@ -1005,7 +1009,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         opt_out = _is_optimized_out(value)
 
         if not value.error.Success() and not opt_out:
-            raise pwndbg.dbg_mod.Error(value.error.description)
+            raise pwndbg.dbg_mod.DebuggerError(value.error.description)
 
         return LLDBValue(value, self)
 
@@ -1198,7 +1202,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         if buffer:
             return bytearray(buffer)
         if not partial:
-            raise pwndbg.dbg_mod.Error(f"could not read {size:#x} bytes: {e}")
+            raise pwndbg.dbg_mod.DebuggerError(f"could not read {size:#x} bytes: {e}")
 
         # At this point, we're in a bit of a pickle. LLDB doesn't give us enough
         # information to find out what the last address it can read from is. For
@@ -1234,7 +1238,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         if vmmap_size > 0:
             try:
                 return self.read_memory(address, vmmap_size, partial=False)
-            except pwndbg.dbg_mod.Error:
+            except pwndbg.dbg_mod.DebuggerError:
                 # Unreliable memory map?
                 pass
 
@@ -1260,13 +1264,15 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         e = lldb.SBError()
         count = self.process.WriteMemory(address, data, e)
         if (count < len(data) or not e.success) and not partial:
-            raise pwndbg.dbg_mod.Error(f"could not write {len(data)} bytes: {e}")
+            raise pwndbg.dbg_mod.DebuggerError(f"could not write {len(data)} bytes: {e}")
 
         # In some instances - eg. writing to the PC - writing may still have
         # failed when we get here. Make sure we can read it back, to a point.
         readback_len = min(len(data), 64)
         if self.read_memory(address, readback_len) != data[:readback_len]:
-            raise pwndbg.dbg_mod.Error(f"could not write {len(data)} bytes: read-back failed")
+            raise pwndbg.dbg_mod.DebuggerError(
+                f"could not write {len(data)} bytes: read-back failed"
+            )
 
         # We know some memory got changed.
         self.dbg._trigger_event(pwndbg.dbg_mod.EventType.MEMORY_CHANGED)
@@ -1365,7 +1371,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     @override
     def send_remote(self, packet: str) -> bytes:
         if len(packet) == 0:
-            raise pwndbg.dbg_mod.Error("Empty packets are not allowed")
+            raise pwndbg.dbg_mod.DebuggerError("Empty packets are not allowed")
         if not self._is_gdb_remote:
             raise RuntimeError("Called send_remote() on a local process")
 
@@ -1396,7 +1402,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     @override
     def send_monitor(self, cmd: str) -> str:
         if len(cmd) == 0:
-            raise pwndbg.dbg_mod.Error("Empty monitor commands are not allowed")
+            raise pwndbg.dbg_mod.DebuggerError("Empty monitor commands are not allowed")
         if not self._is_gdb_remote:
             raise RuntimeError("Called send_monitor() on a local process")
 
@@ -1444,16 +1450,16 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         local = lldb.SBFileSpec(local_path)
 
         if not platform.IsValid():
-            raise pwndbg.dbg_mod.Error("no remote platform we can use")
+            raise pwndbg.dbg_mod.DebuggerError("no remote platform we can use")
 
         if not remote.IsValid():
-            raise pwndbg.dbg_mod.Error(f"LLDB considers the path '{remote_path}' invalid")
+            raise pwndbg.dbg_mod.DebuggerError(f"LLDB considers the path '{remote_path}' invalid")
         if not local.IsValid():
-            raise pwndbg.dbg_mod.Error(f"LLDB considers the path '{local_path} invalid'")
+            raise pwndbg.dbg_mod.DebuggerError(f"LLDB considers the path '{local_path} invalid'")
 
         error = platform.Get(remote, local)
         if not error.success:
-            raise pwndbg.dbg_mod.Error(
+            raise pwndbg.dbg_mod.DebuggerError(
                 f"could not get remote file {remote_path}: {error.description}"
             )
 
@@ -1616,7 +1622,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                     objfile = m
                     break
             if objfile is None:
-                raise pwndbg.dbg_mod.Error(f"Objfile '{objfile_endswith}' not found")
+                raise pwndbg.dbg_mod.DebuggerError(f"Objfile '{objfile_endswith}' not found")
 
         symbol_for_preference = None
         for sym, cast_type, resolved_addr in self._iter_symbols(name, type, objfile):
@@ -1837,7 +1843,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             #
             # We should have to handle ourselves gracefully here, but there's
             # basically nothing we can do to help with this, so we error out.
-            raise pwndbg.dbg_mod.Error("Unknown target architecture")
+            raise pwndbg.dbg_mod.DebuggerError("Unknown target architecture")
 
         arch_name = names[0]
         if arch_name == "x86_64":
@@ -1900,7 +1906,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             )
 
         if not bp.IsValid():
-            raise pwndbg.dbg_mod.Error(
+            raise pwndbg.dbg_mod.DebuggerError(
                 f"could not create breakpoint/watchpoint: {e.description if e else 'unknown error'}"
             )
 
@@ -2211,7 +2217,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
                 # Cancellations are meaningful to the CLI, raise them unchanged.
                 raise e
 
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     def _execute_lldb_command(self, command: str) -> str:
         result = lldb.SBCommandReturnObject()
@@ -2222,8 +2228,8 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         )
         if not result.Succeeded():
             if result.GetErrorSize() > 0:
-                raise pwndbg.dbg_mod.Error(result.GetError())
-            raise pwndbg.dbg_mod.Error("lldb command failed without error")
+                raise pwndbg.dbg_mod.DebuggerError(result.GetError())
+            raise pwndbg.dbg_mod.DebuggerError("lldb command failed without error")
         return result.GetOutput()
 
     @override
@@ -2530,7 +2536,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             flavor = "intel"
 
         if flavor not in {"att", "intel"}:
-            raise pwndbg.dbg_mod.Error(f"unrecognized disassembly flavor '{flavor}'")
+            raise pwndbg.dbg_mod.DebuggerError(f"unrecognized disassembly flavor '{flavor}'")
 
         literal: Literal["att", "intel"] = flavor
         return literal
@@ -2575,7 +2581,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         try:
             # https://stackoverflow.com/questions/11192511/does-lldb-have-convenience-variables-var
             self._execute_lldb_command(f"expr void* ${name} = ((void*)({value}))")
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             if "redefinition" in str(e).lower():
                 # The variable is already defined with a set type, we can try to set the value
                 # anyway and hope for the best. The brackets are important.

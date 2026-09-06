@@ -24,7 +24,7 @@ def __call_pthread_self() -> int:
                 "(void *)pthread_self()", lock_scheduler=True
             )
         )
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         return 0
 
 
