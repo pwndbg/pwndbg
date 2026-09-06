@@ -623,7 +623,7 @@ def run_disassemble_for_function_boundaries(address: int) -> list[tuple[int, int
     Note that the `end` address is exclusive of the start of the last instruction. It is guaranteed to be at least `address of last instruction` + 1.
     It gets fully accurate end address in the that `address` is in a function with multiple address ranges.
 
-    This allows us to disassemble the entire function correctly, as we only stop disassemble if we are outside of the range returned by this address.
+    This allows us to disassemble the entire function correctly, as we can start the disassembly of the final instruction (it will still be within the range returned by this function)
     """
 
     disass_output: str = gdb.execute(f"disassemble {address}", to_string=True)
