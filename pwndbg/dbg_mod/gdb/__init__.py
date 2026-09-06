@@ -158,10 +158,17 @@ class GDBRegisters(pwndbg.dbg_mod.Registers):
     def by_name(self, name: str) -> pwndbg.dbg_mod.Value | None:
         try:
             return GDBValue(self.frame.inner.read_register(name))
-        except (gdb.error, ValueError):
-            # GDB throws an exception if the name is unknown, we just return
-            # None when that is the case.
-            pass
+        except ValueError as e:
+            if "Bad register" in str(e):
+                # GDB throws a ValueError exception if the name is unknown, we just return
+                # None when that is the case.
+                return None
+            # Otherwise some weird shenanigents might be going on, so we print the message
+            # as well.
+            err_str: str = str(e)
+        except gdb.error as e:
+            err_str = str(e)
+        print(message.error(f"gdb register read error: {err_str}"))
         return None
 
 
