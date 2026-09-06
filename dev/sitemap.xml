@@ -117,71 +117,71 @@
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/arena/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/arena/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/arenas/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/arenas/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/bins/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/bins/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/fastbins/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/fastbins/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/find-fake-fast/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/find-fake-fast/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/heap/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/heap/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/hi/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/hi/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/largebins/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/largebins/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/malloc-chunk/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/malloc-chunk/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/mp/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/mp/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/smallbins/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/smallbins/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/tcache/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/tcache/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/tcachebins/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/tcachebins/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/top-chunk/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/top-chunk/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/try-free/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/try-free/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/unsortedbin/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/unsortedbin/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/glibc_ptmalloc2_heap/vis-heap-chunks/</loc>
+         <loc>https://pwndbg.re/stable/commands/glibc_heap/vis-heap-chunks/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
@@ -613,10 +613,6 @@
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/pwndbg/heap-config/</loc>
-         <lastmod>2026-09-06</lastmod>
-    </url>
-    <url>
          <loc>https://pwndbg.re/stable/commands/pwndbg/pwndbg/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
@@ -830,10 +826,6 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/configuration/config/</loc>
-         <lastmod>2026-09-06</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/configuration/heap/</loc>
          <lastmod>2026-09-06</lastmod>
     </url>
     <url>
