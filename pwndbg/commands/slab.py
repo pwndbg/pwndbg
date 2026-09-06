@@ -338,7 +338,8 @@ def slab_info(
             indent.print(f"{indent.prefix('Usercopy region offset')}: {useroffset}")
             indent.print(f"{indent.prefix('Usercopy region size')}: {usersize}")
 
-        if kernel.krelease() >= (7, 0):
+        krelease = kernel.krelease()
+        if krelease and krelease >= (7, 0):
             # display per-cpu sheaves
             for sheaves in slab_cache.percpu_sheaves:
                 if cpu is not None and sheaves.cpu != cpu:
