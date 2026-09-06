@@ -91,23 +91,24 @@ Here's a function form the file:
 async def test_mallocng_slot_start(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
+    await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
-    # Check ng-slots is the same as ng-slotu when p == start
+    # Check `ng slots` is the same as `ng slotu` when p == start
     # and that they aren't the same when p != start.
 
-    slotu_buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer2"))
-    slots_buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slots buffer2"))
-    slotu_buffer5_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer5"))
-    slots_buffer5_out = color.strip(await ctrl.execute_and_capture("ng-slots buffer5"))
+    slotu_buffer2_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer2"))
+    slots_buffer2_out = color.strip(await ctrl.execute_and_capture("ng slots buffer2"))
+    slotu_buffer5_out = color.strip(await ctrl.execute_and_capture("ng slotu buffer5"))
+    slots_buffer5_out = color.strip(await ctrl.execute_and_capture("ng slots buffer5"))
 
     assert "not cyclic" in slotu_buffer2_out
     assert slotu_buffer2_out == slots_buffer2_out
 
     if binary == HEAP_MALLOCNG_STATIC:
         assert "not cyclic" not in slotu_buffer5_out
-        # Doing `ng-slots buffer5` will give you garbage since buffer5 is not
+        # Doing `ng slots buffer5` will give you garbage since buffer5 is not
         # a valid slot start.
         assert slotu_buffer5_out != slots_buffer5_out
 ```
@@ -140,3 +141,26 @@ int main () {
 ## QEMU Tests
 
 To test architecture specific features, like disassembly annotations, we use emulate the appropriate architecure with qemu-user and attach to its debug port. These tests are located in [`tests/library/qemu_user/tests`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu_user/tests). They are currently `gdb-only` and thus follow the same format as the `gdb/` tests. They require a Python function with a Pytest fixture name as the parameter (it matches based on the name). You call the argument/fixture to start debugging a binary. The `qemu_assembly_run` fixture takes in a Python string of assembly code, compiles it in the appropriate architecture, and runs it - no need to create an external file or edit a Makefile.
+
+## Libc Version Testing
+
+`tests/library/dbg/tests/test_heap_glibc_versions.py` and `test_musl_versions.py` exercise pwndbg against many libc versions, and are where you should start to get a better understanding of the libc version testing.
+
+Rather than write new per-version tests, we parametrize the existing tests over the available versions:
+
+- **glibc** (2.35-2.43): version detection; the heap commands (allocator, bins, `malloc-chunk`, `dt`, `find-fake-fast`); and `main_arena` resolution three ways, once via debug symbols, once with the heuristic forced on while symbols are present, and once via the heuristic alone against a fully stripped libc.
+- **musl** (1.1.24-1.2.6): detection and exact version, static (where the mallocng fingerprint exists) and dynamic, plus the full `test_mallocng.py` suite.
+
+**How it works:** Each version's libc is compiled inside the `Dockerfile.*-test-libs` images. For glibc this happens twice: with full debug info, and as a stripped no-debug copy under `glibcs-nodebug/` for the no-symbol heuristic tests. `download-test-libs.sh` then copies those artifacts out of the image onto the host (`docker cp`) under `tests/binaries/host/`. The tests never run inside the libc-building image; they run on the host locally, or in the `ubuntu24.04` container in CI, with the per-version test binaries linked against the extracted libcs.
+
+**Why both musl linkages?** A statically linked binary has the whole libc (including the mallocng allocator and its symbols) compiled into the ELF, while a dynamically linked one loads `libc.so` as a separate mapping. pwndbg locates and parses the allocator differently in each case, so the mallocng suite runs against both to confirm detection and that the `ng` heap commands work regardless of how musl was linked.
+
+**Adding or removing a glibc or musl version is a one-file change** in the relevant `Dockerfile.*-test-libs`: add (or remove) the `FROM base-builder AS build-<version>` stage, its `RUN` line (which passes the release tarball's sha256), and its scratch-stage `COPY` line(s). The version ranges quoted in these docs need a manual bump too.
+
+**Running locally**:
+
+```bash
+./scripts/download-test-libs.sh glibc # or musl (Note: this step needs Docker)
+make -C tests/binaries/host -j4 all
+./tests.sh -d gdb -g dbg test_heap_glibc_versions
+```

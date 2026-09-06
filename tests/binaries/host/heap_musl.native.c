@@ -1,6 +1,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+// zig 0.14.1 drops -Wl,--dynamic-linker on -nostdlib links, leaving the binary with no
+// interpreter, so musl's loader never runs, libc never loads, and pwndbg reads it as static.
+// https://github.com/ziglang/zig/issues/23813 - fixed in zig 0.15.0
+// So, instead we define the .interp section here.
+#ifdef MUSL_DYNAMIC_INTERP
+const char __musl_dynamic_interp[] __attribute__((section(".interp"), used)) =
+    MUSL_DYNAMIC_INTERP;
+#endif
+
 void break_here() {};
 
 int main () {

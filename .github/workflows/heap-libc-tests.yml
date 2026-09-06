@@ -1,0 +1,259 @@
+name: Heap Libc Version Tests
+
+# Builds the per-libc images AND runs the heap tests against each libc version
+# Jobs:
+#   changes            - paths-filter gate: anything relevant changes? which (if any) image(s) need a rebuild.
+#   heap-libc-versions - per {libc, arch}: pull the <libc>-test-libs image (or build + push it when its
+#                        inputs changed), extract the libc trees, then compile the per-version test
+#                        binaries and run the heap tests against them.
+#   create-manifest    - combine the per-arch images into the multi-arch :latest manifest.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read # checkout
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout
+      pull-requests: read # paths-filter
+    outputs:
+      # On workflow_dispatch, paths-filter only diffs the last commit and would report
+      # relevant=false, silently skipping everything; a manual run means "run it all".
+      relevant: ${{ github.event_name == 'workflow_dispatch' || steps.filter.outputs.relevant == 'true' }}
+      glibc_image: ${{ steps.filter.outputs.glibc_image }}
+      musl_image: ${{ steps.filter.outputs.musl_image }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
+        with:
+          filters: |
+            relevant:
+              - 'pwndbg/aglib/heap/**'
+              - 'pwndbg/aglib/dt.py'
+              - 'pwndbg/libc/**'
+              - 'pwndbg/commands/ptmalloc2.py'
+              - 'pwndbg/commands/mallocng.py'
+              - 'pwndbg/commands/dt.py'
+              - 'pwndbg/commands/__init__.py'
+              - 'tests/library/dbg/tests/test_glibc*'
+              - 'tests/library/dbg/tests/test_heap_glibc_versions*'
+              - 'tests/library/dbg/tests/test_musl*'
+              - 'tests/library/dbg/tests/test_mallocng*'
+              - 'tests/library/dbg/tests/test_command_dt*'
+              - 'tests/library/dbg/tests/__init__.py'
+              - 'tests/binaries/host/Makefile'
+              - 'tests/binaries/host/heap_malloc_chunk.native.c'
+              - 'tests/binaries/host/heap_malloc_chunk_dump.native.c'
+              - 'tests/binaries/host/heap_bins.native.c'
+              - 'tests/binaries/host/heap_find_fake_fast.native.c'
+              - 'tests/binaries/host/heap_glibc2.43.native.c'
+              - 'tests/binaries/host/heap_musl.native.c'
+              - 'Dockerfile.glibc-test-libs'
+              - 'Dockerfile.musl-test-libs'
+              - 'scripts/build-one-glibc.sh'
+              - 'scripts/build-one-musl.sh'
+              - '.github/workflows/heap-libc-tests.yml'
+            glibc_image:
+              - 'Dockerfile.glibc-test-libs'
+              - 'scripts/build-one-glibc.sh'
+            musl_image:
+              - 'Dockerfile.musl-test-libs'
+              - 'scripts/build-one-musl.sh'
+
+  heap-libc-versions:
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    permissions:
+      contents: read # checkout
+      packages: write # push images
+    name: heap-libc-versions (${{ matrix.libc }}-${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - libc: glibc
+            arch: x86-64
+            runs_on: ubuntu-latest
+            image: glibc-test-libs
+            dockerfile: Dockerfile.glibc-test-libs
+            artifact_dir: glibcs
+            sentinel: ld-linux-x86-64.so.2
+            test_filter: "test_glibc|test_heap_glibc_versions|test_command_dt"
+          - libc: glibc
+            arch: aarch64
+            runs_on: ubuntu-24.04-arm
+            image: glibc-test-libs
+            dockerfile: Dockerfile.glibc-test-libs
+            artifact_dir: glibcs
+            sentinel: ld-linux-aarch64.so.1
+            test_filter: "test_glibc|test_heap_glibc_versions|test_command_dt"
+          - libc: musl
+            arch: x86-64
+            runs_on: ubuntu-latest
+            image: musl-test-libs
+            dockerfile: Dockerfile.musl-test-libs
+            artifact_dir: musls
+            sentinel: lib/libc.a
+            test_filter: "test_musl_versions|test_mallocng"
+          - libc: musl
+            arch: aarch64
+            runs_on: ubuntu-24.04-arm
+            image: musl-test-libs
+            dockerfile: Dockerfile.musl-test-libs
+            artifact_dir: musls
+            sentinel: lib/libc.a
+            test_filter: "test_musl_versions|test_mallocng"
+    runs-on: ${{ matrix.runs_on }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Resolve image and mode
+        id: mode
+        env:
+          GLIBC_IMG: ${{ needs.changes.outputs.glibc_image }}
+          MUSL_IMG: ${{ needs.changes.outputs.musl_image }}
+        run: |
+          set -euo pipefail
+          echo "IMAGE=ghcr.io/pwndbg/${{ matrix.image }}" >> "$GITHUB_ENV"
+          case "${{ matrix.libc }}" in
+            glibc) image_changed="${GLIBC_IMG}" ;;
+            musl) image_changed="${MUSL_IMG}" ;;
+          esac
+          if [ "${image_changed}" != "true" ]; then
+            mode=pull
+          elif [ "${{ github.ref }}" = "refs/heads/dev" ] && [ "${{ github.event_name }}" != "pull_request" ]; then
+            mode=push
+          else
+            mode=build
+          fi
+          echo "mode=${mode}" >> "$GITHUB_OUTPUT"
+          echo "image_changed=${image_changed}; selected mode: ${mode}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - name: Log in to GHCR
+        if: steps.mode.outputs.mode == 'push'
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build ${{ matrix.libc }} image
+        if: steps.mode.outputs.mode != 'pull'
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          load: true
+          tags: ghcr.io/pwndbg/${{ matrix.image }}:${{ matrix.arch }}
+          cache-from: type=registry,ref=ghcr.io/pwndbg/${{ matrix.image }}:buildcache-${{ matrix.arch }}
+          cache-to: ${{ steps.mode.outputs.mode == 'push' && format('type=registry,ref=ghcr.io/pwndbg/{0}:buildcache-{1},mode=max', matrix.image, matrix.arch) || '' }}
+
+      - name: Push ${{ matrix.libc }} image
+        if: steps.mode.outputs.mode == 'push'
+        run: docker push "${IMAGE}:${{ matrix.arch }}"
+
+      - name: Pull ${{ matrix.libc }} image
+        id: pull
+        if: steps.mode.outputs.mode == 'pull'
+        continue-on-error: true
+        run: docker pull "${IMAGE}:${{ matrix.arch }}"
+
+      - name: Build ${{ matrix.libc }} image (pull fallback)
+        if: steps.mode.outputs.mode == 'pull' && steps.pull.outcome == 'failure'
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          load: true
+          tags: ghcr.io/pwndbg/${{ matrix.image }}:${{ matrix.arch }}
+          cache-from: type=registry,ref=ghcr.io/pwndbg/${{ matrix.image }}:buildcache-${{ matrix.arch }}
+
+      - name: Extract ${{ matrix.libc }} artifacts
+        run: |
+          set -euo pipefail
+          CID=$(docker create --entrypoint=/ "${IMAGE}:${{ matrix.arch }}")
+          trap 'docker rm -f "${CID}" >/dev/null 2>&1 || true' EXIT
+          mkdir -p "tests/binaries/host/${{ matrix.artifact_dir }}"
+          docker cp "${CID}:/${{ matrix.artifact_dir }}/." "tests/binaries/host/${{ matrix.artifact_dir }}/"
+          ls "tests/binaries/host/${{ matrix.artifact_dir }}/"
+          if [ "${{ matrix.libc }}" = "glibc" ]; then
+            mkdir -p tests/binaries/host/glibcs-nodebug
+            docker cp "${CID}:/glibcs-nodebug/." tests/binaries/host/glibcs-nodebug/
+            ls tests/binaries/host/glibcs-nodebug/
+          fi
+
+      - name: Verify ${{ matrix.libc }} artifacts
+        run: |
+          set -euo pipefail
+          root="tests/binaries/host/${{ matrix.artifact_dir }}"
+          versions=$(sed -n 's/^FROM base-builder AS build-\([0-9][0-9.]*\).*/\1/p' "${{ matrix.dockerfile }}")
+          [ -n "${versions}" ] || { echo "ERROR: no versions parsed from ${{ matrix.dockerfile }}"; exit 1; }
+          for ver in ${versions}; do
+            if ! compgen -G "${root}/${ver}/${{ matrix.sentinel }}" >/dev/null; then
+              echo "ERROR: missing artifact ${root}/${ver}/${{ matrix.sentinel }}"
+              ls -la "${root}/${ver}" 2>/dev/null || true
+              exit 1
+            fi
+          done
+          echo "Verified ${{ matrix.libc }} artifacts for: ${versions}"
+          if [ "${{ matrix.libc }}" = "glibc" ]; then
+            for ver in ${versions}; do
+              if ! compgen -G "tests/binaries/host/glibcs-nodebug/${ver}/${{ matrix.sentinel }}" >/dev/null; then
+                echo "ERROR: missing no-debug artifact glibcs-nodebug/${ver}/${{ matrix.sentinel }}"
+                exit 1
+              fi
+            done
+            echo "Verified glibc no-debug artifacts for: ${versions}"
+          fi
+
+      - name: Run ${{ matrix.libc }} version tests
+        run: |
+          docker compose run -T --rm --quiet-pull -v "$(pwd):/pwndbg" ubuntu24.04 bash -c '
+            set -euo pipefail
+            # glibc/musl compile their per-version test binaries in the container.
+            make -C /pwndbg/tests/binaries/host -j4 all
+            echo "Running ${{ matrix.libc }} multi-version tests..."
+            ./tests.sh -d gdb -g dbg "${{ matrix.test_filter }}"
+          '
+
+  create-manifest:
+    needs: [changes, heap-libc-versions]
+    if: ${{ !cancelled() && needs.changes.outputs.relevant == 'true' && github.ref == 'refs/heads/dev' && github.event_name != 'pull_request' }}
+    permissions:
+      packages: write # create manifest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create :latest multi-arch manifests
+        run: |
+          set -euo pipefail
+          for libc in glibc musl; do
+            img="ghcr.io/pwndbg/${libc}-test-libs"
+            docker buildx imagetools create -t "${img}:latest" "${img}:x86-64" "${img}:aarch64"
+          done
