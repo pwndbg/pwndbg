@@ -94,17 +94,9 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
         if not verbose and (chain_fd == [0] and not count) and not is_chain_corrupted:
             continue
 
-        if bins_type == BinType.TCACHE:
-            limit = 8
-            if count <= 7:
-                limit = count + 1
-            formatted_chain = pwndbg.chain.format(
-                chain_fd[0], offset=offset, limit=limit, safe_linking=safe_lnk
-            )
-        else:
-            formatted_chain = pwndbg.chain.format(
-                chain_fd[0], limit=heap_chain_limit, offset=offset, safe_linking=safe_lnk
-            )
+        formatted_chain = pwndbg.chain.format(
+            chain_fd[0], limit=heap_chain_limit, offset=offset, safe_linking=safe_lnk
+        )
 
         if isinstance(size, int):
             if bins_type == BinType.LARGE:

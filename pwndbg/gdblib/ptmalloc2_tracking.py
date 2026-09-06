@@ -552,14 +552,14 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         # Figure out what the reallocated pointer is.
         ret_ptr = int(self.return_value)
         if ret_ptr == 0:
-            # No change.
-            malloc = None
+            # The original allocation remains valid when realloc fails.
+            self.tracker.exit_memory_management()
+            return False
         chunk = get_chunk(ret_ptr, self.requested_size)
-        malloc = lambda: self.tracker.malloc(chunk)
 
         if not self.tracker.free(self.freed_ptr):
             # This is a chunk we'd never seen before.
-            malloc()
+            self.tracker.malloc(chunk)
             self.tracker.exit_memory_management()
 
             msg = f"realloc() to {self.requested_size} bytes with previously unknown pointer {self.freed_str}"
@@ -571,7 +571,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
                 last_issue = message.error(msg)
             return stop_on_error
 
-        malloc()
+        self.tracker.malloc(chunk)
         self.tracker.exit_memory_management()
 
         origin = caller_symbol() if self.tracker.show_location else None

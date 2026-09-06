@@ -51,8 +51,10 @@ parser.add_argument(
 def dev_dump_instruction(address=None, force_emulate=False, no_emulate=False) -> None:
     if address is not None:
         address = int(address)
-        cached_instruction = pwndbg.aglib.disasm.disassembly.computed_instruction_cache.get(
-            address, None
+        cached_instruction = (
+            pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.get(
+                address, None
+            )
         )
         if cached_instruction:
             print(repr(cached_instruction))

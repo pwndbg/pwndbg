@@ -1356,6 +1356,40 @@ def try_emulate_if_bug_disable(handler: Callable[[], T]) -> T:
         return handler()
 
 
+context_disasm_instruction_flow_cache = pwndbg.aglib.disasm.disassembly.InstructionFlowCache()
+
+
+@pwndbg.dbg.event_handler(EventType.STOP)
+def enhance_cache_listener() -> None:
+    context_disasm_instruction_flow_cache.commit_next_instruction_flow()
+
+    if pwndbg.aglib.regs.pc not in context_disasm_instruction_flow_cache.next_addresses_cache:
+        # Clear the enhanced instruction cache to ensure we don't use stale values
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.clear()
+        context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.clear()
+
+
+@pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED)
+@pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED)
+def clear_on_reg_mem_change() -> None:
+    # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
+    # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
+    pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.pop(
+        pwndbg.aglib.regs.pc, None
+    )
+    context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.pop(
+        pwndbg.aglib.regs.pc, None
+    )
+
+    for addr in context_disasm_instruction_flow_cache.next_addresses_cache:
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.pop(addr, None)
+        context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.pop(
+            addr, None
+        )
+
+    context_disasm_instruction_flow_cache.next_addresses_cache.clear()
+
+
 @serve_context_history
 def context_disasm(
     target: OutputTarget = sys.stdout,
@@ -1376,7 +1410,8 @@ def context_disasm(
         and (cs.syntax & pwndbg.aglib.disasm.disassembly.CAPSTONE_SYNTAX_OPTIONS_MASK) != syntax
     ):
         pwndbg.lib.cache.clear_caches()
-        pwndbg.aglib.disasm.disassembly.computed_instruction_cache.clear()
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.clear()
+        context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.clear()
 
     additional_disasm_lines = max(int(disasm_lines), height or 0)
 
@@ -1392,6 +1427,7 @@ def context_disasm(
             emulate=pwndbg.config.emulate != "off",
             use_cache=True,
             max_backwards_linear_count=max_backwards_linear_count,
+            instruction_flow_cache=context_disasm_instruction_flow_cache,
         )
     )
 

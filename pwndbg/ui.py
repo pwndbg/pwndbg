@@ -29,7 +29,7 @@ title_position = theme.add_param(
 )
 
 
-def banner(title, target=sys.stdout, width=None, extra=""):
+def banner(title, target=sys.stdout, width=None, extra="") -> str:
     title = title.upper()
     if width is None:
         _height, width = get_window_size(target)
