@@ -50,16 +50,12 @@ async def test_heap_allocator_setup(ctrl: Controller, glibc_version: str, binary
     await launch_to(ctrl, binary, "break_here")
 
     import pwndbg.aglib
-    import pwndbg.aglib.heap
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    import pwndbg.aglib.heap.glibc
 
     if pwndbg.aglib.arch.name not in ("x86-64", "aarch64"):
         pytest.skip("glibc version tests are x86-64/aarch64 only")
 
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator), (
-        f"Expected GlibcMemoryAllocator, got {type(allocator)}"
-    )
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     assert allocator.has_tcache, f"glibc {glibc_version} should have tcache"
     assert allocator.main_arena is not None, f"main_arena should be found for glibc {glibc_version}"
@@ -70,11 +66,10 @@ async def test_heap_allocator_setup(ctrl: Controller, glibc_version: str, binary
 @pwndbg_test
 async def test_heap_bins_glibc_version(ctrl: Controller, glibc_version: str, binary: Path) -> None:
     import pwndbg.aglib
-    import pwndbg.aglib.heap
+    import pwndbg.aglib.heap.glibc
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
-    from pwndbg.aglib.heap.ptmalloc import BinType
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    from pwndbg.aglib.heap.glibc import BinType
 
     await ctrl.disable_debuginfod()
     await ctrl.launch(binary)
@@ -86,8 +81,7 @@ async def test_heap_bins_glibc_version(ctrl: Controller, glibc_version: str, bin
     await ctrl.execute("b breakpoint")
     await ctrl.cont()
 
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     version = version_tuple(glibc_version)
 
@@ -156,9 +150,8 @@ async def test_heap_malloc_chunk_glibc_version(
     ctrl: Controller, glibc_version: str, binary: Path
 ) -> None:
     import pwndbg.aglib
-    import pwndbg.aglib.heap
+    import pwndbg.aglib.heap.glibc
     import pwndbg.aglib.symbol
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     await ctrl.disable_debuginfod()
     await launch_to(ctrl, binary, "break_here")
@@ -166,8 +159,7 @@ async def test_heap_malloc_chunk_glibc_version(
     if pwndbg.aglib.arch.name not in ("x86-64", "aarch64"):
         pytest.skip("glibc version tests are x86-64/aarch64 only")
 
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     malloc_chunk = allocator.malloc_chunk
     assert malloc_chunk is not None, (
@@ -201,8 +193,7 @@ async def test_heap_heuristic_glibc_version(
     ctrl: Controller, glibc_version: str, binary: Path, use_heuristic: bool
 ) -> None:
     import pwndbg.aglib
-    import pwndbg.aglib.heap
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    import pwndbg.aglib.heap.glibc
 
     await ctrl.disable_debuginfod()
     await ctrl.launch(binary)
@@ -216,11 +207,7 @@ async def test_heap_heuristic_glibc_version(
     await ctrl.execute("b break_here")
     await ctrl.cont()
 
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator), (
-        f"Expected GlibcMemoryAllocator for glibc {glibc_version} "
-        f"(heuristic={use_heuristic}), got {type(allocator)}"
-    )
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     main_arena = allocator.main_arena
     assert main_arena is not None, (
@@ -245,9 +232,8 @@ async def test_heap_heuristic_nodebug_glibc_version(
     ctrl: Controller, glibc_version: str, binary: Path
 ) -> None:
     import pwndbg.aglib
-    import pwndbg.aglib.heap
+    import pwndbg.aglib.heap.glibc
     import pwndbg.libc
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     await ctrl.disable_debuginfod()
     await ctrl.launch(binary)
@@ -262,8 +248,7 @@ async def test_heap_heuristic_nodebug_glibc_version(
     assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
     assert pwndbg.libc.has_debug_info() is False
 
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     assert allocator.main_arena is not None
 

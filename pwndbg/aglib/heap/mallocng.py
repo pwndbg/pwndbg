@@ -7,11 +7,8 @@ from __future__ import annotations
 
 from enum import Enum
 
-from typing_extensions import override
-
 import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.heap.heap
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
@@ -1100,7 +1097,7 @@ class MallocContext:
         return True
 
 
-class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
+class Mallocng:
     """
     Tracks the allocator state.
     By leveraging the __malloc_context symbol.
@@ -1441,7 +1438,6 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             # Could be None.
             return hit_grouped_slot, hit_slot
 
-    @override
     def containing(self, address: int, metadata: bool = False, shallow: bool = False) -> int:
         """
         Same as find_slot() but returns only the `start` address of the slot, or zero

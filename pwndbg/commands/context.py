@@ -62,7 +62,7 @@ from pwndbg.lib.regs import VisitableRegister
 if pwndbg.dbg.is_gdblib_available():
     import gdb
 
-    import pwndbg.gdblib.ptmalloc2_tracking
+    import pwndbg.gdblib.glibc_malloc_tracking
     import pwndbg.gdblib.symbol
 
 log = logging.getLogger(__name__)
@@ -1165,16 +1165,16 @@ def context_heap_tracker(
     width: int | None = None,
     height: int | None = None,
 ) -> list[str]:
-    if not pwndbg.gdblib.ptmalloc2_tracking.is_enabled():
+    if not pwndbg.gdblib.glibc_malloc_tracking.is_enabled():
         return []
 
     banner = [pwndbg.ui.banner("heap tracker", target=target, width=width, extra="")]
 
-    if pwndbg.gdblib.ptmalloc2_tracking.last_issue is not None:
+    if pwndbg.gdblib.glibc_malloc_tracking.last_issue is not None:
         info = [
-            f"Detected the following potential issue: {pwndbg.gdblib.ptmalloc2_tracking.last_issue}"
+            f"Detected the following potential issue: {pwndbg.gdblib.glibc_malloc_tracking.last_issue}"
         ]
-        pwndbg.gdblib.ptmalloc2_tracking.last_issue = None
+        pwndbg.gdblib.glibc_malloc_tracking.last_issue = None
     else:
         info = ["Nothing to report."]
 
