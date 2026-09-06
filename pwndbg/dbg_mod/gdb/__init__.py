@@ -605,6 +605,69 @@ class GDBStopPoint(pwndbg.dbg_mod.StopPoint):
             self.inner.delete()
 
 
+# Matches a line like:
+# Address range 0x7ffff7fd13f0 to 0x7ffff7fd1693:
+RANGE_RE = re.compile(r"^Address range (0x[0-9a-f]+) to (0x[0-9a-f]+):", re.MULTILINE)
+
+# Matches lines like:
+# => 0x0000000000401080 <+0>:	jmp    QWORD PTR [rip+0x2fba]        # 0x404040 <time@got[plt]>
+# or
+#    0x0000000000401086 <+6>:	push   0x5
+INSN_RE = re.compile(r"^\s*(?:=>)?\s*(0x[0-9a-f]+)\s*(?:<[^>]*>)?:", re.MULTILINE)
+
+
+def run_disassemble_for_function_boundaries(address: int) -> list[tuple[int, int]] | None:
+    """
+    Returns list of tuples representing [start,end) of the addresses that make up this function.
+
+    Note that the `end` address is exclusive of the start of the last instruction. It is `address of last instruction` + 1.
+    This allows us to disassemble it, as we only stop disassemble if we are outside of the range returned by this address.
+    """
+
+    disass_output: str = gdb.execute(f"disassemble {address}", to_string=True)
+
+    # There two ways the `disass` commands prints output:
+    #
+    # 1. If there are multiple ranges, it includes "Address range" in the output
+    #
+    # > disass
+    # Dump of assembler code for function _dl_fixup:
+    # Address range 0x7ffff7fd13f0 to 0x7ffff7fd1693:
+    # => 0x00007ffff7fd13f0 <+0>:	endbr64
+    #    0x00007ffff7fd13f4 <+4>:	push   rbp
+    #    0x00007ffff7fd13f5 <+5>:	xor    edx,edx
+    # ...
+    #    0x00007ffff7fd168a <+666>:	mov    QWORD PTR [rbp-0x38],rax
+    #    0x00007ffff7fd168e <+670>:	jmp    0x7ffff7fd154f <_dl_fixup+351 at dl-runtime.c:133>
+    # Address range 0x7ffff7fbf677 to 0x7ffff7fbf696:
+    #    0x00007ffff7fbf677 <-73081>:	lea    rcx,[rip+0x31702]        # 0x7ffff7ff0d80 <__PRETTY_FUNCTION__.1>
+    #    0x00007ffff7fbf67e <-73074>:	mov    edx,0x3f
+    # ...
+    #
+    # 2. It omits "Address range" if these is only one address range for the function
+    #
+    # > disass
+    # Dump of assembler code for function time@plt:
+    # => 0x0000000000401080 <+0>:	jmp    QWORD PTR [rip+0x2fba]        # 0x404040 <time@got[plt]>
+    #    0x0000000000401086 <+6>:	push   0x5
+    #    0x000000000040108b <+11>:	jmp    0x401020
+    # End of assembler dump.
+    #
+    #
+    # Additionally, if you disass at a random address, the output is:
+    # > disass
+    # No function contains specified address.
+
+    multiple_ranges = [(int(a, 16), int(b, 16)) for a, b in RANGE_RE.findall(disass_output)]
+    if multiple_ranges:
+        return multiple_ranges
+
+    addresses = [int(a, 16) for a in INSN_RE.findall(disass_output)]
+    if not addresses:
+        return None
+    return [(addresses[0], addresses[-1] + 1)]
+
+
 class GDBProcess(pwndbg.dbg_mod.Process):
     # Operations that change the internal state of GDB are generally not allowed
     # during breakpoint stop handles. Because the Pwndbg Debugger-agnostic API
@@ -963,14 +1026,18 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
-        block = gdb.block_for_pc(address)
 
-        if block is not None:
-            # Find the top-level function that this block resides in
-            while block.superblock is not None and block.superblock.function is not None:
-                block = block.superblock
+        # While GDB internally has multiple ways of determine function boundaries in the absence
+        # of debugging symbols (using symbol sizes if available, then falling back to using the order symbols in memory to determine boundaries)
+        # These methods are internally used to determine the these methods are not exposed to the Python API
+        # So, we use this hacky method to get function boundaries.
 
-            return block.start, block.end
+        ranges = run_disassemble_for_function_boundaries(address)
+
+        if ranges is not None:
+            for start_block, end_block in ranges:
+                if start_block <= address < end_block:
+                    return start_block, end_block
 
         return None
 

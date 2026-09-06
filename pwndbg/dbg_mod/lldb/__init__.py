@@ -1647,10 +1647,33 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         if not addr.IsValid():
             return None
 
-        func = addr.GetFunction()
-        if func.IsValid():
-            start: int = func.GetStartAddress().GetLoadAddress(self.target)
-            end: int = func.GetEndAddress().GetLoadAddress(self.target)
+        ctx = self.target.ResolveSymbolContextForAddress(addr, lldb.eSymbolContextEverything)
+
+        # Function boundaries can have multiple address ranges (for example, _dl_fixup is broken up into multiple blocks)
+        # LLDB can give us access to these blocks, and we return the block that the input address is within
+        if ctx.IsValid():
+            block = ctx.GetBlock()
+            while block.IsValid() and block.GetParent().IsValid():
+                block = block.GetParent()
+
+            ranges = [
+                (
+                    block.GetRangeStartAddress(i).GetLoadAddress(self.target),
+                    block.GetRangeEndAddress(i).GetLoadAddress(self.target),
+                )
+                for i in range(block.GetNumRanges())
+            ]
+
+            for start_block, end_block in ranges:
+                if start_block <= address < end_block:
+                    return start_block, end_block
+
+        # Fallback to finding the symbol that contains this address, and use it to determine the start/end of this function
+        sym = ctx.GetSymbol()
+        if sym.IsValid():
+            start: int = sym.GetStartAddress().GetLoadAddress(self.target)
+            end: int = sym.GetEndAddress().GetLoadAddress(self.target)
+
             return start, end
 
         return None
