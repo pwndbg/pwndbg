@@ -54,7 +54,7 @@ def hexdump_windbg(
         try:
             gval = pwndbg.aglib.memory.get_typed_pointer_value(size_type, address + i * size)
             values.append(int(gval))
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             break
 
     if not values:
@@ -340,7 +340,7 @@ def eX(size, address, data, hex=True) -> None:
         try:
             pwndbg.aglib.memory.write(address + (i * size), data)
             writes += 1
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             print(f"Cannot access memory at address {address:#x}")
             if writes > 0:
                 print(f"(Made {writes} writes to memory; skipping further writes)")

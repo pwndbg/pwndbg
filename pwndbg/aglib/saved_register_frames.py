@@ -28,7 +28,7 @@ class SavedRegisterFrame:
 
         try:
             mem = pwndbg.aglib.memory.read(sp + self.offsets[reg], pwndbg.aglib.arch.ptrsize)
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             return None
 
         return pwndbg.aglib.arch.unpack(mem)

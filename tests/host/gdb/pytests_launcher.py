@@ -71,12 +71,12 @@ class _GDBController(host.Controller):
         self._show_context()
 
     async def execute(self, command: str) -> None:
-        from pwndbg.dbg_mod import Error
+        from pwndbg.dbg_mod import DebuggerError
 
         try:
             self._gdb_execute(command)
         except gdb.error as e:
-            raise Error(e)
+            raise DebuggerError(e)
 
     async def execute_and_capture(self, command: str) -> str:
         print(f"pwndbg> {command}")

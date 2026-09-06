@@ -185,7 +185,7 @@ def get_segv_information() -> tuple[str, str | None]:
 
         return desc_short, desc_long
 
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         return "SIGSEGV", None
 
 

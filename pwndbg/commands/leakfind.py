@@ -176,7 +176,7 @@ def leakfind(
                 )  # map is of form child->(parent,parent_start)
                 address_queue.put(result)
                 visited_set.add(result)
-            except pwndbg.dbg_mod.Error:
+            except pwndbg.dbg_mod.DebuggerError:
                 # That means the memory was unmapped. Just skip it if we can't read it.
                 break
 
