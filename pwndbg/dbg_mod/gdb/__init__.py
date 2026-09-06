@@ -626,8 +626,11 @@ def run_disassemble_for_function_boundaries(address: int) -> list[tuple[int, int
     This allows us to disassemble the entire function correctly, as we can start the disassembly of the final instruction (it will still be within the range returned by this function)
     """
 
-    disass_output: str = gdb.execute(f"disassemble {address}", to_string=True)
-
+    try:
+        disass_output: str = gdb.execute(f"disassemble {address}", to_string=True)
+    except gdb.error:
+        # This throws an error if GDB is unable to find the function boundaries
+        return None
     # There two ways the `disass` commands prints output:
     #
     # 1. If there are multiple ranges, it includes "Address range" in the output
