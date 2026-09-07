@@ -457,6 +457,9 @@ class Emulator:
         if len(chain) == 1:
             return enhanced
 
+        if len(chain) > limit:
+            return arrow_right.join([*rest, enhanced])
+
         return arrow_right.join(rest) + arrow_left + enhanced
 
     def telescope_enhance(self, value: int, code: bool = True, enhance_string_len: int = None):

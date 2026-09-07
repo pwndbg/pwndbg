@@ -214,4 +214,7 @@ def format(
     if len(chain) == 1:
         return enhanced
 
+    if len(chain) > limit:
+        return arrow_right.join([*rest, enhanced])
+
     return arrow_right.join(rest) + arrow_left + enhanced
