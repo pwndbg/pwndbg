@@ -5,10 +5,14 @@ vice-versa.
 
 from __future__ import annotations
 
+from bisect import bisect_right
+from bisect import insort
+
 import pwndbg.aglib.memory
 import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.lib.cache
+from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import SymbolLookupType
 
@@ -118,15 +122,15 @@ def resolve_addr(addr: int) -> str | None:
     return pwndbg.dintegration.manager.symbol_at_address(addr)
 
 
-set_existing_ranges: set[tuple[int, int]] = set()
+set_existing_ranges: list[tuple[int, int]] = []
 
 
-@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
+@pwndbg.dbg.event_handler(EventType.START, priority=EventHandlerPriority.CACHE_CLEAR)
+@pwndbg.dbg.event_handler(EventType.EXIT, priority=EventHandlerPriority.CACHE_CLEAR)
 def _clear_set_existing_ranges() -> None:
     set_existing_ranges.clear()
 
 
-@pwndbg.lib.cache.cache_until("objfile")
 def resolve_function_boundaries(addr: int) -> tuple[int, int] | None:
     """
     Return the function start and end address for a function that
@@ -137,13 +141,13 @@ def resolve_function_boundaries(addr: int) -> tuple[int, int] | None:
     """
     assert addr >= 0, "address must be positive"
 
-    for cached_range in set_existing_ranges:
-        if cached_range[0] <= addr < cached_range[1]:
-            return cached_range
+    i = bisect_right(set_existing_ranges, addr, key=lambda _range: _range[0]) - 1
+    if i >= 0 and addr <= set_existing_ranges[i][1]:
+        return set_existing_ranges[i]
 
     fn_range = pwndbg.dbg.selected_inferior().get_function_boundaries(addr)
 
     if fn_range is not None:
-        set_existing_ranges.add(fn_range)
+        insort(set_existing_ranges, fn_range)
 
     return fn_range
