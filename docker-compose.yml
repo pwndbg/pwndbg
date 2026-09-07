@@ -1,6 +1,6 @@
 services:
   base: &base-spec
-    build: .
+    build: .  
     security_opt:
       - seccomp:unconfined
     cap_add:
