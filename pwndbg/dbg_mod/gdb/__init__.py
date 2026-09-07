@@ -620,14 +620,15 @@ def run_disassemble_for_function_boundaries(address: int) -> list[tuple[int, int
     """
     Returns list of tuples representing [start,end) of the addresses that make up this function.
 
-    Note that the `end` address is exclusive of the start of the last instruction. It is guaranteed to be at least `address of last instruction` + 1.
-    It gets fully accurate end address in the that `address` is in a function with multiple address ranges.
+    Note that the `end` address is exclusive in terms of the function range, or `1 + the address of the last instruction`.
 
-    This allows us to disassemble the entire function correctly, as we can start the disassembly of the final instruction (it will still be within the range returned by this function)
+    While this means the final address may be slightly inaccurate, in practice this doesn't matter, as we use the range returned by this
+    function to disassemble functions manually ourselves. Since the end address is at least +1 the address of the last instruction, while disassembling
+    manually we will disassemble the last instruction correctly (since we can start the disassembly of the final instruction, as it's address will still be within the range returned by this function)
     """
 
     try:
-        disass_output: str = gdb.execute(f"disassemble {address}", to_string=True)
+        disass_output: str = gdb.execute(f"disassemble {hex(address)}", to_string=True)
     except gdb.error:
         # This throws an error if GDB is unable to find the function boundaries
         return None
@@ -1036,6 +1037,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         # of debugging symbols (using symbol sizes if available, then falling back to using the order symbols in memory to determine boundaries)
         # These methods are internally used to determine the these methods are not exposed to the Python API
         # So, we use this hacky method to get function boundaries.
+        # See https://github.com/pwndbg/pwndbg/issues/3908 for more details
 
         ranges = run_disassemble_for_function_boundaries(address)
 
