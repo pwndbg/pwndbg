@@ -196,6 +196,14 @@ class SlabCache:
         return CpuCache(cpu_cache, self, cpu)
 
     @property
+    def percpu_sheaves(self) -> Generator[PercpuSheaves, None, None]:
+        if not self._slab_cache.dereference().type.has_field("cpu_sheaves"):
+            return
+        for cpu in range(kernel.nproc()):
+            sheaves = kernel.per_cpu(self._slab_cache["cpu_sheaves"], cpu=cpu)
+            yield PercpuSheaves(sheaves, self, cpu)
+
+    @property
     def cpu_caches(self) -> Generator[CpuCache, None, None]:
         if not self._slab_cache.dereference().type.has_field("cpu_slab"):
             return
@@ -203,6 +211,16 @@ class SlabCache:
         for cpu in range(kernel.nproc()):
             cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"], cpu=cpu)
             yield CpuCache(cpu_cache, self, cpu)
+
+    @property
+    def node_barns(self) -> Generator[NodeBarn, None, None]:
+        if not self._slab_cache.dereference().type.has_field("per_node"):
+            return
+        for node in range(kernel.num_numa_nodes()):
+            barn = self._slab_cache["per_node"][node]["barn"]
+            if not int(barn):
+                continue
+            yield NodeBarn(barn, self, node)
 
     @property
     def node_caches(self) -> Generator[NodeCache, None, None]:
@@ -284,6 +302,81 @@ class SlabCache:
                 if slab is not None and address in slab:
                     return slab
         return None
+
+
+class PercpuSheaves:
+    def __init__(
+        self, percpu_sheaves: pwndbg.dbg_mod.Value, slab_cache: SlabCache, cpu: int
+    ) -> None:
+        self._sheaves = percpu_sheaves
+        self.slab_cache = slab_cache
+        self.cpu = cpu
+
+    @property
+    def address(self) -> int:
+        return int(self._sheaves)
+
+    def _sheaf(self, field: str) -> Sheaf | None:
+        ptr = self._sheaves[field]
+        if not int(ptr):
+            return None
+        return Sheaf(ptr, self.slab_cache)
+
+    @property
+    def main(self) -> Sheaf | None:
+        return self._sheaf("main")
+
+    @property
+    def spare(self) -> Sheaf | None:
+        return self._sheaf("spare")
+
+    @property
+    def rcu_free(self) -> Sheaf | None:
+        return self._sheaf("rcu_free")
+
+
+class Sheaf:
+    def __init__(self, sheaf: pwndbg.dbg_mod.Value, slab_cache: SlabCache) -> None:
+        self._sheaf = sheaf
+        self.slab_cache = slab_cache
+
+    @property
+    def address(self) -> int:
+        return int(self._sheaf)
+
+    @property
+    def size(self) -> int:
+        return int(self._sheaf["size"])
+
+    @property
+    def objects(self) -> list[int]:
+        objects = self._sheaf["objects"]
+        return [int(objects[i]) for i in range(self.size)]
+
+
+class NodeBarn:
+    def __init__(self, barn: pwndbg.dbg_mod.Value, slab_cache: SlabCache, node: int) -> None:
+        self._barn = barn
+        self.slab_cache = slab_cache
+        self.node = node
+
+    @property
+    def address(self) -> int:
+        return int(self._barn)
+
+    @property
+    def sheaves_full(self) -> list[Sheaf]:
+        ret = []
+        for sheaf in for_each_entry(self._barn["sheaves_full"], "struct slab_sheaf", "barn_list"):
+            ret.append(Sheaf(sheaf, self.slab_cache))
+        return ret
+
+    @property
+    def sheaves_empty(self) -> list[Sheaf]:
+        ret = []
+        for sheaf in for_each_entry(self._barn["sheaves_empty"], "struct slab_sheaf", "barn_list"):
+            ret.append(Sheaf(sheaf, self.slab_cache))
+        return ret
 
 
 class CpuCache:
