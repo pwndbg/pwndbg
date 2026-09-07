@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import time
-from collections.abc import Callable
-
 import gdb
 
 import pwndbg
@@ -12,18 +9,10 @@ from . import get_binary
 REFERENCE_BINARY_THREADS = get_binary("multiple_threads.native.out")
 
 
-def wait_until(predicate: Callable[[], bool], timeout: int = 10):
-    """
-    Waits until the predicate returns True or timeout is reached.
-    """
-    counter = 0
-    while True:
-        if predicate():
-            return True
-        time.sleep(0.1)
-        counter += 0.1
-        if counter > timeout:
-            assert False, "Timeout reached"
+def thread_ids() -> list[int]:
+    # The inferior is stopped and GDB only prunes the thread list while it processes
+    # target events, so this is final until we resume the inferior again.
+    return [thread.index() for thread in pwndbg.dbg.selected_inferior().threads()]
 
 
 def test_command_killthreads_kills_all_threads_except_current(start_binary):
@@ -31,12 +20,12 @@ def test_command_killthreads_kills_all_threads_except_current(start_binary):
 
     gdb.execute("break break_here")
     gdb.execute("run")
-    wait_until(lambda: len(pwndbg.dbg.selected_inferior().threads()) == 3)
+    assert thread_ids() == [1, 2, 3]
 
     gdb.execute("killthreads --all")
 
     # check if only one thread is left
-    wait_until(lambda: len(pwndbg.dbg.selected_inferior().threads()) == 1)
+    assert thread_ids() == [1]
 
 
 def test_command_killthreads_kills_specific_thread(start_binary):
@@ -44,35 +33,15 @@ def test_command_killthreads_kills_specific_thread(start_binary):
 
     gdb.execute("break break_here")
     gdb.execute("run")
-    initial_thread_count = len(pwndbg.dbg.selected_inferior().threads())
+    initial_thread_count = len(thread_ids())
     # check if thread with id 3 exists
-    wait_until(
-        lambda: (
-            len(
-                [
-                    thread
-                    for thread in pwndbg.dbg.selected_inferior().threads()
-                    if thread.index() == 3
-                ]
-            )
-            == 1
-        )
-    )
+    assert 3 in thread_ids()
+
     gdb.execute("killthreads 3")
+
     # check if the thread was killed, and no other thread was killed
-    wait_until(
-        lambda: (
-            len(
-                [
-                    thread
-                    for thread in pwndbg.dbg.selected_inferior().threads()
-                    if thread.index() == 3
-                ]
-            )
-            == 0
-        )
-    )
-    assert len(pwndbg.dbg.selected_inferior().threads()) == initial_thread_count - 1
+    assert 3 not in thread_ids()
+    assert len(thread_ids()) == initial_thread_count - 1
 
     gdb.execute("kill")
 

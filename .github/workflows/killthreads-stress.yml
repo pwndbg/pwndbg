@@ -1,0 +1,64 @@
+name: Killthreads stress
+
+# Manual job for hunting the flaky `test_command_killthreads_kills_all_threads_except_current`.
+# The test only fails when the `pthread_exit` inferior call is aborted, and `killthreads`
+# now prints the GDB error that aborted it, so a reproduction here names the trigger.
+
+on:
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: "Rounds to run (each round runs `parallel` copies of the test)"
+        default: "40"
+      parallel:
+        description: "Copies per round, to mimic the contention of a full test run"
+        default: "8"
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  stress:
+    name: stress (${{ matrix.image }})
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [fedora41, fedora42, fedora43, ubuntu24.04]
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Loop the flaky test on ${{ matrix.image }}
+        run: |
+          docker compose run -T --rm --pull missing -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
+            set -eu
+            make -C /pwndbg/tests/binaries/host multiple_threads.native.out
+
+            rounds=${{ inputs.iterations }}
+            parallel=${{ inputs.parallel }}
+            failures=0
+            set +e
+
+            for round in $(seq "$rounds"); do
+              for worker in $(seq "$parallel"); do
+                ./tests.sh -d gdb -g gdb test_command_killthreads_kills_all \
+                  > /tmp/run.$worker.log 2>&1 &
+              done
+              wait
+
+              for worker in $(seq "$parallel"); do
+                grep -q "Tests Failed : 0" /tmp/run.$worker.log && continue
+                failures=$((failures + 1))
+                echo "::group::FAILURE round $round worker $worker"
+                cat /tmp/run.$worker.log
+                echo "::endgroup::"
+              done
+              echo "round $round done, $failures failures so far"
+            done
+
+            echo "TOTAL: $((rounds * parallel)) runs, $failures failures"
+            test "$failures" -eq 0
+          '

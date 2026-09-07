@@ -31,7 +31,7 @@ parser.add_argument(
 @pwndbg.commands.Command(parser, category=CommandCategory.PROCESS)
 @pwndbg.commands.OnlyWhenRunning
 def killthreads(thread_ids: list[int] | None = None, all: bool = False) -> None:
-    if len(thread_ids) == 0 and not all:
+    if thread_ids is None or len(thread_ids) == 0 and not all:
         print(message.error("No thread IDs or --all flag specified"))
         return
 
@@ -55,19 +55,28 @@ def killthreads(thread_ids: list[int] | None = None, all: bool = False) -> None:
                         message.error(f"Thread ID {thread_id} does not exist, see `info threads`")
                     )
                     return
+        killed = []
         for thread_id in thread_ids:
             gdb.execute(f"thread {thread_id}", to_string=True)
-            try:  # noqa: SIM105
+            error = None
+            try:
                 gdb.execute("call (void) pthread_exit(0)", to_string=True)
-            except gdb.error:
-                # gdb will throw an error, because the thread dies during the call, which is expected
-                pass
+            except gdb.error as e:
+                error = e
+
+            # The call is always reported as aborted, both when the thread died inside it
+            # and when something else stopped the inferior first, so only the thread list
+            # tells us whether the kill worked.
+            if any(thread.num == thread_id for thread in gdb.selected_inferior().threads()):
+                print(message.error(f"Failed to kill thread {thread_id}: {error}"))
+            else:
+                killed.append(thread_id)
 
         # Switch back to the thread we were on before killing threads
         gdb.execute(f"thread {current_thread_id}", to_string=True)
-        print(
-            message.success(
-                "Killed threads with IDs: "
-                + ", ".join([str(thread_id) for thread_id in thread_ids])
+        if killed:
+            print(
+                message.success(
+                    "Killed threads with IDs: " + ", ".join(str(thread_id) for thread_id in killed)
+                )
             )
-        )
