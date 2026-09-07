@@ -1,8 +1,9 @@
 name: Killthreads stress
 
 # Manual job for hunting the flaky `test_command_killthreads_kills_all_threads_except_current`.
-# The test only fails when the `pthread_exit` inferior call is aborted, and `killthreads`
-# now prints the GDB error that aborted it, so a reproduction here names the trigger.
+# The kill is an inferior call, so any GDB error raised while evaluating it aborts the call and
+# leaves the thread alive; `killthreads` prints that error, and this job also checks whether the
+# debuginfod cache - which GDB reads during the second kill - got damaged.
 
 on:
   workflow_dispatch:
@@ -36,10 +37,12 @@ jobs:
           docker compose run -T --rm --pull missing -v $(pwd):/pwndbg ${{ matrix.image }} bash -c '
             set -eu
             make -C /pwndbg/tests/binaries/host multiple_threads.native.out
+            rm -rf /root/.cache/debuginfod_client    # start from fresh-container state
 
             rounds=${{ inputs.iterations }}
             parallel=${{ inputs.parallel }}
             failures=0
+            forensics=/pwndbg/debuginfod-forensics
             set +e
 
             for round in $(seq "$rounds"); do
@@ -56,9 +59,50 @@ jobs:
                 cat /tmp/run.$worker.log
                 echo "::endgroup::"
               done
-              echo "round $round done, $failures failures so far"
+
+              # A damaged cache entry makes every later symbol lookup throw, so check each round.
+              python3 /pwndbg/scripts/inspect-debuginfod-cache.py > /tmp/cache.log 2>&1 && continue
+
+              echo "::group::DAMAGED debuginfod cache after round $round"
+              cat /tmp/cache.log
+              df -h /root /tmp /pwndbg
+              (rpm -q elfutils-debuginfod-client || dpkg-query -W libdebuginfod1) 2>/dev/null
+
+              mkdir -p $forensics
+              cp /tmp/cache.log $forensics/
+              urls="${DEBUGINFOD_URLS:-$(cat /etc/debuginfod/*.urls 2>/dev/null | tr "\n" " ")}"
+              for bad in $(grep -o "/root/\.cache/debuginfod_client/[0-9a-f]*/[a-z-]*" /tmp/cache.log | sort -u); do
+                id=$(basename $(dirname $bad))
+                cp $bad $forensics/$id.local
+                # If the server still serves a good file, the damage happened on this machine.
+                for url in $urls; do
+                  curl -sS -m 120 -D $forensics/$id.headers -o $forensics/$id.fresh \
+                    "$url/buildid/$id/debuginfo" && break
+                done
+                echo "local : $(sha256sum $bad)"
+                echo "server: $(sha256sum $forensics/$id.fresh 2>/dev/null || echo "<not fetched>")"
+                cmp $bad $forensics/$id.fresh
+              done
+              echo "::endgroup::"
+
+              # Whole-file hexdump: inline with repeated lines collapsed (~18MB of log for a
+              # 10MB entry), byte-for-byte into the artifact (~45MB of hex, ~5MB gzipped).
+              echo "::group::hexdump of the damaged entries"
+              python3 /pwndbg/scripts/inspect-debuginfod-cache.py --hexdump --hexdump-dir $forensics
+              echo "::endgroup::"
+              gzip -9 $forensics/*.hex
+              chmod -R a+rX $forensics
+              break
             done
 
             echo "TOTAL: $((rounds * parallel)) runs, $failures failures"
             test "$failures" -eq 0
           '
+
+      - name: Upload debuginfod forensics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: debuginfod-forensics-${{ matrix.image }}
+          path: debuginfod-forensics/
+          if-no-files-found: ignore
