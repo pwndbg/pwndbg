@@ -616,7 +616,6 @@ RANGE_RE = re.compile(r"^Address range (0x[0-9a-f]+) to (0x[0-9a-f]+):", re.MULT
 INSN_RE = re.compile(r"^\s*(?:=>)?\s*(0x[0-9a-f]+)\s*(?:<[^>]*>)?:", re.MULTILINE)
 
 
-@pwndbg.lib.cache.cache_until("objfile")
 def run_disassemble_for_function_boundaries(address: int) -> list[tuple[int, int]] | None:
     """
     Returns list of tuples representing [start,end) of the addresses that make up this function.
