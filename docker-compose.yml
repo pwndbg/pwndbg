@@ -2,7 +2,7 @@ services:
   base: &base-spec
     build: .  
     security_opt:
-      - seccomp:unconfined
+      - seccomp:unconfined  
     cap_add:
       - SYS_PTRACE
   main:
