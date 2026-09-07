@@ -9,6 +9,7 @@ import pwndbg.aglib.memory
 import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.lib.cache
+from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import SymbolLookupType
 
 
@@ -117,6 +118,14 @@ def resolve_addr(addr: int) -> str | None:
     return pwndbg.dintegration.manager.symbol_at_address(addr)
 
 
+set_existing_ranges: set[tuple[int, int]] = set()
+
+
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
+def _clear_set_existing_ranges() -> None:
+    set_existing_ranges.clear()
+
+
 @pwndbg.lib.cache.cache_until("objfile")
 def resolve_function_boundaries(addr: int) -> tuple[int, int] | None:
     """
@@ -128,4 +137,13 @@ def resolve_function_boundaries(addr: int) -> tuple[int, int] | None:
     """
     assert addr >= 0, "address must be positive"
 
-    return pwndbg.dbg.selected_inferior().get_function_boundaries(addr)
+    for cached_range in set_existing_ranges:
+        if cached_range[0] <= addr < cached_range[1]:
+            return cached_range
+
+    fn_range = pwndbg.dbg.selected_inferior().get_function_boundaries(addr)
+
+    if fn_range is not None:
+        set_existing_ranges.add(fn_range)
+
+    return fn_range

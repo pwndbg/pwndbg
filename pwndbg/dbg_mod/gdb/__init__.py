@@ -610,68 +610,80 @@ class GDBStopPoint(pwndbg.dbg_mod.StopPoint):
 RANGE_RE = re.compile(r"^Address range (0x[0-9a-f]+) to (0x[0-9a-f]+):", re.MULTILINE)
 
 # Matches lines like:
-# => 0x0000000000401080 <+0>:	jmp    QWORD PTR [rip+0x2fba]        # 0x404040 <time@got[plt]>
+# => 0x00007ffff7fd13f0 <+0>:	f3 0f 1e fa        	endbr64
 # or
-#    0x0000000000401086 <+6>:	push   0x5
-INSN_RE = re.compile(r"^\s*(?:=>)?\s*(0x[0-9a-f]+)\s*(?:<[^>]*>)?:", re.MULTILINE)
+#    0x00007ffff7fd13f4 <+4>:	55                 	push   rbp
+INSN_RE = re.compile(r"^\s*(?:=>)?\s*(0x[0-9a-f]+)\s*(?:<[^>]*>)?:\t([0-9a-f ]+?)\t", re.MULTILINE)
 
 
 def run_disassemble_for_function_boundaries(address: int) -> list[tuple[int, int]] | None:
     """
     Returns list of tuples representing [start,end) of the addresses that make up this function.
-
-    Note that the `end` address is exclusive in terms of the function range, or `1 + the address of the last instruction`.
-
-    While this means the final address may be slightly inaccurate, in practice this doesn't matter, as we use the range returned by this
-    function to disassemble functions manually ourselves. Since the end address is at least +1 the address of the last instruction, while disassembling
-    manually we will disassemble the last instruction correctly (since we can start the disassembly of the final instruction, as it's address will still be within the range returned by this function)
     """
 
     try:
-        disass_output: str = gdb.execute(f"disassemble {hex(address)}", to_string=True)
+        disass_output: str = gdb.execute(f"disassemble /r {hex(address)}", to_string=True)
     except gdb.error:
         # This throws an error if GDB is unable to find the function boundaries
         return None
-    # There two ways the `disass` commands prints output:
+
+    # There two ways the `disassemble /r` commands prints output:
+    #
+    # Note that you must add the `/r` flag, as it includes the hexcodes for the bytes
+    # This allows us to get the length of the last instruction, so we can know the end boundary
     #
     # 1. If there are multiple ranges, it includes "Address range" in the output
     #
-    # > disass
+    # > disass /r
     # Dump of assembler code for function _dl_fixup:
     # Address range 0x7ffff7fd13f0 to 0x7ffff7fd1693:
-    # => 0x00007ffff7fd13f0 <+0>:	endbr64
-    #    0x00007ffff7fd13f4 <+4>:	push   rbp
-    #    0x00007ffff7fd13f5 <+5>:	xor    edx,edx
-    # ...
-    #    0x00007ffff7fd168a <+666>:	mov    QWORD PTR [rbp-0x38],rax
-    #    0x00007ffff7fd168e <+670>:	jmp    0x7ffff7fd154f <_dl_fixup+351 at dl-runtime.c:133>
+    # => 0x00007ffff7fd13f0 <+0>:	f3 0f 1e fa        	endbr64
+    #    0x00007ffff7fd13f4 <+4>:	55                 	push   rbp
+    #    0x00007ffff7fd13f5 <+5>:	31 d2              	xor    edx,edx
+    #    0x00007ffff7fd13fc <+12>:	41 56              	push   r14
+    #    0x00007ffff7fd168e <+670>:	e9 bc fe ff ff     	jmp    0x7ffff7fd154f <_dl_fixup+351 at dl-runtime.c:133>
     # Address range 0x7ffff7fbf677 to 0x7ffff7fbf696:
-    #    0x00007ffff7fbf677 <-73081>:	lea    rcx,[rip+0x31702]        # 0x7ffff7ff0d80 <__PRETTY_FUNCTION__.1>
-    #    0x00007ffff7fbf67e <-73074>:	mov    edx,0x3f
-    # ...
+    #    0x00007ffff7fbf677 <-73081>:	48 8d 0d 02 17 03 00	lea    rcx,[rip+0x31702]        # 0x7ffff7ff0d80 <__PRETTY_FUNCTION__.1>
+    #    0x00007ffff7fbf67e <-73074>:	ba 3f 00 00 00     	mov    edx,0x3f
+    #    0x00007ffff7fbf683 <-73069>:	48 8d 35 56 ec 02 00	lea    rsi,[rip+0x2ec56]        # 0x7ffff7fee2e0
+    #    0x00007ffff7fbf68a <-73062>:	48 8d 3d b7 16 03 00	lea    rdi,[rip+0x316b7]        # 0x7ffff7ff0d48
+    #    0x00007ffff7fbf691 <-73055>:	e8 70 02 00 00     	call   0x7ffff7fbf906 <__GI___assert_fail at dl-minimal.c:182>
+    # End of assembler dump.
     #
     # 2. It omits "Address range" if these is only one address range for the function
     #
-    # > disass
+    # > disass /r
+    # pwndbg> disass /r
     # Dump of assembler code for function time@plt:
-    # => 0x0000000000401080 <+0>:	jmp    QWORD PTR [rip+0x2fba]        # 0x404040 <time@got[plt]>
-    #    0x0000000000401086 <+6>:	push   0x5
-    #    0x000000000040108b <+11>:	jmp    0x401020
+    # => 0x0000000000401080 <+0>:	ff 25 ba 2f 00 00  	jmp    QWORD PTR [rip+0x2fba]        # 0x404040 <time@got[plt]>
+    #    0x0000000000401086 <+6>:	68 05 00 00 00     	push   0x5
+    #    0x000000000040108b <+11>:	e9 90 ff ff ff     	jmp    0x401020
     # End of assembler dump.
     #
     #
     # Additionally, if you disass at a random address, the output is:
-    # > disass
+    # > disass /r
     # No function contains specified address.
 
     multiple_ranges = [(int(a, 16), int(b, 16)) for a, b in RANGE_RE.findall(disass_output)]
     if multiple_ranges:
         return multiple_ranges
 
-    addresses = [int(a, 16) for a in INSN_RE.findall(disass_output)]
-    if not addresses:
+    output_rows: list[tuple[str, str]] = INSN_RE.findall(disass_output)
+    if not output_rows:
         return None
-    return [(addresses[0], addresses[-1] + 1)]
+
+    # Example:
+    # output_rows == [('0x00007ffff7fdf860', '48 89 e7           '), ('0x00007ffff7fdf863', 'e8 a8 0c 00 00     ')]
+    start = int(output_rows[0][0], 16)
+
+    last_addr, last_bytes = output_rows[-1]
+    end = int(last_addr, 16)
+
+    # Given the number of the hex byte codes, get the length of the final instruction
+    last_instruction_length = len(last_bytes.replace(" ", "")) // 2
+
+    return [(start, end + last_instruction_length)]
 
 
 class GDBProcess(pwndbg.dbg_mod.Process):
