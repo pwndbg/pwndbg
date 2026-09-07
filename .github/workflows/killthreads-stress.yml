@@ -43,6 +43,7 @@ jobs:
             parallel=${{ inputs.parallel }}
             failures=0
             forensics=/pwndbg/debuginfod-forensics
+            mkdir -p $forensics
             set +e
 
             for round in $(seq "$rounds"); do
@@ -61,27 +62,35 @@ jobs:
               done
 
               # A damaged cache entry makes every later symbol lookup throw, so check each round.
-              python3 /pwndbg/scripts/inspect-debuginfod-cache.py > /tmp/cache.log 2>&1 && continue
+              # The ledger hashes every entry every round: an entry that was recorded ok and
+              # later reads back damaged under the same inode and mtime was corrupted in place.
+              python3 /pwndbg/scripts/inspect-debuginfod-cache.py \
+                --ledger $forensics/ledger.tsv --tag round-$round > /tmp/cache.log 2>&1 && continue
 
               echo "::group::DAMAGED debuginfod cache after round $round"
               cat /tmp/cache.log
               df -h /root /tmp /pwndbg
               (rpm -q elfutils-debuginfod-client || dpkg-query -W libdebuginfod1) 2>/dev/null
+              (dmesg -T | tail -20) 2>/dev/null || echo "dmesg not readable in container"
+              cat /proc/pressure/io 2>/dev/null
 
-              mkdir -p $forensics
               cp /tmp/cache.log $forensics/
               urls="${DEBUGINFOD_URLS:-$(cat /etc/debuginfod/*.urls 2>/dev/null | tr "\n" " ")}"
               for bad in $(grep -o "/root/\.cache/debuginfod_client/[0-9a-f]*/[a-z-]*" /tmp/cache.log | sort -u); do
                 id=$(basename $(dirname $bad))
                 cp $bad $forensics/$id.local
-                # If the server still serves a good file, the damage happened on this machine.
-                for url in $urls; do
-                  curl -sS -m 120 -D $forensics/$id.headers -o $forensics/$id.fresh \
-                    "$url/buildid/$id/debuginfo" && break
+                echo "--- history of $id (was it ever healthy?)"
+                grep $id $forensics/ledger.tsv
+                # Pull it again a few times: if the server can serve a bad body, this may catch it.
+                for attempt in 1 2 3; do
+                  for url in $urls; do
+                    curl -sS -m 120 -D $forensics/$id.headers.$attempt \
+                      -o $forensics/$id.fresh.$attempt "$url/buildid/$id/debuginfo" && break
+                  done
+                  echo "server attempt $attempt: $(sha256sum $forensics/$id.fresh.$attempt 2>/dev/null)"
                 done
-                echo "local : $(sha256sum $bad)"
-                echo "server: $(sha256sum $forensics/$id.fresh 2>/dev/null || echo "<not fetched>")"
-                cmp $bad $forensics/$id.fresh
+                echo "local            : $(sha256sum $bad)"
+                cmp $bad $forensics/$id.fresh.1
               done
               echo "::endgroup::"
 

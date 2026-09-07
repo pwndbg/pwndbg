@@ -9,6 +9,7 @@ blocks (sparse / lost) or zero bytes that were actually stored.
 
 from __future__ import annotations
 
+import datetime
 import hashlib
 import os
 import struct
@@ -134,10 +135,35 @@ def report(path: str) -> bool:
 
 DUMP_DIR: str | None = None
 DUMP_STDOUT = False
+LEDGER: str | None = None
+TAG = "-"
+
+
+def record(path: str, damaged: bool) -> None:
+    """Append this entry's identity and contents hash.
+
+    An entry that was recorded healthy and later reads back damaged under the same
+    inode and mtime was corrupted in place - nothing rewrites cache entries, so that
+    is local storage damage rather than bytes that arrived wrong.
+    """
+    st = os.stat(path)
+    digest = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    with open(LEDGER, "a") as f:
+        f.write(
+            f"{datetime.datetime.now().isoformat(timespec='seconds')}\t{TAG}\t{path}\t"
+            f"inode={st.st_ino}\tsize={st.st_size}\tblocks={st.st_blocks}\t"
+            f"mtime={st.st_mtime}\tsha256={digest}\t"
+            f"{'DAMAGED' if damaged else 'ok'}\n"
+        )
 
 
 def main(paths: list[str]) -> int:
-    bad = sum(report(p) for p in paths)
+    results = [(p, report(p)) for p in paths]
+    if LEDGER is not None:
+        for path, damaged in results:
+            if os.path.getsize(path) > 0:
+                record(path, damaged)
+    bad = sum(damaged for _, damaged in results)
     print(f"checked {len(paths)} cache entries, {bad} damaged")
     return 1 if bad else 0
 
@@ -150,6 +176,14 @@ if __name__ == "__main__":
     if "--hexdump-dir" in args:
         i = args.index("--hexdump-dir")
         DUMP_DIR = args[i + 1]
+        del args[i:i + 2]
+    if "--ledger" in args:
+        i = args.index("--ledger")
+        LEDGER = args[i + 1]
+        del args[i:i + 2]
+    if "--tag" in args:
+        i = args.index("--tag")
+        TAG = args[i + 1]
         del args[i:i + 2]
     if not args:
         root = os.path.expanduser("~/.cache/debuginfod_client")
