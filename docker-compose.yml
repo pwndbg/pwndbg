@@ -91,4 +91,4 @@ services:
       context: .
       dockerfile: Dockerfile.dnf
       args:
-        image: fedora:43
+        image: fedora:43 
