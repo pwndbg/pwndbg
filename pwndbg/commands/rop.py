@@ -223,7 +223,7 @@ def iterate_over_pages(mem_limit: int) -> Iterator[tuple[str, pwndbg.lib.memory.
 
                     mem_data = proc.read_memory(address=start, size=size)
                     fmem.write(mem_data)
-            except pwndbg.dbg_mod.Error as e:
+            except pwndbg.dbg_mod.DebuggerError as e:
                 print(message.error(f"WARNING: failed to read page: {e}"))
                 continue
 

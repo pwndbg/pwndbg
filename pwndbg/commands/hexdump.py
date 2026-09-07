@@ -160,7 +160,7 @@ def hexdump(
     try:
         data = pwndbg.aglib.memory.read(address, count, partial=True)
         hexdump.last_address = address + count
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(e)
         return
 
