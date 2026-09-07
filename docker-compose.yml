@@ -4,7 +4,7 @@ services:
     security_opt:
       - seccomp:unconfined  
     cap_add:
-      - SYS_PTRACE
+      - SYS_PTRACE   
   main:
     <<: *base-spec
     volumes:
