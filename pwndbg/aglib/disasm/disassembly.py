@@ -24,6 +24,7 @@ import pwndbg.aglib.disasm.riscv
 import pwndbg.aglib.disasm.sparc
 import pwndbg.aglib.disasm.x86
 import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.dbg_mod
 import pwndbg.emu.emulator
@@ -749,6 +750,11 @@ def near(
 
     count_backwards_linear = 0
     if show_prev_insns:
+        function_boundaries: tuple[int, int] | None = None
+        if emulate:
+            # Only bother computing this when emulating
+            function_boundaries = pwndbg.aglib.symbol.resolve_function_boundaries(address)
+
         saveptr = InstructionSequenceSavePointer(None)
 
         linear_prev_fetch = linear
@@ -773,6 +779,11 @@ def near(
                 dynamic_max_type = CacheSource.FALLBACK_DYNAMIC
 
             if cache_type == CacheSource.CACHE_LINEAR:
+                if emulate and function_boundaries is not None:
+                    # Do not disassemble backwards linearly outside of the current function boundaries
+                    if not (function_boundaries[0] <= insn.address < function_boundaries[1]):
+                        break
+
                 # Once one instruction has been linear, we cannot go back to dynamic caching method
                 linear_prev_fetch = True
                 count_backwards_linear += 1
