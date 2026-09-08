@@ -32,7 +32,7 @@ def catch_error(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except (pwndbg.dbg_mod.Error, UnicodeDecodeError) as e:
+        except (pwndbg.dbg_mod.DebuggerError, UnicodeDecodeError) as e:
             return f"<unavailable: {e}>"
 
     return wrapper
@@ -94,7 +94,7 @@ class Expr:
 
         try:
             info = pwndbg.aglib.memory.read(int(self._addr["data"].address), size)
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             info = bytearray(f"<unavailable: {e}>".encode())
         print(
             {

@@ -1,21 +1,25 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import pytest
 
 from ....host import Controller
-from . import get_binary
+from . import glibc_version_binaries
+from . import glibc_version_params
 from . import launch_to
 from . import pwndbg_test
 
-HEAP_FIND_FAKE_FAST = get_binary("heap_find_fake_fast.native.out")
+_FIND_FAKE_FAST_BINARIES = glibc_version_binaries("heap_find_fake_fast")
 
 target_address = None
 
 
 def check_result(result: str, expected_size: int) -> None:
     import pwndbg.aglib
+
+    assert target_address is not None
 
     ptrsize = pwndbg.aglib.arch.ptrsize
 
@@ -44,24 +48,26 @@ def check_no_results(result: str) -> None:
     assert len(matches) == 0
 
 
+@glibc_version_params(_FIND_FAKE_FAST_BINARIES)
 @pwndbg_test
-async def test_find_fake_fast_command(ctrl: Controller) -> None:
+async def test_find_fake_fast_command(ctrl: Controller, binary: Path) -> None:
     import pwndbg.aglib
     import pwndbg.aglib.heap
+    import pwndbg.aglib.heap.glibc
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
 
     global target_address
 
-    await launch_to(ctrl, HEAP_FIND_FAKE_FAST, "break_here")
+    await launch_to(ctrl, binary, "break_here")
 
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
     # Ensure memory at fake_chunk's heap_info struct isn't mapped.
-    unmapped_heap_info = pwndbg.aglib.heap.ptmalloc.heap_for_ptr(
-        pwndbg.aglib.symbol.lookup_symbol_value("fake_chunk")
-    )
+    fake_chunk = pwndbg.aglib.symbol.lookup_symbol_value("fake_chunk")
+    assert fake_chunk is not None
+    unmapped_heap_info = pwndbg.aglib.heap.glibc.heap_for_ptr(fake_chunk)
     assert pwndbg.aglib.memory.peek(unmapped_heap_info) is None
 
     # A gdb.MemoryError raised here indicates a regression from PR #1145

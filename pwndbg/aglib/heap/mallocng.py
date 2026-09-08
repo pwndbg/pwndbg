@@ -7,11 +7,8 @@ from __future__ import annotations
 
 from enum import Enum
 
-from typing_extensions import override
-
 import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.heap.heap
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
@@ -493,7 +490,7 @@ class Slot:
             meta_says: SlotState | None = None
             try:
                 meta_says = self.meta.slotstate_at_index(self.idx)
-            except pwndbg.dbg_mod.Error:
+            except pwndbg.dbg_mod.DebuggerError:
                 # We can't reach the meta. Either the slot is not allocated
                 # or it is allocated but the meta pointer is corrupted.
                 meta_says = None
@@ -1100,7 +1097,7 @@ class MallocContext:
         return True
 
 
-class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
+class Mallocng:
     """
     Tracks the allocator state.
     By leveraging the __malloc_context symbol.
@@ -1316,7 +1313,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         while meta_area_addr:
             try:
                 meta_area = MetaArea(meta_area_addr)
-            except pwndbg.dbg_mod.Error as e:
+            except pwndbg.dbg_mod.DebuggerError as e:
                 # Can't get `next` if the main_area is corrupted.
                 print(
                     message.error(
@@ -1332,7 +1329,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     if not meta.mem:
                         # Skip unused metas.
                         continue
-                except pwndbg.dbg_mod.Error as e:
+                except pwndbg.dbg_mod.DebuggerError as e:
                     print(
                         message.error(
                             f"Mallocng.containing: Could not read/parse meta.({e}), skipping it.."
@@ -1353,7 +1350,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         # Yes it is!
                         hit_group = group
                         break
-                except pwndbg.dbg_mod.Error as e:
+                except pwndbg.dbg_mod.DebuggerError as e:
                     print(
                         message.error(
                             "Mallocng.containing: Could not read/parse meta at"
@@ -1386,7 +1383,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 hit_grouped_slot = GroupedSlot(hit_group, slot_idx)
                 hit_slot = Slot.from_start(hit_grouped_slot.start)
                 return hit_grouped_slot, hit_slot
-            except pwndbg.dbg_mod.Error as e:
+            except pwndbg.dbg_mod.DebuggerError as e:
                 print(
                     message.error(
                         "Mallocng.containing: Failed reading memory while traversing"
@@ -1431,7 +1428,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
             return hit_grouped_slot, hit_slot
 
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             print(
                 message.error(
                     "Mallocng.containing: Failed reading memory while traversing"
@@ -1441,7 +1438,6 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             # Could be None.
             return hit_grouped_slot, hit_slot
 
-    @override
     def containing(self, address: int, metadata: bool = False, shallow: bool = False) -> int:
         """
         Same as find_slot() but returns only the `start` address of the slot, or zero

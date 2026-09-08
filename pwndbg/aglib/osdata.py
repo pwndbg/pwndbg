@@ -36,7 +36,7 @@ def read(table: str) -> str | None:
             response = pwndbg.dbg.selected_inferior().send_remote(
                 f"qXfer:osdata:read:{table}:{offset:x},{_CHUNK:x}"
             )
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             return None
 
         if not response:

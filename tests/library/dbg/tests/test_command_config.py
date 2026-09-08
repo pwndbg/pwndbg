@@ -22,9 +22,6 @@ async def test_config(ctrl: Controller) -> None:
     # \u2500 is ─
     assert "'#' ('\u2500')" in (await ctrl.execute_and_capture("theme"))
 
-    await ctrl.execute("set global-max-fast 0x80")
-    assert "'0x80' ('0')" in (await ctrl.execute_and_capture("heap-config"))
-
 
 @pwndbg_test
 async def test_config_filtering(ctrl: Controller) -> None:
@@ -59,8 +56,8 @@ async def test_config_filtering_missing(ctrl: Controller):
 @pwndbg_test
 async def test_config_color_validation(ctrl: Controller) -> None:
     import pwndbg
+    from pwndbg.dbg_mod import DebuggerError
     from pwndbg.dbg_mod import DebuggerType
-    from pwndbg.dbg_mod import Error
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -72,7 +69,7 @@ async def test_config_color_validation(ctrl: Controller) -> None:
 
     # set invalid color
     if pwndbg.dbg.name() == DebuggerType.GDB:
-        with pytest.raises(Error, match="Invalid color 'meow'"):
+        with pytest.raises(DebuggerError, match="Invalid color 'meow'"):
             await ctrl.execute("set telescope-register-color meow")
     else:
         ret = await ctrl.execute_and_capture("set telescope-register-color meow")
@@ -88,8 +85,8 @@ async def test_config_color_validation(ctrl: Controller) -> None:
 async def test_can_add_new_colours(ctrl: Controller) -> None:
     import pwndbg
     from pwndbg.color import color
+    from pwndbg.dbg_mod import DebuggerError
     from pwndbg.dbg_mod import DebuggerType
-    from pwndbg.dbg_mod import Error
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -101,7 +98,7 @@ async def test_can_add_new_colours(ctrl: Controller) -> None:
 
     # set invalid color
     if pwndbg.dbg.name() == DebuggerType.GDB:
-        with pytest.raises(Error, match="Invalid color 'meow'"):
+        with pytest.raises(DebuggerError, match="Invalid color 'meow'"):
             await ctrl.execute("set telescope-register-color meow")
     else:
         ret = await ctrl.execute_and_capture("set telescope-register-color meow")

@@ -62,8 +62,16 @@ def selection(target: T, get_current: Callable[[], T], select: Callable[[T], Non
             select(current)
 
 
-class Error(Exception):
-    pass
+class DebuggerError(Exception):
+    """
+    An error that the underlying debugger raised.
+
+    This is an abstraction over gdb.error and lldb.SBError .
+
+    Should only be raised in pwndbg/dbg_mod/ code, and even then, sparingly.
+
+    FIXME: Currently lots of places in the code use this even though they shouldn't.
+    """
 
 
 class NoInferior(Exception):
@@ -588,6 +596,8 @@ class Process:
         """
         Return the function start and end address for a function that
         contains address `addr`.
+
+        Might be slow (for GDB it invokes 'disass'), cache the results.
 
         Returns:
         - tuple[int, int] | None: [start, end) of function block if found (end address is exclusive)

@@ -1,0 +1,52 @@
+# This Dockerfile is used by ./.github/workflows/heap-libc-tests.yml and ./scripts/download-test-libs.sh
+#
+# Each /musls/<version>/ contains:
+#   lib/libc.a              (static archive)
+#   lib/libc.so             (shared lib = the loader)
+#   lib/ld-musl-<arch>.so.1 (symlink -> libc.so)
+#   lib/{crt1,Scrt1,crti,crtn}.o (startup objects)
+#   include/                (headers)
+
+FROM debian:12@sha256:ed4fcc40bb1162b6d2d32e7bec15044d13963779abbe63f67f1cd62b06220519 AS base-builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    wget \
+    ca-certificates \
+    patchelf \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY scripts/build-one-musl.sh /build-one-musl.sh
+RUN chmod +x /build-one-musl.sh
+
+# Build each musl version in a separate stage for caching. (stages don't invalidate each other like layers do)
+# Add a version here only: a stage + its RUN (with the tarball sha256) and the COPY line below.
+FROM base-builder AS build-1.1.24
+RUN /build-one-musl.sh 1.1.24 1370c9a812b2cf2a7d92802510cca0058cc37e66a7bedd70051f0a34015022a3
+
+FROM base-builder AS build-1.2.1
+RUN /build-one-musl.sh 1.2.1 68af6e18539f646f9c41a3a2bb25be4a5cfa5a8f65f0bb647fd2bbfdf877e84b
+
+FROM base-builder AS build-1.2.2
+RUN /build-one-musl.sh 1.2.2 9b969322012d796dc23dda27a35866034fa67d8fb67e0e2c45c913c3d43219dd
+
+FROM base-builder AS build-1.2.3
+RUN /build-one-musl.sh 1.2.3 7d5b0b6062521e4627e099e4c9dc8248d32a30285e959b7eecaa780cf8cfd4a4
+
+FROM base-builder AS build-1.2.4
+RUN /build-one-musl.sh 1.2.4 7a35eae33d5372a7c0da1188de798726f68825513b7ae3ebe97aaaa52114f039
+
+FROM base-builder AS build-1.2.5
+RUN /build-one-musl.sh 1.2.5 a9a118bbe84d8764da0ea0d28b3ab3fae8477fc7e4085d90102b8596fc7c75e4
+
+FROM base-builder AS build-1.2.6
+RUN /build-one-musl.sh 1.2.6 d585fd3b613c66151fc3249e8ed44f77020cb5e6c1e635a616d3f9f82460512a
+
+FROM scratch
+COPY --from=build-1.1.24 /musls/1.1.24 /musls/1.1.24
+COPY --from=build-1.2.1 /musls/1.2.1 /musls/1.2.1
+COPY --from=build-1.2.2 /musls/1.2.2 /musls/1.2.2
+COPY --from=build-1.2.3 /musls/1.2.3 /musls/1.2.3
+COPY --from=build-1.2.4 /musls/1.2.4 /musls/1.2.4
+COPY --from=build-1.2.5 /musls/1.2.5 /musls/1.2.5
+COPY --from=build-1.2.6 /musls/1.2.6 /musls/1.2.6
