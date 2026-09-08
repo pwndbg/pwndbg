@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 
 import gdb
+import pytest
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
@@ -66,6 +68,20 @@ def test_command_telescope_n_records(start_binary):
     gdb.execute("entry")
     result = gdb.execute(f"telescope $rsp {n}", to_string=True).strip().splitlines()
     assert len(result) == n
+
+
+@pytest.mark.parametrize("elements", ("0", "unlimited"))
+def test_command_telescope_with_unlimited_print_elements(
+    start_binary: Callable[..., None], elements: str
+) -> None:
+    start_binary(TELESCOPE_BINARY)
+
+    gdb.execute(f"set print elements {elements}")
+    gdb.execute("stepi")
+
+    result = gdb.execute("telescope $rsp 2", to_string=True).strip().splitlines()
+    assert len(result) == 2
+    assert pwndbg.aglib.proc.exe() in result[1]
 
 
 def test_telescope_command_with_address_as_count(start_binary):
