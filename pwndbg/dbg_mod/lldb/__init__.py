@@ -1647,11 +1647,48 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         if not addr.IsValid():
             return None
 
-        func = addr.GetFunction()
-        if func.IsValid():
-            start: int = func.GetStartAddress().GetLoadAddress(self.target)
-            end: int = func.GetEndAddress().GetLoadAddress(self.target)
-            return start, end
+        ctx = self.target.ResolveSymbolContextForAddress(addr, lldb.eSymbolContextEverything)
+
+        # Function boundaries can have multiple address ranges (for example, _dl_fixup is broken up into multiple blocks)
+        # LLDB can give us access to these blocks, and we return the block that the input address is within
+        if ctx.IsValid():
+            block = ctx.GetBlock()
+            while block.IsValid() and block.GetParent().IsValid():
+                block = block.GetParent()
+
+            ranges: list[tuple[int, int]] = []
+            for i in range(block.GetNumRanges()):
+                start_sb_address = block.GetRangeStartAddress(i)
+                end_sb_address = block.GetRangeEndAddress(i)
+
+                if start_sb_address.IsValid() and end_sb_address.IsValid():
+                    start = start_sb_address.GetLoadAddress(self.target)
+                    end = end_sb_address.GetLoadAddress(self.target)
+
+                    if lldb.LLDB_INVALID_ADDRESS not in (start, end):
+                        ranges.append(
+                            (
+                                start,
+                                end,
+                            )
+                        )
+
+            for start_block, end_block in ranges:
+                if start_block <= address < end_block:
+                    return start_block, end_block
+
+        # Fallback to finding the symbol that contains this address, and use it to determine the start/end of this function
+        sym = ctx.GetSymbol()
+        if sym.IsValid():
+            start_sb_address = sym.GetStartAddress()
+            end_sb_address = sym.GetEndAddress()
+
+            if start_sb_address.IsValid() and end_sb_address.IsValid():
+                start = start_sb_address.GetLoadAddress(self.target)
+                end = end_sb_address.GetLoadAddress(self.target)
+
+                if lldb.LLDB_INVALID_ADDRESS not in (start, end):
+                    return start, end
 
         return None
 
