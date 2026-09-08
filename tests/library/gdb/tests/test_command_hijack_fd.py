@@ -89,7 +89,9 @@ def test_hijack_fd_file_redirection(start_binary):
         assert "Operation succeeded" in result
 
         # Actually write to the hijacked file descriptor to validate it works
-        gdb.execute('call ((ssize_t(*)(int, const void*, size_t))write)(1, "hello\\n", 6)')
+        gdb.execute(
+            'call ((signed long(*)(int, const void*, unsigned long))write)(1, "hello\\n", 6)'
+        )
 
         # Check the file content to verify the write went to our file
         with open(temp_file_path) as f:
