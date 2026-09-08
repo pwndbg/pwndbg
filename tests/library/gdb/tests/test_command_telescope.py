@@ -48,7 +48,7 @@ def test_command_telescope_reverse(start_binary):
     expected_str = gdb.execute("print a", to_string=True)
     expected_lines = expected_str.split("\n")
 
-    result_str = gdb.execute("telescope ((uint8_t*)&a)+0x38 -r", to_string=True)
+    result_str = gdb.execute("telescope ((char*)&a)+0x38 -r", to_string=True)
     result_lines = result_str.split("\n")
 
     for i in range(4):
