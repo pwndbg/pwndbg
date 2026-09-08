@@ -744,17 +744,17 @@ def near(
     if instruction_flow_cache is not None:
         instruction_flow_cache.copy_current_instruction_flow_to_next()
 
-    function_boundaries: tuple[int, int] | None = None
-    if emulate:
-        # Only bother computing this when emulating
-        function_boundaries = pwndbg.aglib.symbol.resolve_function_boundaries(address)
-
     # Keep track of which of the previous instructions were disassembly linearly so we can display them as gray while emulating
     # The assumption is that the instruction list will start with the linear instructions, and then transition to the emulated one
     index_of_last_linearly_disassembled_instruction = -1
 
     count_backwards_linear = 0
     if show_prev_insns:
+        function_boundaries: tuple[int, int] | None = None
+        if emulate:
+            # Only bother computing this when emulating
+            function_boundaries = pwndbg.aglib.symbol.resolve_function_boundaries(address)
+
         saveptr = InstructionSequenceSavePointer(None)
 
         linear_prev_fetch = linear
