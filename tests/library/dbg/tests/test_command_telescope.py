@@ -115,7 +115,7 @@ async def test_command_telescope_reverse_skipped_records_shows_input_address(
     sp = pwndbg.aglib.regs.sp
     assert sp is not None
 
-    pwndbg.aglib.memory.write( - 8 * 3, b"\x00" * 8 * 4)
+    pwndbg.aglib.memory.write(-8 * 3, b"\x00" * 8 * 4)
 
     expected_value = hex(sp)
     result_str = await ctrl.execute_and_capture("telescope -r $sp")
@@ -164,7 +164,7 @@ async def test_command_telescope_frame_bp_below_sp(ctrl: Controller) -> None:
     rbp = pwndbg.aglib.regs.read_reg(frame)
     assert rbp is not None
 
-    pwndbg.aglib.regs.sp =  + 1
+    pwndbg.aglib.regs.sp = +1
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
 
