@@ -164,7 +164,7 @@ async def test_command_telescope_frame_bp_below_sp(ctrl: Controller) -> None:
     rbp = pwndbg.aglib.regs.read_reg(frame)
     assert rbp is not None
 
-    pwndbg.aglib.regs.sp = +1
+    pwndbg.aglib.regs.sp = rbp + 1
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
 
