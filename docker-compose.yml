@@ -6,7 +6,7 @@ services:
     cap_add:
       - SYS_PTRACE   
   main:
-    <<: *base-spec
+    <<: *base-spec 
     volumes:
       - .:/pwndbg
 
