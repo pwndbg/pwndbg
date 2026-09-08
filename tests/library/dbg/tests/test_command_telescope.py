@@ -17,6 +17,7 @@ async def test_command_telescope(ctrl: Controller) -> None:
     Tests simple telescope
     """
     await ctrl.execute("set telescope-skip-repeating-val off")
+
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("up")
 
@@ -37,6 +38,7 @@ async def test_command_telescope_reverse(ctrl: Controller) -> None:
     Tests reversed telescope
     """
     await ctrl.execute("set telescope-skip-repeating-val off")
+
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("up")
 
@@ -59,8 +61,6 @@ async def test_command_telescope_n_records(ctrl: Controller) -> None:
     await ctrl.launch(TELESCOPE_BINARY)
 
     n = 3
-    # ???
-    # gdb.execute("entry")
     result = (await ctrl.execute_and_capture(f"telescope $sp {n}")).strip().splitlines()
     assert len(result) == n
 
@@ -115,7 +115,7 @@ async def test_command_telescope_reverse_skipped_records_shows_input_address(
     sp = pwndbg.aglib.regs.sp
     assert sp is not None
 
-    pwndbg.aglib.memory.write(-8 * 3, b"\x00" * 8 * 4)
+    pwndbg.aglib.memory.write(sp - 8 * 3, b"\x00" * 8 * 4)
 
     expected_value = hex(sp)
     result_str = await ctrl.execute_and_capture("telescope -r $sp")
