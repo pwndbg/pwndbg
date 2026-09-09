@@ -17,6 +17,7 @@ async def test_command_telescope(ctrl: Controller) -> None:
     Tests simple telescope
     """
     await ctrl.execute("set telescope-skip-repeating-val off")
+
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("up")
 
@@ -24,6 +25,7 @@ async def test_command_telescope(ctrl: Controller) -> None:
     result_lines = result_str.split("\n")
 
     value = get_expr("a")
+    assert value.address is not None
     fields = value.type.fields()
     for i in range(len(fields)):
         expected_addr = int(value.address) + fields[i].bitpos // 8
@@ -36,13 +38,15 @@ async def test_command_telescope_reverse(ctrl: Controller) -> None:
     Tests reversed telescope
     """
     await ctrl.execute("set telescope-skip-repeating-val off")
+
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("up")
 
-    result_str = await ctrl.execute_and_capture("telescope ((uint8_t*)&a)+0x38 -r")
+    result_str = await ctrl.execute_and_capture("telescope ((char*)&a)+0x38 -r")
     result_lines = result_str.split("\n")
 
     value = get_expr("a")
+    assert value.address is not None
     fields = value.type.fields()
     for i in range(len(fields)):
         expected_addr = int(value.address) + fields[i].bitpos // 8
@@ -57,8 +61,6 @@ async def test_command_telescope_n_records(ctrl: Controller) -> None:
     await ctrl.launch(TELESCOPE_BINARY)
 
     n = 3
-    # ???
-    # gdb.execute("entry")
     result = (await ctrl.execute_and_capture(f"telescope $sp {n}")).strip().splitlines()
     assert len(result) == n
 
@@ -72,6 +74,7 @@ async def test_telescope_command_with_address_as_count(ctrl: Controller) -> None
 
     out = (await ctrl.execute_and_capture("telescope 2")).splitlines()
     sp = pwndbg.aglib.regs.sp
+    assert sp is not None
 
     assert len(out) == 2
     expected = rf"00:0000│ (.*?)sp {sp:#x} ◂— 1"
@@ -89,6 +92,7 @@ async def test_telescope_command_with_address_as_count_and_reversed_flag(ctrl: C
 
     out = (await ctrl.execute_and_capture("telescope -r 2")).splitlines()
     sp = pwndbg.aglib.regs.sp
+    assert sp is not None
 
     assert len(out) == 2
     assert re.match(rf"00:0000│\s+{sp - 8:#x} ◂— 0", out[0])
@@ -108,9 +112,12 @@ async def test_command_telescope_reverse_skipped_records_shows_input_address(
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("up")
 
-    pwndbg.aglib.memory.write(pwndbg.aglib.regs.sp - 8 * 3, b"\x00" * 8 * 4)
+    sp = pwndbg.aglib.regs.sp
+    assert sp is not None
 
-    expected_value = hex(pwndbg.aglib.regs.sp)
+    pwndbg.aglib.memory.write(sp - 8 * 3, b"\x00" * 8 * 4)
+
+    expected_value = hex(sp)
     result_str = await ctrl.execute_and_capture("telescope -r $sp")
     result_lines = result_str.strip("\n").split("\n")
 
@@ -126,8 +133,14 @@ async def test_command_telescope_frame(ctrl: Controller) -> None:
 
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
 
-    rsp = hex(pwndbg.aglib.regs.sp)
-    rbp = hex(pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame))
+    _rsp = pwndbg.aglib.regs.sp
+    _frame = pwndbg.aglib.regs.frame
+    assert _rsp is not None and _frame is not None
+    _rbp = pwndbg.aglib.regs.read_reg(_frame)
+    assert _rbp is not None
+
+    rsp = hex(_rsp)
+    rbp = hex(_rbp)
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
     result_lines = result_str.strip().split("\n")
@@ -146,7 +159,12 @@ async def test_command_telescope_frame_bp_below_sp(ctrl: Controller) -> None:
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("memoize")  # turn off cache
 
-    pwndbg.aglib.regs.sp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame) + 1
+    frame = pwndbg.aglib.regs.frame
+    assert frame is not None
+    rbp = pwndbg.aglib.regs.read_reg(frame)
+    assert rbp is not None
+
+    pwndbg.aglib.regs.sp = rbp + 1
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
 
@@ -167,6 +185,7 @@ async def test_command_telescope_frame_bp_sp_different_vmmaps(ctrl: Controller) 
     pages = pwndbg.aglib.vmmap.get()
     frame_reg_name = pwndbg.aglib.regs.frame
     stack_reg_name = pwndbg.aglib.regs.stack
+    assert frame_reg_name is not None
 
     pwndbg.aglib.regs.write_reg(stack_reg_name, pages[0].start)
     pwndbg.aglib.regs.write_reg(frame_reg_name, pages[1].start)
