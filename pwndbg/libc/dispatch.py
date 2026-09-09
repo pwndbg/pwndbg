@@ -8,6 +8,7 @@ from typing import Protocol
 class LibcType(Enum):
     GLIBC = "glibc"
     MUSL = "musl"
+    BIONIC = "bionic"
     UNKNOWN = "unknown"
 
 
