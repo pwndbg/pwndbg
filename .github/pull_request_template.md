@@ -6,5 +6,5 @@
   and add any PR description before or after them
 -->
 
-+ [ ] I read the contributing documentation.
-+ [ ] I provide a proof of the new feature or fixed bug before and after the PR (screenshots or relevant outputs/logs).
++ [ ] I read the contributing documentation
++ [ ] I include before and after screenshots (or relevant outputs) of the new feature/fixed bug
