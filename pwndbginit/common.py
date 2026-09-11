@@ -104,23 +104,14 @@ def update_deps(src_root: Path) -> None:
         sys.exit(return_code)
 
 
-def is_system_installation(src_root: Path) -> bool:
-    # NOTE: This is intentionally duplicated (inlined) in the top-level `gdbinit.py`
-    # so that gdbinit doesn't import the `pwndbginit` package before `fixup_paths()`
-    # corrects `sys.path` (see https://github.com/pwndbg/pwndbg/issues/3963). If you
-    # change the logic here, update `is_system_installation` in `gdbinit.py` too.
-    #
+def is_editable_install(src_root: Path) -> bool:
     # If pwndbg is installed in `/venv/lib/pythonX.Y/site-packages/pwndbg/`,
     # the `.pwndbg_root` file will not exist because `src_root` will point to the
     # `/venv/lib/pythonX.Y/site-packages/` directory, not the original source directory
     #
     # However, if pwndbg is installed in editable mode (our recommended way), this file will exist,
     # and the condition will be False, allowing auto-update.
-    is_system_install = not (src_root / ".pwndbg_root").exists()
-    if is_system_install:
-        return True
-
-    return False
+    return (src_root / ".pwndbg_root").exists()
 
 
 def skip_autoupdate(src_root: Path) -> bool:
@@ -128,7 +119,7 @@ def skip_autoupdate(src_root: Path) -> bool:
     if no_auto_update:
         return True
 
-    if is_system_installation(src_root):
+    if not is_editable_install(src_root):
         return True
 
     return False

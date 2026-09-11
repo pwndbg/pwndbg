@@ -36,6 +36,7 @@ def fixup_paths(src_root: Path, venv_path: Path):
     sys.exec_prefix = str(venv_path)
 
 
+# NOTE: keep the following two functions up to date with copies in pwndbginit/common.py
 def in_venv_share_dir(src_root: Path) -> bool:
     # gdbinit.py installed as <venv>/share/pwndbg/gdbinit.py via wheel shared-data.
     # See https://github.com/pwndbg/pwndbg/pull/3737
