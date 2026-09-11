@@ -26,6 +26,8 @@ def start_binary():
         gdb.execute("set context-reserve-lines never")
         gdb.execute("set heuristic-backwards-disasm off")
         gdb.execute("set context-disasm-back-linear-lines 0")
+        gdb.execute("set debug-file-directory")
+        gdb.execute("set debuginfod enabled off")
         os.environ["COLUMNS"] = "80"
         gdb.execute("starti " + " ".join(args))
 

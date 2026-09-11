@@ -7,7 +7,6 @@ import functools
 import os
 import random
 import re
-import shlex
 import sys
 from asyncio import CancelledError
 from collections.abc import Awaitable
@@ -32,6 +31,7 @@ import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.path
+import pwndbg.lib.strings
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import selection
@@ -2330,7 +2330,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def lex_args(self, command_line: str) -> list[str]:
-        return shlex.split(command_line)
+        return pwndbg.lib.strings.lex_args(command_line)
 
     def _any_inferior(self) -> LLDBProcess:
         """
