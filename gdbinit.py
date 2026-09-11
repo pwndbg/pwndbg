@@ -54,15 +54,12 @@ def get_venv_path_if_fixup_needed(src_root: Path) -> Path | None:
     if in_venv_share_dir(src_root):
         return src_root.parent.parent
 
-    # If pwndbg is installed in `/venv/lib/pythonX.Y/site-packages/pwndbg/`,
-    # the `.pwndbg_root` file will not exist because `src_root` will point to the
-    # `/venv/lib/pythonX.Y/site-packages/` directory, not the original source directory.
-    #
-    # However, if pwndbg is installed in editable mode (our recommended way), this file
-    # will exist, and the condition will be False, allowing auto-update.
+    # Handle case when you use source /path/to/pwndbg-git-dir/gdbinit.py + .pwndbg_root, only venv
     if (src_root / ".pwndbg_root").exists():
         return src_root / ".venv"
 
+    # Handle case when you use source /path/to/not-pwndbg-dir/gdbinit.py + without venv, only system pwndbg
+    # Example: handle Archlinux case: source /usr/share/pwndbg/gdbinit.py
     return None
 
 
@@ -86,7 +83,7 @@ def main() -> None:
     # to a confusing mix of modules loaded from two different locations. See:
     # https://github.com/pwndbg/pwndbg/issues/3963
 
-    venv_dir: Path | None = get_venv_path_if_fixup_needed(src_root)
+    venv_dir = get_venv_path_if_fixup_needed(src_root)
 
     if venv_dir is not None:
         if not venv_dir.exists():
