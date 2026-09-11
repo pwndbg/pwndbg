@@ -210,6 +210,8 @@ def preprocess_branch_visualization(
                 if abs(target - instruction.address) < 100:
                     jumps.append(JumpRange(instruction.address, target))
 
+    jumps.sort(key=lambda x: x.max - x.min)
+
     # Of the jumpranges we processed last time, which ones do we keep? Relevant for repeat nearpc
     continued_ranges: set[JumpRange] = set()
 
