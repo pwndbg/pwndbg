@@ -36,39 +36,34 @@ def fixup_paths(src_root: Path, venv_path: Path):
     sys.exec_prefix = str(venv_path)
 
 
-def is_system_installation(src_root: Path) -> bool:
-    # NOTE: Keep this in sync with `pwndbginit.common.is_system_installation`.
-    # It is intentionally duplicated here so that `gdbinit.py` does not import the
-    # `pwndbginit` package before `fixup_paths()` has corrected `sys.path`. Otherwise,
-    # a system-wide Pwndbg installation (e.g. an Arch `pwndbg` package in the global
-    # site-packages) could shadow the source checkout that is being sourced, leading
-    # to a confusing mix of modules loaded from two different locations. See:
-    # https://github.com/pwndbg/pwndbg/issues/3963
-    #
+def in_venv_share_dir(src_root: Path) -> bool:
+    # gdbinit.py installed as <venv>/share/pwndbg/gdbinit.py via wheel shared-data.
+    # See https://github.com/pwndbg/pwndbg/pull/3737
+    return (
+        src_root.parent.name == "share"
+        and src_root.name == "pwndbg"
+        and (src_root.parent.parent / "pyvenv.cfg").exists()
+    )
+
+
+def get_venv_path_if_fixup_needed(src_root: Path) -> Path | None:
+    venv_path_env = os.environ.get("PWNDBG_VENV_PATH")
+    if venv_path_env:
+        return Path(venv_path_env).expanduser().resolve()
+
+    if in_venv_share_dir(src_root):
+        return src_root.parent.parent
+
     # If pwndbg is installed in `/venv/lib/pythonX.Y/site-packages/pwndbg/`,
     # the `.pwndbg_root` file will not exist because `src_root` will point to the
     # `/venv/lib/pythonX.Y/site-packages/` directory, not the original source directory.
     #
     # However, if pwndbg is installed in editable mode (our recommended way), this file
     # will exist, and the condition will be False, allowing auto-update.
-    return not (src_root / ".pwndbg_root").exists()
+    if (src_root / ".pwndbg_root").exists():
+        return src_root / ".venv"
 
-
-def get_venv_path(src_root: Path):
-    venv_path_env = os.environ.get("PWNDBG_VENV_PATH")
-    if venv_path_env:
-        return Path(venv_path_env).expanduser().resolve()
-
-    # Handle case when `gdbinit.py` is running from inside venv, eg: `venv/share/pwndbg/gdbinit.py`
-    # See, example usage: https://github.com/pwndbg/pwndbg/pull/3737
-    if (
-        src_root.parent.name == "share"
-        and src_root.name == "pwndbg"
-        and (src_root / "../../pyvenv.cfg").exists()
-    ):
-        return src_root.parent.parent
-
-    return src_root / ".venv"
+    return None
 
 
 def main() -> None:
@@ -84,22 +79,25 @@ def main() -> None:
 
     src_root = Path(__file__).parent.resolve()
 
-    # If Pwndbg is installed by a distro package manager, skip the virtualenv check.
-    # `is_system_installation` is inlined (not imported from `pwndbginit`) on purpose so
-    # we don't import the `pwndbginit` package before `fixup_paths()` fixes `sys.path`.
-    skip_venv = is_system_installation(src_root)
+    # If Pwndbg is installed by a distro package manager, we don't have a virtualenv that requires path fixups
+    # Note we do NOT import `pwndbginit` package before `fixup_paths()` has corrected `sys.path`. Otherwise,
+    # a system-wide Pwndbg installation (e.g. an Arch `pwndbg` package in the global
+    # site-packages) could shadow the source checkout that is being sourced, leading
+    # to a confusing mix of modules loaded from two different locations. See:
+    # https://github.com/pwndbg/pwndbg/issues/3963
 
-    if not skip_venv:
-        venv_path = get_venv_path(src_root)
-        if not venv_path.exists():
+    venv_dir: Path | None = get_venv_path_if_fixup_needed(src_root)
+
+    if venv_dir is not None:
+        if not venv_dir.exists():
             print(
-                f"\nCannot find Pwndbg virtualenv directory: {venv_path}. Please (re-)run setup.sh from the Pwndbg source folder.\n"
+                f"\nCannot find Pwndbg virtualenv directory: {venv_dir}. Please (re-)run setup.sh from the Pwndbg source folder.\n"
                 "(see https://pwndbg.re/dev/setup/#installing-from-source)",
                 flush=True,
             )
             os._exit(1)
 
-        fixup_paths(src_root, venv_path)
+        fixup_paths(src_root, venv_dir)
 
     from pwndbginit.gdbinit import main_try
 
