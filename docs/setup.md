@@ -5,9 +5,7 @@ hide:
 
 # Setup
 
-There are multiple ways to install Pwndbg, depending on how you want to use it. Skim the table of contents on the right to find your preferred installation method. Yes we support both GDB and LLDB!
-
-If you're a new user, we recommend the [system install script](#pwndbg-gdb). If you remember the times of yore you might prefer [the ~/.gdbinit install](#system-gdb-sourced-from-gdbinit).
+There are multiple ways to install Pwndbg, depending on how you want to use it. Skim the table of contents on the right to find your preferred installation method. Yes we support both GDB and LLDB! If you're a new user, we recommend the [system install script](#pwndbg-gdb). If you remember the times of yore you might prefer [the ~/.gdbinit install](#system-gdb-sourced-from-gdbinit).
 
 To run the `pwndbg` binary from your **pwntools** scripts, set:
 ```{.python .copy}
@@ -18,30 +16,23 @@ context.gdb_binary = "pwndbg"
 
 ### pwndbg-gdb
 
-This will provide the `pwndbg` program. You can use it the same way you use `gdb`.
-
-The install script will automatically fetch and install the portable release from [GitHub releases](https://github.com/pwndbg/pwndbg/releases).
-To later **update**, just re-run the same command.
+This will provide the `pwndbg` program. You can use it the same way you use `gdb`. To later **update**, just re-run the same command.
+The script will install the latest portable release from [our GitHub releases](https://github.com/pwndbg/pwndbg/releases).
 
 === "System install"
     Install the binary for all users of the system. This requires root permissions, and will invoke sudo.
 
     === "curl/sh"
-
-        Install via curl/sh (Linux/macOS). 
         ```{.bash .copy}
+        # (recommended)
         curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
         ```
 
     === "GNU wget/sh"
-    
-        Install via GNU wget/sh (Linux/macOS)
         ```{.bash .copy}
         wget --https-only --secure-protocol=TLSv1_2 -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
         ```
     === "BusyBox wget/sh"
-
-        Install via BusyBox wget/sh (Linux/macOS)
         ```{.bash .copy}
         wget -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
         ```
@@ -56,19 +47,14 @@ To later **update**, just re-run the same command.
     Install the binary for the current user. Root access not required.
 
     === "curl/sh"
-        Install via curl/sh (Linux/macOS). 
         ```{.bash .copy}
         curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb -u
         ```
     === "GNU wget/sh"
-
-        Install via GNU wget/sh (Linux/macOS)
         ```{.bash .copy}
         wget --https-only --secure-protocol=TLSv1_2 -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb -u
         ```
     === "BusyBox wget/sh"
-
-        Install via BusyBox wget/sh (Linux/macOS)
         ```{.bash .copy}
         wget -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb -u
         ```
