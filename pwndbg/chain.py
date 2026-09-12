@@ -141,9 +141,6 @@ def format(
     else:
         chain = get(value, limit, offset, hard_stop, hard_end, safe_linking=safe_linking) or []
 
-    arrow_left = c.arrow(f" {config_arrow_left} ")
-    arrow_right = c.arrow(f" {config_arrow_right} ")
-
     # Ask the decompiler to resolve stack variables
     stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
 
@@ -172,7 +169,7 @@ def format(
         # This case only applies to lists of length one, because if the list has more than one value, we already know
         # that the second to last value, chain[-2], can be safely dereferenced - how else would chain[-1] exist?
         # In other case where chain[-1] is not a pointer, the argument has no effect.
-        enhanced = pwndbg.enhance.enhance(
+        return pwndbg.enhance.enhance(
             chain[-1],
             code=code,
             attempt_dereference=False,
@@ -181,7 +178,7 @@ def format(
         )
     # We want to enhance the last pointer value. If an offset was used
     # chain failed at that offset, so display that offset.
-    elif len(chain) < limit + 1:
+    if len(chain) < limit + 1:
         pointer_to_enhance = chain[-2] + offset
 
         page = pwndbg.aglib.vmmap.find(pointer_to_enhance)
@@ -211,7 +208,12 @@ def format(
     else:
         enhanced = c.contiguous_marker(f"{config_contiguous}")
 
-    if len(chain) == 1:
-        return enhanced
+    arrow_right = c.arrow(f" {config_arrow_right} ")
 
-    return arrow_right.join(rest) + arrow_left + enhanced
+    # Show left arrow if we finished dereferencing the chain, otherwise, use right arrow
+    if len(chain) <= limit:
+        arrow_last = c.arrow(f" {config_arrow_left} ")
+    else:
+        arrow_last = arrow_right
+
+    return arrow_right.join(rest) + arrow_last + enhanced
