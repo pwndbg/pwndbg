@@ -159,11 +159,15 @@ def print_no_arena_found_error(tid: int | None = None) -> None:
 def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
     if tid is None:
         tid = pwndbg.aglib.proc.thread_id()
-    print(
-        message.notice(
-            f"No tcache bins found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
-        )
-    )
+
+    help_text = "the thread hasn't performed any allocations"
+
+    # On glibc >= 2.42, tcache is only allocated after the first tcache-sized
+    # allocation, rather than the first allocation in general, as before
+    if pwndbg.libc.version() >= (2, 42):
+        help_text = "the thread hasn't performed any tcache-sized allocations"
+
+    print(message.notice(f"No tcache bins found for thread {message.hint(tid)} ({help_text})."))
 
 
 def func_name(function: Callable[P, T]) -> str:

@@ -1685,7 +1685,9 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         )
         if tcache_ptr and (tcache_addr := pwndbg.aglib.memory.read_pointer_width(tcache_ptr)):
             tcache = tcache_addr
-        elif not self.multithreaded():
+        # On glibc >= 2.42, tcache is only allocated after the first tcache-sized
+        # allocation, rather than the first allocation in general, as before
+        elif not self.multithreaded() and pwndbg.libc.version() < (2, 42):
             tcache = self.main_arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
         else:
             # This thread doesn't have a tcache yet
