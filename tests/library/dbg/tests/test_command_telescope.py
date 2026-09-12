@@ -196,3 +196,26 @@ async def test_command_telescope_frame_bp_sp_different_vmmaps(ctrl: Controller) 
         "Cannot display stack frame because base pointer is not on the same page with stack pointer"
         in result_str
     )
+
+
+@pwndbg_test
+async def test_command_telescope_truncated_chain_uses_right_arrow(ctrl: Controller) -> None:
+    """
+    Tests that a deref chain cut off by dereference-limit ends with the right
+    arrow before the contiguous marker, and the left arrow otherwise.
+
+    See https://github.com/pwndbg/pwndbg/issues/4114
+    """
+    await ctrl.launch(get_binary("linked-lists.native.out"))
+
+    # &node_a.next -> node_b -> node_b.value (1, not a pointer, chain ends here)
+    await ctrl.execute("set dereference-limit 2")
+    result_str = await ctrl.execute_and_capture("telescope &node_a.next 1")
+    assert "—▸ ..." in result_str
+    assert "◂—" not in result_str
+
+    # High enough limit that the chain terminates on its own, i.e. is not truncated
+    await ctrl.execute("set dereference-limit 16")
+    result_str = await ctrl.execute_and_capture("telescope &node_a.next 1")
+    assert "..." not in result_str
+    assert "◂—" in result_str
