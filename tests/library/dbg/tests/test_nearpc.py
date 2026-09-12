@@ -330,11 +330,11 @@ async def test_nearpc_branch_visualization(ctrl: Controller) -> None:
         "                                          ││ \n"
         "   0x40008f <B>                           │└>   sub    eax, 1\n"
         "   0x400092 <B+3>                         │     cmp    eax, 0\n"
-        "   0x400095 <B+6>                        ┌──<   jne    C                           <C>\n"
-        "                                         ││  \n"
-        "   0x400097 <B+8>                        ││     nop   \n"
-        "   0x400098 <B+9>                        ││     nop   \n"
-        "   0x400099 <C>                          └└─>   ret   \n"
+        "   0x400095 <B+6>                         │┌<   jne    C                           <C>\n"
+        "                                          ││ \n"
+        "   0x400097 <B+8>                         ││    nop   \n"
+        "   0x400098 <B+9>                         ││    nop   \n"
+        "   0x400099 <C>                           └└>   ret   \n"
     )
 
     assert dis == expected
