@@ -5,15 +5,18 @@ hide:
 
 # Setup
 
-There are multiple ways to install Pwndbg, depending on whether you want to use it [with GDB](#installing-pwndbg-gdb), [with LLDB](#installing-pwndbg-lldb), or install it [from source](#installing-from-source).
+There are multiple ways to install Pwndbg, depending on how you want to use it. Skim the table of contents on the right to find your preferred installation method. Yes we support both GDB and LLDB!
 
-## Portable release
+If you're a new user, we recommend the [system install script](#pwndbg-gdb). If you remember the times of yore you might prefer [the ~/.gdbinit install](#system-gdb-sourced-from-gdbinit).
+
+## Install Script
 
 ### pwndbg-gdb
 
 This will provide the `pwndbg` program. You can use it the same way you use `gdb`.
 
 The install script will automatically fetch and install the portable release from [GitHub releases](https://github.com/pwndbg/pwndbg/releases).
+To later **update**, just re-run the same command.
 
 === "System install"
     Install the binary for all users of the system. This requires root permissions, and will invoke sudo.
@@ -37,6 +40,13 @@ The install script will automatically fetch and install the portable release fro
         ```{.bash .copy}
         wget -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
         ```
+
+    ??? info "Uninstalling"
+        If you wish to uninstall, run
+        ```{.bash .copy}
+        sudo rm -r /usr/local/lib/pwndbg-gdb /usr/local/bin/pwndbg
+        ```
+
 === "User install"
     Install the binary for the current user. Root access not required.
 
@@ -58,6 +68,12 @@ The install script will automatically fetch and install the portable release fro
         wget -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb -u
         ```
 
+    ??? info "Uninstalling"
+        If you wish to uninstall, run
+        ```{.bash .copy}
+        rm -r ~/.local/lib/pwndbg-gdb ~/.local/bin/pwndbg
+        ```
+
 
 ### pwndbg-lldb
 This installation method provides the `pwndbg-lldb ./your-binary` command.
@@ -67,10 +83,22 @@ This installation method provides the `pwndbg-lldb ./your-binary` command.
     curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-lldb
     ```
 
+    ??? info "Uninstalling"
+        If you wish to uninstall, run
+        ```{.bash .copy}
+        sudo rm -r /usr/local/lib/pwndbg-lldb /usr/local/bin/pwndbg-lldb
+        ```
+
 === "User install"
     ```{.bash .copy}
     curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-lldb -u
     ```
+
+    ??? info "Uninstalling"
+        If you wish to uninstall, run
+        ```{.bash .copy}
+        rm -r ~/.local/lib/pwndbg-lldb ~/.local/bin/pwndbg-lldb
+        ```
 
 ## Install pwndbg from source
 
@@ -106,12 +134,19 @@ In general, if you have the repository cloned you can run the same commands as i
 ### Lite install
 If you are tight on disk space, there are some non-essential dependencies you can omit when installing. You can add the `--excludes <(printf 'ziglang\ndecomp2dbg\nipython')` argument to any of the `uv tool install` methods above to save you around ~300 MB.
 
-For example, to get the previous install method with a these dependencies omitted, you can run:
+For example, to get the previous install method with these dependencies omitted, you can run:
 ```{.bash .copy}
 PY_VER=$(gdb -nx --batch -iex 'py import sysconfig; print(sysconfig.get_config_var("VERSION"))')
 uv tool install --excludes <(printf 'ziglang\ndecomp2dbg\nipython') --python=$PY_VER  git+https://github.com/pwndbg/pwndbg
 echo "source $(uv tool dir)/pwndbg/share/pwndbg/gdbinit.py" >> ~/.gdbinit
 ```
+
+??? info "Uninstalling"
+    For all of these methods, uninstall with
+    ```{.bash .copy}
+    uv tool uninstall pwndbg
+    ```
+    and remove the appropriate line from your `~/.gdbinit` if necessary.
 
 ## Other install methods
 
