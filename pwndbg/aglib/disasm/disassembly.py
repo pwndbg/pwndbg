@@ -426,7 +426,7 @@ def get_disassembler(cs_info: tuple[int, int]) -> Cs:
 
 def one(
     address: int | None = None,
-    emu: pwndbg.emu.emulator.Emulator = None,
+    emu: pwndbg.emu.emulator.Emulator | None = None,
     enhance: bool = True,
     assistant: DisassemblyAssistant | None = None,
     from_cache: bool = False,
