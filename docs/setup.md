@@ -9,6 +9,11 @@ There are multiple ways to install Pwndbg, depending on how you want to use it. 
 
 If you're a new user, we recommend the [system install script](#pwndbg-gdb). If you remember the times of yore you might prefer [the ~/.gdbinit install](#system-gdb-sourced-from-gdbinit).
 
+To run the `pwndbg` binary from your **pwntools** scripts, set:
+```{.python .copy}
+context.gdb_binary = "pwndbg"
+```
+
 ## Install Script
 
 ### pwndbg-gdb
