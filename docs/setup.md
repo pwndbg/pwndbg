@@ -5,7 +5,7 @@ hide:
 
 # Setup
 
-There are multiple ways to install Pwndbg, depending on how you want to use it. Skim the table of contents on the right to find your preferred installation method. Yes we support both GDB and LLDB! If you're a new user, we recommend the [system install script](#pwndbg-gdb). If you remember the times of yore you might prefer [the ~/.gdbinit install](#system-gdb-sourced-from-gdbinit).
+There are multiple ways to install Pwndbg, depending on how you want to use it. Skim the table of contents on the right to find your preferred installation method. We support both GDB and LLDB, Linux and MacOS! If you're a new user, we recommend the [system install script](#pwndbg-gdb). If you remember the times of yore you might prefer [the ~/.gdbinit install](#system-gdb-sourced-from-gdbinit).
 
 To run the `pwndbg` binary from your **pwntools** scripts, set:
 ```{.python .copy}
