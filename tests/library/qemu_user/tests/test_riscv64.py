@@ -386,7 +386,7 @@ def test_riscv64_reference(qemu_start_binary):
     gdb.execute("stepuntilasm jalr")
 
     # verify call argument are enriched
-    assembly = gdb.execute("nearpc --no-branch", to_string=True)
+    assembly = gdb.execute("emulate", to_string=True)
     assert "'Not enough args'" in assembly
 
     gdb.execute("stepuntilasm c.jalr")
