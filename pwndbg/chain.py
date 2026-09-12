@@ -104,7 +104,7 @@ config_contiguous = theme.add_param(
 
 def format(
     value: int | list[int] | None,
-    limit: int = int(LIMIT),
+    limit: int = LIMIT,
     code: bool = True,
     offset: int = 0,
     hard_stop: int | None = None,
