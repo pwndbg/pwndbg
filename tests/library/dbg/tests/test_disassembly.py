@@ -182,3 +182,66 @@ async def test_context_disasm_non_global_cache(ctrl: Controller) -> None:
     )
 
     assert dis_0 == expected_0
+
+
+RET_TO_UNMAPPED_PAGE_BINARY = get_binary("ret_to_unmapped_page.x86-64.out")
+
+
+@pwndbg_test
+async def test_context_disasm_ret_to_unmapped_page(ctrl: Controller) -> None:
+    import pwndbg.aglib
+    import pwndbg.color
+
+    await ctrl.launch(RET_TO_UNMAPPED_PAGE_BINARY)
+
+    dis_0 = await ctrl.execute_and_capture("context disasm")
+    dis_0 = pwndbg.color.strip(dis_0)
+
+    expected_0 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────\n"
+        " ► 0x400080 <_start>      push   -0x21524111\n"
+        "   0x400085 <_start+5>    ret                                <0xffffffffdeadbeef>\n"
+        "    ↓\n"
+        "\n"
+        "\n"
+        "\n"
+        "\n"
+        "\n"
+        "\n"
+        "\n"
+        "\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_0 == expected_0
+
+    # Do not call context disasm after the nearpc
+    await ctrl.step_instruction()
+
+    # With and without emulation, we should determine the same address
+    for emulate_option in ("on", "off"):
+        await ctrl.execute(f"set emulate {emulate_option}")
+
+        dis_1 = await ctrl.execute_and_capture("context disasm")
+        dis_1 = pwndbg.color.strip(dis_1)
+
+        # Remove the header as it varies between the emulation being on or off
+        dis_1 = "\n".join(dis_1.split("\n")[2:])
+
+        expected_1 = (
+            "   0x400080 <_start>      push   -0x21524111\n"
+            " ► 0x400085 <_start+5>    ret                                <0xffffffffdeadbeef>\n"
+            "    ↓\n"
+            "\n"
+            "\n"
+            "\n"
+            "\n"
+            "\n"
+            "\n"
+            "\n"
+            "\n"
+            "────────────────────────────────────────────────────────────────────────────────\n"
+        )
+
+        assert dis_1 == expected_1

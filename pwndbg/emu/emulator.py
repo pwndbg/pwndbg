@@ -741,11 +741,10 @@ class Emulator:
         )
 
         if access == U.UC_MEM_FETCH_UNMAPPED:
-            # NOTE: we do NOT use the `address` value
-            # In x86_64, it gets truncated to 52 bytes.
-            # However, for the user, we want to display the full contents
-            # of what is on the stack
-            # We can just read the PC to get this
+            # NOTE: we do NOT use the `address` value. The original address
+            # has been masked with an address mask (such as 52 bits for x86)
+            # However, for the user, we want to display the full contents of original address.
+            # We can just read the PC to get this.
             pc = self.pc()
             self.last_emulator_crash_data = EmulatorCrashData(
                 EmulatorCrashReason.UNMAPPED_CPU_FETCH, pc
@@ -837,11 +836,10 @@ class Emulator:
         # which have Thumb mode transitions, Unicorn will internally handle them.
         pc |= self.read_thumb_bit()
 
-        # This is very important!
-        # Otherwise, Unicorn would stop at address 0, the second parameter
-        # of emu_start below.
-        # Setting this cause it to ignore the normal "execute until X" value
-        # And only stop when we tell it to (based on our hooks)
+        # Tell Unicorn that we want to stop at some explicit exit points, and
+        # then make the list of exit points empty.
+        # This prevents Unicorn from using the "until" argument (second argument below),
+        # which would cause it to always stop before executing at address 0 (which may be mapped!)
         self.uc.ctl_exits_enabled(True)
         self.uc.ctl_set_exits([])
 
