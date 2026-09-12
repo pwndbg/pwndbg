@@ -280,3 +280,4 @@ sudo ln -sf $BINARY_SRC_PATH $BINARY_DST_PATH
 
 echoinfo "Installation complete."
 echo "🚀 Run binary with: ${GREEN}${BINARY_NAME}${NC}"
+echo "💡 Use ${CYAN}context.gdb_binary = 'pwndbg'${NC} in your pwntools scripts!"
