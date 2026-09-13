@@ -129,7 +129,7 @@ async def test_nearpc_opcode_bytes(ctrl: Controller, opcode_bytes: int) -> None:
     await ctrl.execute("nextsyscall")
 
     await ctrl.execute(f"set nearpc-num-opcode-bytes {opcode_bytes}")
-    dis = await ctrl.execute_and_capture("nearpc -t 11")
+    dis = await ctrl.execute_and_capture("emulate -t 11")
     expected = (
         "   0x400080 {} <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 {} <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -158,7 +158,7 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
     await ctrl.execute("set nearpc-num-opcode-bytes 5")
     await ctrl.execute(f"set nearpc-opcode-separator-bytes {separator_bytes}")
 
-    dis = await ctrl.execute_and_capture("nearpc -t 11")
+    dis = await ctrl.execute_and_capture("emulate -t 11")
     excepted = (
         "   0x400080 {} <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 {} <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"

@@ -2111,6 +2111,36 @@ class HeuristicHeap(
         self._thread_caches[tidx] = result
         return result
 
+    def _find_mp_addr(self) -> int | None:
+        """
+        Find the mp_ struct address by scanning the .data section.
+
+        Returns the absolute address if found, None otherwise.
+        """
+        if self.is_statically_linked():
+            section = pwndbg.aglib.proc.dump_elf_data_section()
+            section_address = pwndbg.aglib.proc.get_section_address_by_name(".data")
+        else:
+            section = pwndbg.libc.section_by_name(".data")
+            section_address = pwndbg.libc.section_address_by_name(".data")
+
+        if section is None or not section_address:
+            return None
+
+        _, _, data = section
+
+        # try to find the default mp_ struct in the .data section
+        found = data.find(bytes(self.struct_module.DEFAULT_MP_))
+        if found == -1 and pwndbg.libc.version() == (2, 42):
+            # Some glibc 2.42 builds (the official 2.42.0 tarball) use
+            # tcache_max_bytes=0x408 instead of 0x411, so fall back to
+            # that value as well.
+            fallback_mp = copy.deepcopy(self.struct_module.DEFAULT_MP_)
+            fallback_mp.tcache_max_bytes = self.struct_module.MAX_TCACHE_SMALL_SIZE
+            found = data.find(bytes(fallback_mp))
+
+        return section_address + found if found != -1 else None
+
     @property
     @override
     def mp(self) -> pwndbg.aglib.heap.glibc_structs.CStruct2GDB:
@@ -2119,19 +2149,7 @@ class HeuristicHeap(
             self._mp_addr = mp_via_symbol
 
         if not self._mp_addr:
-            if self.is_statically_linked():
-                section = pwndbg.aglib.proc.dump_elf_data_section()
-                section_address = pwndbg.aglib.proc.get_section_address_by_name(".data")
-            else:
-                section = pwndbg.libc.section_by_name(".data")
-                section_address = pwndbg.libc.section_address_by_name(".data")
-            if section is not None and section_address:
-                _, _, data = section
-
-                # try to find the default mp_ struct in the .data section
-                found = data.find(bytes(self.struct_module.DEFAULT_MP_))
-                if found != -1:
-                    self._mp_addr = section_address + found
+            self._mp_addr = self._find_mp_addr()
 
         if pwndbg.aglib.memory.is_readable_address(self._mp_addr):
             mps = self.malloc_par
