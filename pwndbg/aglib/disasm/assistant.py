@@ -18,12 +18,14 @@ import pwndbg.color.syntax_highlight as H
 import pwndbg.dintegration
 import pwndbg.lib.config
 import pwndbg.lib.disasm.helpers as bit_math
+import pwndbg.lib.pretty_print
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import boolean_to_instruction_condition
 from pwndbg.color import message
+from pwndbg.emu.emulator import EmulatorCrashData
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.regs import PseudoEmulatedRegisterFile
 
@@ -88,7 +90,7 @@ pwndbg.config.add_param(
 )
 
 
-def syntax_highlight(ins):
+def syntax_highlight(ins: str):
     return H.syntax_highlight(ins, filename=".asm")
 
 
@@ -157,6 +159,11 @@ class DisassemblyAssistant:
     Otherwise, we use the emulator.
     """
 
+    emu_crash_reason: EmulatorCrashData | None = None
+    """
+    If the emulator stopped while we attempted to step it, this will contain the data for the crash
+    """
+
     def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         self.architecture = architecture
         self.manual_register_values = PseudoEmulatedRegisterFile(
@@ -164,7 +171,7 @@ class DisassemblyAssistant:
         )
 
         self.op_handlers: dict[
-            int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator], int | None]
+            int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator | None], int | None]
         ] = {
             CS_OP_IMM: self._parse_immediate,  # Return immediate value
             CS_OP_REG: self._parse_register,  # Return value of register
@@ -191,6 +198,9 @@ class DisassemblyAssistant:
 
         This is the only public method that should be called on this object externally.
         """
+        # Reset this every time we enhance (and thus try to step the emulator)
+        self.emu_crash_reason = None
+
         instruction.enhanced = True
         # It is assumed that the emulator's pc is at the instruction's address
 
@@ -311,11 +321,11 @@ class DisassemblyAssistant:
             print("Done enhancing")
 
     # This is run before enhancement - often used to handle edge case behavior
-    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         return None
 
     # Subclasses for specific architecture should override this
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         """
         The goal of this function is to set the `annotation` field of the instruction,
         which is the string to be printed in a disasm view.
@@ -323,7 +333,7 @@ class DisassemblyAssistant:
         return
 
     def _enhance_operands(
-        self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
+        self, instruction: PwndbgInstruction, emu: Emulator | None, jump_emu: Emulator | None
     ) -> bool:
         """
         Enhances the operands by determining values and symbols
@@ -385,10 +395,13 @@ class DisassemblyAssistant:
                     )
 
         # Execute the instruction
-        if jump_emu and None in jump_emu.single_step(instruction=instruction):
-            # This branch is taken if stepping the emulator failed
-            jump_emu = None
-            emu = None
+        if jump_emu:
+            step_attempt = jump_emu.single_step(instruction=instruction)
+            if not step_attempt.success:
+                # This branch is taken if stepping the emulator failed
+                jump_emu = None
+                emu = None
+                self.emu_crash_reason = step_attempt.emulator_crash_data
 
         # Set after_value after single stepping the emulator
         if emu is not None:
@@ -423,7 +436,7 @@ class DisassemblyAssistant:
 
     # Delegates to "read_register", which takes Capstone ID for register.
     def _parse_register(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         reg = op.reg
         return self._read_register(instruction, reg, emu)
@@ -431,17 +444,17 @@ class DisassemblyAssistant:
     # Determine memory address of operand (Ex: in x86, mov rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
     # Subclasses override for specific architectures
     def _parse_memory(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         return None
 
     def _parse_immediate(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         return op.imm
 
     def _read_register(
-        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
+        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator | None
     ) -> int | None:
         """
         Read value in register. Return None if cannot reason about the value in the register.
@@ -651,7 +664,7 @@ class DisassemblyAssistant:
 
         return None
 
-    def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         if CS_GRP_INT not in instruction.groups:
             return
 
@@ -667,7 +680,9 @@ class DisassemblyAssistant:
                 or f"<unk_{instruction.syscall}>"
             )
 
-    def _get_syscall_arch_info(self, instruction) -> tuple[str, str]:
+    def _get_syscall_arch_info(
+        self, instruction: PwndbgInstruction
+    ) -> tuple[str, str] | tuple[None, None]:
         """
         Return tuple of (name of syscall architecture, syscall register name)
 
@@ -677,7 +692,7 @@ class DisassemblyAssistant:
             return (None, None)
         return (pwndbg.aglib.arch.name, pwndbg.aglib.arch.syscall_abi.syscall_register)
 
-    def _enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         """
         Sets the `condition` of the instruction
 
@@ -695,11 +710,13 @@ class DisassemblyAssistant:
         instruction.condition = self._condition(instruction, emu)
 
     # Subclasses should override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         return InstructionCondition.UNCONDITIONAL
 
     def _enhance_next(
-        self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
+        self, instruction: PwndbgInstruction, emu: Emulator | None, jump_emu: Emulator | None
     ) -> None:
         """
         Set the `next` and `target` field of the instruction.
@@ -855,7 +872,7 @@ class DisassemblyAssistant:
         return repr(instruction)
 
     # String functions assume the .before_value and .after_value have been set
-    def _immediate_string(self, instruction, operand) -> str:
+    def _immediate_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand) -> str:
         return pwndbg.lib.pretty_print.int_to_string(operand.before_value)
 
     def _register_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
