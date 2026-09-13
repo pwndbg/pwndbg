@@ -211,7 +211,7 @@ class RegisterSet:
     retval: str | None
     """Return value register"""
 
-    common: list[str] = []
+    common: list[str]
     """Common registers which should be displayed in the register context"""
 
     kernel: KernelRegisterSet | None
@@ -244,8 +244,8 @@ class RegisterSet:
         stack: Reg = Reg("sp"),
         frame: Reg | None = None,
         retaddr: tuple[Reg, ...] = (),
-        flags: dict[str, BitFlags] = None,
-        extra_flags: dict[str, BitFlags] = None,
+        flags: dict[str, BitFlags] | None = None,
+        extra_flags: dict[str, BitFlags] | None = None,
         gpr: tuple[Reg, ...] = (),
         misc: tuple[str, ...] = (),
         args: tuple[str, ...] = (),
