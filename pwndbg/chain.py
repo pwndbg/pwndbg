@@ -18,7 +18,7 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
 from pwndbg.lib.memory import Page
 
-LIMIT = pwndbg.config.add_param(
+deref_limit = pwndbg.config.add_param(
     "dereference-limit", 5, "max number of pointers to dereference in a chain"
 )
 
@@ -35,7 +35,7 @@ c = ColorConfig(
 
 def get(
     address: int | None,
-    limit: int = LIMIT,
+    limit: int | None = None,
     offset: int = 0,
     hard_stop: int | None = None,
     hard_end: int = 0,
@@ -61,7 +61,8 @@ def get(
         return None
     assert address >= 0, "address must be positive"
 
-    limit = int(limit)
+    if limit is None:
+        limit = int(deref_limit)
 
     result = [address] if include_start else []
 
@@ -104,7 +105,7 @@ config_contiguous = theme.add_param(
 
 def format(
     value: int | list[int] | None,
-    limit: int = LIMIT,
+    limit: int | None = None,
     code: bool = True,
     offset: int = 0,
     hard_stop: int | None = None,
@@ -133,7 +134,8 @@ def format(
     if value is None:
         return "<unavailable>"
 
-    limit = int(limit)
+    if limit is None:
+        limit = int(deref_limit)
 
     # Allow results from get function to be passed to format
     if isinstance(value, list):
