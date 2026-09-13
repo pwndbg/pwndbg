@@ -879,7 +879,7 @@ def test_aarch64_reference(qemu_start_binary):
 
     # verify call argument are enriched
     gdb.execute("stepuntilasm bl")
-    assembly = gdb.execute("nearpc", to_string=True)
+    assembly = gdb.execute("emulate", to_string=True)
     assert "'Not enough args'" in assembly
 
     gdb.execute("argv", to_string=True)

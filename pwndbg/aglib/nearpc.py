@@ -691,7 +691,7 @@ def nearpc(
 
         # For call instructions, attempt to resolve the target and
         # determine the number of arguments.
-        if show_args:
+        if show_args and not linear:
             result.extend(
                 f"{'':>8}{arg}" for arg in pwndbg.arguments.format_args(instruction=instruction)
             )
