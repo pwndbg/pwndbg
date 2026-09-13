@@ -387,7 +387,7 @@ async def test_context_disasm_memory_indirect_jmp_unmapped_jump_target(ctrl: Con
         dis_2 = "\n".join(dis_2.split("\n")[2:])
 
         expected_2 = (
-            "   0x400080 <_start>      mov    rbx, rsp     RBX => 0x7fffffffd6a0 ◂— 1\n"
+            f"   0x400080 <_start>      mov    rbx, rsp     RBX => {rsp:#x} ◂— 1\n"
             " ► 0x400083 <_start+3>    jmp    qword ptr [rbx]             <1>\n"
             "    ↓\n"
             "\n"
