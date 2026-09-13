@@ -1124,8 +1124,12 @@ class DisassemblyAssistant:
         if len(instruction.operands) == 2:
             left, right = instruction.operands
             # If we already used emulation, use the result, otherwise take the source operand before_value
-            result = left.after_value or right.before_value
-            if result is not None and result >= 0:
+            result = left.after_value if left.after_value is not None else right.before_value
+
+            if result is not None:
+                # It may be a negative number if it was an immediate
+                result &= pwndbg.aglib.arch.ptrmask
+
                 # We have determined the value written to this register - propagate this to future instructions.
                 instruction.register_writes[left.reg] = result
 
