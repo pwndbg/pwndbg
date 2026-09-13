@@ -423,8 +423,6 @@ class Emulator:
     ) -> str:
         # Code is near identical to pwndbg.chain.format, but takes into account reading from
         # the emulator's memory when necessary
-        arrow_left = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_left} ")
-        arrow_right = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_right} ")
 
         # Colorize the chain
         rest = []
@@ -444,20 +442,25 @@ class Emulator:
         # Enhance the last entry
         # If there are no pointers (e.g. eax = 0x41414141), then enhance it
         if len(chain) == 1:
-            enhanced = self.telescope_enhance(
+            return self.telescope_enhance(
                 chain[-1], code=True, enhance_string_len=enhance_string_len
             )
-        elif len(chain) < limit + 1:
+        if len(chain) < limit + 1:
             enhanced = self.telescope_enhance(
                 chain[-2], code=True, enhance_string_len=enhance_string_len
             )
         else:
             enhanced = pwndbg.chain.c.contiguous_marker(f"{pwndbg.chain.config_contiguous}")
 
-        if len(chain) == 1:
-            return enhanced
+        arrow_right = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_right} ")
 
-        return arrow_right.join(rest) + arrow_left + enhanced
+        # Show left arrow if we finished dereferencing the chain, otherwise, use right arrow
+        if len(chain) <= limit:
+            arrow_last = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_left} ")
+        else:
+            arrow_last = arrow_right
+
+        return arrow_right.join(rest) + arrow_last + enhanced
 
     def telescope_enhance(self, value: int, code: bool = True, enhance_string_len: int = None):
         # Near identical to pwndbg.enhance.enhance, just read from emulator memory
