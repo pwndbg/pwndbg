@@ -318,6 +318,7 @@ MEMORY_INDIRECT_JMP_UNMAPPED_JUMP_TARGET = get_binary(
 @pwndbg_test
 async def test_context_disasm_memory_indirect_jmp_unmapped_jump_target(ctrl: Controller) -> None:
 
+    import pwndbg.aglib
     import pwndbg.color
 
     await ctrl.launch(MEMORY_INDIRECT_JMP_UNMAPPED_JUMP_TARGET)
@@ -328,8 +329,10 @@ async def test_context_disasm_memory_indirect_jmp_unmapped_jump_target(ctrl: Con
     # Remove the header as it varies between the emulation being on or off
     dis_0 = "\n".join(dis_0.split("\n")[2:])
 
+    rsp = pwndbg.aglib.regs.sp
+
     expected_0 = (
-        " ► 0x400080 <_start>      mov    rbx, rsp     RBX => 0x7fffffffd6a0 ◂— 1\n"
+        f" ► 0x400080 <_start>      mov    rbx, rsp     RBX => {rsp:#x} ◂— 1\n"
         "   0x400083 <_start+3>    jmp    qword ptr [rbx]             <1>\n"
         "    ↓\n"
         "\n"
@@ -354,7 +357,7 @@ async def test_context_disasm_memory_indirect_jmp_unmapped_jump_target(ctrl: Con
     dis_1 = "\n".join(dis_1.split("\n")[2:])
 
     expected_1 = (
-        " ► 0x400080 <_start>      mov    rbx, rsp               RBX => 0x7fffffffd6a0 ◂— 1\n"
+        f" ► 0x400080 <_start>      mov    rbx, rsp               RBX => {rsp:#x} ◂— 1\n"
         "   0x400083 <_start+3>    jmp    qword ptr [rbx]\n"
         " \n"
         "   0x400085               add    byte ptr [rax], al\n"
@@ -470,3 +473,69 @@ async def test_context_disasm_memory_indirect_jmp_unmapped_memory_address(ctrl: 
         )
 
         assert dis_1 == expected_1
+
+
+RET_WITH_RSP_AT_UNMAPPED_ADDRESS = get_binary("ret_with_rsp_at_unmapped_address.x86-64.out")
+
+
+@pwndbg_test
+async def test_context_disasm_ret_with_rsp_at_unmapped_address(ctrl: Controller) -> None:
+
+    import pwndbg.color
+
+    await ctrl.launch(RET_WITH_RSP_AT_UNMAPPED_ADDRESS)
+
+    dis_0 = await ctrl.execute_and_capture("context disasm")
+    dis_0 = pwndbg.color.strip(dis_0)
+
+    # Remove the header as it varies between the emulation being on or off
+    dis_0 = "\n".join(dis_0.split("\n")[2:])
+
+    # TODO: fix address truncation
+    expected_0 = (
+        " ► 0x400080 <_start>      mov    rsp, 0xffffffffdeadbeef     RSP => 0xffffffffdeadbeef\n"
+        "   0x400087 <_start+7>    ret                                <Cannot dereference [0xffffffffdeadbeef]>\n"
+        " \n"
+        "   0x400088               add    byte ptr [rax], al\n"
+        "   0x40008a               add    byte ptr [rax], al\n"
+        "   0x40008c               add    byte ptr [rax], al\n"
+        "   0x40008e               add    byte ptr [rax], al\n"
+        "   0x400090               add    byte ptr [rax], al\n"
+        "   0x400092               add    byte ptr [rax], al\n"
+        "   0x400094               add    byte ptr [rax], al\n"
+        "   0x400096               add    byte ptr [rax], al\n"
+        "   0x400098               add    byte ptr [rax], al\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_0 == expected_0
+
+    await ctrl.step_instruction()
+
+    # With and without emulation, we should determine the same address
+    for emulate_option in ("on", "off"):
+        await ctrl.execute(f"set emulate {emulate_option}")
+
+        dis_2 = await ctrl.execute_and_capture("context disasm")
+        dis_2 = pwndbg.color.strip(dis_2)
+
+        # Remove the header as it varies between the emulation being on or off
+        dis_2 = "\n".join(dis_2.split("\n")[2:])
+
+        expected_2 = (
+            "   0x400080 <_start>      mov    rsp, 0xffffffffdeadbeef     RSP => 0xffffffffdeadbeef\n"
+            " ► 0x400087 <_start+7>    ret                                <Cannot dereference [0xffffffffdeadbeef]>\n"
+            " \n"
+            "   0x400088               add    byte ptr [rax], al\n"
+            "   0x40008a               add    byte ptr [rax], al\n"
+            "   0x40008c               add    byte ptr [rax], al\n"
+            "   0x40008e               add    byte ptr [rax], al\n"
+            "   0x400090               add    byte ptr [rax], al\n"
+            "   0x400092               add    byte ptr [rax], al\n"
+            "   0x400094               add    byte ptr [rax], al\n"
+            "   0x400096               add    byte ptr [rax], al\n"
+            "   0x400098               add    byte ptr [rax], al\n"
+            "────────────────────────────────────────────────────────────────────────────────\n"
+        )
+
+        assert dis_2 == expected_2

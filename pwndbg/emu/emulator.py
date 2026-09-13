@@ -320,7 +320,8 @@ class Emulator:
         debug(DEBUG_INIT, "uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
         self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
 
-        if enable_virtual_tlb.get(self.arch, False):
+        # TODO: this is temporary for testing. Probably make this always true
+        if True or enable_virtual_tlb.get(self.arch, False):
             debug(DEBUG_INIT, "# Setting TLB mode to virtual")
             self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
 
