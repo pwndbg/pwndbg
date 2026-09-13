@@ -417,7 +417,7 @@ class Emulator:
             if e.errno == U.UC_ERR_READ_UNMAPPED:
                 try:
                     first_page = pwndbg.lib.memory.page_align(address)
-                    last_page_exclusive = pwndbg.lib.memory.page_size_align(
+                    last_page_exclusive = pwndbg.lib.memory.page_align(
                         address + size + pwndbg.lib.memory.PAGE_SIZE
                     )
 
