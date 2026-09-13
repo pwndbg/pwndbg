@@ -164,6 +164,8 @@ arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]]
     "s390x": create_reg_to_const_map(arch_to_UC_consts["s390x"]),
 }
 
+# TODO: should just enable virtual tlb for all architectures
+
 # Architectures for which we want to enable virtual TLB mode
 enable_virtual_tlb: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, bool] = {
     "s390x": True,
@@ -415,7 +417,7 @@ class Emulator:
             if e.errno == U.UC_ERR_READ_UNMAPPED:
                 try:
                     first_page = pwndbg.lib.memory.page_align(address)
-                    last_page_exclusive = pwndbg.lib.memory.page_align(
+                    last_page_exclusive = pwndbg.lib.memory.page_size_align(
                         address + size + pwndbg.lib.memory.PAGE_SIZE
                     )
 
@@ -816,8 +818,10 @@ class Emulator:
         debug(DEBUG_HOOK_CHANGE, "uc.hook_del(*%r, **%r)", (a, kw))
         return self.uc.hook_del(*a, **kw)
 
-    # Can throw a UcError(status)
     def emu_start(self, *a, **kw):
+        """
+        Can throw a UcError(status)
+        """
         debug(DEBUG_EMU_START_STOP, "uc.emu_start(*%r, **%r)", (a, kw))
         return self.uc.emu_start(*a, **kw)
 
