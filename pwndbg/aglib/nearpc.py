@@ -197,7 +197,7 @@ def preprocess_branch_visualization(
                 jumps.append(JumpRange(instruction.address, instruction.target))
             elif instruction.target_memory_operand is not None:
                 # This is a `jmp [mem]` instruction, and this value is the target based on the current process state
-                target = instruction.target_memory_operand.before_value_resolved
+                target = instruction.target_memory_operand.value
 
                 if target is None:
                     continue
@@ -209,6 +209,8 @@ def preprocess_branch_visualization(
                 # the branch visualization would most definitely span a huge address range, where it's no longer helpful
                 if abs(target - instruction.address) < 100:
                     jumps.append(JumpRange(instruction.address, target))
+
+    jumps.sort(key=lambda x: x.max - x.min)
 
     # Of the jumpranges we processed last time, which ones do we keep? Relevant for repeat nearpc
     continued_ranges: set[JumpRange] = set()
@@ -689,7 +691,7 @@ def nearpc(
 
         # For call instructions, attempt to resolve the target and
         # determine the number of arguments.
-        if show_args:
+        if show_args and not linear:
             result.extend(
                 f"{'':>8}{arg}" for arg in pwndbg.arguments.format_args(instruction=instruction)
             )

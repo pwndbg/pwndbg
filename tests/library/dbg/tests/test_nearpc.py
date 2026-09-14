@@ -129,7 +129,7 @@ async def test_nearpc_opcode_bytes(ctrl: Controller, opcode_bytes: int) -> None:
     await ctrl.execute("nextsyscall")
 
     await ctrl.execute(f"set nearpc-num-opcode-bytes {opcode_bytes}")
-    dis = await ctrl.execute_and_capture("nearpc -t 11")
+    dis = await ctrl.execute_and_capture("emulate -t 11")
     expected = (
         "   0x400080 {} <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 {} <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -158,7 +158,7 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
     await ctrl.execute("set nearpc-num-opcode-bytes 5")
     await ctrl.execute(f"set nearpc-opcode-separator-bytes {separator_bytes}")
 
-    dis = await ctrl.execute_and_capture("nearpc -t 11")
+    dis = await ctrl.execute_and_capture("emulate -t 11")
     excepted = (
         "   0x400080 {} <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 {} <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -330,11 +330,11 @@ async def test_nearpc_branch_visualization(ctrl: Controller) -> None:
         "                                          ││ \n"
         "   0x40008f <B>                           │└>   sub    eax, 1\n"
         "   0x400092 <B+3>                         │     cmp    eax, 0\n"
-        "   0x400095 <B+6>                        ┌──<   jne    C                           <C>\n"
-        "                                         ││  \n"
-        "   0x400097 <B+8>                        ││     nop   \n"
-        "   0x400098 <B+9>                        ││     nop   \n"
-        "   0x400099 <C>                          └└─>   ret   \n"
+        "   0x400095 <B+6>                         │┌<   jne    C                           <C>\n"
+        "                                          ││ \n"
+        "   0x400097 <B+8>                         ││    nop   \n"
+        "   0x400098 <B+9>                         ││    nop   \n"
+        "   0x400099 <C>                           └└>   ret   \n"
     )
 
     assert dis == expected
@@ -467,9 +467,6 @@ async def test_nearpc_plt_jumps_lazy_binding_x86_64(
 
     dis_1 = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 -t 15")
     dis_1 = pwndbg.color.strip(dis_1)
-
-    for line in dis_1.split("\n"):
-        print(f'"{line}\\n"')
 
     # At this point, some of the symbols have been resolved
     expected_1 = (
