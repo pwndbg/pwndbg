@@ -164,12 +164,6 @@ arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]]
     "s390x": create_reg_to_const_map(arch_to_UC_consts["s390x"]),
 }
 
-# Architectures for which we want to enable virtual TLB mode
-enable_virtual_tlb: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, bool] = {
-    "s390x": True,
-    "powerpc": True,
-    "sparc": True,
-}
 
 # combine the flags with | operator. -1 for all
 (
@@ -318,9 +312,8 @@ class Emulator:
         debug(DEBUG_INIT, "uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
         self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
 
-        if enable_virtual_tlb.get(self.arch, False):
-            debug(DEBUG_INIT, "# Setting TLB mode to virtual")
-            self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
+        debug(DEBUG_INIT, "# Setting TLB mode to virtual")
+        self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
 
         self.reg_set: pwndbg.lib.regs.RegisterSet = pwndbg.aglib.regs.current
 
@@ -816,8 +809,10 @@ class Emulator:
         debug(DEBUG_HOOK_CHANGE, "uc.hook_del(*%r, **%r)", (a, kw))
         return self.uc.hook_del(*a, **kw)
 
-    # Can throw a UcError(status)
     def emu_start(self, *a, **kw):
+        """
+        Can throw a UcError(status)
+        """
         debug(DEBUG_EMU_START_STOP, "uc.emu_start(*%r, **%r)", (a, kw))
         return self.uc.emu_start(*a, **kw)
 

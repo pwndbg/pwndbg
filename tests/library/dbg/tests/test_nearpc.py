@@ -468,9 +468,6 @@ async def test_nearpc_plt_jumps_lazy_binding_x86_64(
     dis_1 = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 -t 15")
     dis_1 = pwndbg.color.strip(dis_1)
 
-    for line in dis_1.split("\n"):
-        print(f'"{line}\\n"')
-
     # At this point, some of the symbols have been resolved
     expected_1 = (
         " ► 0x555555555670                                 ┌┌┌┌>   push   qword ptr [rip + 0x11b2]\n"

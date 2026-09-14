@@ -22,6 +22,7 @@ import pwndbg.lib.pretty_print
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
+from pwndbg.aglib.disasm.instruction import MemoryDereferenceInfo
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import boolean_to_instruction_condition
 from pwndbg.color import message
@@ -515,13 +516,6 @@ class DisassemblyAssistant:
 
         return None
 
-    # Pass in a operand and it's value, and determine the actual value used during an instruction
-    # Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
-    # a register or a memory value to dereference, and we want the actual value used.
-    # Override this to implement memory lookups in given architecture (if it's relevent)
-    # Different architecture read memory differently:
-    # - Only a couple Capstone architectures support the memory .size field, which determines read width.
-    # - In others, read/write width is implied.
     def _resolve_used_value(
         self,
         value: int | None,
@@ -530,6 +524,15 @@ class DisassemblyAssistant:
         emu: Emulator | None,
         force_allow_process_read: bool = False,
     ) -> int | None:
+        """
+        Pass in a operand and it's value, and determine the actual value used during an instruction
+        Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
+        a register or a memory value to dereference, and we want the actual value used.
+        Override this to implement memory lookups in given architecture (if it's relevent)
+        Different architecture read memory differently:
+        - Only a couple Capstone architectures support the memory .size field, which determines read width.
+        - In others, read/write width is implied.
+        """
         if value is None:
             return None
 
@@ -829,13 +832,29 @@ class DisassemblyAssistant:
         # Assume only single-operand jumps.
         if len(instruction.operands) == 1:
             op = instruction.operands[0]
-            addr = self._resolve_used_value(op.before_value, instruction, op, emu)
-            if addr:
+            addr = op.before_value_resolved
+            if addr is not None:
                 addr &= pwndbg.aglib.arch.ptrmask
             elif op.is_mem_with_constant_addr and op.before_value is not None:
-                instruction.target_memory_operand = op
-                instruction.target_memory_operand.before_value_resolved = self._resolve_used_value(
+                # The memory lookup failed. If it's a constant address, it possibly because
+                # we couldn't reason about the memory value (writable memory) at the moment the process is paused
+                # Example: `jmp [constant_address]`, where constant_address is in writable memory
+                before_value_resolved = self._resolve_used_value(
                     op.before_value, instruction, op, emu, force_allow_process_read=True
+                )
+                instruction.target_memory_operand = MemoryDereferenceInfo(
+                    op.before_value, op.str, before_value_resolved
+                )
+            elif (
+                op.type == CS_OP_MEM
+                and op.before_value is not None
+                and not pwndbg.aglib.memory.peek(op.before_value)
+            ):
+                # We have memory address that we know is not a constant address.
+                # And we were unable to read the memory location containing the jump target.
+                # Example: `jmp [rax]`, where the `rax` is in unmapped memory
+                instruction.target_memory_operand = MemoryDereferenceInfo(
+                    op.before_value, op.str, None
                 )
         else:
             # Some architectures have jumps with multiple operands. In this case, this default implementation
@@ -844,7 +863,7 @@ class DisassemblyAssistant:
 
             # Reversed order, just because through observation the immediates and labels are often farther right
             for op in reversed(instruction.operands):
-                resolved_addr = self._resolve_used_value(op.before_value, instruction, op, emu)
+                resolved_addr = op.before_value_resolved
                 if resolved_addr:
                     resolved_addr &= pwndbg.aglib.arch.ptrmask
                     if op.symbol:
@@ -1105,8 +1124,12 @@ class DisassemblyAssistant:
         if len(instruction.operands) == 2:
             left, right = instruction.operands
             # If we already used emulation, use the result, otherwise take the source operand before_value
-            result = left.after_value or right.before_value
-            if result is not None and result >= 0:
+            result = left.after_value if left.after_value is not None else right.before_value
+
+            if result is not None:
+                # It may be a negative number if it was an immediate
+                result &= pwndbg.aglib.arch.ptrmask
+
                 # We have determined the value written to this register - propagate this to future instructions.
                 instruction.register_writes[left.reg] = result
 

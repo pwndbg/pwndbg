@@ -4,6 +4,7 @@ import pwndbg.aglib
 import pwndbg.aglib.nearpc
 import pwndbg.color.context as ctx_color
 import pwndbg.color.memory
+import pwndbg.color.memory as mem_color
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -11,6 +12,7 @@ from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import gray
 from pwndbg.color import ljust_colored
+from pwndbg.color import message
 from pwndbg.color import strip
 from pwndbg.color import theme
 from pwndbg.color.message import off
@@ -100,16 +102,18 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
             if current_group:
                 groups.append(current_group)
                 current_group = []
-        elif (
-            ins.target_memory_operand is not None
-            and ins.target_memory_operand.before_value_resolved is not None
-        ):
-            current_target = pwndbg.color.memory.get_address_or_symbol(
-                ins.target_memory_operand.before_value_resolved & pwndbg.aglib.arch.ptrmask,
-                pwndbg.dintegration.manager.get_stack_var_dict_all(),
-            )
+        elif ins.target_memory_operand is not None:
+            if ins.target_memory_operand.value is not None:
+                current_target = pwndbg.color.memory.get_address_or_symbol(
+                    ins.target_memory_operand.value & pwndbg.aglib.arch.ptrmask,
+                    pwndbg.dintegration.manager.get_stack_var_dict_all(),
+                )
+                target_string = f"{ins.target_memory_operand.address_string}, now={current_target}"
+            else:
+                target_string = message.error(
+                    f"Cannot dereference [{mem_color.get(ins.target_memory_operand.address)}]"
+                )
 
-            target_string = f"{ins.target_memory_operand.str}, now={current_target}"
             asm = f"{ljust_colored(asm, 36)} <{target_string}>"
 
             paddings.append(None)

@@ -17,6 +17,7 @@ from pwndbg.aglib.disasm.assistant import memory_or_register_assign
 from pwndbg.aglib.disasm.assistant import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
+from pwndbg.aglib.disasm.instruction import MemoryDereferenceInfo
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import message
 from pwndbg.emu.emulator import EmulatorCrashReason
@@ -412,12 +413,19 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         if not self.can_reason_about_process_state():
             # If the CPU crashed executing this RET because of an unmapped address while fetching,
             # then we know it must be because the target address was not mapped
-            if (
-                self.emu_crash_reason is not None
-                and self.emu_crash_reason.emulator_crash_reason
-                == EmulatorCrashReason.UNMAPPED_CPU_FETCH
-            ):
-                return self.emu_crash_reason.fault_address
+            if self.emu_crash_reason is not None:
+                if (
+                    self.emu_crash_reason.emulator_crash_reason
+                    == EmulatorCrashReason.UNMAPPED_CPU_FETCH
+                ):
+                    return self.emu_crash_reason.fault_address
+                if self.emu_crash_reason.emulator_crash_reason == EmulatorCrashReason.UNMAPPED_READ:
+                    # This means that the stack pointer does not point to readable memory!
+                    instruction.target_memory_operand = MemoryDereferenceInfo(
+                        self.emu_crash_reason.fault_address, None, None
+                    )
+                    return None
+
             return super()._resolve_target(instruction, emu)
 
         # Otherwise, resolve the return on the stack
@@ -429,6 +437,8 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
             return int(
                 pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.ppvoid, address)
             )
+        # The RSP does not point to readable memory!
+        instruction.target_memory_operand = MemoryDereferenceInfo(address, None, None)
 
     @override
     def _condition(

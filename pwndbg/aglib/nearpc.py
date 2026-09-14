@@ -197,7 +197,7 @@ def preprocess_branch_visualization(
                 jumps.append(JumpRange(instruction.address, instruction.target))
             elif instruction.target_memory_operand is not None:
                 # This is a `jmp [mem]` instruction, and this value is the target based on the current process state
-                target = instruction.target_memory_operand.before_value_resolved
+                target = instruction.target_memory_operand.value
 
                 if target is None:
                     continue
