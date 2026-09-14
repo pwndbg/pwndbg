@@ -164,14 +164,6 @@ arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]]
     "s390x": create_reg_to_const_map(arch_to_UC_consts["s390x"]),
 }
 
-# TODO: should just enable virtual tlb for all architectures
-
-# Architectures for which we want to enable virtual TLB mode
-enable_virtual_tlb: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, bool] = {
-    "s390x": True,
-    "powerpc": True,
-    "sparc": True,
-}
 
 # combine the flags with | operator. -1 for all
 (
@@ -320,10 +312,8 @@ class Emulator:
         debug(DEBUG_INIT, "uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
         self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
 
-        # TODO: this is temporary for testing. Probably make this always true
-        if True or enable_virtual_tlb.get(self.arch, False):
-            debug(DEBUG_INIT, "# Setting TLB mode to virtual")
-            self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
+        debug(DEBUG_INIT, "# Setting TLB mode to virtual")
+        self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
 
         self.reg_set: pwndbg.lib.regs.RegisterSet = pwndbg.aglib.regs.current
 
