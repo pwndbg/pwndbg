@@ -146,4 +146,3 @@ fi
 set +o xtrace
 echo ""
 echo "[success] Lint passed!"
-set -o xtrace
