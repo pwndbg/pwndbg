@@ -7,7 +7,9 @@ from __future__ import annotations
 import binascii
 import re
 import string
-from typing import NamedTuple
+from dataclasses import dataclass
+from enum import Enum
+from enum import auto
 
 import capstone6pwndbg as C
 import unicorn as U
@@ -162,12 +164,6 @@ arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]]
     "s390x": create_reg_to_const_map(arch_to_UC_consts["s390x"]),
 }
 
-# Architectures for which we want to enable virtual TLB mode
-enable_virtual_tlb: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, bool] = {
-    "s390x": True,
-    "powerpc": True,
-    "sparc": True,
-}
 
 # combine the flags with | operator. -1 for all
 (
@@ -183,7 +179,7 @@ enable_virtual_tlb: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, bool] = {
 ) = (0, 1, 2, 4, 8, 16, 32, 64, 128)
 
 DEBUG = NO_DEBUG
-# DEBUG = -1 # ALL
+# DEBUG = -1  # ALL
 # DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
 
 if DEBUG != NO_DEBUG:
@@ -198,6 +194,12 @@ else:
         pass
 
 
+# For debug printing
+DEBUG_MEM_FAULT_TYPE_NAME = {
+    U.UC_MEM_READ_UNMAPPED: "READ_UNMAPPED",
+    U.UC_MEM_WRITE_UNMAPPED: "WRITE_UNMAPPED",
+    U.UC_MEM_FETCH_UNMAPPED: "FETCH_UNMAPPED",
+}
 # Until Unicorn Engine provides full information about the specific instruction
 # being executed for all architectures, we must rely on Capstone to provide
 # that information.
@@ -246,14 +248,56 @@ e.until_jump()
 """
 
 
-class InstructionExecutedResult(NamedTuple):
-    address: int
-    size: int
+class EmulatorCrashReason(Enum):
+    INTERRUPT = (auto(),)
+    UNMAPPED_WRITE = auto()
+    UNMAPPED_READ = auto()
+    UNMAPPED_CPU_FETCH = auto()
+    """
+    This is set whenever the CPU fetches and instruction from unmapped location.
+    """
+
+
+@dataclass
+class EmulatorCrashData:
+    emulator_crash_reason: EmulatorCrashReason
+    fault_address: int
+    fault_written_value: int | None = None
+    """
+    If the fault type is WRITE, then this is set to the value
+    that we attempted to write
+    """
+
+
+@dataclass
+class InstructionExecutedResult:
+    success: bool
+    """
+    Did Unicorn successfully execute the instruction (without segfaulting/interrupt)
+    """
+    address: int | None
+    """
+    The instruction that was attempted
+    """
+    size: int | None
+    """
+    The size of the last instruction attempted
+    """
+    emulator_crash_data: EmulatorCrashData | None = None
 
 
 # Instantiating an instance of `Emulator` will start an instance
 # with a copy of the current processor state.
 class Emulator:
+    last_emulator_crash_data: EmulatorCrashData | None = None
+    """
+    This is set whenever some event that COULD cause a crash occurs.
+
+    For example, on a memory fault, this is set.
+
+    However, it may be benign, since we lazily copy memory into the emulator.
+    """
+
     def __init__(self) -> None:
         self.arch = pwndbg.aglib.arch.name
 
@@ -268,9 +312,8 @@ class Emulator:
         debug(DEBUG_INIT, "uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
         self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
 
-        if enable_virtual_tlb.get(self.arch, False):
-            debug(DEBUG_INIT, "# Setting TLB mode to virtual")
-            self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
+        debug(DEBUG_INIT, "# Setting TLB mode to virtual")
+        self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
 
         self.reg_set: pwndbg.lib.regs.RegisterSet = pwndbg.aglib.regs.current
 
@@ -287,8 +330,10 @@ class Emulator:
         # The address of the last successfully executed instruction using single_step
         self.last_pc: int | None = None
 
+        self.last_emulator_crash_data = None
+
         # (address_successfully_executed, size_of_instruction)
-        self.last_single_step_result = InstructionExecutedResult(None, None)
+        self.last_single_step_result = InstructionExecutedResult(False, None, None)
 
         # Initialize the register state
         for emu_reg in self.reg_set.emulated_regs_order:
@@ -332,7 +377,7 @@ class Emulator:
 
     @property
     def last_step_succeeded(self) -> bool:
-        return None not in self.last_single_step_result
+        return self.last_single_step_result.success
 
     def read_register(self, name: str):
         reg = self.get_reg_enum(name)
@@ -388,7 +433,7 @@ class Emulator:
     # Recursively dereference memory, return list of addresses
     # read_size typically must be either 1, 2, 4, or 8. It dictates the size to read
     # Naturally, if it is less than the pointer size, then only one value would be telescoped
-    def telescope(self, address: int, limit: int, read_size: int = None) -> list[int]:
+    def telescope(self, address: int, limit: int, read_size: int | None = None) -> list[int]:
         read_size = read_size if read_size is not None else pwndbg.aglib.arch.ptrsize
 
         result = [address]
@@ -423,8 +468,6 @@ class Emulator:
     ) -> str:
         # Code is near identical to pwndbg.chain.format, but takes into account reading from
         # the emulator's memory when necessary
-        arrow_left = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_left} ")
-        arrow_right = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_right} ")
 
         # Colorize the chain
         rest = []
@@ -444,20 +487,25 @@ class Emulator:
         # Enhance the last entry
         # If there are no pointers (e.g. eax = 0x41414141), then enhance it
         if len(chain) == 1:
-            enhanced = self.telescope_enhance(
+            return self.telescope_enhance(
                 chain[-1], code=True, enhance_string_len=enhance_string_len
             )
-        elif len(chain) < limit + 1:
+        if len(chain) < limit + 1:
             enhanced = self.telescope_enhance(
                 chain[-2], code=True, enhance_string_len=enhance_string_len
             )
         else:
             enhanced = pwndbg.chain.c.contiguous_marker(f"{pwndbg.chain.config_contiguous}")
 
-        if len(chain) == 1:
-            return enhanced
+        arrow_right = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_right} ")
 
-        return arrow_right.join(rest) + arrow_left + enhanced
+        # Show left arrow if we finished dereferencing the chain, otherwise, use right arrow
+        if len(chain) <= limit:
+            arrow_last = pwndbg.chain.c.arrow(f" {pwndbg.chain.config_arrow_left} ")
+        else:
+            arrow_last = arrow_right
+
+        return arrow_right.join(rest) + arrow_last + enhanced
 
     def telescope_enhance(self, value: int, code: bool = True, enhance_string_len: int = None):
         # Near identical to pwndbg.enhance.enhance, just read from emulator memory
@@ -651,7 +699,7 @@ class Emulator:
 
         return mode
 
-    def map_page(self, page) -> bool:
+    def map_page(self, page: int) -> bool:
         page = pwndbg.lib.memory.page_align(page)
         size = pwndbg.lib.memory.PAGE_SIZE
 
@@ -662,7 +710,7 @@ class Emulator:
         try:
             data = pwndbg.aglib.memory.read(page, size)
             data = bytes(data)
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             debug(DEBUG_MEM_MAP, "Could not map page %#x during emulation! [exception]", page)
             return False
 
@@ -679,8 +727,32 @@ class Emulator:
 
         return True
 
-    def hook_mem_invalid(self, uc, access, address, size: int, value, user_data) -> bool:
-        debug(DEBUG_MEM_MAP, "# Invalid access at %#x, attempting to map the page", address)
+    def hook_mem_invalid(
+        self, uc, access: int, address: int, size: int, value: int, user_data
+    ) -> bool:
+        debug(
+            DEBUG_MEM_MAP,
+            "# Invalid access at %#x, attempting to map the page. Fault type %s",
+            (address, DEBUG_MEM_FAULT_TYPE_NAME.get(access, access)),
+        )
+
+        if access == U.UC_MEM_FETCH_UNMAPPED:
+            # NOTE: we do NOT use the `address` value. The original address
+            # has been masked with an address mask (such as 52 bits for x86)
+            # However, for the user, we want to display the full contents of original address.
+            # We can just read the PC to get this.
+            pc = self.pc()
+            self.last_emulator_crash_data = EmulatorCrashData(
+                EmulatorCrashReason.UNMAPPED_CPU_FETCH, pc
+            )
+        elif access == U.UC_MEM_READ_UNMAPPED:
+            self.last_emulator_crash_data = EmulatorCrashData(
+                EmulatorCrashReason.UNMAPPED_READ, address
+            )
+        elif access == U.UC_MEM_WRITE_UNMAPPED:
+            self.last_emulator_crash_data = EmulatorCrashData(
+                EmulatorCrashReason.UNMAPPED_WRITE, address, value
+            )
 
         # Page-align the start address
         start = pwndbg.lib.memory.page_align(address)
@@ -698,12 +770,17 @@ class Emulator:
 
         return True
 
-    def hook_intr(self, uc, intno, user_data) -> None:
+    def hook_intr(self, uc, intno: int, user_data) -> None:
         """
         We never want to emulate through an interrupt.  Just stop.
         """
         debug(DEBUG_INTERRUPT, "Got an interrupt - %d", intno)
         self.valid = False
+
+        self.last_emulator_crash_data = EmulatorCrashData(
+            EmulatorCrashReason.INTERRUPT,
+            None,
+        )
         self.uc.emu_stop()
 
     def get_reg_enum(self, reg: str) -> int | None:
@@ -732,8 +809,10 @@ class Emulator:
         debug(DEBUG_HOOK_CHANGE, "uc.hook_del(*%r, **%r)", (a, kw))
         return self.uc.hook_del(*a, **kw)
 
-    # Can throw a UcError(status)
     def emu_start(self, *a, **kw):
+        """
+        Can throw a UcError(status)
+        """
         debug(DEBUG_EMU_START_STOP, "uc.emu_start(*%r, **%r)", (a, kw))
         return self.uc.emu_start(*a, **kw)
 
@@ -754,6 +833,13 @@ class Emulator:
         # for the execution of the next instruction. If this `emulate_with_hook` executes multiple instructions
         # which have Thumb mode transitions, Unicorn will internally handle them.
         pc |= self.read_thumb_bit()
+
+        # Tell Unicorn that we want to stop at some explicit exit points, and
+        # then make the list of exit points empty.
+        # This prevents Unicorn from using the "until" argument (second argument below),
+        # which would cause it to always stop before executing at address 0 (which may be mapped!)
+        self.uc.ctl_exits_enabled(True)
+        self.uc.ctl_set_exits([])
 
         try:
             self.emu_start(pc, 0, count=count)
@@ -837,22 +923,20 @@ class Emulator:
         )
         self.until_syscall_address = address
 
-    def single_step(self, pc=None, instruction: PwndbgInstruction | None = None) -> tuple[int, int]:
-        """Steps one instruction.
-
-        Yields:
-            Each iteration, yields a tuple of (address_just_executed, instruction_size).
-
-            Returns (None, None) upon failure to execute the instruction
+    def single_step(
+        self, pc: int | None = None, instruction: PwndbgInstruction | None = None
+    ) -> InstructionExecutedResult:
+        """
+        Steps one instruction.
         """
 
         # If the emulator has been manually marked as invalid, we should no longer step it
         if not self.valid:
-            return InstructionExecutedResult(None, None)
-
-        self.last_single_step_result = InstructionExecutedResult(None, None)
+            return InstructionExecutedResult(False, None, None)
 
         pc = pc or self.pc()
+
+        self.last_single_step_result = InstructionExecutedResult(False, pc, None)
 
         if instruction is None:
             instruction = pwndbg.aglib.disasm.disassembly.one_raw(pc)
@@ -875,15 +959,24 @@ class Emulator:
         try:
             self.single_step_hook_hit_count = 0
             self.emulate_with_hook(self.single_step_hook_code, count=1)
+
+            # If we hit an interrupt, we set .valid = False
             if not self.valid:
-                return InstructionExecutedResult(None, None)
+                if (
+                    self.last_emulator_crash_data is not None
+                    and self.last_emulator_crash_data.fault_address is None
+                ):
+                    self.last_emulator_crash_data.fault_address = pc
+                return InstructionExecutedResult(False, None, None, self.last_emulator_crash_data)
 
             # If above call does not throw an Exception, we successfully executed the instruction
             self.last_pc = pc
             debug(DEBUG_EXECUTING, "Unicorn now at pc=%#x", self.pc())
         except U.unicorn.UcError:
             debug(DEBUG_EXECUTING, "Emulator failed to execute instruction")
-            self.last_single_step_result = InstructionExecutedResult(None, None)
+            self.last_single_step_result = InstructionExecutedResult(
+                False, None, None, self.last_emulator_crash_data
+            )
 
         return self.last_single_step_result
 
@@ -902,7 +995,9 @@ class Emulator:
         # So we use a counter to ensure the code run only once
         if self.single_step_hook_hit_count == 0:
             debug(DEBUG_EXECUTING, "# single_step: %#-8x", address)
-            self.last_single_step_result = InstructionExecutedResult(address, instruction_size)
+            self.last_single_step_result = InstructionExecutedResult(
+                True, address, instruction_size
+            )
             self.single_step_hook_hit_count += 1
 
     # For debugging

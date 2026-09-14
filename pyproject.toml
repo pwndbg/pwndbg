@@ -267,7 +267,7 @@ module = [
     "pwndbg.aglib.dynamic",
     "pwndbg.gdblib.events",
     "pwndbg.gdblib.got",
-    "pwndbg.gdblib.ptmalloc2_tracking",
+    "pwndbg.gdblib.glibc_malloc_tracking",
     "pwndbg.aglib.heap.*",
     "pwndbg.ui",
     "pwndbg.wrappers.*",

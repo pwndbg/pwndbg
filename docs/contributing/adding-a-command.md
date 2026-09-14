@@ -177,9 +177,6 @@ OnlyWhenUserspace
 OnlyWithKernelDebugInfo
 OnlyWithKernelSymbols
 OnlyWhenPagingEnabled
-OnlyWithTcache
-OnlyWhenHeapIsInitialized
-OnlyWithResolvedHeapSyms
 ```
 Feel free to add more of these decorators yourself!
 
