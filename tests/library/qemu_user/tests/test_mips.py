@@ -479,10 +479,10 @@ def test_mips32_multiple_branches_followed(qemu_assembly_run, arch):
     """
     qemu_assembly_run(MIPS_JUMPS, arch)
 
-    dis = gdb.execute("context disasm", to_string=True)
-    dis = pwndbg.color.strip(dis)
+    dis_0 = gdb.execute("context disasm", to_string=True)
+    dis_0 = pwndbg.color.strip(dis_0)
 
-    expected = (
+    expected_0 = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / mips / set emulate on ]───────────────────────\n"
         " ► 0x20150 <__start>      nop   \n"
@@ -502,4 +502,59 @@ def test_mips32_multiple_branches_followed(qemu_assembly_run, arch):
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
-    assert dis == expected
+    assert dis_0 == expected_0
+
+    gdb.execute("si")
+    gdb.execute("si")
+
+    dis_1 = gdb.execute("context disasm", to_string=True)
+    dis_1 = pwndbg.color.strip(dis_1)
+
+    expected_1 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "───────────────────────[ DISASM / mips / set emulate on ]───────────────────────\n"
+        "   0x20150 <__start>      nop   \n"
+        "   0x20154 <__start+4>  ✔ beq    $t1, $t0, first             <first>\n"
+        "   0x20158 <__start+8>    nop   \n"
+        "    ↓\n"
+        " ► 0x20164 <first>        addiu  $t0, $zero, 0xa     T0 => 0xa (0x0 + 0xa)\n"
+        "   0x20168 <first+4>    ✔ bnez   $t0, second                 <second>\n"
+        "   0x2016c <first+8>      nop   \n"
+        "    ↓\n"
+        "   0x20178 <second>       b      end                         <end>\n"
+        "   0x2017c <second+4>     nop   \n"
+        "    ↓\n"
+        "   0x20188 <end>          addiu  $v0, $zero, 0xfa1     V0 => 0xfa1 (0x0 + 0xfa1)\n"
+        "   0x2018c <end+4>        addiu  $a0, $zero, 0         A0 => 0 (0 + 0)\n"
+        "   0x20190 <end+8>        syscall\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_1 == expected_1
+
+    gdb.execute("si")
+    gdb.execute("si")
+
+    dis_2 = gdb.execute("context disasm", to_string=True)
+    dis_2 = pwndbg.color.strip(dis_2)
+
+    expected_2 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "───────────────────────[ DISASM / mips / set emulate on ]───────────────────────\n"
+        "   0x20154 <__start+4>  ✔ beq    $t1, $t0, first             <first>\n"
+        "   0x20158 <__start+8>    nop   \n"
+        "    ↓\n"
+        "   0x20164 <first>        addiu  $t0, $zero, 0xa     T0 => 0xa (0x0 + 0xa)\n"
+        "   0x20168 <first+4>    ✔ bnez   $t0, second                 <second>\n"
+        "   0x2016c <first+8>      nop   \n"
+        "    ↓\n"
+        " ► 0x20178 <second>       b      end                         <end>\n"
+        "   0x2017c <second+4>     nop   \n"
+        "    ↓\n"
+        "   0x20188 <end>          addiu  $v0, $zero, 0xfa1     V0 => 0xfa1 (0x0 + 0xfa1)\n"
+        "   0x2018c <end+4>        addiu  $a0, $zero, 0         A0 => 0 (0 + 0)\n"
+        "   0x20190 <end+8>        syscall\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_2 == expected_2

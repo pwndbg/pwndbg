@@ -87,7 +87,7 @@ class RegisterManager:
                 else:
                     mask = pwndbg.aglib.arch.ptrmask
                 return int(value) & mask
-            except (ValueError, pwndbg.dbg_mod.Error):
+            except (ValueError, pwndbg.dbg_mod.DebuggerError):
                 continue
         return None
 

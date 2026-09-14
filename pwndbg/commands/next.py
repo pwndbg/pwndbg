@@ -7,6 +7,8 @@ from __future__ import annotations
 import argparse
 from collections.abc import Callable
 
+from capstone6pwndbg import CS_GRP_RET
+
 import pwndbg.aglib.next
 import pwndbg.aglib.proc
 import pwndbg.commands
@@ -78,15 +80,19 @@ async def _stepret(ec: pwndbg.dbg_mod.ExecutionController):
     """
     Execution controller for the `stepret` command.
     """
-    while (
-        pwndbg.aglib.proc.alive()
-        and not (await pwndbg.aglib.next.break_next_ret(ec))
-        and (await pwndbg.aglib.next.break_next_branch(ec))
+
+    # We may be starting on a ret. This prevents us from just sitting on the ret
+    if pwndbg.aglib.proc.alive():
+        await ec.single_step()
+
+    while pwndbg.aglib.proc.alive() and (
+        ins := await pwndbg.aglib.next.break_next_branch(ec, including_current=True)
     ):
+        if CS_GRP_RET in ins.groups:
+            break
         # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
         # We need to step so that we take this branch instead of ignoring it
         await ec.single_step()
-        continue
 
 
 @pwndbg.commands.Command(

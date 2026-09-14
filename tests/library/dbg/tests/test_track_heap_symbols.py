@@ -41,6 +41,9 @@ async def test_track_heap_symbols_annotates_caller(ctrl: Controller) -> None:
     assert _annotation_after(output, "[*] realloc(").startswith("@ do_realloc")
     assert _annotation_after(output, "[*] free(").startswith("@ main")
 
+    # Expect only one realloc annotation as the impossible size (SIZE_MAX) realloc should fail
+    assert sum(1 for line in output if line.startswith("[*] realloc(")) == 1
+
 
 @pwndbg_test
 async def test_track_heap_without_symbols_is_unchanged(ctrl: Controller) -> None:

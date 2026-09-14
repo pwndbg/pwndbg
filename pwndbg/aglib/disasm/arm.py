@@ -206,7 +206,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         }
 
     @override
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         if instruction.id in ARM_SINGLE_LOAD_INSTRUCTIONS:
             read_size = ARM_SINGLE_LOAD_INSTRUCTIONS[instruction.id]
             self._common_load_annotator(
@@ -267,7 +267,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     @override
-    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
             instruction.groups.remove(CS_GRP_CALL)
@@ -280,7 +280,9 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
             emu.valid = False
 
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         if ARM_GRP_JUMP in instruction.groups:
             if instruction.id in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
                 # Since Capstone V6, instructions that write to the PC are given the jump group.
@@ -310,7 +312,18 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
-        target = super()._resolve_target(instruction, emu)
+
+        target: int | None = None
+        if instruction.jump_like and instruction.id == ARM_INS_LDR:
+            # This is one we could potentially handle manually while stepped on it
+            if len(instruction.operands) == 2 and (
+                (branch_target := instruction.operands[1].before_value_resolved) is not None
+            ):
+                target = branch_target
+        elif instruction.id not in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
+            # For the instructions in the list guarding this branch, the default resolver cannot determine the branch target
+            target = super()._resolve_target(instruction, emu)
+
         if target is not None:
             # On interworking branches - branches that can enable Thumb mode - the target of a jump
             # has the least significant bit set to 1. This is not actually written to the PC
@@ -327,23 +340,6 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
         return target
 
-    # Currently not used
-    def _memory_string_old(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
-        parts = []
-
-        if op.mem.base != 0:
-            parts.append(instruction.cs_insn.reg_name(op.mem.base))
-
-        if op.mem.disp != 0:
-            parts.append(f"{op.mem.disp:#x}")
-
-        if op.mem.index != 0:
-            index = pwndbg.aglib.regs.read_reg(instruction.cs_insn.reg_name(op.mem.index))
-            scale = op.mem.scale
-            parts.append(f"{index}*{scale:#x}")
-
-        return f"[{(', '.join(parts))}]"
-
     def read_thumb_bit(self, instruction: PwndbgInstruction, emu: Emulator) -> int | None:
         return 1 if instruction.cs_insn._cs._mode & CS_MODE_THUMB else 0
 
@@ -353,7 +349,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
     @override
     def _read_register(
-        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
+        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator | None
     ) -> int | None:
         # When `pc` is referenced in an operand (typically in a memory operand), the value it takes on
         # is `pc_at_instruction + 8`. In Thumb mode, you only add 4 to the instruction address.
@@ -364,7 +360,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
     @override
     def _parse_memory(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         """
         Parse the `ArmOpMem` Capstone object to determine the concrete memory address used.

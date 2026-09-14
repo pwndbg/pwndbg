@@ -455,7 +455,7 @@ def update() -> None:
         pwndbg_arch = get_pwndbg_architecture(a.name)
 
         if pwndbg_arch is None:
-            raise pwndbg.dbg_mod.Error(
+            raise pwndbg.dbg_mod.DebuggerError(
                 f"Unsupported architecture: {a.name}. "
                 f"It may be that Pwndbg is not correctly categorizing the architecture. "
                 f"Please file a bug report. "

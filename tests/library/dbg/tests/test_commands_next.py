@@ -56,6 +56,31 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
     assert out == "The pc is already at the binary objfile code. Not stepping.\n"
 
 
+@pwndbg_test
+async def test_command_nextproginstr_at_ret(ctrl: Controller) -> None:
+    """
+    Assuming we are currently at a "ret" instruction, nextproginstruction should still work
+    """
+    import pwndbg.aglib
+    import pwndbg.aglib.proc
+    import pwndbg.aglib.vmmap
+
+    await launch_to(ctrl, REFERENCE_BINARY, "main")
+    main_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc)
+
+    break_at_sym("puts")
+    await ctrl.cont()
+
+    # Sanity check that we are in libc
+    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc).objfile
+
+    await ctrl.execute("nextret")
+
+    # Execute nextproginstr and see if we came back to the same vmmap page
+    await ctrl.execute("nextproginstr")
+    assert pwndbg.aglib.regs.pc in main_page
+
+
 @pytest.mark.parametrize("command", NEXT_COMMANDS)
 @pwndbg_test
 async def test_next_command_doesnt_freeze_crashed_binary(ctrl: Controller, command: str) -> None:

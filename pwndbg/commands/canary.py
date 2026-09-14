@@ -51,7 +51,7 @@ def canary_from_at_random() -> tuple[int | None, int | None]:
 
     try:
         global_canary = pwndbg.aglib.memory.read_pointer_width(at_random)
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         return None, at_random
 
     # masking canary value as canaries on the stack has last byte = 0
@@ -104,7 +104,7 @@ def canary_from_tls() -> tuple[int | None, int | None]:
 
     try:
         canary_value = pwndbg.aglib.memory.read_pointer_width(canary_addr)
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         return None, canary_addr
 
     return canary_value, canary_addr
