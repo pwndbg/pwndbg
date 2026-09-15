@@ -772,10 +772,7 @@ default_vis_count = pwndbg.config.add_param(
 )
 
 
-def mallocng_visualize_slots(address: int, count: int | None = None):
-    if count is None:
-        count = int(default_vis_count)
-
+def mallocng_visualize_slots(address: int, count: int = int(default_vis_count)):
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
 
     if ptrsize != 8:
@@ -1427,7 +1424,7 @@ def mallocng_command(
     command: str,
     meta_area: int | None = None,
     address: int | None = None,
-    count: int | None = None,
+    count: int = int(default_vis_count),
     all: bool = False,
     metadata: bool = False,
     shallow: bool = False,
@@ -1436,9 +1433,6 @@ def mallocng_command(
     if command == "explain":
         mallocng_explain()
         return
-
-    if count is None:
-        count = int(default_vis_count)
 
     if not pwndbg.aglib.proc.alive():
         print(message.error("mallocng: The program is not being run."))

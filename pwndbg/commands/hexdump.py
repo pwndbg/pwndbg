@@ -99,9 +99,9 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def hexdump(address: str | int, count: int | None = None, code: str | None = None) -> None:
-    if count is None:
-        count = int(pwndbg.config.hexdump_bytes)
+def hexdump(
+    address: str | int, count: int = int(pwndbg.config.hexdump_bytes), code: str | None = None
+) -> None:
     if count <= 0:
         print(f"count must be larger than 0 (is {count}).")
         return

@@ -268,7 +268,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
         }
 
     @override
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Dispatch to the correct handler
         if instruction.id in AARCH64_SINGLE_LOAD_INSTRUCTIONS:
             target_reg_size = self._register_width(instruction, instruction.operands[0]) // 8
@@ -344,15 +344,13 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
             instruction.annotation = register_assign(result_operand.str, telescope)
 
     @override
-    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
             instruction.groups.remove(CS_GRP_CALL)
 
     @override
-    def _condition(
-        self, instruction: PwndbgInstruction, emu: Emulator | None
-    ) -> InstructionCondition:
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         # In ARM64, only branches have the conditional code in the instruction,
         # as opposed to ARM32 which allows most instructions to be conditional
         if instruction.id == AARCH64_INS_B:
@@ -426,7 +424,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
 
     @override
     def _parse_memory(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
     ) -> int | None:
         """
         Parse the `Arm64OpMem` Capstone object to determine the concrete memory address used.

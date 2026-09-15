@@ -597,8 +597,6 @@ class Process:
         Return the function start and end address for a function that
         contains address `addr`.
 
-        Might be slow (for GDB it invokes 'disass'), cache the results.
-
         Returns:
         - tuple[int, int] | None: [start, end) of function block if found (end address is exclusive)
         """

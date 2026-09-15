@@ -18,7 +18,7 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
 from pwndbg.lib.memory import Page
 
-deref_limit = pwndbg.config.add_param(
+LIMIT = pwndbg.config.add_param(
     "dereference-limit", 5, "max number of pointers to dereference in a chain"
 )
 
@@ -35,7 +35,7 @@ c = ColorConfig(
 
 def get(
     address: int | None,
-    limit: int | None = None,
+    limit: int = LIMIT,
     offset: int = 0,
     hard_stop: int | None = None,
     hard_end: int = 0,
@@ -61,8 +61,7 @@ def get(
         return None
     assert address >= 0, "address must be positive"
 
-    if limit is None:
-        limit = int(deref_limit)
+    limit = int(limit)
 
     result = [address] if include_start else []
 
@@ -105,7 +104,7 @@ config_contiguous = theme.add_param(
 
 def format(
     value: int | list[int] | None,
-    limit: int | None = None,
+    limit: int = int(LIMIT),
     code: bool = True,
     offset: int = 0,
     hard_stop: int | None = None,
@@ -134,14 +133,16 @@ def format(
     if value is None:
         return "<unavailable>"
 
-    if limit is None:
-        limit = int(deref_limit)
+    limit = int(limit)
 
     # Allow results from get function to be passed to format
     if isinstance(value, list):
         chain = value
     else:
         chain = get(value, limit, offset, hard_stop, hard_end, safe_linking=safe_linking) or []
+
+    arrow_left = c.arrow(f" {config_arrow_left} ")
+    arrow_right = c.arrow(f" {config_arrow_right} ")
 
     # Ask the decompiler to resolve stack variables
     stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
@@ -171,7 +172,7 @@ def format(
         # This case only applies to lists of length one, because if the list has more than one value, we already know
         # that the second to last value, chain[-2], can be safely dereferenced - how else would chain[-1] exist?
         # In other case where chain[-1] is not a pointer, the argument has no effect.
-        return pwndbg.enhance.enhance(
+        enhanced = pwndbg.enhance.enhance(
             chain[-1],
             code=code,
             attempt_dereference=False,
@@ -180,7 +181,7 @@ def format(
         )
     # We want to enhance the last pointer value. If an offset was used
     # chain failed at that offset, so display that offset.
-    if len(chain) < limit + 1:
+    elif len(chain) < limit + 1:
         pointer_to_enhance = chain[-2] + offset
 
         page = pwndbg.aglib.vmmap.find(pointer_to_enhance)
@@ -210,12 +211,7 @@ def format(
     else:
         enhanced = c.contiguous_marker(f"{config_contiguous}")
 
-    arrow_right = c.arrow(f" {config_arrow_right} ")
+    if len(chain) == 1:
+        return enhanced
 
-    # Show left arrow if we finished dereferencing the chain, otherwise, use right arrow
-    if len(chain) <= limit:
-        arrow_last = c.arrow(f" {config_arrow_left} ")
-    else:
-        arrow_last = arrow_right
-
-    return arrow_right.join(rest) + arrow_last + enhanced
+    return arrow_right.join(rest) + arrow_left + enhanced

@@ -195,7 +195,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
         }
 
     @override
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if instruction.id in MIPS_LOAD_INSTRUCTIONS:
             read_size = MIPS_LOAD_INSTRUCTIONS[instruction.id]
 
@@ -247,9 +247,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
             )
 
     @override
-    def _condition(
-        self, instruction: PwndbgInstruction, emu: Emulator | None
-    ) -> InstructionCondition:
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         condition_resolver = CONDITION_RESOLVERS.get(instruction.id)
 
         if condition_resolver is None:
@@ -288,7 +286,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
         self,
         instruction: PwndbgInstruction,
         op: EnhancedOperand,
-        emu: Emulator | None,
+        emu: Emulator,
     ) -> int | None:
         """
         Parse the `MipsOpMem` Capstone object to determine the concrete memory address used.

@@ -106,7 +106,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def telescope(
     address: int | None = None,
-    count: int | None = None,
+    count: int = int(telescope_lines),
     to_string: bool = False,
     reverse: bool = False,
     frame: bool = False,
@@ -122,9 +122,6 @@ def telescope(
     API (like `context`) (which they probably shouldn't)) is set, `telescope()` will continue
     from the last printed address (see also #3900).
     """
-    if count is None:
-        count = int(telescope_lines)
-
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
 
     if telescope.repeat or repeat:

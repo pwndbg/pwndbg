@@ -1076,6 +1076,7 @@ class GlibcMemoryAllocator(Generic[TheType, TheValue]):
         self._arenas = None
         # glibc malloc cache for current thread
         self._thread_cache: TheValue | None = None
+        self._thread_caches: dict[int, Any] = {}
 
     def largebin_reverse_lookup(self, index: int) -> int:
         """Pick the appropriate largebin_reverse_lookup_ function for this architecture."""
@@ -1654,6 +1655,66 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
             for x in ("tcache_bins", "tcache_small_bins")
         )
 
+    # Taken from heuristic heap -----
+    def _get_heap_page(self) -> pwndbg.lib.memory.Page | None:
+        """Get the [heap] memory page."""
+        return next((p for p in pwndbg.aglib.vmmap.get() if p.is_heap), None)
+
+    def _get_heap_range(self) -> pwndbg.lib.memory.Page | range:
+        """Get the heap start & end"""
+        arena = self.thread_arena
+        if not arena:
+            page = self._get_heap_page()
+            assert page is not None
+            return page
+        return range(arena.active_heap.start, arena.active_heap.end)
+
+    def _search_tls(
+        self, func: Callable[[int], bool], offset: int = -0x200, depth: int = 0x400
+    ) -> tuple[int, int] | None:
+        tls_address = pwndbg.aglib.tls.find_address_with_register()
+        for i in range(depth):
+            addr = tls_address + offset + pwndbg.aglib.arch.ptrsize * i
+            if not pwndbg.aglib.memory.is_readable_address(addr):
+                continue
+            value = pwndbg.aglib.memory.read_pointer_width(addr)
+            if func(value):
+                return value, addr
+        return None
+
+    def _is_tcache_dummy(self, addr: int) -> bool:
+        """Check if addr points to a tcache dummy (glibc >= 2.43, read-only, all zeros)."""
+        if not pwndbg.aglib.vmmap.find(addr).ro:
+            return False
+        tcache_size = self.tcache_perthread_struct.sizeof
+        return pwndbg.aglib.memory.read(addr, tcache_size) == b"\x00" * tcache_size
+
+    def _is_tcache_struct(self, addr: int) -> bool:
+        """Check if addr points to a valid tcache_perthread_struct."""
+        tcache_size = self.tcache_perthread_struct.sizeof
+        chunk_header_size = pwndbg.aglib.arch.ptrsize * 2
+
+        if not pwndbg.aglib.memory.is_readable_address(addr - chunk_header_size):
+            return False
+        if not pwndbg.aglib.memory.is_readable_address(addr + tcache_size):
+            return False
+
+        heap_range = self._get_heap_range()
+        if heap_range and addr in heap_range:
+            chunk = Chunk(addr - chunk_header_size)
+
+            ptr_size = pwndbg.aglib.arch.ptrsize
+            if pwndbg.libc.version() >= (2, 42):
+                return chunk.real_size - ptr_size == tcache_size
+            return chunk.real_size - ptr_size * 2 == tcache_size
+
+        if pwndbg.libc.version() < (2, 43):
+            return False
+
+        return self._is_tcache_dummy(addr)
+
+    # -----
+
     @property
     @override
     def thread_arena(self) -> Arena | None:
@@ -1679,35 +1740,60 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
             print(message.warn("This version of GLIBC was not compiled with tcache support."))
             return None
 
-        tcache_ptr = pwndbg.aglib.symbol.lookup_symbol_addr(
-            "tcache",
-            prefer_static=True,
+        tps = self.tcache_perthread_struct
+        thread_cache_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
+            "tcache", prefer_static=True
         )
-        if tcache_ptr and (tcache_addr := pwndbg.aglib.memory.read_pointer_width(tcache_ptr)):
-            tcache = tcache_addr
-        # On glibc >= 2.42, tcache is only allocated after the first tcache-sized
-        # allocation, rather than the first allocation in general, as before
-        elif not self.multithreaded() and pwndbg.libc.version() < (2, 42):
-            tcache = self.main_arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
+        if thread_cache_via_symbol:
+            tcache_ptr = pwndbg.aglib.memory.read_pointer_width(thread_cache_via_symbol)
+            if tcache_ptr:
+                return tps(tcache_ptr)
+
+            # On glibc 2.42, NULL tcache is valid, meaning we just
+            # haven't performed a tcache-sized allocation yet
+            if pwndbg.libc.version() == (2, 42):
+                return None
+
+        thread = pwndbg.dbg.selected_thread()
+        assert thread
+        tidx = thread.index()
+
+        if cached := self._thread_caches.get(tidx):
+            return cached
+
+        found = self._search_tls(self._is_tcache_struct)
+
+        if found:
+            value, _ = found
+            result = tps(value)
+            if not self._is_tcache_dummy(value):  # don't cache tcache dummy
+                self._thread_caches[tidx] = result
+                self._thread_cache = result
+            return result
+
+        arena = self.thread_arena
+        result = None
+        # On glibc >= 2.42, it is not necessarily the first chunk on the heap
+        if pwndbg.libc.version < (2, 42):
+            # TODO: The result might be wrong if the arena is being shared by multiple thread
+            result = tps(arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2)
         else:
-            # This thread doesn't have a tcache yet
-            return None
+            # Search among the chunks for it
+            chunk = Chunk(arena.heaps[0].start)
+            next = chunk.next_chunk()
+            while chunk is not None and next is not None:
+                addr = chunk.address + pwndbg.aglib.arch.ptrsize * 2
+                if next.prev_inuse and self._is_tcache_struct(addr):
+                    result = tps(addr)
+                    break
 
-        try:
-            self._thread_cache = pwndbg.aglib.memory.get_typed_pointer_value(
-                self.tcache_perthread_struct, tcache
-            )
-            self._thread_cache["entries"].fetch_lazy()
-        except Exception:
-            print(
-                message.error(
-                    "Error fetching tcache. Cannot access "
-                    "thread-local variables unless you compile with -lpthread."
-                )
-            )
-            return None
+                chunk = next
+                next = chunk.next_chunk()
 
-        return self._thread_cache
+        if result is not None:
+            self._thread_caches[tidx] = result
+            self._thread_cache = result
+        return result
 
     @property
     @override
@@ -2084,11 +2170,14 @@ class HeuristicHeap(
             "tcache", prefer_static=True
         )
         if thread_cache_via_symbol:
-            thread_cache_struct_addr = pwndbg.aglib.memory.read_pointer_width(
-                thread_cache_via_symbol
-            )
-            if thread_cache_struct_addr:
-                return tps(int(thread_cache_struct_addr))
+            tcache_ptr = pwndbg.aglib.memory.read_pointer_width(thread_cache_via_symbol)
+            if tcache_ptr:
+                return tps(tcache_ptr)
+
+            # On glibc 2.42, NULL tcache is valid, meaning we just
+            # haven't performed a tcache-sized allocation yet
+            if pwndbg.libc.version() == (2, 42):
+                return None
 
         thread = pwndbg.dbg.selected_thread()
         assert thread
@@ -2108,40 +2197,28 @@ class HeuristicHeap(
             return result
 
         arena = self.thread_arena
-        # TODO: The result might be wrong if the arena is being shared by multiple thread
-        result = tps(arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2)
-        self._thread_caches[tidx] = result
-        return result
-
-    def _find_mp_addr(self) -> int | None:
-        """
-        Find the mp_ struct address by scanning the .data section.
-
-        Returns the absolute address if found, None otherwise.
-        """
-        if self.is_statically_linked():
-            section = pwndbg.aglib.proc.dump_elf_data_section()
-            section_address = pwndbg.aglib.proc.get_section_address_by_name(".data")
+        result = None
+        # On glibc >= 2.42, it is not necessarily the first chunk on the heap
+        if pwndbg.libc.version < (2, 42):
+            # TODO: The result might be wrong if the arena is being shared by multiple thread
+            result = tps(arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2)
         else:
-            section = pwndbg.libc.section_by_name(".data")
-            section_address = pwndbg.libc.section_address_by_name(".data")
+            # Search among the chunks for it
+            chunk = Chunk(arena.heaps[0].start)
+            next = chunk.next_chunk()
+            while chunk is not None and next is not None:
+                addr = chunk.address + pwndbg.aglib.arch.ptrsize * 2
+                if next.prev_inuse and self._is_tcache_struct(addr):
+                    result = tps(addr)
+                    break
 
-        if section is None or not section_address:
-            return None
+                chunk = next
+                next = chunk.next_chunk()
 
-        _, _, data = section
-
-        # try to find the default mp_ struct in the .data section
-        found = data.find(bytes(self.struct_module.DEFAULT_MP_))
-        if found == -1 and pwndbg.libc.version() == (2, 42):
-            # Some glibc 2.42 builds (the official 2.42.0 tarball) use
-            # tcache_max_bytes=0x408 instead of 0x411, so fall back to
-            # that value as well.
-            fallback_mp = copy.deepcopy(self.struct_module.DEFAULT_MP_)
-            fallback_mp.tcache_max_bytes = self.struct_module.MAX_TCACHE_SMALL_SIZE
-            found = data.find(bytes(fallback_mp))
-
-        return section_address + found if found != -1 else None
+        if result is not None:
+            self._thread_caches[tidx] = result
+            self._thread_cache = result
+        return result
 
     @property
     @override
@@ -2151,7 +2228,19 @@ class HeuristicHeap(
             self._mp_addr = mp_via_symbol
 
         if not self._mp_addr:
-            self._mp_addr = self._find_mp_addr()
+            if self.is_statically_linked():
+                section = pwndbg.aglib.proc.dump_elf_data_section()
+                section_address = pwndbg.aglib.proc.get_section_address_by_name(".data")
+            else:
+                section = pwndbg.libc.section_by_name(".data")
+                section_address = pwndbg.libc.section_address_by_name(".data")
+            if section is not None and section_address:
+                _, _, data = section
+
+                # try to find the default mp_ struct in the .data section
+                found = data.find(bytes(self.struct_module.DEFAULT_MP_))
+                if found != -1:
+                    self._mp_addr = section_address + found
 
         if pwndbg.aglib.memory.is_readable_address(self._mp_addr):
             mps = self.malloc_par

@@ -17,10 +17,8 @@ from pwndbg.aglib.disasm.assistant import memory_or_register_assign
 from pwndbg.aglib.disasm.assistant import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
-from pwndbg.aglib.disasm.instruction import MemoryDereferenceInfo
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import message
-from pwndbg.emu.emulator import EmulatorCrashReason
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -140,7 +138,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         }
 
     @override
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         if instruction.id in X86_MATH_INSTRUCTIONS:
             self._common_binary_op_annotator(
                 instruction,
@@ -340,7 +338,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         )
 
     @override
-    def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator | None):
+    def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
         # operand_id is the ID internal to Capstone
 
         if operand_id == X86_REG_RIP:
@@ -350,9 +348,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         return super()._read_register(instruction, operand_id, emu)
 
     @override
-    def _parse_memory(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
-    ):
+    def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
         if op.mem.segment != 0:
             if op.mem.segment == X86_REG_FS:
@@ -407,25 +403,8 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         if X86_INS_RET != instruction.id or len(instruction.operands) > 1:
             return super()._resolve_target(instruction, emu)
 
-        # From this point on, we are know we are on a `ret` instruction
-
         # Stop disassembling at RET if we won't know where it goes to without emulation
         if not self.can_reason_about_process_state():
-            # If the CPU crashed executing this RET because of an unmapped address while fetching,
-            # then we know it must be because the target address was not mapped
-            if self.emu_crash_reason is not None:
-                if (
-                    self.emu_crash_reason.emulator_crash_reason
-                    == EmulatorCrashReason.UNMAPPED_CPU_FETCH
-                ):
-                    return self.emu_crash_reason.fault_address
-                if self.emu_crash_reason.emulator_crash_reason == EmulatorCrashReason.UNMAPPED_READ:
-                    # This means that the stack pointer does not point to readable memory!
-                    instruction.target_memory_operand = MemoryDereferenceInfo(
-                        self.emu_crash_reason.fault_address, None, None
-                    )
-                    return None
-
             return super()._resolve_target(instruction, emu)
 
         # Otherwise, resolve the return on the stack
@@ -437,13 +416,9 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
             return int(
                 pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.ppvoid, address)
             )
-        # The RSP does not point to readable memory!
-        instruction.target_memory_operand = MemoryDereferenceInfo(address, None, None)
 
     @override
-    def _condition(
-        self, instruction: PwndbgInstruction, emu: Emulator | None
-    ) -> InstructionCondition:
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
         # JMP is unconditional
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
             return InstructionCondition.UNCONDITIONAL
@@ -462,9 +437,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
     @override
-    def _get_syscall_arch_info(
-        self, instruction: PwndbgInstruction
-    ) -> tuple[str, str] | tuple[None, None]:
+    def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> tuple[str, str]:
         # Since this class handles both x86 and x86_64, we need to choose the correct
         # syscall arch depending on the instruction being executed.
 

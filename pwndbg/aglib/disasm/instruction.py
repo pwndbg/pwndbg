@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import typing
 from collections import defaultdict
-from dataclasses import dataclass
 from enum import Enum
 from enum import auto
 from typing import Protocol
@@ -213,27 +212,6 @@ class CacheSource(Enum):
     NOT_FROM_CACHE = ""
 
 
-@dataclass
-class MemoryDereferenceInfo:
-    """
-    This class is used when we want to manually manage state related to a memory dereference (which may occur as part of an instruction
-    due to a explicit operand, `mov rbx, [rax]`, or due to an implicit memory operand, such as in a pop/ret instruction).
-    """
-
-    address: int
-
-    address_string: str
-    """
-    Colorized, possibly a symbol name, string that represents the address
-    """
-
-    value: int | None
-    """
-    If this is None, it may indicate we were unable to dereference (unmapped memory).
-    The presence/absense of this value is determined by the context in which it is used.
-    """
-
-
 # Interface for enhanced instructions - there are two implementations defined in this file
 class PwndbgInstruction(Protocol):
     cs_insn: CsInsn
@@ -249,9 +227,7 @@ class PwndbgInstruction(Protocol):
     target: int
     target_string: str | None
     target_const: bool | None
-
-    target_memory_operand: MemoryDereferenceInfo | None
-
+    target_memory_operand: EnhancedOperand | None
     condition: InstructionCondition
     declare_is_unconditional_jump: bool
     force_unconditional_jump_target: bool
@@ -651,7 +627,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         New asm: {self.asm_string}
         Next: {self.next:#x}
         Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}
-        Target from memory address: {hex(self.target_memory_operand.address) if self.target_memory_operand is not None else None}, {self.target_memory_operand.address_string if self.target_memory_operand is not None else None}, value: {self.target_memory_operand.value if self.target_memory_operand is not None and self.target_memory_operand.value is not None else None}
+        Target from memory address: {hex(self.target_memory_operand.before_value) if self.target_memory_operand is not None else None}, {self.target_memory_operand.str if self.target_memory_operand is not None else None}
         Condition: {self.condition.name}
         Groups: {[CS_GRP.get(group, group) for group in self.groups]}
         Annotation: {self.annotation}
