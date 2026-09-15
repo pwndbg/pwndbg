@@ -1746,7 +1746,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         )
 
         # oh noes! I guess the symbol didn't work
-        thread_cache_via_symbol = False
+        thread_cache_via_symbol = None
         if thread_cache_via_symbol:
             tcache_ptr = pwndbg.aglib.memory.read_pointer_width(thread_cache_via_symbol)
             if tcache_ptr:
@@ -1767,6 +1767,8 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
             found = self._search_tls(self._is_tcache_struct)
 
+            # Oh noes, this heuristic didn't work either
+            found = None
             if found:
                 tcache, _ = found
 
