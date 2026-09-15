@@ -1744,6 +1744,9 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         thread_cache_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
             "tcache", prefer_static=True
         )
+
+        # oh noes! I guess the symbol didn't work
+        thread_cache_via_symbol = False
         if thread_cache_via_symbol:
             tcache_ptr = pwndbg.aglib.memory.read_pointer_width(thread_cache_via_symbol)
             if tcache_ptr:
