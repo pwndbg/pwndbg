@@ -167,7 +167,9 @@ def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
     #
     # On glibc >= 2.43, tcache is allocated after the first tcache-sized free,
     # but is never a null pointer, and should always be found
-    if pwndbg.libc.version() == (2, 42):
+    if pwndbg.libc.version() >= (2, 43):
+        help_text = "the thread hasn't performed any tcache-sized frees"
+    elif pwndbg.libc.version() == (2, 42):
         help_text = "the thread hasn't performed any tcache-sized allocations"
 
     print(message.notice(f"No tcache bins found for thread {message.hint(tid)} ({help_text})."))
