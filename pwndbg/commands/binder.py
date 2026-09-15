@@ -8,6 +8,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.commands
 import pwndbg.dbg_mod
+import pwndbg.hexdump
 from pwndbg import color
 from pwndbg.aglib.kernel.macros import container_of
 from pwndbg.aglib.kernel.macros import for_each_entry
@@ -406,3 +407,45 @@ def binder():
 
     bv = BinderVisitor(procs_addr)
     bv.visit()
+
+
+parcel_parser = argparse.ArgumentParser(description="Analyzes an android::Parcel object in memory")
+parcel_parser.add_argument("address", type=int, help="Parcel object base address")
+
+
+@pwndbg.commands.Command(parcel_parser, category=CommandCategory.KERNEL)
+def binder_parcel(address: int):
+    try:
+        mError = pwndbg.aglib.memory.u32(address)
+        mData = pwndbg.aglib.memory.u64(address + 8)
+        mDataSize = pwndbg.aglib.memory.u64(address + 16)
+        mDataCapacity = pwndbg.aglib.memory.u64(address + 24)
+        mDataPos = pwndbg.aglib.memory.u64(address + 32)
+        mObjects = pwndbg.aglib.memory.u64(address + 40)
+
+        print(f"mError:        {mError}")
+        print(f"{color.blue('mData (Buf)')}:   {color.yellow(hex(mData))}")
+        print(f"mDataSize:     {mDataSize} bytes")
+        print(f"mDataCapacity: {mDataCapacity} bytes")
+        print(f"mDataPos:      {mDataPos}")
+        print(f"mVariant/Objs: {hex(mObjects)}")
+
+        if mData != 0 and mDataSize > 0:
+            print(f"Buffer ({mDataSize} bytes ):")
+            buffer_data = pwndbg.aglib.memory.read(mData, mDataSize)
+
+            for line in pwndbg.hexdump.hexdump(buffer_data):
+                print(line)
+
+            # 76 bytes offset
+            payload_data = buffer_data[76::]
+            decoded_str = ""
+            for elem in payload_data:
+                if 32 <= elem <= 127:
+                    decoded_str += chr(elem)
+                else:
+                    continue
+
+            print("Decoded string:", decoded_str)
+    except Exception:
+        return
