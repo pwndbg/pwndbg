@@ -1740,7 +1740,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
             print(message.warn("This version of GLIBC was not compiled with tcache support."))
             return None
 
-        tcache = None;
+        tcache = None
         tps = self.tcache_perthread_struct
         thread_cache_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
             "tcache", prefer_static=True
@@ -1748,7 +1748,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         if thread_cache_via_symbol:
             tcache_ptr = pwndbg.aglib.memory.read_pointer_width(thread_cache_via_symbol)
             if tcache_ptr:
-                tcache = tcache_ptr;
+                tcache = tcache_ptr
 
             # On glibc 2.42, NULL tcache is valid, meaning we just
             # haven't performed a tcache-sized allocation yet
@@ -1772,7 +1772,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
                 arena = self.thread_arena
 
                 # On glibc >= 2.42, it is not necessarily the first chunk on the heap
-                if pwndbg.libc.version < (2, 42):
+                if pwndbg.libc.version() < (2, 42):
                     # TODO: The result might be wrong if the arena is being shared by multiple thread
                     tcache = arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
                 else:
@@ -1782,14 +1782,14 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
                     while chunk is not None and next is not None:
                         addr = chunk.address + pwndbg.aglib.arch.ptrsize * 2
                         if next.prev_inuse and self._is_tcache_struct(addr):
-                            tcache = tps(addr)
+                            tcache = addr
                             break
 
                         chunk = next
                         next = chunk.next_chunk()
 
                     if tcache is None:
-                        return None;
+                        return None
 
         try:
             self._thread_cache = pwndbg.aglib.memory.get_typed_pointer_value(
@@ -2211,7 +2211,7 @@ class HeuristicHeap(
         arena = self.thread_arena
         result = None
         # On glibc >= 2.42, it is not necessarily the first chunk on the heap
-        if pwndbg.libc.version < (2, 42):
+        if pwndbg.libc.version() < (2, 42):
             # TODO: The result might be wrong if the arena is being shared by multiple thread
             result = tps(arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2)
         else:
