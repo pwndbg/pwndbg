@@ -1776,7 +1776,9 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
                     # TODO: The result might be wrong if the arena is being shared by multiple thread
                     tcache = arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
                 else:
-                    # Search among the chunks for it
+                    # Search among the chunks for it -- this is a last resort (the two previous methods should work),
+                    # and is prone to an edgecase if we malloc a chunk of the exact same size as the tcache
+                    # before the tcache itself.
                     chunk = Chunk(arena.heaps[0].start)
                     next = chunk.next_chunk()
                     while chunk is not None and next is not None:
@@ -2215,7 +2217,9 @@ class HeuristicHeap(
             # TODO: The result might be wrong if the arena is being shared by multiple thread
             result = tps(arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2)
         else:
-            # Search among the chunks for it
+            # Search among the chunks for it -- this is a last resort (the two previous methods should work),
+            # and is prone to an edgecase if we malloc a chunk of the exact same size as the tcache
+            # before the tcache itself.
             chunk = Chunk(arena.heaps[0].start)
             next = chunk.next_chunk()
             while chunk is not None and next is not None:
