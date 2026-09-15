@@ -1752,7 +1752,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
             # On glibc 2.42, NULL tcache is valid, meaning we just
             # haven't performed a tcache-sized allocation yet
-            if pwndbg.libc.version() == (2, 42):
+            elif pwndbg.libc.version() == (2, 42):
                 return None
 
         else:
@@ -1792,6 +1792,9 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
                     if tcache is None:
                         return None
+
+            if tcache is not None:
+                self._thread_caches[tidx] = tcache
 
         try:
             self._thread_cache = pwndbg.aglib.memory.get_typed_pointer_value(
