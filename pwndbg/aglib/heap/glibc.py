@@ -1740,6 +1740,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
             print(message.warn("This version of GLIBC was not compiled with tcache support."))
             return None
 
+        tcache = None;
         tps = self.tcache_perthread_struct
         thread_cache_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
             "tcache", prefer_static=True
@@ -1747,53 +1748,64 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         if thread_cache_via_symbol:
             tcache_ptr = pwndbg.aglib.memory.read_pointer_width(thread_cache_via_symbol)
             if tcache_ptr:
-                return tps(tcache_ptr)
+                tcache = tcache_ptr;
 
             # On glibc 2.42, NULL tcache is valid, meaning we just
             # haven't performed a tcache-sized allocation yet
             if pwndbg.libc.version() == (2, 42):
                 return None
 
-        thread = pwndbg.dbg.selected_thread()
-        assert thread
-        tidx = thread.index()
-
-        if cached := self._thread_caches.get(tidx):
-            return cached
-
-        found = self._search_tls(self._is_tcache_struct)
-
-        if found:
-            value, _ = found
-            result = tps(value)
-            if not self._is_tcache_dummy(value):  # don't cache tcache dummy
-                self._thread_caches[tidx] = result
-                self._thread_cache = result
-            return result
-
-        arena = self.thread_arena
-        result = None
-        # On glibc >= 2.42, it is not necessarily the first chunk on the heap
-        if pwndbg.libc.version < (2, 42):
-            # TODO: The result might be wrong if the arena is being shared by multiple thread
-            result = tps(arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2)
         else:
-            # Search among the chunks for it
-            chunk = Chunk(arena.heaps[0].start)
-            next = chunk.next_chunk()
-            while chunk is not None and next is not None:
-                addr = chunk.address + pwndbg.aglib.arch.ptrsize * 2
-                if next.prev_inuse and self._is_tcache_struct(addr):
-                    result = tps(addr)
-                    break
+            thread = pwndbg.dbg.selected_thread()
+            assert thread
+            tidx = thread.index()
 
-                chunk = next
-                next = chunk.next_chunk()
+            if cached := self._thread_caches.get(tidx):
+                return cached
 
-        if result is not None:
-            self._thread_caches[tidx] = result
-            self._thread_cache = result
-        return result
+            found = self._search_tls(self._is_tcache_struct)
+
+            if found:
+                tcache, _ = found
+
+            else:
+                arena = self.thread_arena
+
+                # On glibc >= 2.42, it is not necessarily the first chunk on the heap
+                if pwndbg.libc.version < (2, 42):
+                    # TODO: The result might be wrong if the arena is being shared by multiple thread
+                    tcache = arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
+                else:
+                    # Search among the chunks for it
+                    chunk = Chunk(arena.heaps[0].start)
+                    next = chunk.next_chunk()
+                    while chunk is not None and next is not None:
+                        addr = chunk.address + pwndbg.aglib.arch.ptrsize * 2
+                        if next.prev_inuse and self._is_tcache_struct(addr):
+                            tcache = tps(addr)
+                            break
+
+                        chunk = next
+                        next = chunk.next_chunk()
+
+                    if tcache is None:
+                        return None;
+
+        try:
+            self._thread_cache = pwndbg.aglib.memory.get_typed_pointer_value(
+                self.tcache_perthread_struct, tcache
+            )
+            self._thread_cache["entries"].fetch_lazy()
+        except Exception:
+            print(
+                message.error(
+                    "Error fetching tcache. Cannot access "
+                    "thread-local variables unless you compile with -lpthread."
+                )
+            )
+            return None
+
+        return self._thread_cache
 
     @property
     @override
