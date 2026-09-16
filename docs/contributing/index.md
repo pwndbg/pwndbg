@@ -98,12 +98,6 @@ If you wish to preview the documentation locally, you may do so by running:
 ```{.bash .copy}
 ./scripts/docs-live.sh
 ```
-The build will take some time due to the `Source` section being built. You may disable this by temporarily commenting these lines
-```
-  - api-autonav:
-      modules: ['pwndbg']
-      nav_section_title: "Source"
-```
-in the `mkdocs.yml` file. This will provide much faster build times (but make sure not to commit those changes!). Visit `http://127.0.0.1:8000/pwndbg/` to see the docs. Note that the `Home` section will not be available (it is generated in the CI by copying the README.md), and the site will lack the version selector.
+Visit `http://127.0.0.1:8000/pwndbg/` to see the docs. Note that the `Home` section will not be available (it is generated in the CI by copying the README.md), and the site will lack the version selector.
 
 [^1]: Actually, the `./docs/configuration/index.md` file is hand-written, and the intro text to the `./docs/functions/index.md` file is defined in the doc generating file's source code.

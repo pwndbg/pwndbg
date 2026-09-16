@@ -46,9 +46,9 @@ def enhance(
     code: bool = True,
     safe_linking: bool = False,
     attempt_dereference=True,
-    enhance_string_len: int = None,
+    enhance_string_len: int | None = None,
     respect_ptrwidth: bool = False,
-    page: Page = None,
+    page: Page | None = None,
 ) -> str:
     """
     Given the last pointer in a chain, attempt to characterize
@@ -68,12 +68,13 @@ def enhance(
     """
     value = int(value)
 
-    if not page:
+    if page is None:
+        # We may still get None here, thats fine.
         page = pwndbg.aglib.vmmap.find(value)
 
     # If it's not in a page we know about, see if we can try to dereference it anyways.
     can_read = True
-    if not attempt_dereference or not page or None is pwndbg.aglib.memory.peek(value):
+    if not attempt_dereference or page is None or pwndbg.aglib.memory.peek(value) is None:
         can_read = False
 
     # If it's a pointer that we told we cannot deference, then color it accordingly and add symbol if can
