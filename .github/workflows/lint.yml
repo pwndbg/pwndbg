@@ -79,35 +79,35 @@ jobs:
           filter_mode: nofilter
           fail_on_error: true
 
-      # The PR must not contain more mypy --strict errors than the dev branch does
-      - name: Count mypy --strict errors in PR and dev branch.
+      # The PR must not contain more mypy --strict --strict-optional errors than the dev branch does
+      - name: Count mypy --strict --strict-optional errors in PR and dev branch.
         id: mypy_strict_count
         run: |
           set +e
           # Taken from ./lint.sh
           LINT_FILES="pwndbg pwndbginit tests *.py scripts"
 
-          # Count `mypy --strict` errors on PR branch.
-          uv run --group dev --group lint --group tests --all-extras mypy --strict $LINT_FILES > mypy_pr.txt 2>&1
+          # Count `mypy --strict --strict-optional` errors on PR branch.
+          uv run --group dev --group lint --group tests --all-extras mypy --strict --strict-optional $LINT_FILES > mypy_pr.txt 2>&1
           PR_ERRORS=$(grep -c "error:" mypy_pr.txt || true)
           echo "pr_count=$PR_ERRORS" >> $GITHUB_OUTPUT
-          echo "PR mypy (--strict) errors: $PR_ERRORS"
+          echo "PR mypy (--strict --strict-optional) errors: $PR_ERRORS"
 
-          # Count `mypy --strict` errors on dev branch.
+          # Count `mypy --strict --strict-optional` errors on dev branch.
           git fetch origin dev
           git checkout origin/dev
-          uv run --group dev --group lint --group tests --all-extras mypy --strict $LINT_FILES > mypy_dev.txt 2>&1
+          uv run --group dev --group lint --group tests --all-extras mypy --strict --strict-optional $LINT_FILES > mypy_dev.txt 2>&1
           DEV_ERRORS=$(grep -c "error:" mypy_dev.txt || true)
           echo "dev_count=$DEV_ERRORS" >> $GITHUB_OUTPUT
-          echo "Dev mypy (--strict) errors: $DEV_ERRORS"
+          echo "Dev mypy (--strict --strict-optional) errors: $DEV_ERRORS"
 
           echo "============================="
-          echo "mypy --strict diff:"
+          echo "mypy --strict --strict-optional diff:"
           echo "============================="
           diff mypy_dev.txt mypy_pr.txt
         continue-on-error: true
 
-      - name: Compare mypy --strict error counts
+      - name: Compare mypy --strict --strict-optional error counts
         run: |
           PR_ERRORS=${{ steps.mypy_strict_count.outputs.pr_count }}
           DEV_ERRORS=${{ steps.mypy_strict_count.outputs.dev_count }}
@@ -116,10 +116,10 @@ jobs:
           echo "Dev errors: $DEV_ERRORS"
 
           if [ "$PR_ERRORS" -gt "$DEV_ERRORS" ]; then
-            echo "This PR introduces more \`mypy --strict\` errors than are present on the dev branch."
+            echo "This PR introduces more \`mypy --strict --strict-optional\` errors than are present on the dev branch."
             echo "See the diff in the step above."
-            echo "Ideally, a python type checker (mypy --strict/pyright/ty/pyrefly etc..) should be running in your editor."
+            echo "Ideally, a python type checker (mypy --strict --strict-optional, pyright, ty, pyrefly, etc.) should be running in your editor."
             exit 1
           else
-            echo "This PR does not introduce any more \`mypy --strict\` errors than there are on the dev branch."
+            echo "This PR does not introduce any more \`mypy --strict --strict-optional\` errors than there are on the dev branch."
           fi

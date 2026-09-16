@@ -24,7 +24,7 @@ The `lint.sh` script runs ruff, shfmt, and vermin. ruff is (mostly) able to auto
     You can find the configuration files for these tools in `pyproject.toml` or by checking the arguments passed inside `lint.sh`.
     You can also run `./lint.sh -fo` to skip vermin and mypy, allowing for a quicker lint.
 
-When submitting a PR, the continuous integration (CI) job defined in `.github/workflows/lint.yml` will verify that running `./lint.sh` succeeds. Furthermore, you must not increase the number of `mypy --strict` errors as compared to the `dev` branch (see `.github/workflows/lint.sh`). Otherwise the job will fail and we won't be able to merge your PR. Make sure to have a type checker (mypy --strict, pyright, ty, pyrefly, ...) running in your python editor / IDE.
+When submitting a PR, the continuous integration (CI) job defined in `.github/workflows/lint.yml` will verify that running `./lint.sh` succeeds. Furthermore, you must not increase the number of `mypy --strict --strict-optional` errors as compared to the `dev` branch (see `.github/workflows/lint.sh`). Otherwise the job will fail and we won't be able to merge your PR. Make sure to have a type checker (mypy --strict --strict-optional, pyright, ty, pyrefly, ...) running in your python editor / IDE.
 
 It is recommended to enable the pre-push git hook to run the lint if you haven't already done so. You may re-run `./setup-dev.sh` to set it.
 ## Running tests
