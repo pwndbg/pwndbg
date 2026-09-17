@@ -67,7 +67,6 @@ async def _step_and_log(
                 # symbols included
                 current_symbol = pwndbg.aglib.symbol.resolve_addr(int(current_pc))
                 filename = page_.objfile.split("/")[-1]
-                # [0x7ffff7c3e221] (libc.so.6       ) __sigsetjmp+17
                 log_line = f"{filename:<20}{current_symbol}\n"
             case _:
                 # should never be possible as we assert in command input
