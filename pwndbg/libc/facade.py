@@ -16,6 +16,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
 import pwndbg.lib.path
 
+from . import bionic
 from . import glibc
 from . import musl
 from . import unknown
@@ -25,7 +26,7 @@ from .dispatch import LibcType
 from .dispatch import LibcURLs
 
 # Order is important.
-_libc_implementations: tuple[LibcProvider, ...] = (glibc, musl, unknown)
+_libc_implementations: tuple[LibcProvider, ...] = (glibc, musl, bionic, unknown)
 
 
 class LibcNotFound(Exception):
@@ -330,7 +331,20 @@ def addr() -> int:
     objfile.
     May be the same as loader_addr() for some libc's.
     """
-    yes = pwndbg.aglib.vmmap.named_region_start(str(filepath()))
+    import os
+
+    target_path = str(filepath())
+
+    yes = pwndbg.aglib.vmmap.named_region_start(target_path)
+
+    if yes is None:
+        target_name = os.path.basename(target_path)
+        for page in pwndbg.aglib.vmmap.get():
+            obj = page.objfile
+            if obj and os.path.basename(obj) == target_name:
+                yes = page.start
+                break
+
     if yes is None:
         raise LibcNotFound(
             "Binary path from filepath() is not listed in memory maps "
@@ -347,7 +361,19 @@ def loader_addr() -> int:
     objfile.
     May be the same as addr() for some libc's.
     """
-    yes = pwndbg.aglib.vmmap.named_region_start(str(loader_filepath()))
+    import os
+
+    target_path = str(filepath())
+    yes = pwndbg.aglib.vmmap.named_region_start(target_path)
+
+    if yes is None:
+        target_name = os.path.basename(target_path)
+        for page in pwndbg.aglib.vmmap.get():
+            obj = page.objfile
+            if obj and os.path.basename(obj) == target_name:
+                yes = page.start
+                break
+
     if yes is None:
         raise LibcNotFound(
             "Binary path from loader_filepath() is not listed in memory maps "
