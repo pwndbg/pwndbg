@@ -194,7 +194,16 @@ def preprocess_branch_visualization(
     for instruction in instructions:
         if instruction.jump_like and not instruction.call_like:
             if instruction.has_jump_target:
-                jumps.append(JumpRange(instruction.address, instruction.target))
+                address_page = pwndbg.aglib.vmmap.find(instruction.address)
+                target_page = pwndbg.aglib.vmmap.find(instruction.target)
+
+                # Only show branch visualization if the target is in the same
+                # address region as the target
+                # Otherwise, we will never get to the target, and the visualization
+                # adds clutter
+                if address_page == target_page:
+                    jumps.append(JumpRange(instruction.address, instruction.target))
+
             elif instruction.target_memory_operand is not None:
                 # This is a `jmp [mem]` instruction, and this value is the target based on the current process state
                 target = instruction.target_memory_operand.value
