@@ -333,16 +333,15 @@ def addr() -> int:
     """
     import os
 
-    target_name = os.path.basename(str(filepath()))
+    target_path = str(filepath())
 
-    yes = None
-    for page in pwndbg.aglib.vmmap.get():
-        obj = page.objfile
+    yes = pwndbg.aglib.vmmap.named_region_start(target_path)
 
-        if obj and obj.endswith(target_name):
-            # Android shared libraries are typically mapped under /apex/ or /system/.
-            # Also accept generic /lib paths for environments with different layouts.
-            if "/apex/" in obj or "/system/" in obj or "/lib" in obj:
+    if yes is None:
+        target_name = os.path.basename(target_path)
+        for page in pwndbg.aglib.vmmap.get():
+            obj = page.objfile
+            if obj and os.path.basename(obj) == target_name:
                 yes = page.start
                 break
 
@@ -364,15 +363,16 @@ def loader_addr() -> int:
     """
     import os
 
-    target_name = os.path.basename(str(loader_filepath()))
+    target_path = str(filepath())
+    yes = pwndbg.aglib.vmmap.named_region_start(target_path)
 
-    yes = None
-    for page in pwndbg.aglib.vmmap.get():
-        obj = page.objfile
-
-        if obj and obj.endswith(target_name):
-            yes = page.start
-            break
+    if yes is None:
+        target_name = os.path.basename(target_path)
+        for page in pwndbg.aglib.vmmap.get():
+            obj = page.objfile
+            if obj and os.path.basename(obj) == target_name:
+                yes = page.start
+                break
 
     if yes is None:
         raise LibcNotFound(
