@@ -15,6 +15,7 @@
 -  [break-if-not-taken](breakpoint/break-if-not-taken.md) - Breaks on a branch if it is not taken.
 -  [break-if-taken](breakpoint/break-if-taken.md) - Breaks on a branch if it is taken.
 -  [breakrva](breakpoint/breakrva.md) - Break at RVA from PIE base.
+-  [dp](breakpoint/dp.md) - Set a breakpoint that prints a formatted message on each hit.
 -  [ignore](breakpoint/ignore.md) - Set ignore-count of breakpoint number N to COUNT.
 
 ## Context
