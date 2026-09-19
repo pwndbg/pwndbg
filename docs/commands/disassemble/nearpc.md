@@ -15,7 +15,7 @@ Disassemble near a specified address.
 |Positional Argument|Help|
 | :--- | :--- |
 |pc|Address to disassemble near. If this is the only argument and the value provided is small enough, it is interpreted as lines instead.|
-|lines|Number of lines to disassemble.|
+|lines|Number of lines to disassemble. If this is provided as the second argument, and it is larger than the first argument, this is interpreted as the last address to disassemble (exclusive)|
 
 ### Optional arguments
 
