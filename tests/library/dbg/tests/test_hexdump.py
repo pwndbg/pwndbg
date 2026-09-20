@@ -133,7 +133,7 @@ async def test_hexdump_limit_check(ctrl: Controller):
     Tests that the hexdump command respects the hexdump-limit-mb settings.
     """
     import pwndbg.aglib
-    from pwndbg.dbg_mod import Error
+    from pwndbg.dbg_mod import DebuggerError
 
     await ctrl.launch(BINARY)
     sp = pwndbg.aglib.regs.sp
@@ -146,7 +146,7 @@ async def test_hexdump_limit_check(ctrl: Controller):
 
     # 1. Test that count over the default limit raises PwndbgError
     print(f"Testing count over default limit ({count_over_limit} bytes)")
-    with pytest.raises(Error, match="exceeds the current limit"):
+    with pytest.raises(DebuggerError, match="exceeds the current limit"):
         await ctrl.execute(f"hexdump {sp} {count_over_limit}")
     print(" -> Correctly raised error.")
 

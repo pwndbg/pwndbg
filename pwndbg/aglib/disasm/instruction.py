@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 from collections import defaultdict
+from dataclasses import dataclass
 from enum import Enum
 from enum import auto
 from typing import Protocol
@@ -212,6 +213,27 @@ class CacheSource(Enum):
     NOT_FROM_CACHE = ""
 
 
+@dataclass
+class MemoryDereferenceInfo:
+    """
+    This class is used when we want to manually manage state related to a memory dereference (which may occur as part of an instruction
+    due to a explicit operand, `mov rbx, [rax]`, or due to an implicit memory operand, such as in a pop/ret instruction).
+    """
+
+    address: int
+
+    address_string: str
+    """
+    Colorized, possibly a symbol name, string that represents the address
+    """
+
+    value: int | None
+    """
+    If this is None, it may indicate we were unable to dereference (unmapped memory).
+    The presence/absense of this value is determined by the context in which it is used.
+    """
+
+
 # Interface for enhanced instructions - there are two implementations defined in this file
 class PwndbgInstruction(Protocol):
     cs_insn: CsInsn
@@ -227,6 +249,9 @@ class PwndbgInstruction(Protocol):
     target: int
     target_string: str | None
     target_const: bool | None
+
+    target_memory_operand: MemoryDereferenceInfo | None
+
     condition: InstructionCondition
     declare_is_unconditional_jump: bool
     force_unconditional_jump_target: bool
@@ -376,6 +401,17 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         self.target_const: bool | None = None
         """
         Whether the target is a constant expression
+        """
+
+        self.target_memory_operand = None
+        """
+        This is set to the memory operand that would be dereferenced to get the jump target.
+
+        This is only used if `target` itself cannot be determined safely (memory is writable), and only used in branch instructions.
+
+        This allows us to display the branch target like:
+
+        jmp    qword ptr [rip + 0x2fe2]    <[putchar@got[plt]], now=putchar@plt+6>
         """
 
         self.condition: InstructionCondition = InstructionCondition.UNCONDITIONAL
@@ -615,6 +651,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         New asm: {self.asm_string}
         Next: {self.next:#x}
         Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}
+        Target from memory address: {hex(self.target_memory_operand.address) if self.target_memory_operand is not None else None}, {self.target_memory_operand.address_string if self.target_memory_operand is not None else None}, value: {self.target_memory_operand.value if self.target_memory_operand is not None and self.target_memory_operand.value is not None else None}
         Condition: {self.condition.name}
         Groups: {[CS_GRP.get(group, group) for group in self.groups]}
         Annotation: {self.annotation}
@@ -698,6 +735,13 @@ class EnhancedOperand:
         The 'resolved' value of the operand after the instruction executes.
         """
 
+        self.is_mem_with_constant_addr: bool = False
+        """
+        True if it's a memory operand, and we determined the address is constant.
+
+        This is set during enhancement.
+        """
+
         self.str: str | None = ""
         """
         String representing the operand
@@ -742,16 +786,17 @@ class EnhancedOperand:
     def __repr__(self) -> str:
         info = (
             f"'{self.str}': Symbol: {self.symbol}, "
-            f"Before: {hex(self.before_value) if self.before_value is not None else None}, "
-            f"After: {hex(self.after_value) if self.after_value is not None else None}, "
+            f"Before: {hex(self.before_value) if self.before_value is not None else None}: resolved: {hex(self.before_value_resolved) if self.before_value_resolved is not None else None}, "
+            f"After: {hex(self.after_value) if self.after_value is not None else None}, resolved: {hex(self.after_value_resolved) if self.after_value_resolved is not None else None}, "
+            f"Is mem with constant addr: {self.is_mem_with_constant_addr}, "
             f"type={CS_OP.get(self.type, self.type)}"
         )
 
         if isinstance(self.cs_op, X86Op):
-            info += (
-                f", size={self.cs_op.size}, "
-                f"access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
-            )
+            info += f", size={self.cs_op.size}"
+
+        if hasattr(self.cs_op, "access"):
+            info += f", access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
 
         return f"[{info}]"
 
@@ -800,6 +845,8 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.target = self.next
         self.target_string = None
         self.target_const = None
+
+        self.target_memory_operand = None
 
         self.condition = InstructionCondition.UNCONDITIONAL
 

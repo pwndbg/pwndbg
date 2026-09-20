@@ -258,7 +258,7 @@ def walk_stack2(offset: int = 0) -> AUXV:
             p += 2
 
         return auxv
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         # If SP is inaccessible or we went past through stack and haven't found AUXV
         # then return an empty AUXV...
         return AUXV()
