@@ -1173,10 +1173,11 @@ class GlibcHeap:
                 if self.struct_module is None:
                     return None
 
-                expected = self.struct_module.MallocState._c_struct()
+                malloc_state = self.struct_module.MallocState
+                expected = malloc_state._c_struct()
                 expected.attached_threads = 1
-                next_field_offset = expected.get_field_offset("next")
-                malloc_state_size = expected.sizeof
+                next_field_offset = malloc_state.get_field_offset("next")
+                malloc_state_size = malloc_state.sizeof
 
                 # Since RELR relocations might also have .rela.dyn section, we check it first
                 for section_name in (".relr.dyn", ".rela.dyn", ".rel.dyn"):
