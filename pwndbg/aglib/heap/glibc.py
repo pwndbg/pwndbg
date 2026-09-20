@@ -1258,8 +1258,9 @@ class GlibcHeap:
         raise SymbolNotRecoveredError("main_arena", "heuristic failed")
 
     def has_tcache(self) -> bool:
+
         # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
-        if self.mp is not None:
+        if self.method.allow_debuginfo and self.mp is not None:
             return any(
                 x in self.mp.type.keys()  # noqa: SIM118 (mp is not a dict)
                 for x in ("tcache_bins", "tcache_small_bins")
