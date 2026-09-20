@@ -1786,7 +1786,7 @@ class GlibcHeap:
                 # Should only raise SymbolNotRecoveredError, but the heuristic heap implementation is still buggy so catch all exceptions for now.
                 pass
 
-        if self.method.allow_heuristics and self._mp_addr:
+        if self._mp_addr:
             mp_sbrk_base = None
             mp = self.mp
             if isinstance(mp, pwndbg.dbg_mod.Value):
