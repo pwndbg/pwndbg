@@ -1498,12 +1498,12 @@ class GlibcHeap:
 
     @property
     def mp(self) -> pwndbg.dbg_mod.Value | pwndbg.aglib.heap.glibc_structs.CStruct2GDB:
-        # if self.method.allow_debuginfo:
-        mp_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr("mp_", prefer_static=True)
-        self._mp_addr = mp_via_symbol
+        if self.method.allow_debuginfo:
+            mp_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr("mp_", prefer_static=True)
+            if mp_via_symbol is not None:
+                self._mp_addr = mp_via_symbol
 
-        # if not self._mp_addr and self.method.allow_heuristics:
-        if not self._mp_addr:
+        if not self._mp_addr and self.method.allow_heuristics:
             self._mp_addr = self._find_mp_addr()
 
         if pwndbg.aglib.memory.is_readable_address(self._mp_addr):
