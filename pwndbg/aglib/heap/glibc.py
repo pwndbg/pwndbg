@@ -2155,8 +2155,8 @@ class GlibcHeap:
 
 
 class HeapDebugMethod(Enum):
-    Heuristic = (0,)  # Force using only heuristics
-    DebugInfo = (1,)  # Force using only debug info
+    Heuristic = 0  # Force using only heuristics
+    DebugInfo = 1  # Force using only debug info
     Auto = 2  # Allow both
 
     @property
