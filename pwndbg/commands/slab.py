@@ -65,7 +65,7 @@ parser_info.add_argument("-a", "--active", action="store_true", help="displays t
 parser_contains = subparsers.add_parser(
     "contains", description="Get the cache for an address.", help="Get the cache for an address."
 )
-parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", help="")
+parser_contains.add_argument("addresses", metavar="addr", type=int, nargs="+", help="")
 
 parser_sheaf = subparsers.add_parser(
     "sheaf",
@@ -87,7 +87,7 @@ def slab(
     filter_: str | None = None,
     names: list[str] | None = None,
     verbose: bool = False,
-    addresses: list[str] | None = None,
+    addresses: list[int] | None = None,
     cpu: int | None = None,
     node: int | None = None,
     partial: bool = False,
@@ -383,16 +383,8 @@ def slab_list(filter_) -> None:
     print(tabulate(results, headers=["Name", "# Objects", "Size", "Obj Size", "# inuse", "order"]))
 
 
-def slab_contains(address: str) -> None:
+def slab_contains(addr: int) -> None:
     """prints the slab_cache associated with the provided address"""
-
-    addr = None
-    try:
-        addr = int(pwndbg.dbg.selected_frame().evaluate_expression(address)) & ((1 << 64) - 1)
-    except pwndbg.dbg_mod.DebuggerError as e:
-        print(message.error(f"Could not parse '{address}'"))
-        print(message.error(f"Message: {e}"))
-        return
 
     try:
         base, slab_cache = find_containing_slab_cache(addr)
@@ -426,14 +418,7 @@ def slab_contains(address: str) -> None:
         print(message.warn(f"address does not belong to a SLUB cache: {e}"))
 
 
-def slab_sheaf(address: str) -> None:
-    try:
-        addr = int(pwndbg.dbg.selected_frame().evaluate_expression(address)) & ((1 << 64) - 1)
-    except pwndbg.dbg_mod.DebuggerError as e:
-        print(message.error(f"Could not parse '{address}'"))
-        print(message.error(f"Message: {e}"))
-        return
-
+def slab_sheaf(addr: int) -> None:
     try:
         sheaf_ptr = pwndbg.aglib.memory.get_typed_pointer("struct slab_sheaf", addr)
         slab_cache = SlabCache(sheaf_ptr["cache"])
