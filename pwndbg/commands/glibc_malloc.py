@@ -637,6 +637,7 @@ def malloc_chunk(
     """Print a malloc_chunk struct's contents."""
     allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
+    log.warn("1")
     chunk = Chunk(addr)
 
     headers_to_print: list[str] = []  # both state (free/allocated) and flags
@@ -654,6 +655,7 @@ def malloc_chunk(
         out_fields = ""
         verbose = True
     else:
+        log.warn("2")
         arena = chunk.arena
         if not fake and arena:
             if chunk.is_top_chunk:
@@ -666,8 +668,11 @@ def malloc_chunk(
                 allocator.largebins(arena.address),
                 allocator.unsortedbin(arena.address),
             ]
+            log.warn("3")
             if allocator.has_tcache():
                 bins_list.append(allocator.tcachebins(None))
+
+            log.warn("4")
 
             bins_list = [x for x in bins_list if x is not None]
             no_match = True
@@ -690,6 +695,7 @@ def malloc_chunk(
     else:
         out_fields += f"Size: 0x{chunk.real_size:02x} (with flag bits: 0x{chunk.size:02x})\n"
 
+    log.warn("5")
     prev_inuse, is_mmapped, non_main_arena = allocator.chunk_flags(chunk.size)
     if prev_inuse:
         headers_to_print.append(message.hint("PREV_INUSE"))
@@ -714,12 +720,14 @@ def malloc_chunk(
 
     print(" | ".join(headers_to_print) + "\n" + out_fields)
 
+    log.warn("6")
     if dump:
         print(ctx_color.banner("hexdump"))
 
         ptr_size = pwndbg.aglib.arch.ptrsize
         pwndbg.commands.hexdump.hexdump(chunk.address, chunk.real_size + ptr_size)
 
+    log.warn("7")
     if next:
         print(ctx_color.banner(f"Next {next} chunk(s):"))
         for _ in range(next):
