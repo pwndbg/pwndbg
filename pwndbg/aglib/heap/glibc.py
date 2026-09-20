@@ -1260,7 +1260,7 @@ class GlibcHeap:
     def has_tcache(self) -> bool:
 
         # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
-        if self.mp is not None:
+        if self.mp is not None and len(self.mp.type.keys()) > 0:
             return any(
                 x in self.mp.type.keys()  # noqa: SIM118 (mp is not a dict)
                 for x in ("tcache_bins", "tcache_small_bins")
@@ -1791,11 +1791,10 @@ class GlibcHeap:
 
         if self._mp_addr:
             mp_sbrk_base = None
-            mp = self.mp
-            if isinstance(mp, pwndbg.dbg_mod.Value):
-                mp_sbrk_base = mp.address + mp.type.offsetof("sbrk_base")
-            else:
-                mp_sbrk_base = mp.get_field_address("sbrk_base")
+
+            # FIXME: as in main_arena, does not work with pwndbg.dbg_mod.Type, as mp.type.fields() always returns an empty array
+            mp = self.struct_module.MallocPar(self._mp_addr)
+            mp_sbrk_base = mp.get_field_address("sbrk_base")
 
             if self.get_region(mp_sbrk_base) and self.get_region(self.mp["sbrk_base"]):
                 sbrk_base = pwndbg.lib.memory.align_up(

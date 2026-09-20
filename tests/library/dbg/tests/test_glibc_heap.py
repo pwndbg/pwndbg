@@ -523,7 +523,7 @@ async def test_mp_heuristic(ctrl: Controller, binary: Path) -> None:
     # Check if we can get the address of `mp_` from debug symbols and the struct of `mp_` is correct
     assert allocator.mp is not None
     # Check the address of `main_arena` is correct
-    assert allocator.mp.address == mp_addr_via_debug_symbol
+    assert int(allocator.mp.address) == mp_addr_via_debug_symbol
     # Check the struct size is correct
     assert (
         allocator.mp.type.sizeof == pwndbg.aglib.typeinfo.lookup_types("struct malloc_par").sizeof
@@ -538,7 +538,7 @@ async def test_mp_heuristic(ctrl: Controller, binary: Path) -> None:
         assert allocator.mp is not None
         print(int(allocator.mp.address))
         # Check the address of `mp_` is correct
-        assert allocator.mp.address == mp_addr_via_debug_symbol
+        assert int(allocator.mp.address) == mp_addr_via_debug_symbol
 
 
 @parametrize_glibc_versions
@@ -580,7 +580,7 @@ async def test_thread_cache_heuristic(
     # Check if we can get the address of `thread_cache` from debug symbols and the struct of `thread_cache` is correct
     assert allocator.thread_cache is not None
     # Check the address of `thread_cache` is correct
-    assert allocator.thread_cache.address == thread_cache_addr_via_debug_symbol
+    assert int(allocator.thread_cache.address) == thread_cache_addr_via_debug_symbol
     # Check the struct size is correct
     assert (
         allocator.thread_cache.type.sizeof
@@ -595,8 +595,7 @@ async def test_thread_cache_heuristic(
         allocator = pwndbg.aglib.heap.glibc.get_allocator()
         thread_cache = pwndbg.aglib.heap.glibc.get_allocator().thread_cache
         assert thread_cache is not None
-        print(int(allocator.mp.address))
-        assert thread_cache.address == thread_cache_addr_via_debug_symbol
+        assert int(thread_cache.address) == thread_cache_addr_via_debug_symbol
 
 
 @parametrize_glibc_versions
