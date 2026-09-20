@@ -33,6 +33,7 @@ from pwndbg.aglib.heap.glibc import BinType
 from pwndbg.aglib.heap.glibc import BinVariant
 from pwndbg.aglib.heap.glibc import Chunk
 from pwndbg.aglib.heap.glibc import Heap
+from pwndbg.aglib.heap.glibc import HeapDebugMethod
 from pwndbg.color import generate_color_function
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
@@ -183,6 +184,8 @@ def func_name(function: Callable[P, T]) -> str:
 def heap_is_sane(callee_func_name: str | None) -> bool:
     """
     Check that we can perform glibc heap inspection so a command can proceed.
+
+    Sets the correct heap inspector method between Heuristic, DebugInfo and Auto.
     """
     if callee_func_name is None:
         callee_func_name = "heap_is_sane"
@@ -209,22 +212,34 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
 
     allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
-    # FIXME: what now? should we still allow people to choose between just doing one or the other? How?
-
     # We have to use heuristics
     if str(pwndbg.config.resolve_heap_via_heuristic) == "force":
-        log.warn(
-            f"{callee_func_name}: You're forcing the usage of heuristics with 'help set resolve-heap-via-heuristic', but"
-        )
-        log.warn("pwndbg no longer discriminates between the two. Try 'auto'?")
-        return False
+        allocator.method = HeapDebugMethod.Heuristic
 
-    # We have to use debug syms
+        if not allocator.can_be_resolved():
+            log.error(
+                f"{callee_func_name}: You're forcing the usage of heuristics with 'help set resolve-heap-via-heuristic', but the"
+            )
+            log.error("heap cannot be resolved with them. Try 'auto'?")
+            return False
+
+    # We have to use debug info
     if str(pwndbg.config.resolve_heap_via_heuristic) == "never":
-        log.warn(
-            f"{callee_func_name}: You're forcing the usage of debug symbols with 'help set resolve-heap-via-heuristic', but"
-        )
-        log.warn("pwndbg no longer discriminates between the two. Try 'auto'?")
+        allocator.method = HeapDebugMethod.DebugInfo
+
+        if not allocator.can_be_resolved():
+            log.error(
+                f"{callee_func_name}: You're forcing the usage of debug symbols with 'help set resolve-heap-via-heuristic', but the"
+            )
+            log.error("heap cannot be resolved with them. Try 'auto'?")
+            return False
+
+    # We can use both
+    if str(pwndbg.config.resolve_heap_via_heuristic) == "auto":
+        allocator.method = HeapDebugMethod.Auto
+
+    if not allocator.can_be_resolved():
+        log.error(f"{callee_func_name}: Could not resolve the heap.")
         return False
 
     if not allocator.is_initialized():
