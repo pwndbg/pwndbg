@@ -32,7 +32,6 @@ from pwndbg.aglib.heap.glibc import Bins
 from pwndbg.aglib.heap.glibc import BinType
 from pwndbg.aglib.heap.glibc import BinVariant
 from pwndbg.aglib.heap.glibc import Chunk
-from pwndbg.aglib.heap.glibc import GlibcHeap
 from pwndbg.aglib.heap.glibc import Heap
 from pwndbg.aglib.heap.glibc import HeapDebugMethod
 from pwndbg.color import generate_color_function
@@ -215,9 +214,7 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
 
     # We have to use heuristics
     if str(pwndbg.config.resolve_heap_via_heuristic) == "force":
-        allocator = GlibcHeap()
         allocator.method = HeapDebugMethod.Heuristic
-        pwndbg.aglib.heap.glibc.set_allocator(allocator)
 
         if not allocator.can_be_resolved():
             log.error(
@@ -228,9 +225,7 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
 
     # We have to use debug info
     if str(pwndbg.config.resolve_heap_via_heuristic) == "never":
-        allocator = GlibcHeap()
         allocator.method = HeapDebugMethod.DebugInfo
-        pwndbg.aglib.heap.glibc.set_allocator(allocator)
 
         if not allocator.can_be_resolved():
             log.error(
@@ -241,9 +236,7 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
 
     # We can use both
     if str(pwndbg.config.resolve_heap_via_heuristic) == "auto":
-        allocator = GlibcHeap()
         allocator.method = HeapDebugMethod.Auto
-        pwndbg.aglib.heap.glibc.set_allocator(allocator)
 
     if not allocator.can_be_resolved():
         log.error(f"{callee_func_name}: Could not resolve the heap.")
