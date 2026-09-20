@@ -536,6 +536,7 @@ async def test_mp_heuristic(ctrl: Controller, binary: Path) -> None:
     with mock_for_heuristic(["mp_"]):
         allocator = pwndbg.aglib.heap.glibc.get_allocator()
         assert allocator.mp is not None
+        print(int(allocator.mp.address))
         # Check the address of `mp_` is correct
         assert allocator.mp.address == mp_addr_via_debug_symbol
 
@@ -594,6 +595,7 @@ async def test_thread_cache_heuristic(
         allocator = pwndbg.aglib.heap.glibc.get_allocator()
         thread_cache = pwndbg.aglib.heap.glibc.get_allocator().thread_cache
         assert thread_cache is not None
+        print(int(allocator.mp.address))
         assert thread_cache.address == thread_cache_addr_via_debug_symbol
 
 
