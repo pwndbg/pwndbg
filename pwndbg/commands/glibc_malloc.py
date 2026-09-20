@@ -56,7 +56,14 @@ def read_chunk(addr: int) -> dict[str, int]:
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    val = allocator.malloc_chunk(addr)
+
+    tval = allocator.malloc_chunk
+
+    if isinstance(tval, pwndbg.dbg_mod.Type):
+        val = pwndbg.aglib.memory.get_typed_pointer_value(tval, addr)
+    else:
+        val = tval(addr)
+
     value_keys: list[str] = val.type.keys()
     return {renames.get(key, key): int(val[key]) for key in value_keys}
 

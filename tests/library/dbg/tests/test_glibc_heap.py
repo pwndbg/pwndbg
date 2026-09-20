@@ -207,7 +207,14 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
     for name in chunk_types:
         chunk_addr = pwndbg.aglib.symbol.lookup_symbol_value(f"{name}_chunk")
         assert chunk_addr is not None
-        chunks[name] = allocator.malloc_chunk(chunk_addr)
+        tval = allocator.malloc_chunk
+        if isinstance(tval, pwndbg.dbg_mod.Type):
+            chunks[name] = pwndbg.aglib.memory.get_typed_pointer_value(
+                tval,
+                chunk_addr,
+            )
+        else:
+            chunks[name] = tval(chunk_addr)
         results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
 
     expected = generate_expected_malloc_chunk_output(chunks)
@@ -231,7 +238,14 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
     for name in chunk_types:
         chunk_addr = pwndbg.aglib.symbol.lookup_symbol_value(f"{name}_chunk")
         assert chunk_addr is not None
-        chunks[name] = allocator.malloc_chunk(chunk_addr)
+        tval = allocator.malloc_chunk
+        if isinstance(tval, pwndbg.dbg_mod.Type):
+            chunks[name] = pwndbg.aglib.memory.get_typed_pointer_value(
+                tval,
+                chunk_addr,
+            )
+        else:
+            chunks[name] = tval(chunk_addr)
         results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
 
     expected = generate_expected_malloc_chunk_output(chunks)
@@ -359,7 +373,15 @@ async def test_malloc_chunk_dump_command(ctrl: Controller, binary: Path) -> None
     assert allocator.malloc_chunk is not None
     test_chunk_addr = pwndbg.aglib.symbol.lookup_symbol_value("test_chunk")
     assert test_chunk_addr is not None
-    chunk = allocator.malloc_chunk(test_chunk_addr)
+
+    tval = allocator.malloc_chunk
+    if isinstance(tval, pwndbg.dbg_mod.Type):
+        chunk = pwndbg.aglib.memory.get_typed_pointer_value(
+            tval,
+            test_chunk_addr,
+        )
+    else:
+        chunk = tval(test_chunk_addr)
 
     chunk_addr = chunk.address
     assert chunk_addr is not None
