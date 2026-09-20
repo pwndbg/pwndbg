@@ -2154,7 +2154,7 @@ class GlibcHeap:
         return not pwndbg.dbg.selected_inferior().is_dynamically_linked()
 
 
-class HeapDebugMethod(Enum):
+class HeapDebugMethod(int, Enum):
     Heuristic = 0  # Force using only heuristics
     DebugInfo = 1  # Force using only debug info
     Auto = 2  # Allow both
