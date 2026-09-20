@@ -32,14 +32,12 @@ from pwndbg.aglib.heap.glibc import Bins
 from pwndbg.aglib.heap.glibc import BinType
 from pwndbg.aglib.heap.glibc import BinVariant
 from pwndbg.aglib.heap.glibc import Chunk
-from pwndbg.aglib.heap.glibc import DebugSymsHeap
 from pwndbg.aglib.heap.glibc import Heap
-from pwndbg.aglib.heap.glibc import HeuristicHeap
+from pwndbg.aglib.heap.glibc import HeapDebugMethod
 from pwndbg.color import generate_color_function
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-from pwndbg.lib import SymbolNotRecoveredError
 
 log = logging.getLogger(__name__)
 
@@ -59,10 +57,14 @@ def read_chunk(addr: int) -> dict[str, int]:
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    if isinstance(allocator, DebugSymsHeap):
-        val = pwndbg.aglib.memory.get_typed_pointer_value(allocator.malloc_chunk, addr)
+
+    tval = allocator.malloc_chunk
+
+    if isinstance(tval, pwndbg.dbg_mod.Type):
+        val = pwndbg.aglib.memory.get_typed_pointer_value(tval, addr)
     else:
-        val = allocator.malloc_chunk(addr)
+        val = tval(addr)
+
     value_keys: list[str] = val.type.keys()
     return {renames.get(key, key): int(val[key]) for key in value_keys}
 
@@ -183,7 +185,7 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
     """
     Check that we can perform glibc heap inspection so a command can proceed.
 
-    Sets the correct heap inspector between HeuristicHeap() and DebugSymsHeap() .
+    Sets the correct heap inspector method between Heuristic, DebugInfo and Auto.
     """
     if callee_func_name is None:
         callee_func_name = "heap_is_sane"
@@ -212,9 +214,7 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
 
     # We have to use heuristics
     if str(pwndbg.config.resolve_heap_via_heuristic) == "force":
-        if isinstance(allocator, DebugSymsHeap):
-            # Use the heuristic one!
-            allocator = pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
+        allocator.method = HeapDebugMethod.Heuristic
 
         if not allocator.can_be_resolved():
             log.error(
@@ -223,11 +223,9 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
             log.error("heap cannot be resolved with them. Try 'auto'?")
             return False
 
-    # We have to use debug syms
+    # We have to use debug info
     if str(pwndbg.config.resolve_heap_via_heuristic) == "never":
-        if isinstance(allocator, HeuristicHeap):
-            # Use the debug syms one!
-            allocator = pwndbg.aglib.heap.glibc.set_allocator(DebugSymsHeap())
+        allocator.method = HeapDebugMethod.DebugInfo
 
         if not allocator.can_be_resolved():
             log.error(
@@ -236,34 +234,14 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
             log.error("heap cannot be resolved with them. Try 'auto'?")
             return False
 
-    # We can choose
+    # We can use both
     if str(pwndbg.config.resolve_heap_via_heuristic) == "auto":
-        # Can we upgrade?
-        upgraded: bool = False
-        if isinstance(allocator, HeuristicHeap):
-            # FIXME: Feels like DebugSymsHeap.can_be_resolved() should be a staticmethod.
-            maybe_debug_syms = DebugSymsHeap()
-            if maybe_debug_syms.can_be_resolved():
-                # Upgrade!
-                allocator = pwndbg.aglib.heap.glibc.set_allocator(maybe_debug_syms)
-                upgraded = True
+        allocator.method = HeapDebugMethod.Auto
 
-        # Can we actually resolve? (if we upgraded we know we can)
-        if not upgraded:
-            if not allocator.can_be_resolved() and isinstance(allocator, DebugSymsHeap):
-                # Maybe we could not resolve because we were already a DebugSymsHeap
-                # and there is no debug info?
-                allocator = pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
+    if not allocator.can_be_resolved():
+        log.error(f"{callee_func_name}: Could not resolve the heap.")
+        return False
 
-            if not allocator.can_be_resolved():
-                # We cannot resolve with either one, bail!
-                # Abusing this exception a bit but w/e
-                raise SymbolNotRecoveredError(
-                    "glibc heap",
-                    "We know its glibc but we could not resolve the heap. This is a bug! Report it!",
-                )
-
-    # Alright, we can resolve, but is the heap initialized?
     if not allocator.is_initialized():
         # We used to allow some commands to run with an uninitialized heap, but no need.
         log.error(f"{callee_func_name}: The heap is not initialized yet.")
@@ -276,8 +254,6 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
 def OnlyForSaneHeap(function: Callable[P, T]) -> Callable[P, T | None]:
     """
     Can we perform glibc heap inspection?
-
-    Also chooses the correct inspector between HeuristicHeap() and DebugSymsHeap() .
 
     Decorate a glibc heap command function with this
     """
