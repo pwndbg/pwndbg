@@ -1260,7 +1260,7 @@ class GlibcHeap:
     def has_tcache(self) -> bool:
 
         # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
-        if self.method.allow_debuginfo and self.mp is not None:
+        if self.mp is not None:
             return any(
                 x in self.mp.type.keys()  # noqa: SIM118 (mp is not a dict)
                 for x in ("tcache_bins", "tcache_small_bins")
@@ -1388,8 +1388,9 @@ class GlibcHeap:
             print(message.warn("This version of GLIBC was not compiled with tcache support."))
             return None
 
+        tps = self.tcache_perthread_struct
+
         if self.method.allow_debuginfo:
-            tps = self.tcache_perthread_struct
             thread_cache_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
                 "tcache", prefer_static=True
             )
