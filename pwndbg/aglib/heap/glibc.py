@@ -140,7 +140,7 @@ SIZE_BITS = PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA
 NONCONTIGUOUS_BIT = 2
 
 # The `pwndbg.aglib.heap.glibc_structs` module is only imported at runtime when
-# the heap heuristics are used in `HeuristicHeap.struct_module` and
+# the heap heuristics are used in `GlibcHeap.struct_module` and
 # uses runtime information to select the correct structs.
 # Only import it globally during static type checking.
 if typing.TYPE_CHECKING:
@@ -358,12 +358,7 @@ class Chunk:
 
     def __init__(self, addr: int, heap: Heap | None = None, arena: Arena | None = None) -> None:
         assert _allocator.malloc_chunk is not None
-        if isinstance(_allocator.malloc_chunk, pwndbg.dbg_mod.Type):
-            self._gdbValue = pwndbg.aglib.memory.get_typed_pointer_value(
-                _allocator.malloc_chunk, addr
-            )
-        else:
-            self._gdbValue = _allocator.malloc_chunk(addr)
+        self._gdbValue = _allocator.malloc_chunk(addr)
         self.address = int(self._gdbValue.address)
         self._prev_size: int | None = None
         self._size: int | None = None
@@ -671,13 +666,7 @@ class Arena:
 
     def __init__(self, addr: int) -> None:
         assert _allocator.malloc_state is not None
-        if isinstance(_allocator.malloc_state, pwndbg.dbg_mod.Type):
-            self._gdbValue = pwndbg.aglib.memory.get_typed_pointer_value(
-                _allocator.malloc_state, addr
-            )
-        else:
-            self._gdbValue = _allocator.malloc_state(addr)
-
+        self._gdbValue = _allocator.malloc_state(addr)
         self.address = int(self._gdbValue.address)
         self._is_main_arena: bool | None = None
         self._top = None
@@ -1623,307 +1612,7 @@ class GlibcMemoryAllocator(Generic[TheType, TheValue]):
         return not pwndbg.dbg.selected_inferior().is_dynamically_linked()
 
 
-class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Value]):
-    @override
-    def can_be_resolved(self) -> bool:
-        if not pwndbg.libc.has_debug_info():
-            return False
-        # Check if thread_arena is needed and available, but if the binary is not multithreaded, then we don't care
-        # Note: it's possible that we unstripped the libc but still don't have libthread_db.so
-        return (
-            not self.multithreaded()
-            or pwndbg.aglib.symbol.lookup_symbol_addr("thread_arena", prefer_static=True)
-            is not None
-        )
-
-    @property
-    @override
-    def main_arena(self) -> Arena | None:
-        self._main_arena_addr = pwndbg.aglib.symbol.lookup_symbol_addr(
-            "main_arena", prefer_static=True
-        )
-        if self._main_arena_addr is not None:
-            self._main_arena = Arena(self._main_arena_addr)
-
-        return self._main_arena
-
-    @override
-    def has_tcache(self) -> bool:
-        # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
-        return self.mp is not None and any(
-            x in self.mp.type.keys()  # noqa: SIM118 (mp is not a dict)
-            for x in ("tcache_bins", "tcache_small_bins")
-        )
-
-    # Taken from heuristic heap -----
-    def _get_heap_page(self) -> pwndbg.lib.memory.Page | None:
-        """Get the [heap] memory page."""
-        return next((p for p in pwndbg.aglib.vmmap.get() if p.is_heap), None)
-
-    def _get_heap_range(self) -> pwndbg.lib.memory.Page | range:
-        """Get the heap start & end"""
-        arena = self.thread_arena
-        if not arena:
-            page = self._get_heap_page()
-            assert page is not None
-            return page
-        return range(arena.active_heap.start, arena.active_heap.end)
-
-    def _search_tls(
-        self, func: Callable[[int], bool], offset: int = -0x200, depth: int = 0x400
-    ) -> tuple[int, int] | None:
-        tls_address = pwndbg.aglib.tls.find_address_with_register()
-        for i in range(depth):
-            addr = tls_address + offset + pwndbg.aglib.arch.ptrsize * i
-            if not pwndbg.aglib.memory.is_readable_address(addr):
-                continue
-            value = pwndbg.aglib.memory.read_pointer_width(addr)
-            if func(value):
-                return value, addr
-        return None
-
-    def _is_tcache_dummy(self, addr: int) -> bool:
-        """Check if addr points to a tcache dummy (glibc >= 2.43, read-only, all zeros)."""
-        if not pwndbg.aglib.vmmap.find(addr).ro:
-            return False
-        tcache_size = self.tcache_perthread_struct.sizeof
-        return pwndbg.aglib.memory.read(addr, tcache_size) == b"\x00" * tcache_size
-
-    def _is_tcache_struct(self, addr: int) -> bool:
-        """Check if addr points to a valid tcache_perthread_struct."""
-        tcache_size = self.tcache_perthread_struct.sizeof
-        chunk_header_size = pwndbg.aglib.arch.ptrsize * 2
-
-        if not pwndbg.aglib.memory.is_readable_address(addr - chunk_header_size):
-            return False
-        if not pwndbg.aglib.memory.is_readable_address(addr + tcache_size):
-            return False
-
-        heap_range = self._get_heap_range()
-        if heap_range and addr in heap_range:
-            chunk = Chunk(addr - chunk_header_size)
-
-            ptr_size = pwndbg.aglib.arch.ptrsize
-            if pwndbg.libc.version() >= (2, 42):
-                return chunk.real_size - ptr_size == tcache_size
-            return chunk.real_size - ptr_size * 2 == tcache_size
-
-        if pwndbg.libc.version() < (2, 43):
-            return False
-
-        return self._is_tcache_dummy(addr)
-
-    # -----
-
-    @property
-    @override
-    def thread_arena(self) -> Arena | None:
-        if self.multithreaded():
-            thread_arena_addr = pwndbg.aglib.symbol.lookup_symbol_addr(
-                "thread_arena", prefer_static=True
-            )
-            if thread_arena_addr:
-                thread_arena_value = pwndbg.aglib.memory.read_pointer_width(thread_arena_addr)
-                # thread_arena might be NULL if the thread doesn't allocate arena yet
-                if thread_arena_value:
-                    return Arena(pwndbg.aglib.memory.read_pointer_width(thread_arena_addr))
-            return None
-        return self.main_arena
-
-    @property
-    @override
-    def thread_cache(self) -> pwndbg.dbg_mod.Value | None:
-        """Locate a thread's tcache struct. If it doesn't have one, use the main
-        thread's tcache.
-        """
-        if not self.has_tcache():
-            print(message.warn("This version of GLIBC was not compiled with tcache support."))
-            return None
-
-        tcache = None
-        thread_cache_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
-            "tcache", prefer_static=True
-        )
-
-        if thread_cache_via_symbol:
-            tcache_ptr = pwndbg.aglib.memory.read_pointer_width(thread_cache_via_symbol)
-            if tcache_ptr:
-                tcache = tcache_ptr
-
-            # On glibc 2.42, NULL tcache is valid, meaning we just
-            # haven't performed a tcache-sized allocation yet
-            elif pwndbg.libc.version() == (2, 42):
-                return None
-
-        else:
-            thread = pwndbg.dbg.selected_thread()
-            assert thread
-            tidx = thread.index()
-
-            if cached := self._thread_caches.get(tidx):
-                return cached
-
-            found = self._search_tls(self._is_tcache_struct)
-
-            if found:
-                tcache, _ = found
-
-            else:
-                arena = self.thread_arena
-
-                # On glibc >= 2.42, it is not necessarily the first chunk on the heap
-                if pwndbg.libc.version() < (2, 42):
-                    # TODO: The result might be wrong if the arena is being shared by multiple thread
-                    tcache = arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
-                else:
-                    # Search among the chunks for it -- this is a last resort (the two previous methods should work),
-                    # and is prone to an edgecase if we malloc a chunk of the exact same size as the tcache
-                    # before the tcache itself.
-                    chunk = Chunk(arena.heaps[0].start)
-                    next = chunk.next_chunk()
-                    while chunk is not None and next is not None:
-                        addr = chunk.address + pwndbg.aglib.arch.ptrsize * 2
-                        if next.prev_inuse and self._is_tcache_struct(addr):
-                            tcache = addr
-                            break
-
-                        chunk = next
-                        next = chunk.next_chunk()
-
-                    if tcache is None:
-                        return None
-
-            if tcache is not None:
-                self._thread_caches[tidx] = tcache
-
-        try:
-            self._thread_cache = pwndbg.aglib.memory.get_typed_pointer_value(
-                self.tcache_perthread_struct, tcache
-            )
-            self._thread_cache["entries"].fetch_lazy()
-        except Exception:
-            print(
-                message.error(
-                    "Error fetching tcache. Cannot access "
-                    "thread-local variables unless you compile with -lpthread."
-                )
-            )
-            return None
-
-        return self._thread_cache
-
-    @property
-    @override
-    def mp(self) -> pwndbg.dbg_mod.Value | None:
-        self._mp_addr = pwndbg.aglib.symbol.lookup_symbol_addr("mp_", prefer_static=True)
-        if self._mp_addr is not None and self.malloc_par is not None:
-            self._mp = pwndbg.aglib.memory.get_typed_pointer_value(self.malloc_par, self._mp_addr)
-
-        return self._mp
-
-    @property
-    @override
-    def global_max_fast(self) -> int | None:
-        self._global_max_fast_addr = pwndbg.aglib.symbol.lookup_symbol_addr(
-            "global_max_fast", prefer_static=True
-        )
-        if self._global_max_fast_addr is not None:
-            self._global_max_fast = pwndbg.aglib.memory.u(self._global_max_fast_addr)
-
-        return self._global_max_fast
-
-    @property
-    @pwndbg.lib.cache.cache_until("objfile")
-    @override
-    def heap_info(self) -> pwndbg.dbg_mod.Type | None:
-        return pwndbg.aglib.typeinfo.load("heap_info")
-
-    @property
-    @pwndbg.lib.cache.cache_until("objfile")
-    @override
-    def malloc_chunk(self) -> pwndbg.dbg_mod.Type | None:
-        return pwndbg.aglib.typeinfo.load("struct malloc_chunk")
-
-    @property
-    @pwndbg.lib.cache.cache_until("objfile")
-    @override
-    def malloc_state(self) -> pwndbg.dbg_mod.Type | None:
-        return pwndbg.aglib.typeinfo.load("struct malloc_state")
-
-    @property
-    @pwndbg.lib.cache.cache_until("objfile")
-    @override
-    def tcache_perthread_struct(self) -> pwndbg.dbg_mod.Type | None:
-        return pwndbg.aglib.typeinfo.load("struct tcache_perthread_struct")
-
-    @property
-    @pwndbg.lib.cache.cache_until("objfile")
-    @override
-    def tcache_entry(self) -> pwndbg.dbg_mod.Type | None:
-        return pwndbg.aglib.typeinfo.load("struct tcache_entry")
-
-    @property
-    @pwndbg.lib.cache.cache_until("objfile")
-    @override
-    def mallinfo(self) -> pwndbg.dbg_mod.Type | None:
-        return pwndbg.aglib.typeinfo.load("struct mallinfo")
-
-    @property
-    @pwndbg.lib.cache.cache_until("objfile")
-    @override
-    def malloc_par(self) -> pwndbg.dbg_mod.Type | None:
-        return pwndbg.aglib.typeinfo.load("struct malloc_par")
-
-    @override
-    def get_heap(self, addr: int) -> pwndbg.dbg_mod.Value | None:
-        """Find & read the heap_info struct belonging to the chunk at 'addr'."""
-        if self.heap_info is None:
-            return None
-        haddr = heap_for_ptr(addr)
-        if pwndbg.aglib.memory.peek(haddr) is None:
-            return None
-        return pwndbg.aglib.memory.get_typed_pointer_value(self.heap_info, haddr)
-
-    @override
-    def get_tcache(
-        self, tcache_addr: int | pwndbg.dbg_mod.Value | None = None
-    ) -> pwndbg.dbg_mod.Value | None:
-        if tcache_addr is None:
-            return self.thread_cache
-
-        return pwndbg.aglib.memory.get_typed_pointer_value(
-            self.tcache_perthread_struct, tcache_addr
-        )
-
-    @override
-    def get_sbrk_heap_region(self) -> pwndbg.lib.memory.Page | None:
-        """Return a Page object representing the sbrk heap region.
-        Ensure the region's start address is aligned to SIZE_SZ * 2,
-        which compensates for the presence of GLIBC_TUNABLES.
-        """
-        assert self.mp is not None
-        sbrk_base = pwndbg.lib.memory.align_up(int(self.mp["sbrk_base"]), _allocator.size_sz * 2)
-
-        sbrk_region = self.get_region(sbrk_base)
-        if sbrk_region is None:
-            return None
-        sbrk_region.memsz = sbrk_region.end - sbrk_base
-        sbrk_region.vaddr = sbrk_base
-
-        return sbrk_region
-
-    @override
-    def is_initialized(self) -> bool:
-        addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_malloc_initialized")
-        if addr is None:
-            addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_initialized")
-        # fallback for GLIBC 2.42 as __malloc_initialized was removed
-        if addr is None:
-            return int(self.mp["sbrk_base"]) != 0
-        return pwndbg.aglib.memory.s32(addr) > 0
-
-
-class HeuristicHeap(
+class GlibcHeap(
     GlibcMemoryAllocator[
         type["pwndbg.aglib.heap.glibc_structs.CStruct2GDB"],
         "pwndbg.aglib.heap.glibc_structs.CStruct2GDB",
@@ -2063,7 +1752,12 @@ class HeuristicHeap(
 
     @override
     def has_tcache(self) -> bool:
-        # TODO/FIXME: Can we determine the tcache_bins existence more reliable?
+        # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
+        if self.mp is not None:
+            return any(
+                x in self.mp.type.keys()  # noqa: SIM118 (mp is not a dict)
+                for x in ("tcache_bins", "tcache_small_bins")
+            )
 
         # There is no debug symbols, we determine the tcache_bins existence by checking glibc version only
         return self.is_initialized() and pwndbg.libc.version() >= (2, 26)
@@ -2420,18 +2114,25 @@ class HeuristicHeap(
 
     @override
     def is_initialized(self) -> bool:
-        # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
-        # try to use vmmap or main_arena.top to find the heap
-        return (
-            bool(self._get_heap_page()) or (self.can_be_resolved() and self.main_arena.top != 0)
-        ) and (int(self.mp["sbrk_base"]) != 0)
+        symbol_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_malloc_initialized")
+        if symbol_addr is None:
+            symbol_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_initialized")
+        # fallback for GLIBC 2.42 as __malloc_initialized was removed
+        if symbol_addr is None:
+            # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
+            # try to use vmmap or main_arena.top to find the heap
+            return (
+                bool(self._get_heap_page()) or (self.can_be_resolved() and self.main_arena.top != 0)
+            ) and (int(self.mp["sbrk_base"]) != 0)
+
+        return pwndbg.aglib.memory.s32(symbol_addr) > 0
 
 
 """The allocator object holding the state of the current heap"""
-_allocator: HeuristicHeap | DebugSymsHeap = HeuristicHeap()
+_allocator: GlibcHeap = GlibcHeap()
 
 
-def get_allocator() -> HeuristicHeap | DebugSymsHeap:
+def get_allocator() -> GlibcHeap:
     """
     Get the allocator in case you need to acquire something about the glibc heap state.
 
@@ -2440,7 +2141,7 @@ def get_allocator() -> HeuristicHeap | DebugSymsHeap:
     return _allocator
 
 
-def set_allocator(new_allocator: HeuristicHeap | DebugSymsHeap) -> HeuristicHeap | DebugSymsHeap:
+def set_allocator(new_allocator: GlibcHeap) -> GlibcHeap:
     """
     Set the glibc heap inspector.
     """
@@ -2452,4 +2153,4 @@ def set_allocator(new_allocator: HeuristicHeap | DebugSymsHeap) -> HeuristicHeap
 @pwndbg.dbg.event_handler(EventType.EXIT)
 def reset() -> None:
     global _allocator
-    _allocator = HeuristicHeap()
+    _allocator = GlibcHeap()
