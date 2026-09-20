@@ -1452,10 +1452,11 @@ class GlibcHeap:
                 next = chunk.next_chunk()
 
         result = None
-        if isinstance(tps, pwndbg.dbg_mod.Type):
-            result = pwndbg.aglib.memory.get_typed_pointer_value(tps, result_ptr)
-        else:
-            result = tps(value)
+        if result_ptr is not None:
+            if isinstance(tps, pwndbg.dbg_mod.Type):
+                result = pwndbg.aglib.memory.get_typed_pointer_value(tps, result_ptr)
+            else:
+                result = tps(result_ptr)
 
         if result is not None:
             self._thread_caches[tidx] = result
