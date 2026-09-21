@@ -89,13 +89,6 @@ async def test_heap_bins_glibc_version(ctrl: Controller, glibc_version: str, bin
     assert addr is not None
     tcache_size = allocator._request2size(pwndbg.aglib.memory.u64(addr))
 
-    if version >= (2, 43) and pwndbg.aglib.arch.name == "aarch64":
-        print(await ctrl.execute_and_capture("tcache"))
-        print(hex(allocator._thread_cache_dummy_addr))
-        print(await ctrl.execute_and_capture("vmmap"))
-        print(await ctrl.execute_and_capture("vmmap " + hex(allocator._thread_cache_dummy_addr)))
-        assert False
-
     result = allocator.tcachebins()
     assert result is not None
     assert result.bin_type == BinType.TCACHE
