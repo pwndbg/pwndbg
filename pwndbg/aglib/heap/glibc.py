@@ -1316,8 +1316,13 @@ class GlibcHeap:
     def _is_tcache_dummy(self, addr: int) -> bool:
         """Check if addr points to a tcache dummy (glibc >= 2.43, read-only, all zeros)."""
         if not pwndbg.aglib.vmmap.find(addr).ro:
+            print(hex(addr) + " is not RO, cannot be dummy")
             return False
         tcache_size = self.tcache_perthread_struct.sizeof
+        print(
+            str(pwndbg.aglib.memory.read(addr, tcache_size) == b"\x00" * tcache_size)
+            + " -- contents"
+        )
         return pwndbg.aglib.memory.read(addr, tcache_size) == b"\x00" * tcache_size
 
     def _is_tcache_struct(self, addr: int) -> bool:
@@ -1342,6 +1347,7 @@ class GlibcHeap:
         if pwndbg.libc.version() < (2, 43):
             return False
 
+        print("Checking addr " + hex(addr) + " if it's a dummy..")
         return self._is_tcache_dummy(addr)
 
     @property
