@@ -112,6 +112,11 @@ async def test_heap_bins_glibc_version(ctrl: Controller, glibc_version: str, bin
     assert result is not None
     assert tcache_size in result.bins
 
+    if version >= (2, 43):
+        print(await ctrl.execute_and_capture("tcache"))
+        print(hex(allocator._thread_cache_dummy_addr))
+        assert False
+
     await ctrl.cont()
 
     result = allocator.fastbins()
