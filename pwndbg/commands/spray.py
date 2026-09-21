@@ -80,5 +80,5 @@ def spray(addr, length, value, only_funcptrs) -> None:
             print(message.notice(f"Overwritten {addresses_written} function pointers"))
         else:
             pwndbg.aglib.memory.write(addr, value_bytes)
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(e))

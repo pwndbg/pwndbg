@@ -76,7 +76,7 @@ def _append_field_lines(
                             extra = " ".join(f"{b:02x}" for b in data)
                     elif not is_nested_aggregate:
                         extra = nested_obj.value_to_human_readable()
-            except pwndbg.dbg_mod.Error:
+            except pwndbg.dbg_mod.DebuggerError:
                 raise
 
         if is_nested_aggregate:

@@ -64,7 +64,7 @@ class CommPageField(NamedTuple):
         try:
             data = pwndbg.aglib.memory.read(addr, size)
             val = struct.unpack(self.fmt, data)[0]
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             val = f"<cannot read> ({e})"
         return val
 

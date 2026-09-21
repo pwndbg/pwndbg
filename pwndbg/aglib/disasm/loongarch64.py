@@ -49,7 +49,9 @@ class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
         self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {}
 
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         condition_resolver = CONDITION_RESOLVERS.get(instruction.id)
 
         if condition_resolver is None:

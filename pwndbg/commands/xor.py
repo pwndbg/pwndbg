@@ -36,7 +36,7 @@ def xor(address, key, count) -> None:
     try:
         xorred_memory = xor_memory(address, key, count)
         pwndbg.aglib.memory.write(address, xorred_memory)
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(e)
 
 

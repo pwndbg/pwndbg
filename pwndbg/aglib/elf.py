@@ -272,7 +272,7 @@ def entry() -> int:
     for name in ["_start", "start", "__start", "main"]:
         try:
             return pwndbg.aglib.symbol.lookup_symbol_addr(name) or 0
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             pass
 
     # Can't find it, give up.
