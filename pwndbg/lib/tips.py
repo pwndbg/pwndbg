@@ -52,6 +52,7 @@ PWNDBG_TIPS: list[str] = [
     "Use `hi` to see if a an address belongs to a glibc heap chunk",
     "Use `contextprev` and `contextnext` to display a previous context output again without scrolling",
     "Try splitting the context output into multiple TUI windows using `layout pwndbg` (`tui disable` or `ctrl-x + a` to go back to CLI mode)",
+    "Use `nearpc -f` to disassemble an entire function surrounding the evaluated address",
     # Decompiler integration
     "Pwndbg integrates with IDA, Binary Ninja, Ghidra and angr-management decompilers. Use `di install ida|binja|ghidra|angr` to install the plugin and `di connect` to start the integration",
     "When the decompiler integration is enabled, Pwndbg shows the decompiled code in its context",
