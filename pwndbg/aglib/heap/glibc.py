@@ -1065,6 +1065,7 @@ class GlibcHeap:
             pwndbg.dbg_mod.Value | pwndbg.aglib.heap.glibc_structs.TcachePerthreadStruct | None
         ) = None
         self._thread_caches: dict[int, Any] = {}
+        self._thread_cache_dummy_addr: int | None = None
         self._structs_module: types.ModuleType | None = None
         self._thread_arena_values: dict[int, int] = {}
         self.method: HeapDebugMethod = HeapDebugMethod.Auto
@@ -1315,10 +1316,20 @@ class GlibcHeap:
 
     def _is_tcache_dummy(self, addr: int) -> bool:
         """Check if addr points to a tcache dummy (glibc >= 2.43, read-only, all zeros)."""
-        if not pwndbg.aglib.vmmap.find(addr).ro:
+        if self._thread_cache_dummy_addr is not None and addr == self._thread_cache_dummy_addr:
+            return True
+
+        # NOTE: ro / rx, can be optimized inside .text as it's just a bunch of zeroes
+        page = pwndbg.aglib.vmmap.find(addr)
+        if page.read and not page.write:
             return False
+
         tcache_size = self.tcache_perthread_struct.sizeof
-        return pwndbg.aglib.memory.read(addr, tcache_size) == b"\x00" * tcache_size
+        if pwndbg.aglib.memory.read(addr, tcache_size) != b"\x00" * tcache_size:
+            return False
+
+        self._thread_cache_dummy_addr = addr
+        return True
 
     def _is_tcache_struct(self, addr: int) -> bool:
         """Check if addr points to a valid tcache_perthread_struct."""
@@ -1415,6 +1426,15 @@ class GlibcHeap:
 
         if cached := self._thread_caches.get(tidx):
             return cached
+
+        # Helps us search TLS for the tcache if we know
+        # exactly where the dummy is
+        if self.method.allow_debuginfo and pwndbg.libc.version() >= (2, 43):
+            tcache_dummy_location = pwndbg.aglib.symbol.lookup_symbol_addr(
+                "__tcache_dummy", prefer_static=True
+            )
+            if tcache_dummy_location:
+                self._thread_cache_dummy_addr = tcache_dummy_location
 
         found = self._search_tls(self._is_tcache_struct)
 
