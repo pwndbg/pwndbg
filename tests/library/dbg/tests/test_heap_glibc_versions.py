@@ -81,6 +81,10 @@ async def test_heap_bins_glibc_version(ctrl: Controller, glibc_version: str, bin
     await ctrl.execute("b breakpoint")
     await ctrl.cont()
 
+    print(await ctrl.execute_and_capture("tcache"))
+    print(await ctrl.execute_and_capture("heap"))
+    print(await ctrl.execute_and_capture("bins"))
+
     allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     version = version_tuple(glibc_version)
