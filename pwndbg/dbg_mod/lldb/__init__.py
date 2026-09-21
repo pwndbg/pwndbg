@@ -1931,7 +1931,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     ) -> pwndbg.dbg_mod.StopPoint:
         if isinstance(location, pwndbg.dbg_mod.BreakpointLocation):
             e = None
-            bp = self.target.BreakpointCreateByAddress(location.address)
+            if location.symbol is not None:
+                bp = self.target.BreakpointCreateByName(location.symbol)
+            else:
+                bp = self.target.BreakpointCreateByAddress(location.address)
         elif isinstance(location, pwndbg.dbg_mod.WatchpointLocation):
             e = lldb.SBError()
             bp = self.target.WatchAddress(
