@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.commands
-import pwndbg.gdblib.ptmalloc2_tracking
+import pwndbg.gdblib.glibc_malloc_tracking
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -36,6 +36,14 @@ enable.add_argument(
     help="Force the tracker to use hardware breakpoints.",
 )
 enable.add_argument(
+    "-w",
+    "--where",
+    dest="show_location",
+    action="store_true",
+    default=False,
+    help="Annotate each allocation/free with the calling symbol.",
+)
+enable.add_argument(
     "-r",
     "--relative-addresses",
     dest="rel_addr",
@@ -62,19 +70,19 @@ toggle_break.set_defaults(mode="toggle-break")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.LINUX, command_name="track-heap")
 @pwndbg.commands.OnlyWhenRunning
-def track_heap(mode=None, use_hardware_breakpoints=False, rel_addr=False):
+def track_heap(mode=None, use_hardware_breakpoints=False, rel_addr=False, show_location=False):
     if mode == "enable":
         # Enable the tracker.
-        pwndbg.gdblib.ptmalloc2_tracking.install(rel_addr=rel_addr)
+        pwndbg.gdblib.glibc_malloc_tracking.install(rel_addr=rel_addr, show_location=show_location)
     elif mode == "disable":
         # Disable the tracker.
-        pwndbg.gdblib.ptmalloc2_tracking.uninstall()
+        pwndbg.gdblib.glibc_malloc_tracking.uninstall()
     elif mode == "toggle-break":
         # Delegate to the report function.
-        pwndbg.gdblib.ptmalloc2_tracking.stop_on_error = (
-            not pwndbg.gdblib.ptmalloc2_tracking.stop_on_error
+        pwndbg.gdblib.glibc_malloc_tracking.stop_on_error = (
+            not pwndbg.gdblib.glibc_malloc_tracking.stop_on_error
         )
-        if pwndbg.gdblib.ptmalloc2_tracking.stop_on_error:
+        if pwndbg.gdblib.glibc_malloc_tracking.stop_on_error:
             print("The program will stop when the heap tracker detects an error")
         else:
             print("The heap tracker will only print a message when it detects an error")

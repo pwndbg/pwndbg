@@ -43,7 +43,6 @@ PWNDBG_TIPS: list[str] = [
     "Use the `spray` command to spray memory with cyclic pattern or specified value",
     "Use `patch <address> '<assembly>'` to patch an address with given assembly code",
     "Want to NOP some instructions? Use `patch <address> 'nop; nop; nop'`",
-    "`heap-config` shows heap related configuration",
     "`break-if-taken` and `break-if-not-taken` commands sets breakpoints after a given jump instruction was taken or not",
     "`stepuntilasm <assembly-instruction [operands]>` steps program forward until matching instruction occures",
     "Use `plist` command to dump elements of linked list",
@@ -53,6 +52,7 @@ PWNDBG_TIPS: list[str] = [
     "Use `hi` to see if a an address belongs to a glibc heap chunk",
     "Use `contextprev` and `contextnext` to display a previous context output again without scrolling",
     "Try splitting the context output into multiple TUI windows using `layout pwndbg` (`tui disable` or `ctrl-x + a` to go back to CLI mode)",
+    "Use `nearpc -f` to disassemble an entire function surrounding the evaluated address",
     # Decompiler integration
     "Pwndbg integrates with IDA, Binary Ninja, Ghidra and angr-management decompilers. Use `di install ida|binja|ghidra|angr` to install the plugin and `di connect` to start the integration",
     "When the decompiler integration is enabled, Pwndbg shows the decompiled code in its context",

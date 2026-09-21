@@ -14,18 +14,7 @@ import pwndbg.aglib.memory
 import pwndbg.dbg_mod
 from pwndbg.lib.memory import Page
 
-length = 15
-
-
-def update_length() -> None:
-    r"""
-    Unfortunately there's not a better way to get at this info.
-
-    >>> gdb.execute('show print elements', from_tty=False, to_string=True)
-    'Limit on string chars or array elements to print is 21.\n'
-    """
-    global length
-    length = pwndbg.dbg.string_limit()
+length = 200
 
 
 def get(address: int, maxlen: int | None = None, maxread: int | None = None) -> str | None:
@@ -43,7 +32,7 @@ def get(address: int, maxlen: int | None = None, maxread: int | None = None) -> 
 
     try:
         bytesz = pwndbg.aglib.memory.string(address, maxread)
-    except pwndbg.dbg_mod.Error:  # should not happen, but sanity check?
+    except pwndbg.dbg_mod.DebuggerError:  # should not happen, but sanity check?
         return None
 
     sz = bytesz.decode("latin-1", "replace")
@@ -61,7 +50,7 @@ def yield_in_page(page: Page, n=4) -> Iterator[str]:
     """Yields strings of length >= n found in a given vmmap page"""
     try:
         data = pwndbg.aglib.memory.read(addr=page.vaddr, count=page.memsz, partial=True)
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         # E.g. we cannot read [vvar] page even though it has a READ permission
         return
 

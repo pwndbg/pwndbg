@@ -145,7 +145,7 @@ Color of chain formatting (arrow).
 
 
 
-**Default:** 'normal'  
+**Default:** 'none'  
 
 ----------
 
@@ -189,7 +189,7 @@ Color of chain formatting (contiguous marker).
 
 
 
-**Default:** 'normal'  
+**Default:** 'none'  
 
 ----------
 

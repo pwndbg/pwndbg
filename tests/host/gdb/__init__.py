@@ -28,10 +28,12 @@ class GDBTestHost(TestHost):
     def _run_gdb(
         self,
         target: str,
-        gdb_args_before: list[str] = [],
+        gdb_args_before: list[str] = None,
         env=None,
         capture_output=True,
     ) -> CompletedProcess[str]:
+        if gdb_args_before is None:
+            gdb_args_before = []
         env = os.environ if env is None else env
 
         # Prepare the GDB command line.

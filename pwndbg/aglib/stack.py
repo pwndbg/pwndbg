@@ -7,10 +7,13 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.lib.cache
@@ -179,19 +182,42 @@ def _fetch_via_exploration() -> dict[int, pwndbg.lib.memory.Page]:
     return stacks
 
 
-def callstack() -> list[int]:
+def callstack_iter() -> Iterator[int]:
     """
-    Return the address of the return address for the current frame.
+    Yield the program counter of each frame of the current call stack, starting
+    at the innermost (selected) frame and walking towards the outermost one.
+
+    Frames whose program counter is not readable memory are skipped.
+
+    Prefer this over `callstack()` when the whole call stack is not needed, as
+    frames are only walked as they are consumed.
     """
     frame = pwndbg.dbg.selected_frame()
-    addresses = []
     while frame:
         addr = frame.pc()
         if pwndbg.aglib.memory.is_readable_address(addr):
-            addresses.append(addr)
+            yield addr
         frame = frame.parent()
 
-    return addresses
+
+def callstack_symbols_iter() -> Iterator[tuple[int, str | None]]:
+    """
+    Same as `callstack_iter()`, but yield `(program counter, symbol)` pairs.
+
+    The symbol is `None` when the address cannot be resolved to one.
+    """
+    for addr in callstack_iter():
+        yield addr, pwndbg.aglib.symbol.resolve_addr(addr)
+
+
+def callstack() -> list[int]:
+    """
+    Return the program counter of each frame of the current call stack, starting
+    at the innermost (selected) frame and walking towards the outermost one.
+
+    Frames whose program counter is not readable memory are skipped.
+    """
+    return list(callstack_iter())
 
 
 @pwndbg.lib.cache.cache_until("stop", "start")

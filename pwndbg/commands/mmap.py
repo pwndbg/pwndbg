@@ -7,9 +7,13 @@ import pwndbg.aglib.shellcode
 import pwndbg.aglib.vmmap
 import pwndbg.commands
 import pwndbg.dbg_mod
+import pwndbg.lib.errnum
 import pwndbg.lib.memory
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.lib import mmap as mutils
+
+SYSCALL = "SYS_mmap"
 
 parser = argparse.ArgumentParser(
     description="""
@@ -40,16 +44,16 @@ parser.add_argument(
 parser.add_argument(
     "prot",
     help='Prot enum or int as in mmap(2). Eg. "PROT_READ|PROT_EXEC" or 7 (for RWX).',
-    type=str,
+    type=mutils.prot_from_string,
     nargs="?",
-    default="7",
+    default=7,
 )
 parser.add_argument(
     "flags",
     help='Flags enum or int as in mmap(2). Eg. "MAP_PRIVATE|MAP_ANONYMOUS" or 0x22.',
-    type=str,
+    type=mutils.flag_from_string,
     nargs="?",
-    default="0x22",
+    default=0x22,
 )
 parser.add_argument(
     "fd",
@@ -73,56 +77,6 @@ parser.add_argument(
 )
 
 
-prot_dict = {
-    "PROT_NONE": 0x0,
-    "PROT_READ": 0x1,
-    "PROT_WRITE": 0x2,
-    "PROT_EXEC": 0x4,
-}
-
-flag_dict = {
-    "MAP_SHARED": 0x1,
-    "MAP_PRIVATE": 0x2,
-    "MAP_SHARED_VALIDATE": 0x3,
-    "MAP_FIXED": 0x10,
-    "MAP_ANONYMOUS": 0x20,
-}
-
-
-def prot_str_to_val(protstr):
-    """Heuristic to convert PROT_EXEC|PROT_WRITE to integer value."""
-    prot_int = 0
-    for k, v in prot_dict.items():
-        if k in protstr:
-            prot_int |= v
-    return prot_int
-
-
-def flag_str_to_val(flagstr):
-    """Heuristic to convert MAP_SHARED|MAP_FIXED to integer value."""
-    flag_int = 0
-    for k, v in flag_dict.items():
-        if k in flagstr:
-            flag_int |= v
-    return flag_int
-
-
-def parse_str_or_int(val: str | int, parser):
-    """
-    Try parsing a string with one of the parsers above or by converting it to
-    an int, or passes the value through if it is already an integer.
-    """
-    if isinstance(val, str):
-        candidate = parser(val)
-        if candidate != 0:
-            return candidate
-        return int(val, 0)
-    if isinstance(val, int):
-        return val
-    # Getting here is a bug, we shouldn't be seeing other types at all.
-    raise TypeError(f"invalid type for value: {type(val)}")
-
-
 @pwndbg.commands.Command(
     parser,
     category=CommandCategory.MEMORY,
@@ -142,20 +96,8 @@ mmap 0xdeadbeef 0x1000
 )
 @pwndbg.commands.OnlyWhenRunning
 def mmap(addr, length, prot=7, flags=0x22, fd=-1, offset=0, quiet=False, force=False) -> None:
-    try:
-        prot_int = parse_str_or_int(prot, prot_str_to_val)
-    except ValueError as e:
-        print(message.error(f'Invalid protection value "{prot}": {e}'))
-        return
-
-    try:
-        flag_int = parse_str_or_int(flags, flag_str_to_val)
-    except ValueError as e:
-        print(message.error(f'Invalid flags value "{flags}": {e}'))
-        return
-
     aligned_addr = int(pwndbg.lib.memory.page_align(addr))
-    if flag_int & flag_dict["MAP_FIXED"] != 0:
+    if flags & mutils.FLAG_DICT["MAP_FIXED"] != 0:
         # When using MAP_FIXED, it's only safe to call mmap(2) when the address
         # overlaps no other maps. We want to make sure that, unless the user
         # _really_ knows what they're doing, this call will be safe.
@@ -243,16 +185,16 @@ using the address {aligned_addr:#x} instead.\
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
         pointer = await pwndbg.aglib.shellcode.exec_syscall(
             ec,
-            "SYS_mmap",
+            SYSCALL,
             int(pwndbg.lib.memory.page_align(addr)),
             int(length),
-            prot_int,
-            flag_int,
+            prot,
+            flags,
             int(fd),
             int(offset),
         )
 
-        print(f"mmap syscall returned {pointer:#x}")
+        pwndbg.lib.errnum.handle_syscall_ret(SYSCALL, pointer, pwndbg.aglib.arch.ptrbits)
 
         if pwndbg.aglib.vmmap.cache_status_text() is not None:
             print(

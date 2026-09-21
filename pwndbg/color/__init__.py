@@ -45,95 +45,123 @@ UNDERLINE = "\x1b[4m"
 #   117 ns ± 0.642 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
 #   In [3]: %timeit str('')
 #   72 ns ± 0.222 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
-none = str
+COLORS: dict[str, Callable[[str], str]] = {"none": str}
 
 
-def normal(x: str) -> str:
-    return colorize(x, NORMAL)
+def color(fn: Callable[[str], str]) -> Callable[[str], str]:
+    """
+    Mark a function as a "color", so it can be used in e.g. configuration.
+    """
+    COLORS[fn.__name__] = fn
+    return fn
 
 
-def black(x: str) -> str:
-    return colorize(x, BLACK)
-
-
-def red(x: str) -> str:
-    return colorize(x, RED)
-
-
-def green(x: str) -> str:
-    return colorize(x, GREEN)
-
-
-def yellow(x: str) -> str:
-    return colorize(x, YELLOW)
-
-
-def blue(x: str) -> str:
-    return colorize(x, BLUE)
-
-
-def purple(x: str) -> str:
-    return colorize(x, PURPLE)
-
-
-def cyan(x: str) -> str:
-    return colorize(x, CYAN)
-
-
-def light_gray(x: str) -> str:
-    return colorize(x, LIGHT_GRAY)
-
-
-def foreground(x: str) -> str:
-    return colorize(x, FOREGROUND)
-
-
-def gray(x: str) -> str:
-    return colorize(x, GRAY)
-
-
-def light_red(x: str) -> str:
-    return colorize(x, LIGHT_RED)
-
-
-def light_green(x: str) -> str:
-    return colorize(x, LIGHT_GREEN)
-
-
-def light_yellow(x: str) -> str:
-    return colorize(x, LIGHT_YELLOW)
-
-
-def light_blue(x: str) -> str:
-    return colorize(x, LIGHT_BLUE)
-
-
-def light_purple(x: str) -> str:
-    return colorize(x, LIGHT_PURPLE)
-
-
-def light_cyan(x: str) -> str:
-    return colorize(x, LIGHT_CYAN)
-
-
-def white(x: str) -> str:
-    return colorize(x, WHITE)
-
-
-def bold(x: str) -> str:
-    return colorize(x, BOLD)
-
-
-def underline(x: str) -> str:
-    return colorize(x, UNDERLINE)
+def terminate_with(x: str, color: str) -> str:
+    return x.replace("\x1b[0m", NORMAL + color)
 
 
 def colorize(x: str, color: str) -> str:
     return color + terminate_with(str(x), color) + NORMAL
 
 
-def nocolor(x: str, color: str) -> str:
-    return x
+@color
+def normal(x: str) -> str:
+    return colorize(x, NORMAL)
+
+
+@color
+def black(x: str) -> str:
+    return colorize(x, BLACK)
+
+
+@color
+def red(x: str) -> str:
+    return colorize(x, RED)
+
+
+@color
+def green(x: str) -> str:
+    return colorize(x, GREEN)
+
+
+@color
+def yellow(x: str) -> str:
+    return colorize(x, YELLOW)
+
+
+@color
+def blue(x: str) -> str:
+    return colorize(x, BLUE)
+
+
+@color
+def purple(x: str) -> str:
+    return colorize(x, PURPLE)
+
+
+@color
+def cyan(x: str) -> str:
+    return colorize(x, CYAN)
+
+
+@color
+def light_gray(x: str) -> str:
+    return colorize(x, LIGHT_GRAY)
+
+
+@color
+def foreground(x: str) -> str:
+    return colorize(x, FOREGROUND)
+
+
+@color
+def gray(x: str) -> str:
+    return colorize(x, GRAY)
+
+
+@color
+def light_red(x: str) -> str:
+    return colorize(x, LIGHT_RED)
+
+
+@color
+def light_green(x: str) -> str:
+    return colorize(x, LIGHT_GREEN)
+
+
+@color
+def light_yellow(x: str) -> str:
+    return colorize(x, LIGHT_YELLOW)
+
+
+@color
+def light_blue(x: str) -> str:
+    return colorize(x, LIGHT_BLUE)
+
+
+@color
+def light_purple(x: str) -> str:
+    return colorize(x, LIGHT_PURPLE)
+
+
+@color
+def light_cyan(x: str) -> str:
+    return colorize(x, LIGHT_CYAN)
+
+
+@color
+def white(x: str) -> str:
+    return colorize(x, WHITE)
+
+
+@color
+def bold(x: str) -> str:
+    return colorize(x, BOLD)
+
+
+@color
+def underline(x: str) -> str:
+    return colorize(x, UNDERLINE)
 
 
 # Taken from https://stackoverflow.com/a/14693789
@@ -153,12 +181,16 @@ disable_colors = theme.add_param(
 )
 
 
+def __nocolor(x: str, _color: str) -> str:
+    return x
+
+
 @pwndbg.config.trigger(disable_colors)
 def _disable_colors_trigger():
     if disable_colors:
         if not hasattr(colorize, "original_code"):
             colorize.original_code = colorize.__code__
-        colorize.__code__ = nocolor.__code__
+        colorize.__code__ = __nocolor.__code__
     elif hasattr(colorize, "original_code"):
         colorize.__code__ = colorize.original_code
 
@@ -196,8 +228,12 @@ class ColorConfig:
 
 
 def generate_color_function(
-    config: str | Parameter, _locals: dict[str, Callable[[str], str]] = locals()
+    config: str | Parameter, color_space: dict[str, Callable[[str], str]] = COLORS
 ) -> Callable[[object], str]:
+    """
+    Takes a colorizing description like "blue,underline" and produces a function
+    which colors strings that way.
+    """
     # the `config` here may be a config Parameter object
     # and if we run with disable_colors or if the config value
     # is empty, we need to ensure we cast it to string
@@ -208,21 +244,27 @@ def generate_color_function(
     if disable_colors:
         return function
 
-    for color in config.split(","):
-        func_name = color.lower().replace("-", "_")
-        fn = _locals.get(func_name)
-        assert fn is not None, f"Invalid colour {color}"
-        assert callable(fn), f"Invalid colour {color}"
+    for func_name in config.replace("-", "_").split(","):
+        fn = color_space.get(func_name)
+        assert fn is not None, f"Invalid color {func_name}, valid: {color_space}"
+        assert callable(fn), f"Invalid color {func_name}, valid: {color_space}"
         function = generate_color_function_inner(function, fn)
     return function
 
 
+def is_valid_color_parameter(color_param: str) -> bool:
+    """
+    Validates the "blue,underline" colorizations that generate_color_function
+    takes.
+    """
+    for color in color_param.replace("-", "_").split(","):
+        if color not in COLORS:
+            return False
+    return True
+
+
 def strip(x: str) -> str:
     return re.sub("\x1b\\[[\\d;]+m", "", x)
-
-
-def terminate_with(x: str, color: str) -> str:
-    return x.replace("\x1b[0m", NORMAL + color)
 
 
 def ljust_colored(x: str, length: int, char: str = " ") -> str:

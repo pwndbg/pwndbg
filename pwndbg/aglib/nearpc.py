@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 
 from capstone6pwndbg import *  # noqa: F403
 
@@ -21,6 +22,7 @@ from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import blue
+from pwndbg.color import gray
 from pwndbg.color import green
 from pwndbg.color import light_gray
 from pwndbg.color import light_green
@@ -144,7 +146,7 @@ END_SYMBOL = ">"
 DOTTED_VERTICAL = "╎"
 UP_SYMBOL = "▲"
 
-offset_to_color_map = {
+offset_to_color_map: dict[int, Callable[[str], str]] = {
     0: white,
     1: red,
     2: green,
@@ -164,7 +166,7 @@ offset_to_color_map = {
 last_run_ids: dict[JumpRange, int] = {}
 
 
-def colorize_branch_vis_line(offset: int, string: str):
+def colorize_branch_vis_line(offset: int, string: str) -> str:
     return offset_to_color_map.get(offset, lambda x: str(x))(string)
 
 
@@ -190,20 +192,46 @@ def preprocess_branch_visualization(
 
     # Find all instructions eligible for branch visualization
     for instruction in instructions:
-        if instruction.jump_like and instruction.has_jump_target and not instruction.call_like:
-            jumps.append(JumpRange(instruction.address, instruction.target))
+        if instruction.jump_like and not instruction.call_like:
+            if instruction.has_jump_target:
+                address_page = pwndbg.aglib.vmmap.find(instruction.address)
+                target_page = pwndbg.aglib.vmmap.find(instruction.target)
+
+                # Only show branch visualization if the target is in the same
+                # address region as the target
+                # Otherwise, we will never get to the target, and the visualization
+                # adds clutter
+                if address_page == target_page:
+                    jumps.append(JumpRange(instruction.address, instruction.target))
+
+            elif instruction.target_memory_operand is not None:
+                # This is a `jmp [mem]` instruction, and this value is the target based on the current process state
+                target = instruction.target_memory_operand.value
+
+                if target is None:
+                    continue
+
+                target &= pwndbg.aglib.arch.ptrmask
+                # The branch visualization is nice to show for things like the initial state of PLT/GOT,
+                # where the jump at the plt goes to a nearby address. But otherwise, the target is likely
+                # very far away in memory. This just tries to make the output nicer, because otherwise
+                # the branch visualization would most definitely span a huge address range, where it's no longer helpful
+                if abs(target - instruction.address) < 100:
+                    jumps.append(JumpRange(instruction.address, target))
+
+    jumps.sort(key=lambda x: x.max - x.min)
 
     # Of the jumpranges we processed last time, which ones do we keep? Relevant for repeat nearpc
     continued_ranges: set[JumpRange] = set()
 
-    # Population structure mapping every address to each jump range it belongs to
+    # Populate structure mapping every address to each jump range it belongs to
     for instruction in instructions:
         for pair in jumps:
             if pair.contains(instruction.address):
                 pair_map[instruction.address].append(pair)
 
         if repeat:
-            for pair, y in last_run_ids.items():
+            for pair in last_run_ids:
                 if pair.contains(instruction.address):
                     pair_map[instruction.address].append(pair)
                     continued_ranges.add(pair)
@@ -424,6 +452,8 @@ def nearpc(
     branch_visualization: bool = False,
     address_to_highlight: int | None = None,
     end_address: int | None = None,
+    max_backwards_linear_count: int | None = None,
+    instruction_flow_cache: pwndbg.aglib.disasm.disassembly.InstructionFlowCache | None = None,
 ) -> list[str]:
     """
     Disassemble near a specified address.
@@ -477,16 +507,20 @@ def nearpc(
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
 
-    instructions, index_of_pc = pwndbg.aglib.disasm.disassembly.near(
-        pc,
-        forward_count=lines,
-        backward_count=back_lines,
-        total_count=total_lines,
-        emulate=emulate,
-        show_prev_insns=not repeat,
-        use_cache=use_cache,
-        linear=linear,
-        end_address=end_address,
+    instructions, index_of_pc, index_of_last_linearly_disassembled_instruction = (
+        pwndbg.aglib.disasm.disassembly.near(
+            pc,
+            forward_count=lines,
+            backward_count=back_lines,
+            total_count=total_lines,
+            emulate=emulate,
+            show_prev_insns=not repeat,
+            use_cache=use_cache,
+            linear=linear,
+            end_address=end_address,
+            max_backwards_linear_count=max_backwards_linear_count,
+            instruction_flow_cache=instruction_flow_cache,
+        )
     )
 
     # If doing branch visualization, preprocess some datastructures
@@ -659,11 +693,14 @@ def nearpc(
                 ]
             )
 
+        if not linear and i <= index_of_last_linearly_disassembled_instruction:
+            line = gray(pwndbg.color.strip(line))
+
         result.append(line)
 
         # For call instructions, attempt to resolve the target and
         # determine the number of arguments.
-        if show_args:
+        if show_args and not linear:
             result.extend(
                 f"{'':>8}{arg}" for arg in pwndbg.arguments.format_args(instruction=instruction)
             )
@@ -676,6 +713,11 @@ def nearpc(
         elif instruction.split == SplitType.BRANCH_NOT_TAKEN:
             if nearpc_branch_marker_contiguous:
                 if empty_line_branch_vis_string:
+                    if not linear and i <= index_of_last_linearly_disassembled_instruction:
+                        empty_line_branch_vis_string = gray(
+                            pwndbg.color.strip(empty_line_branch_vis_string)
+                        )
+
                     result.append(empty_line_branch_vis_string)
                 else:
                     result.append(f"{nearpc_branch_marker_contiguous}")

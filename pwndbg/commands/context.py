@@ -62,7 +62,7 @@ from pwndbg.lib.regs import VisitableRegister
 if pwndbg.dbg.is_gdblib_available():
     import gdb
 
-    import pwndbg.gdblib.ptmalloc2_tracking
+    import pwndbg.gdblib.glibc_malloc_tracking
     import pwndbg.gdblib.symbol
 
 log = logging.getLogger(__name__)
@@ -1165,16 +1165,16 @@ def context_heap_tracker(
     width: int | None = None,
     height: int | None = None,
 ) -> list[str]:
-    if not pwndbg.gdblib.ptmalloc2_tracking.is_enabled():
+    if not pwndbg.gdblib.glibc_malloc_tracking.is_enabled():
         return []
 
     banner = [pwndbg.ui.banner("heap tracker", target=target, width=width, extra="")]
 
-    if pwndbg.gdblib.ptmalloc2_tracking.last_issue is not None:
+    if pwndbg.gdblib.glibc_malloc_tracking.last_issue is not None:
         info = [
-            f"Detected the following potential issue: {pwndbg.gdblib.ptmalloc2_tracking.last_issue}"
+            f"Detected the following potential issue: {pwndbg.gdblib.glibc_malloc_tracking.last_issue}"
         ]
-        pwndbg.gdblib.ptmalloc2_tracking.last_issue = None
+        pwndbg.gdblib.glibc_malloc_tracking.last_issue = None
     else:
         info = ["Nothing to report."]
 
@@ -1335,6 +1335,12 @@ disasm_lines = pwndbg.config.add_param(
     "context-disasm-lines", 10, "number of additional lines to print in the disasm context"
 )
 
+disasm_backwards_linear_lines = pwndbg.config.add_param(
+    "context-disasm-back-linear-lines",
+    "auto",
+    "maximum number of lines to disassemble backwards linearly in memory",
+)
+
 
 def try_emulate_if_bug_disable(handler: Callable[[], T]) -> T:
     try:
@@ -1350,6 +1356,40 @@ def try_emulate_if_bug_disable(handler: Callable[[], T]) -> T:
         return handler()
 
 
+context_disasm_instruction_flow_cache = pwndbg.aglib.disasm.disassembly.InstructionFlowCache()
+
+
+@pwndbg.dbg.event_handler(EventType.STOP)
+def enhance_cache_listener() -> None:
+    context_disasm_instruction_flow_cache.commit_next_instruction_flow()
+
+    if pwndbg.aglib.regs.pc not in context_disasm_instruction_flow_cache.next_addresses_cache:
+        # Clear the enhanced instruction cache to ensure we don't use stale values
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.clear()
+        context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.clear()
+
+
+@pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED)
+@pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED)
+def clear_on_reg_mem_change() -> None:
+    # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
+    # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
+    pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.pop(
+        pwndbg.aglib.regs.pc, None
+    )
+    context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.pop(
+        pwndbg.aglib.regs.pc, None
+    )
+
+    for addr in context_disasm_instruction_flow_cache.next_addresses_cache:
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.pop(addr, None)
+        context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.pop(
+            addr, None
+        )
+
+    context_disasm_instruction_flow_cache.next_addresses_cache.clear()
+
+
 @serve_context_history
 def context_disasm(
     target: OutputTarget = sys.stdout,
@@ -1361,9 +1401,7 @@ def context_disasm(
     syntax = pwndbg.aglib.disasm.disassembly.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(
-        iter(getattr(pwndbg.aglib.disasm.disassembly.get_disassembler, "cache").values()), None
-    )
+    cs = next(iter(pwndbg.aglib.disasm.disassembly.get_disassembler.cache.values()), None)
 
     # Clear the caches when user changes disassembly syntax during session.
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
@@ -1372,9 +1410,15 @@ def context_disasm(
         and (cs.syntax & pwndbg.aglib.disasm.disassembly.CAPSTONE_SYNTAX_OPTIONS_MASK) != syntax
     ):
         pwndbg.lib.cache.clear_caches()
-        pwndbg.aglib.disasm.disassembly.computed_instruction_cache.clear()
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.clear()
+        context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.clear()
 
     additional_disasm_lines = max(int(disasm_lines), height or 0)
+
+    if disasm_backwards_linear_lines == "auto":
+        max_backwards_linear_count = min(10, additional_disasm_lines // 3)
+    else:
+        max_backwards_linear_count = int(disasm_backwards_linear_lines)
 
     result = try_emulate_if_bug_disable(
         lambda: pwndbg.aglib.nearpc.nearpc(
@@ -1382,6 +1426,8 @@ def context_disasm(
             total_lines=additional_disasm_lines + 1,
             emulate=pwndbg.config.emulate != "off",
             use_cache=True,
+            max_backwards_linear_count=max_backwards_linear_count,
+            instruction_flow_cache=context_disasm_instruction_flow_cache,
         )
     )
 
@@ -1548,18 +1594,18 @@ def context_backtrace(
     oldest_frame = this_frame
 
     tui_backtrace_lines = max(int(backtrace_lines), height or 0)
-    for i in range(tui_backtrace_lines - 1):
+    for _ in range(tui_backtrace_lines - 1):
         try:
             candidate = oldest_frame.parent()
         # We catch an error in case of a `gdb.error: PC not saved` case
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             break
 
         if not candidate:
             break
         oldest_frame = candidate
 
-    for i in range(tui_backtrace_lines - 1):
+    for _ in range(tui_backtrace_lines - 1):
         candidate = newest_frame.child()
         if not candidate:
             break
@@ -1572,10 +1618,10 @@ def context_backtrace(
     inactive_prefix = Text(" " * active_prefix.cell_len)
 
     table = Table.grid(expand=False, padding=(0, 1))
-    table.add_column(no_wrap=True)
-    table.add_column(justify="right", no_wrap=True)
-    table.add_column(justify="right", no_wrap=True)
-    table.add_column(no_wrap=True)
+    table.add_column(no_wrap=True)  # active indicator
+    table.add_column(justify="right")  # frame number
+    table.add_column(justify="right", overflow="ignore", no_wrap=True)  # address
+    table.add_column(overflow="fold")  # symbol
 
     offset_regex = re.compile(r"^(.+)\+(\d+)$")
 
@@ -1780,7 +1826,7 @@ def save_signal() -> None:
             msg = f"Program received signal {desc_short}"
             if desc_long:
                 msg += desc_long
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             pass
 
     result.append(message.signal(msg))

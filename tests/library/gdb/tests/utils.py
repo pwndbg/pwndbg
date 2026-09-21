@@ -9,13 +9,13 @@ gdb_bin_path = os.environ.get("GDB_BIN_PATH", "pwndbg")
 
 
 def run_gdb_with_script(
-    binary="",
-    core="",
-    stdin_input=None,
-    pybefore=None,
-    pyafter=None,
-    timeout=None,
-):
+    binary: str = "",
+    core: str = "",
+    stdin_input: bytes | None = None,
+    pybefore: str | list[str] | None = None,
+    pyafter: str | list[str] | None = None,
+    timeout: float | None = None,
+) -> str:
     """
     Runs GDB with given commands launched before and after loading of gdbinit.py
     Returns GDB output.

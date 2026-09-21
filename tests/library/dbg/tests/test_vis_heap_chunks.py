@@ -53,7 +53,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
         return heap_addr
 
     async def hexdump_16B(gdb_symbol):
-        from pwndbg.commands.ptmalloc2 import bin_ascii
+        from pwndbg.aglib.memory import bin_ascii
 
         first, second = (await ctrl.execute_and_capture(f"x/16xb {gdb_symbol}")).splitlines()
         first = [int(v, 16) for v in first.split(":")[1].split()]
@@ -322,7 +322,7 @@ async def test_vis_heap_chunk_command_2_43(ctrl: Controller) -> None:
     import pwndbg.aglib.memory
     import pwndbg.aglib.vmmap
     import pwndbg.libc
-    from pwndbg.commands.ptmalloc2 import bin_ascii
+    from pwndbg.aglib.memory import bin_ascii
 
     # Disable collapsible output for existing test expectations
     await ctrl.execute("set vis-skip-repeating-val off")

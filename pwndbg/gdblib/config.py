@@ -24,6 +24,9 @@ import gdb
 import pwndbg
 import pwndbg.decorators
 import pwndbg.lib.config
+from pwndbg.color import COLORS
+from pwndbg.color import is_valid_color_parameter
+from pwndbg.color.theme import ColorParameter
 
 CLASS_MAPPING = {
     pwndbg.lib.config.PARAM_BOOLEAN: gdb.PARAM_BOOLEAN,
@@ -87,7 +90,28 @@ class Parameter(gdb.Parameter):
         )
 
     def get_set_string(self) -> str:
-        """Handles the GDB `set <param>`"""
+        """
+        Handles the GDB `set <param>`.
+
+        Is run after the value has already been set in GDB.
+        """
+        # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Parameters-In-Python.html#Parameters-In-Python:~:text=Parameter%2Eget%5Fset%5Fstring
+        # On func entry:
+        #   self.value holds the updated value in GDB
+        #   self.param.value holds our tracking of the value (this function updates it)
+
+        old_value = self.param.value
+
+        if isinstance(self.param, ColorParameter) and not is_valid_color_parameter(str(self.value)):
+            # Not a valid color parameter, revert the value and tell GDB to fail the command.
+            erroneous_value = self.value
+            self.value = old_value
+            valid_values = ", ".join(list(COLORS))
+            raise gdb.GdbError(
+                f"Invalid color '{erroneous_value}'.\nSpecifiers must be one of {valid_values}."
+                "\nSee `theme` for examples."
+            )
+
         # GDB will set `self.value` to the user's input
         if self.value is None and CLASS_MAPPING[self.param.param_class] in (
             gdb.PARAM_UINTEGER,

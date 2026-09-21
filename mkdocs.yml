@@ -133,11 +133,6 @@ plugins:
               # https://github.com/mkdocstrings/mkdocstrings/issues/817#issuecomment-3927886394
               returns_multiple_items: false
 
-  # Generate the whole Source page magically (hooks into mkdocstrings)
-  - api-autonav:
-      modules: ["pwndbg"]
-      nav_section_title: "Source"
-
   # Documentation versioning
   - mike:
       css_dir: stylesheets

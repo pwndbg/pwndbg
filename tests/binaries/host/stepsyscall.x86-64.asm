@@ -54,4 +54,7 @@ section .data
     len2 equ $ - msg2
 
 section .bss
+    ; This prevents the `buf` variable overlapping with `__bss_start`
+    ; When resolving variable names at an address, different version of GDB return one or the other
+    padding resb 100 
     buf resb 16

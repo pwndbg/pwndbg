@@ -17,7 +17,7 @@ def test_get_got_entry() -> None:
     assert entries
 
     # Verify structure and types
-    for category, items in entries.items():
+    for items in entries.values():
         for item in items:
             assert isinstance(item["offset"], int)
             assert isinstance(item["value"], int)

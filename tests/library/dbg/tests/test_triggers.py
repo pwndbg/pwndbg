@@ -17,14 +17,15 @@ async def set_param(ctrl: Controller, param_name: str, value: Any):
 async def single_param(ctrl: Controller, param_name: str, triggers: Any):
     import pwndbg
     from pwndbg import config
+    from pwndbg.color.theme import ColorParameter
 
     p = getattr(config, param_name.replace("-", "_"))
 
+    is_color_param: bool = isinstance(p, ColorParameter)
+
     mock_triggers = []
-    # Side-effects of some `integration-provider` triggers require GDB.
-    if param_name != "integration-provider" or pwndbg.dbg.is_gdblib_available():
-        for trigger in triggers:
-            mock_triggers.append(mock.Mock(side_effect=trigger))
+    for trigger in triggers:
+        mock_triggers.append(mock.Mock(side_effect=trigger))
 
     orig_triggers = config.triggers[param_name]
     config.triggers[param_name] = mock_triggers
@@ -38,8 +39,10 @@ async def single_param(ctrl: Controller, param_name: str, triggers: Any):
         await set_param(ctrl, param_name, 1)
         await set_param(ctrl, param_name, -1)
     elif isinstance(p.value, str) and p.param_class != pwndbg.lib.config.PARAM_ENUM:
-        await set_param(ctrl, param_name, "")
-        await set_param(ctrl, param_name, "some invalid text")
+        if not is_color_param:
+            # For color parameters, invalid values cause an error
+            await set_param(ctrl, param_name, "")
+            await set_param(ctrl, param_name, "some invalid text")
         await set_param(ctrl, param_name, "red")
         await set_param(ctrl, param_name, "bold,yellow")
     elif isinstance(p.value, str) and p.param_class == pwndbg.lib.config.PARAM_ENUM:

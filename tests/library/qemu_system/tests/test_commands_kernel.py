@@ -350,8 +350,8 @@ def test_command_paging() -> None:
         out = gdb.execute(f"v2p {addr}", to_string=True)
         # pagetype should be correct
         assert pagetype in out
-        page = int(out.splitlines()[1].split()[2], 16)
-        physmap_addr = int(out.splitlines()[0].split()[-1], 16)
+        page = int(out.splitlines()[2].split()[2], 16)
+        physmap_addr = int(out.splitlines()[1].split()[-1], 16)
         physmap_addr = pwndbg.aglib.kernel.phys_to_virt(physmap_addr)
         # the first 0x100 bytes of the resolved address should match the original
         check_0x100_bytes(addr, physmap_addr)

@@ -3,6 +3,8 @@ from __future__ import annotations
 import pwndbg.aglib
 import pwndbg.aglib.nearpc
 import pwndbg.color.context as ctx_color
+import pwndbg.color.memory
+import pwndbg.color.memory as mem_color
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -10,6 +12,7 @@ from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import gray
 from pwndbg.color import ljust_colored
+from pwndbg.color import message
 from pwndbg.color import strip
 from pwndbg.color import theme
 from pwndbg.color.message import off
@@ -28,6 +31,8 @@ config_branch_on = theme.add_param(
 config_branch_off = theme.add_param(
     "disasm-branch-off", "✘", "marker for branches that will NOT be taken"
 )
+
+DEBUG_CACHE = False
 
 
 def one_instruction(ins: PwndbgInstruction, linear: bool) -> str:
@@ -60,6 +65,8 @@ def one_instruction(ins: PwndbgInstruction, linear: bool) -> str:
     else:
         asm = f"  {asm}"
 
+    if DEBUG_CACHE:
+        asm = f"{ins.cache_source.value} {asm}"
     return asm
 
 
@@ -89,9 +96,25 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
         zip(instructions, (one_instruction(i, linear) for i in instructions))
     ):
         if ins.has_jump_target:
-            sym = ins.target_string
+            asm = f"{ljust_colored(asm, 36)} <{ins.target_string}>"
 
-            asm = f"{ljust_colored(asm, 36)} <{sym}>"
+            paddings.append(None)
+            if current_group:
+                groups.append(current_group)
+                current_group = []
+        elif ins.target_memory_operand is not None:
+            if ins.target_memory_operand.value is not None:
+                current_target = pwndbg.color.memory.get_address_or_symbol(
+                    ins.target_memory_operand.value & pwndbg.aglib.arch.ptrmask,
+                    pwndbg.dintegration.manager.get_stack_var_dict_all(),
+                )
+                target_string = f"{ins.target_memory_operand.address_string}, now={current_target}"
+            else:
+                target_string = message.error(
+                    f"Cannot dereference [{mem_color.get(ins.target_memory_operand.address)}]"
+                )
+
+            asm = f"{ljust_colored(asm, 36)} <{target_string}>"
 
             paddings.append(None)
             if current_group:
@@ -108,10 +131,8 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
 
             raw_len = len(strip(asm))
 
-            if cur_padding_len is None:
-                cur_padding_len = raw_len + MIN_SPACING
-            elif cur_padding_len - raw_len < MIN_SPACING:
-                # Annotations are getting too close to the disasm, push them to the right again
+            if cur_padding_len is None or cur_padding_len - raw_len < MIN_SPACING:
+                # First time setting padding, or annotations are getting too close to the disasm, push them to the right again
                 cur_padding_len = raw_len + MIN_SPACING
             # This path allows the padding to be smaller again
             # If the instruction has too much whitespace, put the annotation more to the left
@@ -152,7 +173,7 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
     final_result = []
 
     # Final pass to apply final paddings to make alignment of blocks of instructions cleaner
-    for i, (ins, asm, padding) in enumerate(zip(instructions, result, paddings)):
+    for ins, asm, padding in zip(instructions, result, paddings):
         # Padding being None implies a jump target - this is already baked into "asm"
         if ins.annotation and padding is not None:
             asm = f"{ljust_colored(asm, padding)}{ins.annotation}"

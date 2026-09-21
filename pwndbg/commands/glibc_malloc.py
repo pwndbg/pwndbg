@@ -2,14 +2,20 @@ from __future__ import annotations
 
 import argparse
 import ctypes
-from string import printable
+import functools
+import logging
+from collections.abc import Callable
+from typing import TypeVar
 
 from tabulate import tabulate
+from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib.heap
+import pwndbg.aglib.heap.glibc
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
+import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.chain
@@ -21,19 +27,25 @@ import pwndbg.dbg_mod
 import pwndbg.lib.memory
 import pwndbg.libc
 import pwndbg.libc.glibc
-from pwndbg.aglib.heap import heap_chain_limit
-from pwndbg.aglib.heap.ptmalloc import Arena
-from pwndbg.aglib.heap.ptmalloc import Bins
-from pwndbg.aglib.heap.ptmalloc import BinType
-from pwndbg.aglib.heap.ptmalloc import BinVariant
-from pwndbg.aglib.heap.ptmalloc import Chunk
-from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
-from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
-from pwndbg.aglib.heap.ptmalloc import Heap
+from pwndbg.aglib.heap.glibc import Arena
+from pwndbg.aglib.heap.glibc import Bins
+from pwndbg.aglib.heap.glibc import BinType
+from pwndbg.aglib.heap.glibc import BinVariant
+from pwndbg.aglib.heap.glibc import Chunk
+from pwndbg.aglib.heap.glibc import DebugSymsHeap
+from pwndbg.aglib.heap.glibc import Heap
+from pwndbg.aglib.heap.glibc import HeuristicHeap
 from pwndbg.color import generate_color_function
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.lib import SymbolNotRecoveredError
+
+log = logging.getLogger(__name__)
+
+
+T = TypeVar("T")
+P = ParamSpec("P")
 
 
 def read_chunk(addr: int) -> dict[str, int]:
@@ -41,26 +53,23 @@ def read_chunk(addr: int) -> dict[str, int]:
     # In GLIBC versions <= 2.24 the `mchunk_[prev_]size` field was named `[prev_]size`.
     # To support both versions, change the new names to the old ones here so that
     # the rest of the code can deal with uniform names.
-    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
-    assert pwndbg.aglib.heap.current.malloc_chunk is not None
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
+    assert allocator.malloc_chunk is not None
     renames = {
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    if isinstance(pwndbg.aglib.heap.current, DebugSymsHeap):
-        val = pwndbg.aglib.memory.get_typed_pointer_value(
-            pwndbg.aglib.heap.current.malloc_chunk, addr
-        )
+    if isinstance(allocator, DebugSymsHeap):
+        val = pwndbg.aglib.memory.get_typed_pointer_value(allocator.malloc_chunk, addr)
     else:
-        val = pwndbg.aglib.heap.current.malloc_chunk(addr)
+        val = allocator.malloc_chunk(addr)
     value_keys: list[str] = val.type.keys()
     return {renames.get(key, key): int(val[key]) for key in value_keys}
 
 
 def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> list[str]:
-    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
     assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
-    allocator = pwndbg.aglib.heap.current
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
     if offset is None:
         offset = allocator.chunk_key_offset("fd")
 
@@ -95,17 +104,12 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
         if not verbose and (chain_fd == [0] and not count) and not is_chain_corrupted:
             continue
 
-        if bins_type == BinType.TCACHE:
-            limit = 8
-            if count <= 7:
-                limit = count + 1
-            formatted_chain = pwndbg.chain.format(
-                chain_fd[0], offset=offset, limit=limit, safe_linking=safe_lnk
-            )
-        else:
-            formatted_chain = pwndbg.chain.format(
-                chain_fd[0], limit=heap_chain_limit, offset=offset, safe_linking=safe_lnk
-            )
+        formatted_chain = pwndbg.chain.format(
+            chain_fd[0],
+            limit=int(pwndbg.config.heap_dereference_limit),
+            offset=offset,
+            safe_linking=safe_lnk,
+        )
 
         if isinstance(size, int):
             if bins_type == BinType.LARGE:
@@ -155,11 +159,154 @@ def print_no_arena_found_error(tid: int | None = None) -> None:
 def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
     if tid is None:
         tid = pwndbg.aglib.proc.thread_id()
-    print(
-        message.notice(
-            f"No tcache bins found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
+
+    help_text = "the thread hasn't performed any allocations"
+
+    # On glibc >= 2.42, tcache is only allocated after the first tcache-sized
+    # allocation, rather than the first allocation in general, as before
+    if pwndbg.libc.version() >= (2, 42):
+        help_text = "the thread hasn't performed any tcache-sized allocations"
+
+    print(message.notice(f"No tcache bins found for thread {message.hint(tid)} ({help_text})."))
+
+
+def func_name(function: Callable[P, T]) -> str:
+    return function.__name__.replace("_", "-")
+
+
+def heap_is_sane(callee_func_name: str | None) -> bool:
+    """
+    Check that we can perform glibc heap inspection so a command can proceed.
+
+    Sets the correct heap inspector between HeuristicHeap() and DebugSymsHeap() .
+    """
+    if callee_func_name is None:
+        callee_func_name = "heap_is_sane"
+
+    if not pwndbg.aglib.proc.alive():
+        log.error(f"{callee_func_name}: Process is not alive.")
+        return False
+    if pwndbg.aglib.qemu.is_qemu_kernel():
+        log.error(f"{callee_func_name}: Not userspace.")
+        return False
+
+    # Are we certain we're in glibc?
+    # Operating under the assumption that the pwndbg/libc/ code can figure out
+    # that we are using glibc with at least as good accuracy as the glibc malloc code.
+    which_libc = pwndbg.libc.which()
+    if which_libc == pwndbg.libc.LibcType.UNKNOWN:
+        log.error(f"{callee_func_name}: Cannot find glibc in this process, has it been loaded?")
+        return False
+    if which_libc != pwndbg.libc.LibcType.GLIBC:
+        log.error(
+            f"{callee_func_name}: The currently active libc isn't glibc. It's {which_libc.value}."
         )
-    )
+        return False
+
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
+
+    # We have to use heuristics
+    if str(pwndbg.config.resolve_heap_via_heuristic) == "force":
+        if isinstance(allocator, DebugSymsHeap):
+            # Use the heuristic one!
+            allocator = pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
+
+        if not allocator.can_be_resolved():
+            log.error(
+                f"{callee_func_name}: You're forcing the usage of heuristics with 'help set resolve-heap-via-heuristic', but the"
+            )
+            log.error("heap cannot be resolved with them. Try 'auto'?")
+            return False
+
+    # We have to use debug syms
+    if str(pwndbg.config.resolve_heap_via_heuristic) == "never":
+        if isinstance(allocator, HeuristicHeap):
+            # Use the debug syms one!
+            allocator = pwndbg.aglib.heap.glibc.set_allocator(DebugSymsHeap())
+
+        if not allocator.can_be_resolved():
+            log.error(
+                f"{callee_func_name}: You're forcing the usage of debug symbols with 'help set resolve-heap-via-heuristic', but the"
+            )
+            log.error("heap cannot be resolved with them. Try 'auto'?")
+            return False
+
+    # We can choose
+    if str(pwndbg.config.resolve_heap_via_heuristic) == "auto":
+        # Can we upgrade?
+        upgraded: bool = False
+        if isinstance(allocator, HeuristicHeap):
+            # FIXME: Feels like DebugSymsHeap.can_be_resolved() should be a staticmethod.
+            maybe_debug_syms = DebugSymsHeap()
+            if maybe_debug_syms.can_be_resolved():
+                # Upgrade!
+                allocator = pwndbg.aglib.heap.glibc.set_allocator(maybe_debug_syms)
+                upgraded = True
+
+        # Can we actually resolve? (if we upgraded we know we can)
+        if not upgraded:
+            if not allocator.can_be_resolved() and isinstance(allocator, DebugSymsHeap):
+                # Maybe we could not resolve because we were already a DebugSymsHeap
+                # and there is no debug info?
+                allocator = pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
+
+            if not allocator.can_be_resolved():
+                # We cannot resolve with either one, bail!
+                # Abusing this exception a bit but w/e
+                raise SymbolNotRecoveredError(
+                    "glibc heap",
+                    "We know its glibc but we could not resolve the heap. This is a bug! Report it!",
+                )
+
+    # Alright, we can resolve, but is the heap initialized?
+    if not allocator.is_initialized():
+        # We used to allow some commands to run with an uninitialized heap, but no need.
+        log.error(f"{callee_func_name}: The heap is not initialized yet.")
+        return False
+
+    # Finally, we let the command pass.
+    return True
+
+
+def OnlyForSaneHeap(function: Callable[P, T]) -> Callable[P, T | None]:
+    """
+    Can we perform glibc heap inspection?
+
+    Also chooses the correct inspector between HeuristicHeap() and DebugSymsHeap() .
+
+    Decorate a glibc heap command function with this
+    """
+
+    @functools.wraps(function)
+    def _OnlyForSaneHeap(*a: P.args, **kw: P.kwargs) -> T | None:
+        if not heap_is_sane(func_name(function)):
+            return None
+
+        # May raise SymbolNotRecoveredError, let it bubble up.
+        return function(*a, **kw)
+
+    return _OnlyForSaneHeap
+
+
+def OnlyForSaneHeapWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
+    """
+    Same as OnlyForSaneHeap but also checks for the presence of tcache.
+    """
+
+    @functools.wraps(function)
+    def _OnlyForSaneHeapWithTcache(*a: P.args, **kw: P.kwargs) -> T | None:
+        if not heap_is_sane(func_name(function)):
+            return None
+
+        if not pwndbg.aglib.heap.glibc.get_allocator().has_tcache():
+            log.error(
+                f"{func_name(function)}: This version of glibc was not compiled with tcache support."
+            )
+
+            return None
+        return function(*a, **kw)
+
+    return _OnlyForSaneHeapWithTcache
 
 
 parser = argparse.ArgumentParser(
@@ -209,10 +356,8 @@ parser.add_argument(
 # is above @OnlyWithResolvedHeapSyms otherwise we get assertion failure if the process is not alive.
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def heap(
     addr_start: int | None = None,
     addr_end: int | None = None,
@@ -223,8 +368,7 @@ def heap(
     """Iteratively print chunks on a heap, default to the current thread's
     active heap.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     if count is not None and count <= 0:
         print(message.error("`--count` must be greater than 0."))
@@ -290,9 +434,8 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def hi(addr: int, verbose: bool = False, simple: bool = False, fake: bool = False) -> None:
     try:
         heap = Heap(addr)
@@ -328,14 +471,11 @@ Default to the current thread's arena.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def arena(addr: int | None = None) -> None:
     """Print the contents of an arena, default to the current thread's arena."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     if addr is not None:
         arena = Arena(addr)
@@ -358,14 +498,11 @@ def arena(addr: int | None = None) -> None:
 parser = argparse.ArgumentParser(description="List this process's arenas.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def arenas() -> None:
     """Lists this process's arenas."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     arenas = allocator.arenas
 
@@ -424,17 +561,13 @@ Default to the current thread's tcache.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
-@pwndbg.commands.OnlyWithTcache
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeapWithTcache
 def tcache(addr: int | None = None) -> None:
     """Print a thread's tcache contents, default to the current thread's
     tcache.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     tcache = allocator.get_tcache(addr)
     # if the current thread doesn't allocate the arena, tcache will be NULL
@@ -454,14 +587,11 @@ def tcache(addr: int | None = None) -> None:
 parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def mp() -> None:
     """Print the mp_ struct's contents."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     print(message.notice("mp_ struct at: ") + message.hint(hex(int(allocator.mp.address))))
     print(allocator.mp.value_to_human_readable())
@@ -475,16 +605,13 @@ Default to current thread's arena.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def top_chunk(addr: int | None = None) -> None:
     """Print relevant information about an arena's top chunk, default to the
     current thread's arena.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     if addr is not None:
         arena = Arena(addr)
@@ -516,10 +643,8 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def malloc_chunk(
     addr: int,
     fake: bool = False,
@@ -529,8 +654,7 @@ def malloc_chunk(
     dump: bool = False,
 ) -> None:
     """Print a malloc_chunk struct's contents."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     chunk = Chunk(addr)
 
@@ -637,16 +761,13 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def bins(addr: int | None = None, tcache_addr: int | None = None) -> None:
     """Print the contents of all an arena's bins and a thread's tcache,
     default to the current thread's arena and tcache.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     if allocator.has_tcache():
         if tcache_addr is None and allocator.thread_cache is None:
@@ -674,16 +795,13 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def fastbins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's fastbins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     if pwndbg.libc.version() >= (2, 43):
         print(message.warn("Fastbins were removed in glibc 2.43."))
@@ -713,16 +831,13 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def unsortedbin(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's unsortedbin, default to the current
     thread's arena.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     unsortedbin = allocator.unsortedbin(addr)
 
@@ -748,16 +863,13 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def smallbins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's smallbins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     smallbins = allocator.smallbins(addr)
 
@@ -783,16 +895,13 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def largebins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of an arena's largebins, default to the current
     thread's arena.
     """
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
     largebins = allocator.largebins(addr)
 
     if largebins is None:
@@ -817,15 +926,11 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
-@pwndbg.commands.OnlyWithTcache
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeapWithTcache
 def tcachebins(addr: int | None = None, verbose: bool = False) -> None:
     """Print the contents of a tcache, default to the current thread's tcache."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     tcachebins = allocator.tcachebins(addr)
 
@@ -876,10 +981,8 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def find_fake_fast(
     target_address: int,
     max_candidate_size: int | None = None,
@@ -888,8 +991,7 @@ def find_fake_fast(
     partial_overwrite: bool = False,
 ) -> None:
     """Find candidate fake fast chunks overlapping the specified address."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     size_sz = allocator.size_sz
     min_chunk_size = allocator.min_chunk_size
@@ -1072,10 +1174,8 @@ group.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, aliases=["vis"], category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(parser, aliases=["vis"], category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def vis_heap_chunks(
     addr: int | None = None,
     count: int | None = None,
@@ -1085,8 +1185,7 @@ def vis_heap_chunks(
     all_chunks: bool = False,
 ) -> None:
     """Visualize chunks on a heap, default to the current arena's active heap."""
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     # Used to determine whether to show command hint
     nothing_supplied = (
@@ -1185,153 +1284,31 @@ def vis_heap_chunks(
         # specific heap.
         bin_collections.insert(0, allocator.tcachebins(None))
 
-    printed = 0
-    out = ""
-    asc = ""
-    labels = []
-
     cursor = cursor_backup
-    chunk = Chunk(cursor)
 
     reached_top = False
     has_huge_chunk = False
-    # round up to align with 4*ptr_size and get half
-    half_max_size = (
-        pwndbg.lib.memory.round_up(int(pwndbg.config.max_visualize_chunk_size), ptr_size << 2) >> 1
-    )
 
-    bin_labels_map: dict[int, list[str]] = bin_labels_mapping(bin_collections)
-
-    # For collapsing repeated lines
-    skip_repeating: bool = False if no_skip else bool(pwndbg.config.vis_skip_repeating_val)
-    prev_line_content: str | None = None
-    repeat_count: int = 0
-    line_buffer: str = ""  # Temporary buffer for building current line (holds first cell)
-    saved_line_addr: str = ""  # Saved address for the current line
-
-    def flush_repeats() -> None:
-        """Add collapse message for accumulated repeated lines."""
-        nonlocal out, repeat_count, prev_line_content
-        if repeat_count > 0:
-            out += f"\n\t... ↓     {repeat_count:>3} repeated lines skipped"
-            repeat_count = 0
-        prev_line_content = None
-
-    for c, stop in enumerate(chunk_delims):
-        color_func = color_funcs[c % len(color_funcs)]
-
-        if stop - cursor > 0x10000:
+    for start, stop in zip([cursor] + chunk_delims, chunk_delims):
+        if stop - start > 0x10000:
             has_huge_chunk = True
-        first_cut = True
-        # round down to align with 2*ptr_size
-        begin_addr = pwndbg.lib.memory.round_down(cursor, ptr_size << 1)
-        end_addr = pwndbg.lib.memory.round_down(stop, ptr_size << 1)
 
-        # Reset repeat tracking at chunk boundaries (only if skip_repeating is enabled)
-        if skip_repeating:
-            flush_repeats()
+    labels_map: dict[int, list[str]] = bin_labels_mapping(bin_collections)
+    if arena is not None and cursor <= arena.top <= chunk_delims[-1]:
+        if arena.top not in labels_map:
+            labels_map[arena.top] = []
+        labels_map[arena.top].append("Top chunk")
+        reached_top = True
 
-        while cursor != stop:
-            # skip the middle part of a huge chunk
-            if (
-                not no_truncate
-                and half_max_size > 0
-                and begin_addr + half_max_size <= cursor < end_addr - half_max_size
-            ):
-                if first_cut:
-                    out += "\n" + "." * len(hex(cursor))
-                    first_cut = False
-                cursor += ptr_size
-                continue
-
-            if printed % 2 == 0:
-                saved_line_addr = f"0x{cursor:x}"
-
-            data = pwndbg.aglib.memory.read(cursor, ptr_size)
-            cell = pwndbg.aglib.arch.unpack(data)
-            cell_hex = f"\t0x{cell:0{ptr_size * 2}x}"
-
-            # Temporarily store colored cell_hex
-            colored_cell_hex = color_func(cell_hex)
-
-            printed += 1
-
-            labels.extend(bin_labels_map.get(cursor, []))
-            if arena is not None and cursor == arena.top:
-                labels.append("Top chunk")
-                reached_top = True
-
-            # Build up the cell part (2 cells per line)
-            asc += bin_ascii(data)
-
-            if printed % 2 == 1:
-                # First cell of the line, just accumulate
-                line_buffer += colored_cell_hex
-            else:
-                # Second cell - complete the line
-                line_label_part = "\t <-- " + ", ".join(labels) if labels else ""
-                colored_asc = color_func(asc)
-
-                # Build complete line content (address + cells + ascii + labels)
-                complete_line = (
-                    ("\n" if out else "")
-                    + saved_line_addr
-                    + line_buffer
-                    + colored_cell_hex
-                    + "\t"
-                    + colored_asc
-                    + line_label_part
-                )
-
-                if skip_repeating:
-                    # When skip_repeating is enabled, check for and collapse repeated lines
-                    # Don't collapse lines with labels (they're important markers)
-                    if not labels:
-                        # Compare just the hex values and ASCII part (exclude address and labels)
-                        current_hex_and_ascii = line_buffer + colored_cell_hex + "\t" + asc
-                        if prev_line_content == current_hex_and_ascii:
-                            # This line repeats the previous one, increment counter
-                            repeat_count += 1
-                        else:
-                            # Different line, flush any accumulated repeats and output this line
-                            flush_repeats()
-                            out += complete_line
-                            prev_line_content = current_hex_and_ascii
-                    else:
-                        # Line has labels, always output it
-                        flush_repeats()
-                        out += complete_line
-                        prev_line_content = None
-                else:
-                    # When skip_repeating is disabled, output every line directly
-                    out += complete_line
-
-                # Reset line building vars
-                line_buffer = ""
-                asc = ""
-                labels = []
-
-            cursor += ptr_size
-
-    # Flush any remaining repeats (only matters if skip_repeating is enabled)
-    if skip_repeating:
-        flush_repeats()
-
-    if printed % 2 != 0:
-        # We have an incomplete line with only one cell
-        # Need to add the address, first cell, and padding
-        machine_word_string_length = 2 + (2 * ptr_size)
-        out += (
-            ("\n" if out else "")
-            + saved_line_addr
-            + line_buffer
-            + "\t"
-            + " " * machine_word_string_length
-            + "\t"
-            + color_func(asc)
-        )
-
-    print(out)
+    pwndbg.aglib.memory.pprint_blocks(
+        start=cursor,
+        block_delims=chunk_delims,
+        color_funcs=color_funcs,
+        labels_map=labels_map,
+        cell_size=ptr_size,
+        no_truncate=no_truncate,
+        no_skip=no_skip,
+    )
 
     if reached_mapping_end:
         print(f"Reached end of memory mapping ({hex(heap_region.end)}).")
@@ -1345,13 +1322,6 @@ def vis_heap_chunks(
 
     if not reached_top and nothing_supplied:
         print(message.hint("Not all chunks were shown, see `vis --help` for more information."))
-
-
-VALID_CHARS = list(map(ord, set(printable) - set("\t\r\n\x0c\x0b")))
-
-
-def bin_ascii(bs: bytes | bytearray | list[int]) -> str:
-    return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 
 def bin_labels_mapping(collections: list[Bins | None]) -> dict[int, list[str]]:
@@ -1387,10 +1357,8 @@ try_free_parser = argparse.ArgumentParser(
 try_free_parser.add_argument("addr", type=int, help="Address passed to free")
 
 
-@pwndbg.commands.Command(try_free_parser, category=CommandCategory.PTMALLOC2)
-@pwndbg.commands.OnlyWhenUserspace
-@pwndbg.commands.OnlyWhenHeapIsInitialized
-@pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.Command(try_free_parser, category=CommandCategory.GLIBC_MALLOC)
+@OnlyForSaneHeap
 def try_free(addr: str | int) -> None:
     addr = int(addr)
 
@@ -1406,8 +1374,7 @@ def try_free(addr: str | int) -> None:
         return
 
     # constants
-    allocator = pwndbg.aglib.heap.current
-    assert isinstance(allocator, GlibcMemoryAllocator)
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
     arena = allocator.thread_arena
     # arena might be None if the current thread doesn't allocate the arena
     if arena is None:
@@ -1431,7 +1398,7 @@ def try_free(addr: str | int) -> None:
         return x
 
     def chunksize(chunk_size: int) -> int:
-        # maybe move this to ptmalloc.py
+        # maybe move this to glibc.py
         return chunk_size & (~7)
 
     def finalize(errors_found: int, returned_before_error: bool) -> None:
@@ -1449,7 +1416,7 @@ def try_free(addr: str | int) -> None:
     # try to get the chunk
     try:
         chunk = read_chunk(addr)
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         print(message.error(f"Can't read chunk at address 0x{addr:x}, memory error"))
         return
 
@@ -1559,7 +1526,7 @@ def try_free(addr: str | int) -> None:
 
         try:
             next_chunk = read_chunk(addr + chunk_size_unmasked)
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             print(
                 message.error(
                     f"Can't read next chunk at address 0x{addr + chunk_size_unmasked:x}, memory error"
@@ -1590,7 +1557,7 @@ def try_free(addr: str | int) -> None:
         if fastbin_top_chunk != 0:
             try:
                 fastbin_top_chunk = read_chunk(fastbin_top_chunk)
-            except pwndbg.dbg_mod.Error:
+            except pwndbg.dbg_mod.DebuggerError:
                 print(
                     message.error(
                         f"Can't read top fastbin chunk at address 0x{fastbin_top_chunk:x}, memory error"
@@ -1646,7 +1613,7 @@ def try_free(addr: str | int) -> None:
         try:
             next_chunk = read_chunk(next_chunk_addr)
             next_chunk_size = chunksize(unsigned_size(next_chunk["size"]))
-        except (OverflowError, pwndbg.dbg_mod.Error):
+        except (OverflowError, pwndbg.dbg_mod.DebuggerError):
             print(message.error(f"Can't read next chunk at address 0x{next_chunk_addr:x}"))
             finalize(errors_found, returned_before_error)
             return
@@ -1676,7 +1643,7 @@ def try_free(addr: str | int) -> None:
             try:
                 prev_chunk = read_chunk(prev_chunk_addr)
                 prev_chunk_size = chunksize(unsigned_size(prev_chunk["size"]))
-            except (OverflowError, pwndbg.dbg_mod.Error):
+            except (OverflowError, pwndbg.dbg_mod.DebuggerError):
                 print(message.error(f"Can't read next chunk at address 0x{prev_chunk_addr:x}"))
                 finalize(errors_found, returned_before_error)
                 return
@@ -1699,7 +1666,7 @@ def try_free(addr: str | int) -> None:
             try:
                 next_next_chunk_addr = next_chunk_addr + next_chunk_size
                 next_next_chunk = read_chunk(next_next_chunk_addr)
-            except (OverflowError, pwndbg.dbg_mod.Error):
+            except (OverflowError, pwndbg.dbg_mod.DebuggerError):
                 print(message.error(f"Can't read next chunk at address 0x{next_next_chunk_addr:x}"))
                 finalize(errors_found, returned_before_error)
                 return
@@ -1728,14 +1695,14 @@ def try_free(addr: str | int) -> None:
                         )
                         print(message.error(err))
                         errors_found += 1
-                except (OverflowError, pwndbg.dbg_mod.Error):
+                except (OverflowError, pwndbg.dbg_mod.DebuggerError):
                     print(
                         message.error(
                             f"Can't read chunk at 0x{unsorted['fd']:x}, it is unsorted bin fd"
                         )
                     )
                     errors_found += 1
-            except (OverflowError, pwndbg.dbg_mod.Error):
+            except (OverflowError, pwndbg.dbg_mod.DebuggerError):
                 print(message.error(f"Can't read unsorted bin chunk at 0x{unsorted_addr:x}"))
                 errors_found += 1
 

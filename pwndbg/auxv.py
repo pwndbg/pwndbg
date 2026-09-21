@@ -231,7 +231,7 @@ def walk_stack2(offset: int = 0) -> AUXV:
         # This check is needed because the above loop isn't
         # guaranteed to actually get us to AT_NULL, just to some
         # consecutive NULLs.  QEMU is pretty generous with NULLs.
-        for i in range(1024):
+        for _ in range(1024):
             if int(p.dereference()) == AT_CONSTANT_NAMES["AT_BASE"]:
                 break
             p -= 2
@@ -258,7 +258,7 @@ def walk_stack2(offset: int = 0) -> AUXV:
             p += 2
 
         return auxv
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         # If SP is inaccessible or we went past through stack and haven't found AUXV
         # then return an empty AUXV...
         return AUXV()

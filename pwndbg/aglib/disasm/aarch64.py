@@ -268,7 +268,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
         }
 
     @override
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         # Dispatch to the correct handler
         if instruction.id in AARCH64_SINGLE_LOAD_INSTRUCTIONS:
             target_reg_size = self._register_width(instruction, instruction.operands[0]) // 8
@@ -344,13 +344,15 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
             instruction.annotation = register_assign(result_operand.str, telescope)
 
     @override
-    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
             instruction.groups.remove(CS_GRP_CALL)
 
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         # In ARM64, only branches have the conditional code in the instruction,
         # as opposed to ARM32 which allows most instructions to be conditional
         if instruction.id == AARCH64_INS_B:
@@ -359,16 +361,21 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
                 instruction.declare_is_unconditional_jump = True
             else:
                 flags = super()._read_register_name(instruction, "cpsr", emu)
-                if flags is not None:
-                    return resolve_condition(instruction.cs_insn.cc, flags)
+                if flags is None:
+                    return InstructionCondition.UNDETERMINED_CONDITIONAL
+                return resolve_condition(instruction.cs_insn.cc, flags)
 
         elif instruction.id == AARCH64_INS_CBNZ:
             op_val = instruction.operands[0].before_value
-            return boolean_to_instruction_condition(op_val is not None and op_val != 0)
+            if op_val is None:
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+            return boolean_to_instruction_condition(op_val != 0)
 
         elif instruction.id == AARCH64_INS_CBZ:
             op_val = instruction.operands[0].before_value
-            return boolean_to_instruction_condition(op_val is not None and op_val == 0)
+            if op_val is None:
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+            return boolean_to_instruction_condition(op_val == 0)
 
         elif instruction.id == AARCH64_INS_TBNZ:
             op_val, bit = (
@@ -376,8 +383,9 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
                 instruction.operands[1].before_value,
             )
 
-            if op_val is not None and bit is not None:
-                return boolean_to_instruction_condition(bool((op_val >> bit) & 1))
+            if op_val is None or bit is None:
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+            return boolean_to_instruction_condition(bool((op_val >> bit) & 1))
 
         elif instruction.id == AARCH64_INS_TBZ:
             op_val, bit = (
@@ -385,15 +393,18 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
                 instruction.operands[1].before_value,
             )
 
-            if op_val is not None and bit is not None:
-                return boolean_to_instruction_condition(not ((op_val >> bit) & 1))
+            if op_val is None or bit is None:
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+            return boolean_to_instruction_condition(not ((op_val >> bit) & 1))
         elif instruction.id in CONDITIONAL_SELECT_INSTRUCTIONS:
             # Capstone places the condition to be satisfied in the `cc` field of the instruction
             # for all conditional select instructions
             flags = self._read_register_name(instruction, "cpsr", emu)
 
-            if flags is not None:
-                return resolve_condition(instruction.cs_insn.cc, flags)
+            if flags is None:
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+
+            return resolve_condition(instruction.cs_insn.cc, flags)
 
         return super()._condition(instruction, emu)
 
@@ -415,7 +426,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
 
     @override
     def _parse_memory(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         """
         Parse the `Arm64OpMem` Capstone object to determine the concrete memory address used.
