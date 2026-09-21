@@ -1323,6 +1323,7 @@ class GlibcHeap:
             str(pwndbg.aglib.memory.read(addr, tcache_size) == b"\x00" * tcache_size)
             + " -- contents"
         )
+        print(str(pwndbg.aglib.memory.read(addr, tcache_size)))
         return pwndbg.aglib.memory.read(addr, tcache_size) == b"\x00" * tcache_size
 
     def _is_tcache_struct(self, addr: int) -> bool:
@@ -1330,7 +1331,9 @@ class GlibcHeap:
         tcache_size = self.tcache_perthread_struct.sizeof
         chunk_header_size = pwndbg.aglib.arch.ptrsize * 2
 
-        if not pwndbg.aglib.memory.is_readable_address(addr - chunk_header_size):
+        if pwndbg.libc.version() < (2, 43) and not pwndbg.aglib.memory.is_readable_address(
+            addr - chunk_header_size
+        ):
             return False
         if not pwndbg.aglib.memory.is_readable_address(addr + tcache_size):
             return False
@@ -1397,6 +1400,14 @@ class GlibcHeap:
         tps = self.tcache_perthread_struct
 
         if self.method.allow_debuginfo:
+            if pwndbg.libc.version() >= (2, 43):
+                print(
+                    "__tcache_dummy "
+                    + str(
+                        pwndbg.aglib.symbol.lookup_symbol_addr("__tcache_dummy", prefer_static=True)
+                    )
+                )
+
             thread_cache_via_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
                 "tcache", prefer_static=True
             )
