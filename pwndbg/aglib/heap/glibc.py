@@ -1319,8 +1319,9 @@ class GlibcHeap:
         if self._thread_cache_dummy_addr is not None and addr == self._thread_cache_dummy_addr:
             return True
 
-        # FIXME: It seems that on aarch64, the dummy is not necessarily RO
-        if not pwndbg.aglib.vmmap.find(addr).ro:
+        # NOTE: ro / rx, can be optimized inside .text as it's just a bunch of zeroes
+        page = pwndbg.aglib.vmmap.find(addr)
+        if page.read and not page.write:
             return False
 
         tcache_size = self.tcache_perthread_struct.sizeof
