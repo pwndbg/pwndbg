@@ -1321,7 +1321,6 @@ class GlibcHeap:
 
         # FIXME: It seems that on aarch64, the dummy is not necessarily RO
         if not pwndbg.aglib.vmmap.find(addr).ro:
-            print(hex(addr) + " is not RO, cannot be dummy")
             return False
 
         tcache_size = self.tcache_perthread_struct.sizeof
@@ -1336,9 +1335,7 @@ class GlibcHeap:
         tcache_size = self.tcache_perthread_struct.sizeof
         chunk_header_size = pwndbg.aglib.arch.ptrsize * 2
 
-        if pwndbg.libc.version() < (2, 43) and not pwndbg.aglib.memory.is_readable_address(
-            addr - chunk_header_size
-        ):
+        if not pwndbg.aglib.memory.is_readable_address(addr - chunk_header_size):
             return False
         if not pwndbg.aglib.memory.is_readable_address(addr + tcache_size):
             return False
@@ -1355,7 +1352,6 @@ class GlibcHeap:
         if pwndbg.libc.version() < (2, 43):
             return False
 
-        print("Checking addr " + hex(addr) + " if it's a dummy..")
         return self._is_tcache_dummy(addr)
 
     @property

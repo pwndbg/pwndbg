@@ -234,7 +234,7 @@ jobs:
             # glibc/musl compile their per-version test binaries in the container.
             make -C /pwndbg/tests/binaries/host -j4 all
             echo "Running ${{ matrix.libc }} multi-version tests..."
-            ./tests.sh -d gdb -g dbg "test_heap_bins_glibc_version"
+            ./tests.sh -d gdb -g dbg "${{ matrix.test_filter }}"
           '
 
   create-manifest:
