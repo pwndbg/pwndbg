@@ -1280,16 +1280,11 @@ class GlibcHeap:
         raise SymbolNotRecoveredError("main_arena", "heuristic failed")
 
     def has_tcache(self) -> bool:
-
         # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
-        if self.mp is not None and len(self.mp.type.keys()) > 0:
-            return any(
-                x in self.mp.type.keys()  # noqa: SIM118 (mp is not a dict)
-                for x in ("tcache_bins", "tcache_small_bins")
-            )
-
-        # There is no debug symbols, we determine the tcache_bins existence by checking glibc version only
-        return self.is_initialized() and pwndbg.libc.version() >= (2, 26)
+        return any(
+            x in self.malloc_par.keys()  # noqa: SIM118 (mp is not a dict)
+            for x in ("tcache_bins", "tcache_small_bins")
+        )
 
     def _get_heap_page(self) -> pwndbg.lib.memory.Page | None:
         """Get the [heap] memory page."""
