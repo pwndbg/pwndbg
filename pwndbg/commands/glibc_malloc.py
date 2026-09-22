@@ -214,7 +214,7 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
 
     # We have to use heuristics
     if str(pwndbg.config.resolve_heap_via_heuristic) == "force":
-        allocator.method = HeapDebugMethod.Heuristic
+        allocator.method = HeapDebugMethod.HEURISTIC
 
         if not allocator.can_be_resolved():
             log.error(
@@ -225,7 +225,7 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
 
     # We have to use debug info
     if str(pwndbg.config.resolve_heap_via_heuristic) == "never":
-        allocator.method = HeapDebugMethod.DebugInfo
+        allocator.method = HeapDebugMethod.DEBUG_INFO
 
         if not allocator.can_be_resolved():
             log.error(
@@ -236,7 +236,7 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
 
     # We can use both
     if str(pwndbg.config.resolve_heap_via_heuristic) == "auto":
-        allocator.method = HeapDebugMethod.Auto
+        allocator.method = HeapDebugMethod.AUTO
 
     if not allocator.can_be_resolved():
         log.error(f"{callee_func_name}: Could not resolve the heap.")

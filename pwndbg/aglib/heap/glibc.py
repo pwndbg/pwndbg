@@ -846,6 +846,20 @@ class Arena:
         return "\n".join(res)
 
 
+class HeapDebugMethod(int, Enum):
+    HEURISTIC = 0  # Force using only heuristics
+    DEBUG_INFO = 1  # Force using only debug info
+    AUTO = 2  # Allow both
+
+    @property
+    def allow_debuginfo(self) -> bool:
+        return self != HeapDebugMethod.HEURISTIC
+
+    @property
+    def allow_heuristics(self) -> bool:
+        return self != HeapDebugMethod.DEBUG_INFO
+
+
 class GlibcHeap:
     # Largebin reverse lookup tables.
     # These help determine the range of chunk sizes that each largebin can hold.
@@ -1068,7 +1082,7 @@ class GlibcHeap:
         self._thread_cache_dummy_addr: int | None = None
         self._structs_module: types.ModuleType | None = None
         self._thread_arena_values: dict[int, int] = {}
-        self.method: HeapDebugMethod = HeapDebugMethod.Auto
+        self.method: HeapDebugMethod = HeapDebugMethod.AUTO
 
     def largebin_reverse_lookup(self, index: int) -> int:
         """Pick the appropriate largebin_reverse_lookup_ function for this architecture."""
@@ -1103,6 +1117,13 @@ class GlibcHeap:
         return self._structs_module
 
     def can_be_resolved(self) -> bool:
+        """
+        When you instantiate this class, you must first run this command to see if you can
+        actually use it.
+
+        If this returns True and we get an exception somewhere or fail to inspect the heap,
+        we consider that a bug.
+        """
         can_resolve_heuristics = False
         can_resolve_debuginfo = False
 
@@ -1274,13 +1295,13 @@ class GlibcHeap:
         """Get the [heap] memory page."""
         return next((p for p in pwndbg.aglib.vmmap.get() if p.is_heap), None)
 
-    def _get_heap_range(self) -> pwndbg.lib.memory.Page | range:
-        """Get the heap start & end"""
+    def _get_heap_range(self) -> range:
+        """Get the start & end of the [heap] mapping"""
         arena = self.thread_arena
         if not arena:
             page = self._get_heap_page()
             assert page is not None
-            return page
+            return range(page.start, page.end)
         return range(arena.active_heap.start, arena.active_heap.end)
 
     def _search_tls(
@@ -1316,12 +1337,16 @@ class GlibcHeap:
 
     def _is_tcache_dummy(self, addr: int) -> bool:
         """Check if addr points to a tcache dummy (glibc >= 2.43, read-only, all zeros)."""
+
+        if pwndbg.libc.version() < (2, 43):
+            return False
+
         if self._thread_cache_dummy_addr is not None and addr == self._thread_cache_dummy_addr:
             return True
 
         # NOTE: ro / rx, can be optimized inside .text as it's just a bunch of zeroes
         page = pwndbg.aglib.vmmap.find(addr)
-        if page.read and not page.write:
+        if not page.read or page.write:
             return False
 
         tcache_size = self.tcache_perthread_struct.sizeof
@@ -1332,7 +1357,7 @@ class GlibcHeap:
         return True
 
     def _is_tcache_struct(self, addr: int) -> bool:
-        """Check if addr points to a valid tcache_perthread_struct."""
+        """Check if addr points to a possible valid tcache_perthread_struct."""
         tcache_size = self.tcache_perthread_struct.sizeof
         chunk_header_size = pwndbg.aglib.arch.ptrsize * 2
 
@@ -1349,9 +1374,6 @@ class GlibcHeap:
             if pwndbg.libc.version() >= (2, 42):
                 return chunk.real_size - ptr_size == tcache_size
             return chunk.real_size - ptr_size * 2 == tcache_size
-
-        if pwndbg.libc.version() < (2, 43):
-            return False
 
         return self._is_tcache_dummy(addr)
 
@@ -1806,8 +1828,7 @@ class GlibcHeap:
                 # the `mp` getter has lots of "side effects"
                 # one of which is setting `self._mp_addr` (if resolving mp succeeds)
                 self.mp  # noqa: B018
-            except Exception:
-                # Should only raise SymbolNotRecoveredError, but the heuristic heap implementation is still buggy so catch all exceptions for now.
+            except SymbolNotRecoveredError:
                 pass
 
         if self._mp_addr:
@@ -2156,6 +2177,11 @@ class GlibcHeap:
         return self.largebin_index_32(sz)
 
     def is_initialized(self) -> bool:
+        """
+        Returns true if the heap state has been initialized.
+
+        Usually this is equivalent to asking 'has at least one allocation happened?'
+        """
         symbol_addr = None
 
         if self.method.allow_debuginfo:
@@ -2175,20 +2201,6 @@ class GlibcHeap:
 
     def is_statically_linked(self) -> bool:
         return not pwndbg.dbg.selected_inferior().is_dynamically_linked()
-
-
-class HeapDebugMethod(int, Enum):
-    Heuristic = 0  # Force using only heuristics
-    DebugInfo = 1  # Force using only debug info
-    Auto = 2  # Allow both
-
-    @property
-    def allow_debuginfo(self) -> bool:
-        return self != HeapDebugMethod.Heuristic
-
-    @property
-    def allow_heuristics(self) -> bool:
-        return self != HeapDebugMethod.DebugInfo
 
 
 """The allocator object holding the state of the current heap"""
