@@ -89,8 +89,7 @@ let
     ''
     + ''
       export PYTHONNOUSERSITE=1
-      export PYTHONHOME="$dir"
-      export PYTHONPATH=""
+      export __PYVENV_LAUNCHER__="$dir/bin/python3"
       export PATH="$dir/bin/:$PATH"
     '';
 
@@ -114,10 +113,7 @@ let
     pkgs.writeScript "pwndbg-wrapper-bin-py" ''
       #!/bin/sh
       dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
-      ${commonEnvs}
-      ${riskEnvsCheck}
-      ${macosQuarantine}
-      exec ${ldLoader} "$dir/exe/python3" "$dir/${file}" "$@"
+      exec "$dir/bin/python3" "$dir/${file}" "$@"
     '';
   wrapperBin =
     file:
@@ -125,6 +121,7 @@ let
       #!/bin/sh
       dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
       ${commonEnvs}
+      ${riskEnvsCheck}
       ${macosQuarantine}
       exec ${ldLoader} "$dir/${file}" "$@"
     '';
@@ -161,6 +158,9 @@ let
 
       "${wrapperBinPy "exe/gdbserver"}"
       "bin/gdbserver"
+
+      "${wrapperBin "exe/python3"}"
+      "bin/python3"
     ]
   );
 
