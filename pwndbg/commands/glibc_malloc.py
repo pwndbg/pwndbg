@@ -1133,7 +1133,7 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument(
     "count",
     nargs="?",
-    type=lambda n: max(int(n, 0), 1),
+    type=int,
     default=None,
     help="Number of chunks to visualize. If the value is big enough and addr isn't provided, this is interpreted as addr instead.",
 )
@@ -1194,6 +1194,10 @@ def vis_heap_chunks(
 
     if count is None:
         count = int(pwndbg.config.default_visualize_chunk_number)
+
+    if count < 1:
+        print(message.error("Count needs to be a positive number."))
+        return
 
     # If the first argument (count) is big enough (and address isn't provided) interpret it as an address
     if count > 0x1000 and addr is None:

@@ -10,7 +10,6 @@ import pwndbg.commands
 from pwndbg.color import generate_color_function
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-from pwndbg.commands import fix_int_reraise_arg
 
 parser = argparse.ArgumentParser(
     description="""Visualize stack frames of the current thread.
@@ -22,7 +21,7 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument(
     "count",
     nargs="?",
-    type=lambda n: max(fix_int_reraise_arg(n), 1),
+    type=int,
     default=None,
     help="Number of frames to visualize.",
 )
@@ -60,6 +59,10 @@ def stack_vis(
     if count is None:
         count = int(pwndbg.config.default_visualize_chunk_number)
 
+    if count < 1:
+        print(message.error("Count needs to be a positive number."))
+        return
+
     frame = pwndbg.dbg.selected_frame()
     if frame is None:
         print(message.error("Could not find frame."))
@@ -78,35 +81,55 @@ def stack_vis(
     frame_delims = []
     labels_map = {}
 
-    start = None
-    low_addr = None
-    high_addr = None
+    start: int | None = None
+    # low_addr means frame.sp() means smaller addresses means higher in our tele
+    low_addr: int = -1
+    high_addr: int | None = None
 
     c = 0
     while True:
-        if not all_frames and c == count:
-            break
-
         if frame is None:
             break
 
+        if c == count and not all_frames:
+            break
+
+        prev_low_addr = low_addr
         low_addr = frame.sp()
-        if high_addr is not None:
-            # For some reason, it can happen that GDB reports 2 consecutive frames with the same SP and start,
-            # e.g., when calling `pthread_cond_wait`
-            low_addr = max(low_addr, high_addr)
         high_addr = frame.start()
 
+        # Usually you will have something like
+        #   frame.sp()             = 0x7ffff7bfee30
+        #   frame.start()          = 0x7ffff7bfee38
+        #   frame.parent().sp()    = 0x7ffff7bfee40 (/\ 8 byte difference here)
+        #   frame.parent().start() = 0x7ffff7bfee58
+
+        if low_addr == prev_low_addr:
+            # For some reason, it can happen that GDB reports 2 consecutive frames with the same SP and start,
+            # e.g., when calling `pthread_cond_wait`
+            # In this case, we just omit the second frame
+            # FIXME: add a test for this
+            continue
+
+        if low_addr == high_addr and c == 0:
+            # We are likely in the prologue of a function before it sets
+            # up the stack frame.
+            continue
+
         if low_addr == high_addr:
-            frame = frame.parent()
+            # FIXME: I feel like this can happen but idk how to repro, I guess
+            # i'll just skip until we figure it out...
+            # FIXME: add test
             continue
 
         if high_addr is None:
-            high_addr = 0
-
-        high_addr = max(high_addr, low_addr)
+            # I think this can only happen on the top-most frame, so we are kind of
+            # gucci, but idk
+            # FIXME: add test
+            high_addr = low_addr
 
         if c == 0:
+            # mark start of dump
             start = low_addr
 
         frame_delims.append(high_addr + ptr_size)
@@ -118,6 +141,8 @@ def stack_vis(
 
         c += 1
         frame = frame.parent()
+
+    assert start is not None, "bug in stack_vis(), did not execute any iterations?"
 
     pwndbg.aglib.memory.pprint_blocks(
         start=start,
