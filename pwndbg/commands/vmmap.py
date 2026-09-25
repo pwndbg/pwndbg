@@ -13,6 +13,7 @@ from elftools.elf.elffile import ELFFile
 import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
+import pwndbg.aglib.tls
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as mem_color
@@ -300,6 +301,8 @@ def vmmap(
     print(mem_color.legend() + cache_suffix)
     print_vmmap_table_header(header_prefix)
 
+    tls_base = pwndbg.aglib.tls.find_address_quietly()
+
     shared_cache_first = None
     shared_cache_last = None
     shared_cache_collapsed = 0
@@ -345,6 +348,11 @@ def vmmap(
             # If the page is the only filtered page, insert offset
             if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):
                 display_text = str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)
+
+        # Mappings holding the Thread Local Storage are usually anonymous, so point out the
+        # one that belongs to the currently selected thread.
+        if tls_base and tls_base in page:
+            display_text += " [TLS]"
 
         print(mem_color.get(page.vaddr, text=display_text, prefix=backtrace_prefix, page=page))
 
