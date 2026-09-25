@@ -4,7 +4,11 @@ import argparse
 
 import pwndbg
 import pwndbg.aglib
+import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
+import pwndbg.commands
 from pwndbg.color import generate_color_function
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.commands import fix_int_reraise_arg
 
@@ -19,7 +23,7 @@ group.add_argument(
     "count",
     nargs="?",
     type=lambda n: max(fix_int_reraise_arg(n), 1),
-    default=pwndbg.config.default_visualize_chunk_number,
+    default=None,
     help="Number of frames to visualize.",
 )
 parser.add_argument(
@@ -53,6 +57,14 @@ def stack_vis(
     no_truncate: bool = False,
     all_frames: bool = False,
 ) -> None:
+    if count is None:
+        count = int(pwndbg.config.default_visualize_chunk_number)
+
+    frame = pwndbg.dbg.selected_frame()
+    if frame is None:
+        print(message.error("Could not find frame."))
+        return
+
     color_funcs = [
         generate_color_function("yellow"),
         generate_color_function("cyan"),
@@ -62,8 +74,6 @@ def stack_vis(
     ]
 
     ptr_size = pwndbg.aglib.arch.ptrsize
-
-    frame = pwndbg.dbg.selected_frame()
 
     frame_delims = []
     labels_map = {}
@@ -90,6 +100,9 @@ def stack_vis(
         if low_addr == high_addr:
             frame = frame.parent()
             continue
+
+        if high_addr is None:
+            high_addr = 0
 
         high_addr = max(high_addr, low_addr)
 

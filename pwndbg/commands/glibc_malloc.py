@@ -1134,7 +1134,7 @@ group.add_argument(
     "count",
     nargs="?",
     type=lambda n: max(int(n, 0), 1),
-    default=pwndbg.config.default_visualize_chunk_number,
+    default=None,
     help="Number of chunks to visualize. If the value is big enough and addr isn't provided, this is interpreted as addr instead.",
 )
 parser.add_argument(
@@ -1177,8 +1177,8 @@ group.add_argument(
 @pwndbg.commands.Command(parser, aliases=["vis"], category=CommandCategory.GLIBC_MALLOC)
 @OnlyForSaneHeap
 def vis_heap_chunks(
-    addr: int | None = None,
     count: int | None = None,
+    addr: int | None = None,
     no_skip: bool = False,
     beyond_top: bool = False,
     no_truncate: bool = False,
@@ -1189,17 +1189,16 @@ def vis_heap_chunks(
 
     # Used to determine whether to show command hint
     nothing_supplied = (
-        addr is None
-        and count == pwndbg.config.default_visualize_chunk_number
-        and not beyond_top
-        and not no_truncate
-        and not all_chunks
+        addr is None and count is None and not beyond_top and not no_truncate and not all_chunks
     )
 
+    if count is None:
+        count = int(pwndbg.config.default_visualize_chunk_number)
+
     # If the first argument (count) is big enough (and address isn't provided) interpret it as an address
-    if addr is None and count is not None and count > 0x1000:
+    if count > 0x1000 and addr is None:
         addr = count
-        count = pwndbg.config.default_visualize_chunk_number
+        count = int(pwndbg.config.default_visualize_chunk_number)
 
     if addr is not None and not pwndbg.aglib.memory.is_readable_address(int(addr)):
         print(message.error("The provided address is not readable."))

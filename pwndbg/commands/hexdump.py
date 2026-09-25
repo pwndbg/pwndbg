@@ -5,6 +5,7 @@ import argparse
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.hexdump
@@ -83,7 +84,7 @@ parser.add_argument(
     "count",
     type=int,
     nargs="?",
-    default=pwndbg.config.hexdump_bytes,
+    default=None,
     help="Number of bytes to dump",
 )
 parser.add_argument(
