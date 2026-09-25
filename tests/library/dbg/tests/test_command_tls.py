@@ -59,3 +59,30 @@ async def test_tls_address_and_command(ctrl: Controller, binary: Path):
         and f"{pwndbg.aglib.vmmap.find(expected_tls_address)}\n" in output_all
     )
     assert "Output truncated. Rerun with option -a to display the full output." not in output_all
+
+
+# TODO: Support other architectures
+@pwndbg_test
+@pytest.mark.parametrize("binary", [TLS_X86_64_BINARY, TLS_I386_BINARY], ids=["x86-64", "i386"])
+async def test_vmmap_labels_tls(ctrl: Controller, binary: Path) -> None:
+    import pwndbg.aglib.tls
+    import pwndbg.aglib.vmmap
+    from pwndbg.dbg_mod import DebuggerType
+
+    if pwndbg.dbg.name() == DebuggerType.LLDB and binary == TLS_I386_BINARY:
+        pytest.skip("TLS commands are flaky in LLDB on i386")
+        return
+
+    await launch_to(ctrl, binary, "break_here")
+
+    tls_address = pwndbg.aglib.tls.find_address_quietly()
+    assert tls_address == pwndbg.aglib.tls.find_address_with_register()
+
+    tls_page = pwndbg.aglib.vmmap.find(tls_address)
+    assert tls_page is not None
+
+    output = await ctrl.execute_and_capture("vmmap")
+
+    labelled = [line for line in output.splitlines() if line.endswith("[TLS]")]
+
+    assert labelled == [f"{tls_page} [TLS]"]

@@ -5,6 +5,8 @@ Getting Thread Local Storage (TLS) information.
 from __future__ import annotations
 
 import pwndbg.aglib
+import pwndbg.aglib.proc
+import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
@@ -92,3 +94,21 @@ def find_address_with_register() -> int:
     if pwndbg.aglib.arch.name == "loongarch64":
         return int(pwndbg.aglib.regs.read_reg("tp") or 0)
     return 0
+
+
+def find_address_quietly() -> int:
+    """
+    Get the base address of the Thread Local Storage (TLS) for the current thread, without
+    running any code in the debuggee and without reporting errors.
+
+    This is meant for callers that only want to annotate their output with TLS information,
+    such as `vmmap`. Only `find_address_with_register()` is used, since `find_address_with_pthread_self()`
+    calls into the debuggee. Returns 0 when the address cannot be determined.
+    """
+    if not pwndbg.aglib.proc.alive() or pwndbg.aglib.qemu.is_qemu_kernel():
+        return 0
+
+    try:
+        return find_address_with_register()
+    except pwndbg.dbg_mod.DebuggerError:
+        return 0
