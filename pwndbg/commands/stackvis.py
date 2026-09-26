@@ -126,7 +126,7 @@ def stack_vis(
             continue
 
         if high_addr is None:
-            # I think this can only happen on the top-most frame, so we are kind of
+            # I think this can only happen on the oldest frame, so we are kind of
             # gucci, but idk
             # FIXME: add test
             high_addr = low_addr
