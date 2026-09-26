@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 PWNDBG_ROOT: Path = Path(__file__).parent.parent
+pwndbg_py_files = list(PWNDBG_ROOT.rglob("*.py"))
 pwndbg_lib_py_files: list[Path] = list((PWNDBG_ROOT / "pwndbg/lib/").rglob("*.py"))
 pwndbg_libc_no_init_py_files: list[Path] = [
     # Ideally I would like to catch only pwndbg/libc/__init__.py, but okay should be good
