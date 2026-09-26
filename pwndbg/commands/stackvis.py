@@ -10,6 +10,7 @@ import pwndbg.commands
 from pwndbg.color import generate_color_function
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.lib.config import Parameter
 
 parser = argparse.ArgumentParser(
     description="""Visualize stack frames of the current thread.
@@ -22,7 +23,9 @@ group.add_argument(
     "count",
     nargs="?",
     type=int,
-    default=None,
+    # doing it this way rather than in the function body shows a nice (default: x)
+    # text in the command help
+    default=pwndbg.config.default_visualize_chunk_number,
     help="Number of frames to visualize.",
 )
 parser.add_argument(
@@ -51,13 +54,13 @@ group.add_argument(
 @pwndbg.commands.Command(parser, category=CommandCategory.STACK)
 @pwndbg.commands.OnlyWhenRunning
 def stack_vis(
-    count: int | None = None,
+    count: int | Parameter,
     no_skip: bool = False,
     no_truncate: bool = False,
     all_frames: bool = False,
 ) -> None:
-    if count is None:
-        count = int(pwndbg.config.default_visualize_chunk_number)
+    # strip Parameter type
+    count = int(count)
 
     if count < 1:
         print(message.error("Count needs to be a positive number."))

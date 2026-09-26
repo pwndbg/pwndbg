@@ -12,6 +12,7 @@ import pwndbg.hexdump
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.config import PARAM_ZUINTEGER
+from pwndbg.lib.config import Parameter
 
 pwndbg.config.add_param("hexdump-width", 16, "line width of hexdump command")
 pwndbg.config.add_param("hexdump-bytes", 64, "number of bytes printed by hexdump command")
@@ -84,7 +85,9 @@ parser.add_argument(
     "count",
     type=int,
     nargs="?",
-    default=None,
+    # doing it this way rather than in the function body shows a nice (default: x)
+    # text in the command help
+    default=pwndbg.config.hexdump_bytes,
     help="Number of bytes to dump",
 )
 parser.add_argument(
@@ -100,9 +103,10 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def hexdump(address: str | int, count: int | None = None, code: str | None = None) -> None:
-    if count is None:
-        count = int(pwndbg.config.hexdump_bytes)
+def hexdump(address: str | int, count: int | Parameter, code: str | None = None) -> None:
+    # strip the Parameter type
+    count = int(count)
+
     if count <= 0:
         print(f"count must be larger than 0 (is {count}).")
         return

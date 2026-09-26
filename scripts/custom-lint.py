@@ -118,35 +118,9 @@ def libc_no_facade() -> None:
     )
 
 
-def command_arg_default_param() -> None:
-    """
-    Bans
-        parser.add_argument(
-            ...
-            default=
-                pwndbg.config.<some_config>,
-        )
-    """
-    # matches default=int(..) as well
-    # doesn't match if its multiple lines unfortunately
-    forbidden: list[str] = [r"default=.*pwndbg\.config"]
-    exceptions: dict[Path, list[str]] = {}
-    check_forbiden_in_lines(
-        pwndbg_py_files,
-        forbidden,
-        "[command_arg_default_param] Do not default initialize a command argument with a parameter.\n"
-        "If you use `default=int(param)` it won't be updated when the config is updated.\n"
-        "If you use `default=param` you'll get an object of the Parameter type into the function even though\n"
-        "you likely want an int or str.\n"
-        "Set default to None and then initialize in the function body, like `def stack_vis()` does.",
-        exceptions,
-    )
-
-
 def main() -> None:
     lib_is_pure()
     libc_no_facade()
-    command_arg_default_param()
 
     if LINT_FAILED:
         print(red("Fatal: Custom lint check failed. See the violations above^."))

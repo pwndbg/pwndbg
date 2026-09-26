@@ -40,6 +40,7 @@ from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.lib import SymbolNotRecoveredError
+from pwndbg.lib.config import Parameter
 
 log = logging.getLogger(__name__)
 
@@ -1134,7 +1135,9 @@ group.add_argument(
     "count",
     nargs="?",
     type=int,
-    default=None,
+    # doing it this way rather than in the function body shows a nice (default: x)
+    # text in the command help
+    default=pwndbg.config.default_visualize_chunk_number,
     help="Number of chunks to visualize. If the value is big enough and addr isn't provided, this is interpreted as addr instead.",
 )
 parser.add_argument(
@@ -1177,7 +1180,7 @@ group.add_argument(
 @pwndbg.commands.Command(parser, aliases=["vis"], category=CommandCategory.GLIBC_MALLOC)
 @OnlyForSaneHeap
 def vis_heap_chunks(
-    count: int | None = None,
+    count: int | Parameter,
     addr: int | None = None,
     no_skip: bool = False,
     beyond_top: bool = False,
@@ -1189,11 +1192,15 @@ def vis_heap_chunks(
 
     # Used to determine whether to show command hint
     nothing_supplied = (
-        addr is None and count is None and not beyond_top and not no_truncate and not all_chunks
+        addr is None
+        and isinstance(count, Parameter)
+        and not beyond_top
+        and not no_truncate
+        and not all_chunks
     )
 
-    if count is None:
-        count = int(pwndbg.config.default_visualize_chunk_number)
+    # strip Parameter type
+    count = int(count)
 
     if count < 1:
         print(message.error("Count needs to be a positive number."))
