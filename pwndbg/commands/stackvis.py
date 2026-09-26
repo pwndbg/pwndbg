@@ -112,17 +112,20 @@ def stack_vis(
             # e.g., when calling `pthread_cond_wait`
             # In this case, we just omit the second frame
             # FIXME: add a test for this
+            frame = frame.parent()
             continue
 
         if low_addr == high_addr and c == 0:
             # We are likely in the prologue of a function before it sets
             # up the stack frame.
+            frame = frame.parent()
             continue
 
         if low_addr == high_addr:
             # FIXME: I feel like this can happen but idk how to repro, I guess
             # i'll just skip until we figure it out...
             # FIXME: add test
+            frame = frame.parent()
             continue
 
         if high_addr is None:
