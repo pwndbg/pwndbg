@@ -22,10 +22,10 @@ from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import blue
+from pwndbg.color import cyan
 from pwndbg.color import gray
 from pwndbg.color import green
 from pwndbg.color import light_gray
-from pwndbg.color import light_green
 from pwndbg.color import light_purple
 from pwndbg.color import light_red
 from pwndbg.color import message
@@ -146,28 +146,31 @@ END_SYMBOL = ">"
 DOTTED_VERTICAL = "╎"
 UP_SYMBOL = "▲"
 
-offset_to_color_map: dict[int, Callable[[str], str]] = {
-    0: white,
-    1: red,
-    2: green,
-    3: purple,
-    4: blue,
-    5: white,
-    6: yellow,
-    7: light_red,
-    8: light_purple,
-    9: light_gray,
-    10: light_green,
-}
+# Map the offset of a branch viz line (index into this list) to the color to display it
+# The order has been handpicked to prevent similar colors being too close to each other
+offset_to_color_map: list[Callable[[str], str]] = [
+    white,
+    red,
+    green,
+    purple,
+    blue,
+    yellow,
+    light_red,
+    light_gray,
+    cyan,
+    light_purple,
+]
+
+NUMBER_OF_OFFSET_COLORS = len(offset_to_color_map)
+
+
+def colorize_branch_vis_line(offset: int, string: str) -> str:
+    return offset_to_color_map[offset % NUMBER_OF_OFFSET_COLORS](string)
 
 
 # Allows to the branch visualization work across repeated uses of nearpc
 # Maps the jump range to the id it was given.
 last_run_ids: dict[JumpRange, int] = {}
-
-
-def colorize_branch_vis_line(offset: int, string: str) -> str:
-    return offset_to_color_map.get(offset, lambda x: str(x))(string)
 
 
 def preprocess_branch_visualization(
