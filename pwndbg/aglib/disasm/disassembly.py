@@ -355,7 +355,7 @@ def get_previous_linear_address_with_heuristic(current_address: int) -> int | No
             )
             heuristic_start_address = guess_disassembly_address
             break
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             # The memory read might fail (reading around address space boundary, for example)
             continue
 
