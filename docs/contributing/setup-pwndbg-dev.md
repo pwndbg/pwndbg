@@ -2,7 +2,7 @@
 
 ## Installing Pwndbg from source
 
-To run pwndbg from source, please see [these instructions](../setup.md#really-from-source)
+To run pwndbg from source, please see [these instructions](../setup.md#install-pwndbg-from-source)
 
 Officially supported is Ubuntu 22.04 and later, but the setup script also supports the following distributions:
 
