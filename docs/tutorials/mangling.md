@@ -1,4 +1,4 @@
-# Name (de)mangling
+# Symbol (de)mangling
 
 ✨ The crash course on how to handle it when debugging. ✨
 
@@ -114,3 +114,6 @@ demangled names, there be dragons. You should expect symbol names to have spaces
 + [handwiki/overview of language mangling](https://handwiki.org/wiki/Name_mangling)
 + [C++ mangling algo](https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling)
 + [rust](https://doc.rust-lang.org/rustc/symbol-mangling/index.html) mangling [algorithm](https://doc.rust-lang.org/rustc/symbol-mangling/v0.html)
++ [pwndbg/debugging C++](./debugging-cxx.md)
+
+
