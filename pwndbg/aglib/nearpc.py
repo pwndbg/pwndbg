@@ -252,14 +252,23 @@ def preprocess_branch_visualization(
             continue
 
         cur_offset = 0
+
+        overlapping_offset: list[int] = []
+
         for pair2 in jumps:
             if pair1 == pair2:
                 continue
 
             if pair1.overlaps(pair2):
-                # These two jump ranges overlap! Make sure pair1 has a larger offset!
-                if pair_id[pair2] >= cur_offset:
-                    cur_offset = pair_id[pair2] + 1
+                overlapping_offset.append(pair_id[pair2])
+                # # These two jump ranges overlap! Make sure pair1 has a larger offset!
+                # if pair_id[pair2] >= cur_offset:
+                #     cur_offset = pair_id[pair2] + 1
+
+        for i in range(maximum_pair_id):
+            if i not in overlapping_offset:
+                cur_offset = i
+                break
 
         # We only want a maximum number of columns
         pair_id[pair1] = min(cur_offset, maximum_pair_id)
