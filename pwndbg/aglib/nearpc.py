@@ -251,27 +251,16 @@ def preprocess_branch_visualization(
         if pair_id[pair1] >= 0:
             continue
 
-        cur_offset = 0
+        # Get list of all id's for jumps ranges that overlap this one
+        overlapping_ids = {
+            pair_id[pair2] for pair2 in jumps if pair1 is not pair2 and pair1.overlaps(pair2)
+        }
 
-        overlapping_offset: list[int] = []
-
-        for pair2 in jumps:
-            if pair1 == pair2:
-                continue
-
-            if pair1.overlaps(pair2):
-                overlapping_offset.append(pair_id[pair2])
-                # # These two jump ranges overlap! Make sure pair1 has a larger offset!
-                # if pair_id[pair2] >= cur_offset:
-                #     cur_offset = pair_id[pair2] + 1
-
-        for i in range(maximum_pair_id):
-            if i not in overlapping_offset:
-                cur_offset = i
-                break
-
-        # We only want a maximum number of columns
-        pair_id[pair1] = min(cur_offset, maximum_pair_id)
+        # Get the smallest free id. If all are taken, share the last column
+        free_id = 0
+        while free_id < maximum_pair_id and free_id in overlapping_ids:
+            free_id += 1
+        pair_id[pair1] = free_id
 
     # Sort lists of jump ranges by ascending id
     for instruction in instructions:
@@ -292,8 +281,6 @@ def create_branch_visualization_strings(
     pair_id: dict[JumpRange, int],
     maximum_pair_id: int,
     addr: int,
-    prev_addr: int | None,
-    next_addr: int | None,
     is_first_address: bool,
 ) -> tuple[str, str]:
     """
@@ -313,24 +300,20 @@ def create_branch_visualization_strings(
     empty_line_branch_vis_string = ""
     empty_line_branch_vis_string_len = 0
 
-    prev_saturated = (
-        prev_addr is not None
-        and len(pair_map[prev_addr]) > 0
-        and pair_id[pair_map[prev_addr][-1]] == maximum_pair_id
-    )
-    next_saturated = (
-        next_addr is not None
-        and len(pair_map[next_addr]) > 0
-        and pair_id[pair_map[next_addr][-1]] == maximum_pair_id
-    )
+    # Allows us to handling "merging" branch viz lines that all saturate to the max column
+    saturated_pairs = [pair for pair in pair_map[addr] if pair_id[pair] == maximum_pair_id]
+    saturated_line_from_above = any(pair.min < addr for pair in saturated_pairs)
+    saturated_line_continues_below = any(pair.max > addr for pair in saturated_pairs)
 
-    def get_downward_corner_char(pair_id: int) -> str:
-        if pair_id == maximum_pair_id and prev_saturated:
+    def get_top_corner_char(pair_offset: int) -> str:
+        # Corner of a line that goes down from this address
+        if pair_offset == maximum_pair_id and saturated_line_from_above:
             return VERTICAL_T
         return TOP_LEFT_CORNER
 
-    def get_upward_corner_char(pair_id: int) -> str:
-        if pair_id == maximum_pair_id and next_saturated:
+    def get_bottom_corner_char(pair_offset: int) -> str:
+        # Corner of a line that comes from above and ends at this address
+        if pair_offset == maximum_pair_id and saturated_line_continues_below:
             return VERTICAL_T
         return BOT_LEFT_CORNER
 
@@ -349,7 +332,7 @@ def create_branch_visualization_strings(
                     branch_vis_string = (
                         colorize_branch_vis_line(
                             pair_offset,
-                            get_downward_corner_char(pair_offset) + (expand_amount) * HORZ_SYMBOL,
+                            get_top_corner_char(pair_offset) + (expand_amount) * HORZ_SYMBOL,
                         )
                         + branch_vis_string
                     )
@@ -357,7 +340,7 @@ def create_branch_visualization_strings(
                 else:
                     branch_vis_string = colorize_branch_vis_line(
                         pair_offset,
-                        get_downward_corner_char(pair_offset)
+                        get_top_corner_char(pair_offset)
                         + (expand_amount) * HORZ_SYMBOL
                         + START_SYMBOL,
                     )
@@ -367,7 +350,7 @@ def create_branch_visualization_strings(
                     branch_vis_string = (
                         colorize_branch_vis_line(
                             pair_offset,
-                            get_upward_corner_char(pair_offset) + (expand_amount) * HORZ_SYMBOL,
+                            get_bottom_corner_char(pair_offset) + (expand_amount) * HORZ_SYMBOL,
                         )
                         + branch_vis_string
                     )
@@ -375,7 +358,7 @@ def create_branch_visualization_strings(
                 else:
                     branch_vis_string = colorize_branch_vis_line(
                         pair_offset,
-                        get_upward_corner_char(pair_offset)
+                        get_bottom_corner_char(pair_offset)
                         + (expand_amount) * HORZ_SYMBOL
                         + END_SYMBOL,
                     )
@@ -385,7 +368,8 @@ def create_branch_visualization_strings(
             if branch_vis_string:
                 branch_vis_string = (
                     colorize_branch_vis_line(
-                        pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                        pair_offset,
+                        get_bottom_corner_char(pair_offset) + (expand_amount) * HORZ_SYMBOL,
                     )
                     + branch_vis_string
                 )
@@ -393,14 +377,17 @@ def create_branch_visualization_strings(
             else:
                 branch_vis_string = colorize_branch_vis_line(
                     pair_offset,
-                    BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
+                    get_bottom_corner_char(pair_offset)
+                    + (expand_amount) * HORZ_SYMBOL
+                    + START_SYMBOL,
                 )
                 branch_vis_string_len += 2 + expand_amount
         elif pair.end == addr:
             if branch_vis_string:
                 branch_vis_string = (
                     colorize_branch_vis_line(
-                        pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                        pair_offset,
+                        get_top_corner_char(pair_offset) + (expand_amount) * HORZ_SYMBOL,
                     )
                     + branch_vis_string
                 )
@@ -408,7 +395,7 @@ def create_branch_visualization_strings(
             else:
                 branch_vis_string = colorize_branch_vis_line(
                     pair_offset,
-                    TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
+                    get_top_corner_char(pair_offset) + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
                 )
                 branch_vis_string_len += 2 + expand_amount
         if pair_offset == maximum_pair_id:
@@ -691,8 +678,6 @@ def nearpc(
                 pair_id,
                 maximum_pair_id,
                 instruction.address,
-                None if i == 0 else instructions[i - 1].address,
-                None if i == len(instructions) - 1 else instructions[i + 1].address,
                 i == 0,
             )
         else:
