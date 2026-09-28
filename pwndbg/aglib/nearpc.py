@@ -148,7 +148,7 @@ UP_SYMBOL = "▲"
 
 # Map the offset of a branch viz line (index into this list) to the color to display it
 # The order has been handpicked to prevent similar colors being too close to each other
-offset_to_color_map: list[Callable[[str], str]] = [
+offset_to_color_map: tuple[Callable[[str], str], ...] = (
     white,
     red,
     green,
@@ -159,7 +159,7 @@ offset_to_color_map: list[Callable[[str], str]] = [
     light_gray,
     cyan,
     light_purple,
-]
+)
 
 NUMBER_OF_OFFSET_COLORS = len(offset_to_color_map)
 
@@ -266,7 +266,11 @@ def preprocess_branch_visualization(
     # Sort lists of jump ranges by ascending id
     for instruction in instructions:
         pairs = pair_map[instruction.address]
-        pairs.sort(key=lambda x: pair_id[x])
+        # If two jump ranges have the same id (due to us saturating id's at a max value),
+        # put the one that starts/ends here first.
+        # This allows later loop to correctly print jump start/end, as we usually quit
+        # after we process the first max id
+        pairs.sort(key=lambda x: (pair_id[x], instruction.address not in (x.start, x.end)))
 
     last_run_ids = pair_id
 
