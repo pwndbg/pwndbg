@@ -16,7 +16,6 @@ and its demangled name is
 ```cpp
 burger::prepare_order(burger::OrderRequest) [clone .resume]
 ```
-.
 
 The mangling algorithm is language/compiler/ABI-defined.
 
