@@ -139,6 +139,7 @@ COLUMNS_ALLOCATED_FOR_BRANCH_VISUALIZATION = 20
 # Symbols used in branch visualization
 TOP_LEFT_CORNER = "┌"
 BOT_LEFT_CORNER = "└"
+VERTICAL_T = "├"
 HORZ_SYMBOL = "─"
 VERT_SYMBOL = "│"
 START_SYMBOL = "<"
@@ -282,6 +283,8 @@ def create_branch_visualization_strings(
     pair_id: dict[JumpRange, int],
     maximum_pair_id: int,
     addr: int,
+    prev_addr: int | None,
+    next_addr: int | None,
     is_first_address: bool,
 ) -> tuple[str, str]:
     """
@@ -301,6 +304,27 @@ def create_branch_visualization_strings(
     empty_line_branch_vis_string = ""
     empty_line_branch_vis_string_len = 0
 
+    prev_saturated = (
+        prev_addr is not None
+        and len(pair_map[prev_addr]) > 0
+        and pair_id[pair_map[prev_addr][-1]] == maximum_pair_id
+    )
+    next_saturated = (
+        next_addr is not None
+        and len(pair_map[next_addr]) > 0
+        and pair_id[pair_map[next_addr][-1]] == maximum_pair_id
+    )
+
+    def get_downward_corner_char(pair_id: int) -> str:
+        if pair_id == maximum_pair_id and prev_saturated:
+            return VERTICAL_T
+        return TOP_LEFT_CORNER
+
+    def get_upward_corner_char(pair_id: int) -> str:
+        if pair_id == maximum_pair_id and next_saturated:
+            return VERTICAL_T
+        return BOT_LEFT_CORNER
+
     # First, handle creating the horizontal lines (handling all the jumps that are start or end here)
     for pair in pair_map[addr]:
         # Due to preprocessing, we are iterating jump ranges at this address in order of smallest to largest id
@@ -315,7 +339,8 @@ def create_branch_visualization_strings(
                 if branch_vis_string:
                     branch_vis_string = (
                         colorize_branch_vis_line(
-                            pair_offset, TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                            pair_offset,
+                            get_downward_corner_char(pair_offset) + (expand_amount) * HORZ_SYMBOL,
                         )
                         + branch_vis_string
                     )
@@ -323,14 +348,17 @@ def create_branch_visualization_strings(
                 else:
                     branch_vis_string = colorize_branch_vis_line(
                         pair_offset,
-                        TOP_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + START_SYMBOL,
+                        get_downward_corner_char(pair_offset)
+                        + (expand_amount) * HORZ_SYMBOL
+                        + START_SYMBOL,
                     )
                     branch_vis_string_len += 2 + expand_amount
             elif pair.end == addr:
                 if branch_vis_string:
                     branch_vis_string = (
                         colorize_branch_vis_line(
-                            pair_offset, BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL
+                            pair_offset,
+                            get_upward_corner_char(pair_offset) + (expand_amount) * HORZ_SYMBOL,
                         )
                         + branch_vis_string
                     )
@@ -338,7 +366,9 @@ def create_branch_visualization_strings(
                 else:
                     branch_vis_string = colorize_branch_vis_line(
                         pair_offset,
-                        BOT_LEFT_CORNER + (expand_amount) * HORZ_SYMBOL + END_SYMBOL,
+                        get_upward_corner_char(pair_offset)
+                        + (expand_amount) * HORZ_SYMBOL
+                        + END_SYMBOL,
                     )
                     branch_vis_string_len += 2 + expand_amount
         # Backwards jump
@@ -648,7 +678,13 @@ def nearpc(
 
         if branch_visualization:
             branch_vis_string, empty_line_branch_vis_string = create_branch_visualization_strings(
-                pair_map, pair_id, maximum_pair_id, instruction.address, i == 0
+                pair_map,
+                pair_id,
+                maximum_pair_id,
+                instruction.address,
+                None if i == 0 else instructions[i - 1].address,
+                None if i == len(instructions) - 1 else instructions[i + 1].address,
+                i == 0,
             )
         else:
             branch_vis_string = None
