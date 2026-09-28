@@ -78,7 +78,7 @@ We support decompiler integration with IDA, Binary Ninja, Ghidra and angr-managm
 
 Pwndbg provides commands for inspecting the heap and the allocator's state. Currently supported are:
 
-+ [glibc malloc](commands/index.md#glibc-ptmalloc2-heap)
++ [glibc malloc](commands/index.md#glibc-heap)
 + [jemalloc](commands/index.md#allocators)
 + [linux's buddy allocator](commands/kernel/buddydump.md)
 + [linux's SLUB allocator](commands/kernel/slab.md)
