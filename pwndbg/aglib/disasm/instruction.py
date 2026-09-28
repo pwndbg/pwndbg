@@ -250,6 +250,7 @@ class PwndbgInstruction(Protocol):
     target_string: str | None
     target_const: bool | None
 
+    symbol_inline_replaced: bool
     target_memory_operand: MemoryDereferenceInfo | None
 
     condition: InstructionCondition
@@ -401,6 +402,11 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         self.target_const: bool | None = None
         """
         Whether the target is a constant expression
+        """
+
+        self.symbol_inline_replaced = False
+        """
+        True if a constant, line `jmp 0x1230` was replaced with `jmp symbol_name`
         """
 
         self.target_memory_operand = None
