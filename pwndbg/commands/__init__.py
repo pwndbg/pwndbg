@@ -21,7 +21,7 @@ import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.aglib.symbol
+import pwndbg.aglib.remote
 import pwndbg.color
 import pwndbg.dbg_mod
 import pwndbg.dintegration
@@ -374,7 +374,7 @@ class CommandObj:
                 assert False, "You must add a `help=` string to your argument."
 
             if action.type is int:
-                action.type = fix_int_reraise_arg
+                action.type = parse_command_argument_to_int
             elif type(action) is argparse._StoreAction and action.type is None:
                 # Prevents bugs like https://github.com/pwndbg/pwndbg/pull/3477
                 print(message.error(f"Error parsing arguments for command: {parser.prog}"))
@@ -636,8 +636,8 @@ class Command:
         )
 
 
-def fix(
-    arg: pwndbg.dbg_mod.Value | str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
+def parse_command_argument(
+    arg: str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
 ) -> str | pwndbg.dbg_mod.Value | None:
     """Fix a single command-line argument coming from the CLI.
 
@@ -711,48 +711,39 @@ def fix(
     return None
 
 
-def fix_reraise_arg(arg: str) -> pwndbg.dbg_mod.Value:
-    """fix_reraise wrapper for evaluating command arguments"""
+def parse_command_argument_to_int(arg: str) -> int:
+    """
+    Takes a command argument and tries to evaluate it through the debugger
+    (is it a register? a symbol? a (hex) number? an expression) and get back
+    an int.
+
+    Use this to parse arguments when you need an int.
+
+    Note: this is automatically applied to every argparse argument that
+    declares `type=int`, see initialize_parser_recursively().
+
+    Raises:
+        ArgumentTypeError if we could not coerce the argument to an int
+    """
     try:
         # Will always return pwndbg.dbg_mod.Value because
         # sloppy=False (not str) and reraise=True (not None)
-        fixed = fix(arg, sloppy=False, quiet=True, reraise=True)
+        fixed = parse_command_argument(arg, sloppy=False, quiet=True, reraise=True)
         assert isinstance(fixed, pwndbg.dbg_mod.Value)
-        return fixed
     except pwndbg.dbg_mod.DebuggerError as dbge:
         raise argparse.ArgumentTypeError(f"debugger couldn't resolve argument '{arg}': {dbge}")
 
+    # for some reason, int(gdb.Value) for a function does not return its address
+    # so we do this to make stuff like `malloc` parse
+    if fixed.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+        func_addr = fixed.address
+        if func_addr is None:
+            raise argparse.ArgumentTypeError(
+                f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Function is not addressable."
+            )
+        return int(func_addr)
 
-def fix_int(*a: Any, **kw: Any) -> int:
-    return int(fix(*a, **kw))
-
-
-def fix_int_reraise(*a: Any, **kw: Any) -> int:
-    return fix_int(*a, reraise=True, **kw)
-
-
-def fix_int_reraise_arg(arg: str) -> int:
-    """
-    fix_int_reraise wrapper for evaluating command arguments
-
-    Take a command argument passed from argparse and try to
-    resolve it to an int.
-
-    Will resolve symbols, functions, expressions etc. to an
-    integer.
-
-    Use this to parse command arguments.
-    """
     try:
-        fixed: pwndbg.dbg_mod.Value = fix_reraise_arg(arg)
-        if fixed.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            # Fixes issues with function ptrs (e.g. passing in `malloc`).
-            func_addr = fixed.address
-            if func_addr is None:
-                raise argparse.ArgumentTypeError(
-                    f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Function is not addressable."
-                )
-            return int(func_addr)
         return int(fixed)
     except pwndbg.dbg_mod.DebuggerError as e:
         raise argparse.ArgumentTypeError(
@@ -760,13 +751,18 @@ def fix_int_reraise_arg(arg: str) -> int:
         )
 
 
-def fix_int_or_str_reraise_arg(arg: str) -> int | str:
+def parse_command_argument_to_int_or_str(arg: str) -> int | str:
     """
-    Same as fix_int_reraise_arg() but if the argument couldn't be converted
-    to int we just return it as is. Used for e.g. vmmap.
+    Takes a command argument and tries to evaluate it through the debugger
+    (is it a register? a symbol? a (hex) number? an expression) and get back
+    an int.
+
+    If it cannot, returns the same argument back.
+
+    Used for e.g. vmmap.
     """
     try:
-        int_res: int = fix_int_reraise_arg(arg)
+        int_res: int = parse_command_argument_to_int(arg)
         return int_res
     except argparse.ArgumentTypeError:
         return arg

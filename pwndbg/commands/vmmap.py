@@ -172,7 +172,7 @@ Memory pages can also be added manually with the use of vmmap-add, vmmap-clear a
 )
 parser.add_argument(
     "addr_or_mapping",
-    type=pwndbg.commands.fix_int_or_str_reraise_arg,
+    type=pwndbg.commands.parse_command_argument_to_int_or_str,
     nargs="?",
     default=None,
     help="Address or module name filter",
