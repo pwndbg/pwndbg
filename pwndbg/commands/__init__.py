@@ -669,6 +669,16 @@ def fix(
     except pwndbg.dbg_mod.DebuggerError:
         pass
 
+    # Check if this is a quoted symbol.
+    # .evaluate_expression() should be able to catch this case, but
+    # https://github.com/pwndbg/pwndbg/issues/4189
+    try:
+        found_symbol = target.lookup_symbol(arg)
+        if found_symbol is not None:
+            return found_symbol
+    except pwndbg.dbg_mod.DebuggerError:
+        pass
+
     ex = None
     try:
         # replaces all occurances of some_register to $some_register
@@ -720,6 +730,7 @@ def fix_int(*a: Any, **kw: Any) -> int:
 def fix_int_reraise(*a: Any, **kw: Any) -> int:
     return fix_int(*a, reraise=True, **kw)
 
+
 def fix_int_reraise_arg(arg: str) -> int:
     """
     fix_int_reraise wrapper for evaluating command arguments
@@ -748,6 +759,7 @@ def fix_int_reraise_arg(arg: str) -> int:
             f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: {e}"
         )
 
+
 def fix_int_or_str_reraise_arg(arg: str) -> int | str:
     """
     Same as fix_int_reraise_arg() but if the argument couldn't be converted
@@ -758,6 +770,7 @@ def fix_int_or_str_reraise_arg(arg: str) -> int | str:
         return int_res
     except argparse.ArgumentTypeError:
         return arg
+
 
 def func_name(function: Callable[P, T]) -> str:
     return function.__name__.replace("_", "-")
