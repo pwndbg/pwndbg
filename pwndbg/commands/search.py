@@ -227,7 +227,7 @@ def search(
         }[type]
 
         try:
-            value_bytes = struct.pack(fmt, value)
+            value_bytes = struct.pack(fmt, value_int)
         except struct.error as e:
             print(f"invalid input for type {type}: {e}")
             return
@@ -273,20 +273,20 @@ def search(
 
     # Output appropriate messages based on the detected search type for better clarity
     if is_pointer:
-        print("Searching for a pointer-width integer: " + repr(value))
+        print("Searching for a pointer-width integer: " + repr(value_bytes))
     elif type in {"word", "short"}:
-        print("Searching for a 2-byte integer: " + repr(value))
+        print("Searching for a 2-byte integer: " + repr(value_bytes))
     elif type == "dword":
-        print("Searching for a 4-byte integer: " + repr(value))
+        print("Searching for a 4-byte integer: " + repr(value_bytes))
     elif type == "qword":
-        print("Searching for an 8-byte integer: " + repr(value))
+        print("Searching for an 8-byte integer: " + repr(value_bytes))
     elif type == "string":
-        print("Searching for string: " + repr(value))
+        print("Searching for string: " + repr(value_bytes))
     # If next is passed, only perform a manual search over previously saved addresses
     elif type == "asm" or asmbp:
-        print("Searching for instruction (assembled value): " + repr(value))
+        print("Searching for instruction (assembled value): " + repr(value_bytes))
     else:
-        print("Searching for byte: " + repr(value))
+        print("Searching for byte: " + repr(value_bytes))
 
     if next:
         # FIXME[lint]: what? how can it be unbound?

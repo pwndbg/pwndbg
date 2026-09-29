@@ -733,15 +733,15 @@ def parse_command_argument_to_int(arg: str) -> int:
     except pwndbg.dbg_mod.DebuggerError as dbge:
         raise argparse.ArgumentTypeError(f"debugger couldn't resolve argument '{arg}': {dbge}")
 
-    # for some reason, int(gdb.Value) for a function does not return its address
-    # so we do this to make stuff like `malloc` parse
-    if fixed.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-        func_addr = fixed.address
-        if func_addr is None:
+    # for some reason, int(gdb.Value) for a function and array does not return its address
+    # so we check for this in order to support stuff like `malloc` or `buf`
+    if fixed.type.code in (pwndbg.dbg_mod.TypeCode.FUNC, pwndbg.dbg_mod.TypeCode.ARRAY):
+        addr = fixed.address
+        if addr is None:
             raise argparse.ArgumentTypeError(
-                f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Function is not addressable."
+                f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Value is not addressable."
             )
-        return int(func_addr)
+        return int(addr)
 
     try:
         return int(fixed)
