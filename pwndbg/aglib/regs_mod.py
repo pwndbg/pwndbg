@@ -211,7 +211,7 @@ class RegisterManager:
         It takes in a string with a register name, "rax", and prefixes it with
         a $ ("$rax") so that the underlying debugger can evaluate it to resolve the value
         """
-        expression = pwndbg.aglib.regs.current.resolve_aliases(expression)
+        expression = self.current.resolve_aliases(expression)
         for regname in self.all:
             expression = re.sub(rf"\$?\b{regname}\b", r"$" + regname, expression)
         return expression

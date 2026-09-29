@@ -17,7 +17,6 @@ import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as mem_color
 import pwndbg.commands
-import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.color import cyan
@@ -27,21 +26,17 @@ from pwndbg.color import red
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.memory import Page
 
-integer_types = (int, pwndbg.dbg_mod.Value)
 
-
-def pages_filter(gdbval_or_str):
+def pages_filter(addr_or_mapping: str | int):
     # returns a module filter
-    if isinstance(gdbval_or_str, str):
-        module_name = gdbval_or_str
+    if isinstance(addr_or_mapping, str):
+        module_name = addr_or_mapping
         return lambda page: module_name in page.objfile
 
     # returns an address filter
-    if isinstance(gdbval_or_str, integer_types):
-        addr = gdbval_or_str
+    if isinstance(addr_or_mapping, int):
+        addr = addr_or_mapping
         return lambda page: addr in page
-
-    raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
 
 
 def print_vmmap_table_header(prefix: str = "") -> None:
@@ -173,8 +168,8 @@ Memory pages can also be added manually with the use of vmmap-add, vmmap-clear a
 [0] https://lore.kernel.org/all/20220221030910.3203063-1-dominik.b.czarnota@gmail.com/""",
 )
 parser.add_argument(
-    "gdbval_or_str",
-    type=pwndbg.commands.sloppy_gdb_parse,
+    "addr_or_mapping",
+    type=pwndbg.commands.fix_int_or_str_reraise_arg,
     nargs="?",
     default=None,
     help="Address or module name filter",
@@ -216,7 +211,7 @@ parser.add_argument(
 )
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(
-    gdbval_or_str=None,
+    addr_or_mapping=None,
     writable=False,
     executable=False,
     lines_after=1,
@@ -252,12 +247,12 @@ def vmmap(
     filtered_pages = []
 
     # Only filter when -A and -B arguments are valid
-    if gdbval_or_str and lines_after >= 0 and lines_before >= 0:
+    if addr_or_mapping and lines_after >= 0 and lines_before >= 0:
         # Always expand shared cache on detailed output.
         expand_shared_cache = True
 
         # Find matching page in memory
-        filtered_pages = list(filter(pages_filter(gdbval_or_str), total_pages))
+        filtered_pages = list(filter(pages_filter(addr_or_mapping), total_pages))
         pages_to_display = []
 
         for matched_page in filtered_pages:
@@ -343,8 +338,8 @@ def vmmap(
             backtrace_prefix = prefix_str
 
             # If the page is the only filtered page, insert offset
-            if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):
-                display_text = str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)
+            if len(filtered_pages) == 1 and isinstance(addr_or_mapping, integer_types):
+                display_text = str(page) + " +0x%x" % (int(addr_or_mapping) - page.vaddr)
 
         print(mem_color.get(page.vaddr, text=display_text, prefix=backtrace_prefix, page=page))
 
@@ -404,7 +399,7 @@ def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
 
 parser = argparse.ArgumentParser(description="Explore a page, trying to guess permissions.")
 parser.add_argument(
-    "address", type=pwndbg.commands.sloppy_gdb_parse, help="Address of the page to explore"
+    "address", type=int, help="Address of the page to explore"
 )
 
 

@@ -140,6 +140,7 @@ def lex_args(args: str) -> list[str]:
     """
     Splits the arguments, respecting quotation marks.
     """
+    # FIXME: why are we not using pwndbg.lib.strings.lex_args
     args = args.strip()
     result = []
     while len(args) > 0:

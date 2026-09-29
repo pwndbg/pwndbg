@@ -5,6 +5,7 @@ import argparse
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.hexdump
@@ -39,7 +40,7 @@ pwndbg.config.add_param(
 
 
 def address_or_module_name(s) -> int:
-    addr_or_str: int | str = pwndbg.commands.sloppy_gdb_parse(s)
+    addr_or_str: int | str = pwndbg.commands.fix_int_or_str_reraise_arg(s)
     if isinstance(addr_or_str, str):
         module_name = addr_or_str
         pages = list(filter(lambda page: module_name in page.objfile, pwndbg.aglib.vmmap.get()))

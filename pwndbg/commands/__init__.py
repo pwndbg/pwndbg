@@ -666,21 +666,15 @@ def fix(
     # context.
     try:
         return target.evaluate_expression(arg)
-    except Exception:
+    except pwndbg.dbg_mod.DebuggerError:
         pass
 
     ex = None
     try:
-        # This will fail if gdblib is not available. While the next check
-        # alleviates the need for this call, it's not really equivalent, and
-        # we'll need a debugger-agnostic version of regs.fix() if we want to
-        # completely get rid of this call. We can't do that now because there's
-        # no debugger-agnostic architecture functions. Those will come later.
-        #
-        # TODO: Port architecutre functions and `pwndbg.gdblib.regs.fix` to debugger-agnostic API and remove this.
+        # replaces all occurances of some_register to $some_register
         arg = pwndbg.aglib.regs.fix(arg)
         return target.evaluate_expression(arg)
-    except Exception as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         ex = e
 
     # If that fails, try to treat the argument as the name of a register, and
@@ -707,12 +701,7 @@ def fix(
     return None
 
 
-def fix_reraise(*a: Any, **kw: Any) -> str | pwndbg.dbg_mod.Value | None:
-    # Type error likely due to https://github.com/python/mypy/issues/6799
-    return fix(*a, reraise=True, **kw)  # type: ignore[misc]
-
-
-def fix_reraise_arg(arg: Any) -> pwndbg.dbg_mod.Value:
+def fix_reraise_arg(arg: str) -> pwndbg.dbg_mod.Value:
     """fix_reraise wrapper for evaluating command arguments"""
     try:
         # Will always return pwndbg.dbg_mod.Value because
@@ -731,9 +720,18 @@ def fix_int(*a: Any, **kw: Any) -> int:
 def fix_int_reraise(*a: Any, **kw: Any) -> int:
     return fix_int(*a, reraise=True, **kw)
 
+def fix_int_reraise_arg(arg: str) -> int:
+    """
+    fix_int_reraise wrapper for evaluating command arguments
 
-def fix_int_reraise_arg(arg: Any) -> int:
-    """fix_int_reraise wrapper for evaluating command arguments"""
+    Take a command argument passed from argparse and try to
+    resolve it to an int.
+
+    Will resolve symbols, functions, expressions etc. to an
+    integer.
+
+    Use this to parse command arguments.
+    """
     try:
         fixed: pwndbg.dbg_mod.Value = fix_reraise_arg(arg)
         if fixed.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
@@ -750,6 +748,16 @@ def fix_int_reraise_arg(arg: Any) -> int:
             f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: {e}"
         )
 
+def fix_int_or_str_reraise_arg(arg: str) -> int | str:
+    """
+    Same as fix_int_reraise_arg() but if the argument couldn't be converted
+    to int we just return it as is. Used for e.g. vmmap.
+    """
+    try:
+        int_res: int = fix_int_reraise_arg(arg)
+        return int_res
+    except argparse.ArgumentTypeError:
+        return arg
 
 def func_name(function: Callable[P, T]) -> str:
     return function.__name__.replace("_", "-")
@@ -875,57 +883,6 @@ def OnlyWhenRunning(
         return functools.partial(OnlyWhenRunning, allow_core=allow_core)  # type: ignore[return-value]
     func_when_no_kwargs._pwndbg_only_when_running_allow_core = allow_core  # type: ignore[attr-defined]
     return func_when_no_kwargs
-
-
-def sloppy_gdb_parse(s: str) -> int | str:
-    """
-    This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
-
-    This makes the type being parsed as gdb value and if that parsing fails,
-    a string is returned.
-
-    :param s: String.
-    :return: Whatever gdb.parse_and_eval returns or string.
-    """
-
-    frame = pwndbg.dbg.selected_frame()
-    try:
-        target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
-            frame or pwndbg.dbg.selected_inferior()
-        )
-    except pwndbg.dbg_mod.NoInferior:
-        raise AssertionError("Reached command expression evaluation with no frame or inferior")
-
-    try:
-        val = pwndbg.aglib.symbol.lookup_symbol(s) or target.evaluate_expression(s)
-        if val.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            return int(val.address)
-        return int(val)
-    except (TypeError, pwndbg.dbg_mod.DebuggerError):
-        return s
-
-
-def AddressExpr(s: str) -> int:
-    """
-    Parses an address expression. Returns an int.
-    """
-    val = sloppy_gdb_parse(s)
-
-    if not isinstance(val, int):
-        raise argparse.ArgumentTypeError(f"Incorrect address (or GDB expression): {s}")
-
-    return val
-
-
-def HexOrAddressExpr(s: str) -> int:
-    """
-    Parses string as hexadecimal int or an address expression. Returns an int.
-    (e.g. '1234' will return 0x1234)
-    """
-    try:
-        return int(s, 16)
-    except ValueError:
-        return AddressExpr(s)
 
 
 def load_commands() -> None:

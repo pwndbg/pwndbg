@@ -22,7 +22,7 @@ can be decoded with the `errno <value>` command.
 """,
 )
 parser.add_argument(
-    "addr", help="Page-aligned address to all mprotect on.", type=pwndbg.commands.sloppy_gdb_parse
+    "addr", help="Page-aligned address to all mprotect on.", type=int
 )
 parser.add_argument(
     "length",
