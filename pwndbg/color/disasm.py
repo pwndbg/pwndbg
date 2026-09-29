@@ -17,7 +17,6 @@ from pwndbg.color import strip
 from pwndbg.color import theme
 from pwndbg.color.message import off
 from pwndbg.color.message import on
-from pwndbg.lib import config
 
 c = ColorConfig(
     "disasm",
@@ -97,6 +96,8 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
         zip(instructions, (one_instruction(i, linear) for i in instructions))
     ):
         if ins.has_jump_target:
+            # Make sure that we don't show the symbol name twice,
+            # in the case we replaced an inline constant with the symbol
             if ins.symbol_inline_replaced:
                 target = mem_color.get(ins.target)
                 asm = f"{ljust_colored(asm, 36)} <{target}>"

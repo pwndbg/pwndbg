@@ -852,6 +852,8 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.target_string = None
         self.target_const = None
 
+        self.symbol_inline_replaced = False
+
         self.target_memory_operand = None
 
         self.condition = InstructionCondition.UNCONDITIONAL
