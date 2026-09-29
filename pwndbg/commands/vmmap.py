@@ -13,6 +13,9 @@ from elftools.elf.elffile import ELFFile
 import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
+import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.vmmap
+import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as mem_color
@@ -338,7 +341,7 @@ def vmmap(
             backtrace_prefix = prefix_str
 
             # If the page is the only filtered page, insert offset
-            if len(filtered_pages) == 1 and isinstance(addr_or_mapping, integer_types):
+            if len(filtered_pages) == 1 and isinstance(addr_or_mapping, int):
                 display_text = str(page) + " +0x%x" % (int(addr_or_mapping) - page.vaddr)
 
         print(mem_color.get(page.vaddr, text=display_text, prefix=backtrace_prefix, page=page))
@@ -398,9 +401,7 @@ def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
 
 
 parser = argparse.ArgumentParser(description="Explore a page, trying to guess permissions.")
-parser.add_argument(
-    "address", type=int, help="Address of the page to explore"
-)
+parser.add_argument("address", type=int, help="Address of the page to explore")
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)

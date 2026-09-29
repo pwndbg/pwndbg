@@ -81,9 +81,7 @@ def hexdump_windbg(
 
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N bytes.")
-parser.add_argument(
-    "address", type=int, help="The address to dump from."
-)
+parser.add_argument("address", type=int, help="The address to dump from.")
 parser.add_argument(
     "count",
     type=int,
@@ -104,9 +102,7 @@ def db(address, count=64):
 
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N words.")
-parser.add_argument(
-    "address", type=int, help="The address to dump from."
-)
+parser.add_argument("address", type=int, help="The address to dump from.")
 parser.add_argument(
     "count",
     type=int,
@@ -127,9 +123,7 @@ def dw(address, count=32):
 
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N dwords.")
-parser.add_argument(
-    "address", type=int, help="The address to dump from."
-)
+parser.add_argument("address", type=int, help="The address to dump from.")
 parser.add_argument(
     "count",
     type=int,
@@ -150,9 +144,7 @@ def dd(address, count=16):
 
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, dump N qwords.")
-parser.add_argument(
-    "address", type=int, help="The address to dump from."
-)
+parser.add_argument("address", type=int, help="The address to dump from.")
 parser.add_argument(
     "count",
     type=int,
@@ -173,9 +165,7 @@ def dq(address, count=8):
 
 
 parser = argparse.ArgumentParser(description="Starting at the specified address, hexdump.")
-parser.add_argument(
-    "address", type=int, help="The address to dump from."
-)
+parser.add_argument("address", type=int, help="The address to dump from.")
 parser.add_argument(
     "count",
     type=int,
@@ -207,9 +197,7 @@ def dX(size, address, count, to_string=False, repeat=False):
 
 
 parser = argparse.ArgumentParser(description="Write hex bytes at the specified address.")
-parser.add_argument(
-    "address", type=int, help="The address to write to."
-)
+parser.add_argument("address", type=int, help="The address to write to.")
 parser.add_argument("data", type=str, nargs="*", help="The bytes to write.")
 
 
@@ -223,9 +211,7 @@ def eb(address, data):
 
 
 parser = argparse.ArgumentParser(description="Write hex words at the specified address.")
-parser.add_argument(
-    "address", type=int, help="The address to write to."
-)
+parser.add_argument("address", type=int, help="The address to write to.")
 parser.add_argument("data", type=str, nargs="*", help="The words to write.")
 
 
@@ -239,9 +225,7 @@ def ew(address, data):
 
 
 parser = argparse.ArgumentParser(description="Write hex dwords at the specified address.")
-parser.add_argument(
-    "address", type=int, help="The address to write to."
-)
+parser.add_argument("address", type=int, help="The address to write to.")
 parser.add_argument("data", type=str, nargs="*", help="The dwords to write.")
 
 
@@ -255,9 +239,7 @@ def ed(address, data):
 
 
 parser = argparse.ArgumentParser(description="Write hex qwords at the specified address.")
-parser.add_argument(
-    "address", type=int, help="The address to write to."
-)
+parser.add_argument("address", type=int, help="The address to write to.")
 parser.add_argument("data", type=str, nargs="*", help="The qwords to write.")
 
 
@@ -271,9 +253,7 @@ def eq(address, data):
 
 
 parser = argparse.ArgumentParser(description="Write a string at the specified address.")
-parser.add_argument(
-    "address", type=int, help="The address to write to."
-)
+parser.add_argument("address", type=int, help="The address to write to.")
 parser.add_argument("data", type=str, help="The string to write.")
 
 
@@ -289,9 +269,7 @@ def ez(address, data):
 parser = argparse.ArgumentParser(
     description="Write a string at the specified address."
 )  # TODO Is eza just ez? If so just alias. I had trouble finding windbg documentation defining ez
-parser.add_argument(
-    "address", type=int, help="The address to write to."
-)
+parser.add_argument("address", type=int, help="The address to write to.")
 parser.add_argument("data", type=str, help="The string to write.")
 
 
@@ -350,9 +328,7 @@ def eX(size, address, data, hex=True) -> None:
 dds_parser = argparse.ArgumentParser(
     description="Dump pointers and symbols at the specified address."
 )
-dds_parser.add_argument(
-    "addr", type=int, help="The address to dump from."
-)
+dds_parser.add_argument("addr", type=int, help="The address to dump from.")
 dds_parser.add_argument(
     "count",
     type=int,
