@@ -35,7 +35,7 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
         cmd = cmd_prefix + " nonexistentsymbol"
         assert (await ctrl.execute_and_capture(cmd)) == (
             "usage: XX [-h] address [count]\n"
-            "XX: error: argument address: Incorrect address (or GDB expression): nonexistentsymbol\n"
+            "XX: error: argument address: debugger couldn't resolve argument 'nonexistentsymbol': No symbol \"nonexistentsymbol\" in current context.\n"
         ).replace("XX", cmd_prefix)
 
         # With an invalid/unmapped address
@@ -260,6 +260,9 @@ async def test_windbg_eX_commands(ctrl: Controller) -> None:
     like eq, ed, ew, eb etc.
     """
     import pwndbg
+    import pwndbg.aglib
+    import pwndbg.aglib.memory
+    import pwndbg.aglib.vmmap
 
     await ctrl.launch(MEMORY_BINARY)
 
@@ -273,12 +276,12 @@ async def test_windbg_eX_commands(ctrl: Controller) -> None:
             # This version occurred locally when tested on Python 3.9.5
             (
                 "usage: XX [-h] address [data ...]\n"
-                "XX: error: argument address: Incorrect address (or GDB expression): nonexistentsymbol\n"
+                "XX: error: argument address: debugger couldn't resolve argument 'nonexistentsymbol': No symbol \"nonexistentsymbol\" in current context.\n"
             ).replace("XX", cmd_prefix),
             # This version occurs on CI on Python 3.8.10
             (
                 "usage: XX [-h] address [data [data ...]]\n"
-                "XX: error: argument address: Incorrect address (or GDB expression): nonexistentsymbol\n"
+                "XX: error: argument address: debugger couldn't resolve argument 'nonexistentsymbol': No symbol \"nonexistentsymbol\" in current context.\n"
             ).replace("XX", cmd_prefix),
         )
 
@@ -344,6 +347,8 @@ async def test_windbg_commands_x86(ctrl: Controller) -> None:
     like dq, dw, db, ds etc.
     """
     import pwndbg
+    import pwndbg.aglib
+    import pwndbg.aglib.memory
     from pwndbg.dbg_mod import DebuggerType
 
     if pwndbg.dbg.name() == DebuggerType.LLDB:
