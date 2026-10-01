@@ -215,7 +215,7 @@ class Frame:
         - pwndbg.dbg_mod.Value | None: The value of the symbol if found, or None if not found.
 
         Raises:
-        - pwndbg.dbg_mod.Error: If symbol name contains invalid characters
+        - pwndbg.dbg_mod.DebuggerError: If symbol name contains invalid characters
         """
         raise NotImplementedError()
 
@@ -230,6 +230,9 @@ class Frame:
         is a GDB-only option, and is intended for cases in which the result
         would be incorrect without it enabled, when running in GDB. Other
         debuggers should ignore this parameter.
+
+        Raises:
+            pwndbg.dbg_mod.DebuggerError: When parsing the expression fails.
         """
         raise NotImplementedError()
 
@@ -589,7 +592,7 @@ class Process:
         - pwndbg.dbg_mod.Value | None: The value of the symbol if found, or None if not found.
 
         Raises:
-        - pwndbg.dbg_mod.Error: If no object file matching the `objfile_endswith` pattern is found.
+        - pwndbg.dbg_mod.DebuggerError: If no object file matching the `objfile_endswith` pattern is found.
         """
 
     def get_function_boundaries(self, address: int) -> tuple[int, int] | None:

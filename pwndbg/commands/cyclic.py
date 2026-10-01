@@ -120,8 +120,8 @@ group.add_argument(
     "--lookup",
     dest="lookup",
     metavar="lookup_value",
-    type=str,
-    help="Do a lookup instead of printing the sequence (accepts constant values as well as expressions)",
+    type=pwndbg.commands.parse_command_argument_to_int_or_str,
+    help="Do a lookup instead of printing the sequence",
 )
 
 group.add_argument(
@@ -153,25 +153,33 @@ parser.add_argument(
     category=CommandCategory.MISC,
     notes="If you want to write the cyclic pattern to memory, use the `spray` command!",
 )
-def cyclic_cmd(alphabet, length: int, lookup, detect, count=100, filename="", timeout=2) -> None:
+def cyclic_cmd(
+    lookup: str | int | None,
+    detect: bool = True,
+    alphabet: bytes = string.ascii_lowercase.encode(),
+    length: int = 4,
+    count: int = 100,
+    filename: str = "",
+    timeout: int = 2,
+) -> None:
     if detect:
         detect_register_patterns(alphabet, length, timeout)
         return
 
-    if lookup:
-        lookup = pwndbg.commands.fix(lookup, sloppy=True)
-
+    if lookup is not None:
         if isinstance(lookup, (pwndbg.dbg_mod.Value, int)):
             try:
-                lookup = int(lookup).to_bytes(length, pwndbg.aglib.arch.endian)
+                lookup_bytes = int(lookup).to_bytes(length, pwndbg.aglib.arch.endian)
             except OverflowError:
-                lookup = int(lookup).to_bytes(pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.endian)
-                lookup = lookup[:length]
+                lookup_bytes = int(lookup).to_bytes(
+                    pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.endian
+                )
+                lookup_bytes = lookup_bytes[:length]
         elif isinstance(lookup, str):
-            lookup = bytes(lookup, "utf-8")
-            lookup = lookup[:length]
+            lookup_bytes = bytes(lookup, "utf-8")
+            lookup_bytes = lookup_bytes[:length]
 
-        if len(lookup) != length:
+        if len(lookup_bytes) != length:
             print(
                 message.error(
                     f"Lookup pattern must be at least {length} bytes (use `-n <length>` to lookup pattern of different length)"
@@ -179,18 +187,18 @@ def cyclic_cmd(alphabet, length: int, lookup, detect, count=100, filename="", ti
             )
             return
 
-        hexstr = "0x" + lookup.hex()
+        hexstr = "0x" + lookup_bytes.hex()
         print(
             message.notice(
-                f"Finding cyclic pattern of {length} bytes: {str(lookup)} (hex: {hexstr})"
+                f"Finding cyclic pattern of {length} bytes: {str(lookup_bytes)} (hex: {hexstr})"
             )
         )
 
-        if any(c not in alphabet for c in lookup):
+        if any(c not in alphabet for c in lookup_bytes):
             print(message.error("Pattern contains characters not present in the alphabet"))
             return
 
-        offset = cyclic_find(lookup, alphabet, length)
+        offset = cyclic_find(lookup_bytes, alphabet, length)
 
         if offset == -1:
             print(message.error("Given lookup pattern does not exist in the sequence"))
