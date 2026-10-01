@@ -17,6 +17,7 @@ GDB_TIPS: list[str] = [
     'Calling functions like `call (void)puts("hello world")` will run all other target threads for the time the function runs. Use `set scheduler-locking on` to lock the execution to current thread when calling functions',
     "Use the `pipe <cmd> | <prog>` command to pass output of a GDB/Pwndbg command to a shell program, e.g. `pipe elfsections | grep bss`. This can also be shortened to: `| <cmd> | <prog>`",
     "Prefixing a command with `!` in GDB will execute it as a shell command, e.g.: `!ls` or `!cat flag.txt`",
+    "Your GDB commands history is in ~/.gdb_history ; see also `show history filename`",
 ]
 
 # Pwndbg specific tips
