@@ -941,6 +941,61 @@ class LLDBExecutionController(pwndbg.dbg_mod.ExecutionController):
         return OneShotAwaitable(YieldContinue(target, selected_thread=True))
 
 
+class LLDBSection(pwndbg.dbg_mod.Section):
+    _inner: lldb.SBSection
+    _module: LLDBModule
+
+    def __init__(self, module: LLDBModule, inner: lldb.SBSection):
+        self._inner = inner
+        self._module = module
+
+    @override
+    def module(self) -> pwndbg.dbg_mod.Module:
+        return self._module
+
+    @override
+    def offset(self) -> int:
+        return self._inner.GetFileOffset()
+
+    @override
+    def address(self) -> int | None:
+        addr = self._inner.GetLoadAddress()
+        if addr == lldb.LLDB_INVALID_ADDRESS:
+            return None
+        return addr
+
+    @override
+    def name(self) -> str | None:
+        return self._inner.GetName()
+
+
+class LLDBModule(pwndbg.dbg_mod.Module):
+    _inner: lldb.SBModule
+
+    def __init__(self, inner: lldb.SBModule):
+        self._inner = inner
+
+    @override
+    def sections(self) -> Iterator[pwndbg.dbg_mod.Section]:
+        return (self._inner.GetSectionAtIndex(i) for i in range(self._inner.GetNumSections()))
+
+    @override
+    def path(self) -> str:
+        return self._inner.GetPlatformFileSpec().fullpath
+
+    @override
+    def local_path(self) -> str:
+        return self._inner.GetFileSpec().fullpath
+
+    @override
+    def entry_point(self) -> int | None:
+        entry = self._inner.GetObjectFileEntryPointAddress()
+        if not entry:
+            return None
+
+        return entry.GetLoadAddress()
+
+
 # Our execution controller doesn't need to change between uses, as all the state
 # associated with it resides further up, in the Pwndbg CLI, so we can just share
 # the same instance for all our uses.
@@ -2034,6 +2089,16 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # - 'SysV-arm64'
         # - 'ABIMacOSX_arm64'
         return self.target.GetABIName().lower().startswith("sysv")
+
+    @override
+    def modules(self) -> Iterator[pwndbg.dbg_mod.Module]:
+        return (
+            LLDBModule(self.target.GetModuleAtIndex(i)) for i in range(self.target.GetNumModules())
+        )
+
+    @override
+    def main_module(self) -> pwndbg.dbg_mod.Module | None:
+        return self.target.GetModuleAtIndex(0) if self.target.GetNumModules() > 0 else None
 
     @override
     def module_section_locations(self) -> list[tuple[int, int, str, str]]:

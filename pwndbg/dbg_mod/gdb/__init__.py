@@ -693,6 +693,78 @@ def run_disassemble_for_function_boundaries(address: int) -> list[tuple[int, int
     return [(start, end + last_instruction_length)]
 
 
+class GDBSection(pwndbg.dbg_mod.Section):
+    _inner: pwndbg.gdblib.info.Section
+    _module: GDBModule
+
+    def __init__(self, module: GDBModule, inner: pwndbg.gdblib.info.Section):
+        self._module = module
+        self._inner = inner
+
+    @override
+    def module(self) -> pwndbg.dbg_mod.Module:
+        return self._module
+
+    @override
+    def offset(self) -> int:
+        return self._inner.offset
+
+    @override
+    def address(self) -> int | None:
+        return self._inner.start
+
+    @override
+    def name(self) -> str | None:
+        return self._inner.section
+
+
+class GDBModule(pwndbg.dbg_mod.Module):
+    _objfile: str
+    _remote_objfile: str
+    _sections: list[pwndbg.gdblib.info.Section]
+    _is_main: bool
+
+    def __init__(self, objfile: str, sections: list[pwndbg.gdblib.info.Section], is_main: bool):
+        self._objfile = objfile
+        self._sections = sections
+        self._remote_objfile = objfile.removeprefix("target:")
+        self._is_main = is_main
+
+    @override
+    def sections(self) -> Iterator[pwndbg.dbg_mod.Section]:
+        return (GDBSection(self, inner) for inner in self._sections)
+
+    @override
+    def path(self) -> str:
+        return self._remote_objfile
+
+    @override
+    def local_path(self) -> str:
+        return self._objfile
+
+    @override
+    def entry_point(self) -> int | None:
+        if not self._is_main:
+            # We can currently only query the entry point address from the main
+            # module :(
+            return None
+
+        import pwndbg.gdblib.info
+
+        for line in pwndbg.gdblib.info.files().splitlines():
+            if "Entry point" in line:
+                entry_point = int(line.split()[-1], 16)
+
+                # PIE entry points are sometimes reported as an
+                # offset from the module base.
+                if entry_point < 0x10000:
+                    break
+
+                return entry_point
+
+        return None
+
+
 class GDBProcess(pwndbg.dbg_mod.Process):
     # Operations that change the internal state of GDB are generally not allowed
     # during breakpoint stop handles. Because the Pwndbg Debugger-agnostic API
@@ -1260,6 +1332,32 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         return ins
 
     @override
+    def modules(self) -> Iterator[pwndbg.dbg_mod.Module]:
+        global pwndbg
+        import pwndbg.gdblib.info
+
+        modules: dict[str, list[pwndbg.gdblib.info.Section]] = {}
+        for section in pwndbg.gdblib.info.iter_sections():
+            module = modules.setdefault(section.objfile, [])
+            module.append(section)
+
+        main = self.main_module_name()
+
+        return (GDBModule(name, sections, name == main) for name, sections in modules.items())
+
+    @override
+    def main_module(self) -> pwndbg.dbg_mod.Module | None:
+        main = self.main_module_name()
+        if main is None:
+            return None
+
+        for module in self.modules():
+            if module.path() == main:
+                return module
+
+        return None
+
+    @override
     def module_section_locations(self) -> list[tuple[int, int, str, str]]:
         global pwndbg
         import pwndbg.gdblib.info
@@ -1288,20 +1386,11 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def main_module_entry(self) -> int | None:
-        import pwndbg.gdblib.info
+        main_module = self.main_module()
+        if main_module is None:
+            return None
 
-        for line in pwndbg.gdblib.info.files().splitlines():
-            if "Entry point" in line:
-                entry_point = int(line.split()[-1], 16)
-
-                # PIE entry points are sometimes reported as an
-                # offset from the module base.
-                if entry_point < 0x10000:
-                    break
-
-                return entry_point
-
-        return None
+        return main_module.entry_point()
 
     @override
     def is_dynamically_linked(self) -> bool:
