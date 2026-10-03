@@ -175,6 +175,7 @@
 -  [patch-revert](misc/patch-revert.md) - Revert patch at given address.
 -  [patch](misc/patch.md) - Patches given instruction with given code or bytes.
 -  [plist](misc/plist.md) - Dumps the elements of a linked list.
+-  [setrlimit](misc/setrlimit.md) - Set a POSIX resource limit in the debugged process.
 -  [sigreturn](misc/sigreturn.md) - Display the SigreturnFrame at the specific address
 -  [spray](misc/spray.md) - Spray memory with cyclic() generated values
 -  [tips](misc/tips.md) - Shows tips.
