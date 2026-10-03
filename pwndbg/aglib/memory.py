@@ -567,7 +567,7 @@ def pprint_blocks(
                 line_buffer += colored_cell_hex
             else:
                 # Second cell - complete the line
-                line_label_part = "\t <-- " + ", ".join(labels) if labels else ""
+                line_label_part = "     <-- " + ", ".join(labels) if labels else ""
                 colored_asc = color_func(asc)
 
                 # Build complete line content (address + cells + ascii + labels)

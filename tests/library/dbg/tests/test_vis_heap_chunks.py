@@ -152,7 +152,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     expected3 = expected2[:-1] + [
         f"{heap_iter(0):#x}\t0x0000000000000000\t0x0000000000000021\t........!.......",
         f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................",
-        await vis_heap_line(suffix="\t <-- Top chunk"),
+        await vis_heap_line(suffix="     <-- Top chunk"),
     ]
     assert result3 == expected3
 
@@ -184,7 +184,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
         f"{heap_iter(0):#x}\t0x0000000000000000\t0x0000000000000031\t........1.......",
         f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................",
         f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................",
-        await vis_heap_line(suffix="\t <-- Top chunk"),
+        await vis_heap_line(suffix="     <-- Top chunk"),
     ]
 
     assert result4_b == expected4_b
@@ -231,13 +231,13 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     last_chunk_size = dq2
     for _ in range(last_chunk_size // 16):
         expected_all3.append(await vis_heap_line())
-    expected_all3.append(await vis_heap_line(suffix="\t <-- tcachebins[0x20][0/1]"))
+    expected_all3.append(await vis_heap_line(suffix="     <-- tcachebins[0x20][0/1]"))
 
     expected_all3.append(await vis_heap_line())
     last_chunk_size = dq2
     for _ in range(last_chunk_size // 16 - 1):
         expected_all3.append(await vis_heap_line())
-    expected_all3.append(await vis_heap_line(suffix="\t <-- Top chunk"))
+    expected_all3.append(await vis_heap_line(suffix="     <-- Top chunk"))
 
     assert result_all3 == expected_all3
 
@@ -371,7 +371,7 @@ async def test_vis_heap_chunk_command_2_43(ctrl: Controller) -> None:
 
     expected1 = [
         f"{heap_iter(0):#x}\t{hexdump_line(0, first_chunk_size)}",
-        f"{heap_iter():#x}\t{hexdump_line(chunk1_next, tcache_key)}\t <-- tcachebins[{sz_class(first_chunk_size):#x}][0/2]",
+        f"{heap_iter():#x}\t{hexdump_line(chunk1_next, tcache_key)}     <-- tcachebins[{sz_class(first_chunk_size):#x}][0/2]",
         *[f"{heap_iter():#x}\t{hexdump_line()}" for _ in range(first_chunk_size // 16 - 2)],
         f"{heap_iter():#x}\t{0:#018x}\t                  \t........",
     ]
@@ -395,10 +395,10 @@ async def test_vis_heap_chunk_command_2_43(ctrl: Controller) -> None:
     expected = [
         *expected1[:-1],
         f"{heap_iter(0):#x}\t{hexdump_line(0, (chunk2_size := pwndbg.aglib.memory.u64(heap_iter(8))))}",
-        f"{heap_iter(8):#x}\t{hexdump_line(heap_iter(0) >> 12, tcache_key)}\t <-- tcachebins[{sz_class(chunk2_size):#x}][1/2]",
+        f"{heap_iter(8):#x}\t{hexdump_line(heap_iter(0) >> 12, tcache_key)}     <-- tcachebins[{sz_class(chunk2_size):#x}][1/2]",
         *[f"{heap_iter():#x}\t{hexdump_line()}" for _ in range(chunk2_size // 16 - 2)],
         f"{heap_iter():#x}\t{hexdump_line(0, (chunk3_size := pwndbg.aglib.memory.u64(heap_iter(8))))}",
-        f"{heap_iter(8):#x}\t{hexdump_line(heap_iter(0) >> 12, tcache_key)}\t <-- tcachebins[{sz_class(chunk3_size):#x}][0/1]",
+        f"{heap_iter(8):#x}\t{hexdump_line(heap_iter(0) >> 12, tcache_key)}     <-- tcachebins[{sz_class(chunk3_size):#x}][0/1]",
         *[f"{heap_iter():#x}\t{hexdump_line()}" for _ in range(chunk3_size // 16 - 2)],
         f"{heap_iter():#x}\t{hexdump_line(0, 0x301)}",  # tcache metadata
         *[f"{heap_iter():#x}\t{hexdump_line(slots_qword, slots_qword)}" for _ in range(8)],
@@ -408,7 +408,7 @@ async def test_vis_heap_chunk_command_2_43(ctrl: Controller) -> None:
         f"{heap_iter():#x}\t{hexdump_line(0, tcache64)}",
         f"{heap_iter():#x}\t{hexdump_line(tcache65, 0)}",
         *[f"{heap_iter():#x}\t{hexdump_line()}" for _ in range(4)],
-        f"{heap_iter():#x}\t{hexdump_line(0, top_size)}\t <-- Top chunk",
+        f"{heap_iter():#x}\t{hexdump_line(0, top_size)}     <-- Top chunk",
     ]
 
     assert result == expected
