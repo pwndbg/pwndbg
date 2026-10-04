@@ -1830,8 +1830,6 @@ class GDB(pwndbg.dbg_mod.Debugger):
         set verbose off
         set pagination off
         set history save on
-        set history size 1024
-        set history filename ~/.gdb_history
         set follow-fork-mode child
         set backtrace past-main on
         set step-mode on
