@@ -29,7 +29,7 @@ parser.add_argument(
     type=int,
     nargs="?",
     default=None,
-    help="Number of lines to disassemble.",
+    help="Number of lines to disassemble. If this is provided as the second argument, and it is larger than the first argument, this is interpreted as the last address to disassemble (exclusive)",
 )
 parser.add_argument(
     "-r",
@@ -99,17 +99,24 @@ def nearpc(
     # None if not provided
     first_input_argument = pc
 
-    # Fix the case where we only have one argument, and
-    # it's a small value.
-    if lines is None and (pc is not None and int(pc) < 0x100):
-        lines = pc
-        pc = None
+    end_address = None
 
-    if pc is None:
-        pc = pwndbg.aglib.regs.pc
+    # Handle `nearpc start_addr end_addr`
+    if pc is not None and lines is not None:
+        if lines > pc:
+            end_address = lines
+    else:
+        # Fix the case where we only have one argument, and
+        # it's a small value.
+        if lines is None and (pc is not None and int(pc) < 0x100):
+            lines = pc
+            pc = None
 
-    if lines is None:
-        lines = int(nearpc_lines)
+        if pc is None:
+            pc = pwndbg.aglib.regs.pc
+
+        if lines is None:
+            lines = int(nearpc_lines)
 
     back_lines = 0
 
@@ -121,7 +128,6 @@ def nearpc(
         # -t was specified
         back_lines = min(int(nearpc_backwards_lines), total - 1)
 
-    end_address = None
     address_to_highlight = None
     if function is not None:
         # Emulate GDB behavior of "disass" - it disassembles the entire function in which
@@ -146,7 +152,7 @@ def nearpc(
             )
 
         if first_input_argument is None:
-            # If user didn't provide a minimum bound on number of instructions, make
+            # If user didn't provide a maximum bound on number of instructions, make
             # sure we choose a number large enough to disassemble the entire function
             lines = end_address - pc
         back_lines = 0

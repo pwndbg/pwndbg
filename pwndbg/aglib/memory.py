@@ -548,7 +548,7 @@ def pprint_blocks(
             if printed % 2 == 0:
                 saved_line_addr = f"0x{cursor:x}"
 
-            data = pwndbg.aglib.memory.read(cursor, cell_size)
+            data = read(cursor, cell_size)
             cell = pwndbg.aglib.arch.unpack(data)
             cell_hex = f"\t0x{cell:0{cell_size * 2}x}"
 
