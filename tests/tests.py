@@ -14,7 +14,7 @@ import time
 from enum import Enum
 from pathlib import Path
 
-from pwndbg.lib.zig import get_zig_executable
+from pwndbg.lib.compiler.zig import get_zig_executable
 
 from .host import TestHost
 from .host import TestResult

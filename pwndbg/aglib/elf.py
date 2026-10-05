@@ -32,10 +32,10 @@ import pwndbg.aglib.vmmap
 import pwndbg.auxv
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
+import pwndbg.lib.compiler.zig
 import pwndbg.lib.config
 import pwndbg.lib.elftypes
 import pwndbg.lib.memory
-import pwndbg.lib.zig
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 from pwndbg.lib import Status
@@ -520,7 +520,7 @@ def compile_with_flags(compiler_flags: list[str]) -> Status:
         compiler_cmdline = [str(gcc_compiler_path)]
     else:
         try:
-            compiler_cmdline = pwndbg.lib.zig.flags(pwndbg.aglib.arch)
+            compiler_cmdline = pwndbg.lib.compiler.zig.flags(pwndbg.aglib.arch)
         except ValueError as exception:
             return Status.fail(str(exception))
 

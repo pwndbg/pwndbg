@@ -15,7 +15,7 @@ import gdb
 import pytest
 
 from pwndbg.lib import tempfile
-from pwndbg.lib.zig import get_zig_executable
+from pwndbg.lib.compiler.zig import get_zig_executable
 
 _start_binary_called = False
 

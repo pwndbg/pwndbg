@@ -6,7 +6,7 @@ Lets reiterate some of the most important submodules in Pwndbg:
 
 + `pwndbg/dbg_mod` (also providing `pwndbg.dbg`) - Implements a lightweight debugger abstraction layer. Provides functionality that the underlying debugger is responsible for, like setting a breakpoint or writing to memory.
 + `pwndbg/aglib` - A library that uses `pwndbg/dbg_mod` to provide more complex operations, like operations on memory mappings (`pwndbg/aglib/vmmap.py`), registers (`pwndbg/aglib/regs_mod.py`), disassembly (`pwndbg/aglib/disasm/`) etc.
-+ `pwndbg/lib` - Generic functionality that *does not* depend on anything "debugger related", like `pwndbg/lib/cache.py`, `pwndbg/lib/zig.py`, `pwndbg/lib/tempfile.py` etc.
++ `pwndbg/lib` - Generic functionality that *does not* depend on anything "debugger related", like `pwndbg/lib/cache.py`, `../../pwndbg/lib/compiler/zig.py`, `pwndbg/lib/tempfile.py` etc.
 + `pwndbg/commands/` - Pwndbg commands implementations.
 
 To keep this architecture coherent, maintainable, and prevent import cycles, there are a few things we need to obide by that we see being violated from time to time.

@@ -14,7 +14,7 @@ from unicorn import s390x_const
 from unicorn import sparc_const
 from unicorn import x86_const
 
-import pwndbg.lib.zig
+import pwndbg.lib.compiler.zig
 
 expected_value = 60
 include_text = f"""
@@ -182,7 +182,7 @@ def test_zig_asm_compiles(arch):
     with tempfile.NamedTemporaryFile(mode="wt", suffix="test.h", delete=False) as example_h:
         example_h.write(include_text)
 
-    bytecode = pwndbg.lib.zig._asm(arch, asm_line, includes=[pathlib.Path(example_h.name)])
+    bytecode = pwndbg.lib.compiler.zig._asm(arch, asm_line, includes=[pathlib.Path(example_h.name)])
     assert len(bytecode) > 0, "Bytecode too short"
 
     if uc_arch is None:
