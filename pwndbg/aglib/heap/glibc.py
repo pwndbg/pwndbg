@@ -1425,7 +1425,7 @@ class GlibcHeap:
 
         # Helps us search TLS for the tcache if we know
         # exactly where the dummy is
-        if self.method.allow_debuginfo and pwndbg.libc.version() >= (2, 43):
+        if pwndbg.libc.version() >= (2, 43):
             tcache_dummy_location = pwndbg.aglib.symbol.lookup_symbol_addr(
                 "__tcache_dummy", prefer_static=True
             )
