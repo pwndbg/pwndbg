@@ -128,3 +128,54 @@ def get_expr(expr: str):
 
     ctx = pwndbg.dbg.selected_frame() or pwndbg.dbg.selected_inferior()
     return ctx.evaluate_expression(expr)
+
+
+class mock_for_heuristic:
+    def __init__(self, mock_symbols: list[str] | None = None, mock_all: bool = False) -> None:
+        """
+        Arguments:
+            mock_symbols: Every symbol's address in the list will be mocked to `None`
+            mock_all: All symbols will be mocked to `None`.
+
+        """
+        import pwndbg
+
+        if mock_all:
+            assert mock_symbols is None
+
+        self.mock_symbols: list[str] | None = mock_symbols
+        self.mock_all: bool = mock_all
+        # Save `selected_inferior` before mocking
+        self.saved_func = pwndbg.dbg.selected_inferior
+
+    def __enter__(self) -> None:
+        import pwndbg
+
+        def mock_lookup_symbol(original):
+            def _mock(symbol, *args, **kwargs):
+                if self.mock_all:
+                    return None
+                assert self.mock_symbols
+                for s in self.mock_symbols:
+                    if s == symbol:
+                        return None
+                return original(symbol, *args, **kwargs)
+
+            return _mock
+
+        def mock_interior(original):
+            def _mock(*args, **kwargs):
+                inst = original(*args, **kwargs)
+                inst.lookup_symbol = mock_lookup_symbol(inst.lookup_symbol)
+                return inst
+
+            return _mock
+
+        # Mock `symbol_address_from_name` from `selected_inferior`
+        pwndbg.dbg.selected_inferior = mock_interior(pwndbg.dbg.selected_inferior)
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        import pwndbg
+
+        # Restore `selected_inferior`
+        pwndbg.dbg.selected_inferior = self.saved_func

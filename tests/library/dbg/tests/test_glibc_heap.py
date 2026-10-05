@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import re
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,7 @@ from . import get_binary
 from . import glibc_version_binaries
 from . import glibc_version_params
 from . import launch_to
+from . import mock_for_heuristic
 from . import pwndbg_test
 
 HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
@@ -197,8 +199,11 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
     import pwndbg.aglib.symbol
     import pwndbg.dbg_mod
 
+    ctx = mock_for_heuristic(mock_all=True) if heuristic else contextlib.nullcontext()
+
     # Run a heap command to make sure the allocator is resolved to the proper one
-    await ctrl.execute_and_capture("bins")
+    with ctx:
+        await ctrl.execute_and_capture("bins")
 
     chunks = {}
     results = {}
@@ -215,7 +220,11 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
             )
         else:
             chunks[name] = tval(chunk_addr)
-        results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
+
+        with ctx:
+            results[name] = (
+                await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")
+            ).splitlines()
 
     expected = generate_expected_malloc_chunk_output(chunks)
 
@@ -228,7 +237,9 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
     thread = pwndbg.dbg.selected_thread()
     assert thread is not None
     assert thread.index() == 2
-    results["large"] = (await ctrl.execute_and_capture("malloc-chunk large_chunk")).splitlines()
+
+    with ctx:
+        results["large"] = (await ctrl.execute_and_capture("malloc-chunk large_chunk")).splitlines()
     expected = generate_expected_malloc_chunk_output(chunks)
     assert results["large"] == expected["large"]
 
@@ -246,7 +257,11 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
             )
         else:
             chunks[name] = tval(chunk_addr)
-        results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
+
+        with ctx:
+            results[name] = (
+                await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")
+            ).splitlines()
 
     expected = generate_expected_malloc_chunk_output(chunks)
     expected["allocated"][0] += " | NON_MAIN_ARENA"
@@ -264,7 +279,8 @@ async def resolve_malloc_chunks(ctrl: Controller, heuristic: bool, chunk_types: 
     thread = pwndbg.dbg.selected_thread()
     assert thread is not None
     assert thread.index() == 1
-    results["large"] = (await ctrl.execute_and_capture("malloc-chunk large_chunk")).splitlines()
+    with ctx:
+        results["large"] = (await ctrl.execute_and_capture("malloc-chunk large_chunk")).splitlines()
     assert results["large"] == expected["large"]
 
 
@@ -296,7 +312,6 @@ async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
-    await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
 
@@ -341,7 +356,6 @@ async def test_malloc_chunk_2_43_heuristic(ctrl: Controller) -> None:
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
-    await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
 
@@ -412,57 +426,6 @@ async def test_malloc_chunk_dump_command(ctrl: Controller, binary: Path) -> None
     assert malloc_chunk.splitlines() == expected
 
 
-class mock_for_heuristic:
-    def __init__(self, mock_symbols: list[str] | None = None, mock_all: bool = False) -> None:
-        """
-        Arguments:
-            mock_symbols: Every symbol's address in the list will be mocked to `None`
-            mock_all: All symbols will be mocked to `None`.
-
-        """
-        import pwndbg
-
-        if mock_all:
-            assert mock_symbols is None
-
-        self.mock_symbols: list[str] | None = mock_symbols
-        self.mock_all: bool = mock_all
-        # Save `selected_inferior` before mocking
-        self.saved_func = pwndbg.dbg.selected_inferior
-
-    def __enter__(self) -> None:
-        import pwndbg
-
-        def mock_lookup_symbol(original):
-            def _mock(symbol, *args, **kwargs):
-                if self.mock_all:
-                    return None
-                assert self.mock_symbols
-                for s in self.mock_symbols:
-                    if s == symbol:
-                        return None
-                return original(symbol, *args, **kwargs)
-
-            return _mock
-
-        def mock_interior(original):
-            def _mock(*args, **kwargs):
-                inst = original(*args, **kwargs)
-                inst.lookup_symbol = mock_lookup_symbol(inst.lookup_symbol)
-                return inst
-
-            return _mock
-
-        # Mock `symbol_address_from_name` from `selected_inferior`
-        pwndbg.dbg.selected_inferior = mock_interior(pwndbg.dbg.selected_inferior)
-
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
-        import pwndbg
-
-        # Restore `selected_inferior`
-        pwndbg.dbg.selected_inferior = self.saved_func
-
-
 @parametrize_glibc_versions
 @pwndbg_test
 async def test_main_arena_heuristic(ctrl: Controller, binary: Path) -> None:
@@ -472,7 +435,6 @@ async def test_main_arena_heuristic(ctrl: Controller, binary: Path) -> None:
     from pwndbg.aglib.heap.glibc import GlibcHeap
 
     await ctrl.launch(binary)
-    await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
 
@@ -512,7 +474,6 @@ async def test_mp_heuristic(ctrl: Controller, binary: Path) -> None:
     from pwndbg.aglib.heap.glibc import GlibcHeap
 
     await ctrl.launch(binary)
-    await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
 
@@ -561,7 +522,6 @@ async def test_thread_cache_heuristic(
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
-    await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
     if is_multi_threaded:
@@ -617,7 +577,6 @@ async def test_thread_arena_heuristic(
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
-    await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
 
@@ -667,8 +626,6 @@ async def test_global_max_fast_heuristic(ctrl: Controller, binary: Path) -> None
     if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
-    await ctrl.execute("set resolve-heap-via-heuristic force")
-
     break_at_sym("break_here")
     await ctrl.cont()
 
@@ -710,7 +667,6 @@ async def test_heuristic_fail_gracefully(
 
     # TODO: Support other architectures
     await ctrl.launch(binary)
-    await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
     if is_multi_threaded:
