@@ -129,6 +129,15 @@ def warn_about_debug_symbols_resolution() -> None:
             )
 
 
+def get_region(addr: int | pwndbg.dbg_mod.Value | None) -> pwndbg.lib.memory.Page | None:
+    """Find the memory map containing 'addr'."""
+    return copy.deepcopy(pwndbg.aglib.vmmap.find(addr))
+
+
+def is_statically_linked() -> bool:
+    return not pwndbg.dbg.selected_inferior().is_dynamically_linked()
+
+
 PREV_INUSE = 1
 IS_MMAPPED = 2
 NON_MAIN_ARENA = 4
@@ -569,7 +578,7 @@ class Heap:
             self._memory_region = sbrk_region
             self._gdbValue = None
         else:
-            heap_region = _allocator.get_region(addr)
+            heap_region = get_region(addr)
             if heap_region is None:
                 raise ValueError(f"Cannot build heap object on an unmapped address ({hex(addr)})")
 
@@ -1173,7 +1182,7 @@ class GlibcHeap:
                 self._main_arena_addr = main_arena_via_symbol
 
         if not self._main_arena_addr and self.method.allow_heuristics:
-            if self.is_statically_linked():
+            if is_statically_linked():
                 data_section = pwndbg.aglib.proc.dump_elf_data_section()
                 data_section_address = pwndbg.aglib.proc.get_section_address_by_name(".data")
             else:
@@ -1207,7 +1216,7 @@ class GlibcHeap:
                         # If we have found the main_arena, we can stop searching
                         break
 
-                    if self.is_statically_linked():
+                    if is_statically_linked():
                         relocations = pwndbg.aglib.proc.dump_relocations_by_section_name(
                             section_name
                         )
@@ -1510,7 +1519,7 @@ class GlibcHeap:
         if not self.method.allow_heuristics:
             return None
 
-        if self.is_statically_linked():
+        if is_statically_linked():
             section = pwndbg.aglib.proc.dump_elf_data_section()
             section_address = pwndbg.aglib.proc.get_section_address_by_name(".data")
         else:
@@ -1833,12 +1842,12 @@ class GlibcHeap:
             mp = self.struct_module.MallocPar(self._mp_addr)
             mp_sbrk_base = mp.get_field_address("sbrk_base")
 
-            if self.get_region(mp_sbrk_base) and self.get_region(self.mp["sbrk_base"]):
+            if get_region(mp_sbrk_base) and get_region(self.mp["sbrk_base"]):
                 sbrk_base = pwndbg.lib.memory.align_up(
                     int(self.mp["sbrk_base"]), _allocator.size_sz * 2
                 )
 
-                sbrk_region = self.get_region(sbrk_base)
+                sbrk_region = get_region(sbrk_base)
                 if sbrk_region is None:
                     raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
                 sbrk_region.memsz = sbrk_region.end - sbrk_base
@@ -1847,10 +1856,6 @@ class GlibcHeap:
                 return sbrk_region
             raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
         raise SymbolNotRecoveredError("mp_", "Heuristic failed.")
-
-    def get_region(self, addr: int | pwndbg.dbg_mod.Value | None) -> pwndbg.lib.memory.Page | None:
-        """Find the memory map containing 'addr'."""
-        return copy.deepcopy(pwndbg.aglib.vmmap.find(addr))
 
     def fastbin_index(self, size: int) -> int:
         if pwndbg.aglib.arch.ptrsize == 8:
@@ -2193,9 +2198,6 @@ class GlibcHeap:
             ) and (int(self.mp["sbrk_base"]) != 0)
 
         return pwndbg.aglib.memory.s32(symbol_addr) > 0
-
-    def is_statically_linked(self) -> bool:
-        return not pwndbg.dbg.selected_inferior().is_dynamically_linked()
 
 
 """The allocator object holding the state of the current heap"""
