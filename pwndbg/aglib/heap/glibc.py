@@ -1266,7 +1266,7 @@ class GlibcHeap:
                 # If we are still not able to find the main_arena, probably we are debugging a binary with statically linked libc and no PIE enabled
                 if not self._main_arena_addr:
                     # Try to find the default main_arena struct in the .data section
-                    for i in range(0, size - self.malloc_state.sizeof, pwndbg.aglib.arch.ptrsize):
+                    for i in range(0, size - malloc_state_size, pwndbg.aglib.arch.ptrsize):
                         expected.next = data_section_offset + i
                         if bytes(expected) == data_section_data[i : i + malloc_state_size]:
                             # This also might be a false positive, but it is very unlikely too, so should also be fine :)
@@ -1352,7 +1352,7 @@ class GlibcHeap:
         return True
 
     def _is_tcache_struct(self, addr: int) -> bool:
-        """Check if addr points to a possible valid tcache_perthread_struct."""
+        """Check if addr points to a possible tcache_perthread_struct."""
         tcache_size = self.tcache_perthread_struct.sizeof
         chunk_header_size = pwndbg.aglib.arch.ptrsize * 2
 
