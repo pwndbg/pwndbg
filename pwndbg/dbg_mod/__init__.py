@@ -738,31 +738,6 @@ class Process:
         """
         raise NotImplementedError()
 
-    def module_section_locations(self) -> list[tuple[int, int, str, str]]:
-        """
-        Return a list of (address, size, section_name, module_name) tuples for
-        the loaded sections in every module of this process.
-
-        The module name will have its full path resolved without following symlinks,
-        so it is not guaranteed to be the same string as in `/proc/<pid>/maps`
-        or vmmap.
-        """
-        raise NotImplementedError()
-
-    def main_module_name(self) -> str | None:
-        """
-        Returns the name of the main module.
-
-        On remote targets, this may be prefixed with "target:" string.
-        """
-        raise NotImplementedError()
-
-    def main_module_entry(self) -> int | None:
-        """
-        Returns the entry point of the main module.
-        """
-        raise NotImplementedError()
-
     def is_dynamically_linked(self) -> bool:
         """
         Returns whether this process makes use of dynamically linked libraries.

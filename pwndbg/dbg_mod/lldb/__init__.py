@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import bisect
-import collections
 import enum
 import functools
 import os
@@ -2099,56 +2098,6 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     @override
     def main_module(self) -> pwndbg.dbg_mod.Module | None:
         return self.target.GetModuleAtIndex(0) if self.target.GetNumModules() > 0 else None
-
-    @override
-    def module_section_locations(self) -> list[tuple[int, int, str, str]]:
-        result = []
-        for i in range(self.target.GetNumModules()):
-            module = self.target.GetModuleAtIndex(i)
-
-            queue = collections.deque(
-                module.GetSectionAtIndex(j) for j in range(module.GetNumSections())
-            )
-            while len(queue) > 0:
-                section = queue.popleft()
-                children = section.GetNumSubSections()
-                if children > 0:
-                    queue.extendleft(section.GetSubSectionAtIndex(k) for k in range(children))
-                    continue
-
-                load = section.GetLoadAddress(self.target)
-                if load == lldb.LLDB_INVALID_ADDRESS:
-                    # This section is not loaded.
-                    continue
-
-                fullpath = pwndbg.lib.path.clean_path(str(module.GetFileSpec()))
-
-                result.append((load, section.GetByteSize(), section.GetName(), fullpath))
-
-        return result
-
-    @override
-    def main_module_name(self) -> str:
-        spec = (
-            self.target.GetModuleAtIndex(0).GetFileSpec()
-            if self.target.GetNumModules() > 0
-            else None
-        )
-
-        if spec is None:
-            return None
-
-        return pwndbg.lib.path.clean_path(str(spec))
-
-    @override
-    def main_module_entry(self) -> int | None:
-        return (
-            self.target.GetModuleAtIndex(0)
-            .GetObjectFileEntryPointAddress()
-            .GetLoadAddress(self.target)
-            if self.target.GetNumModules() > 0
-            else None
-        )
 
     @override
     def is_dynamically_linked(self) -> bool:

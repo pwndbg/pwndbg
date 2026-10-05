@@ -1341,13 +1341,13 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             module = modules.setdefault(section.objfile, [])
             module.append(section)
 
-        main = self.main_module_name()
+        main = self._main_module_name()
 
         return (GDBModule(name, sections, name == main) for name, sections in modules.items())
 
     @override
     def main_module(self) -> pwndbg.dbg_mod.Module | None:
-        main = self.main_module_name()
+        main = self._main_module_name()
         if main is None:
             return None
 
@@ -1357,40 +1357,13 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
         return None
 
-    @override
-    def module_section_locations(self) -> list[tuple[int, int, str, str]]:
-        global pwndbg
-        import pwndbg.gdblib.info
-
-        result = []
-        for section in pwndbg.gdblib.info.sections():
-            result.append(
-                (
-                    section.start,
-                    section.size,
-                    section.section,
-                    pwndbg.lib.path.clean_path(section.objfile),
-                )
-            )
-
-        return result
-
-    @override
-    def main_module_name(self) -> str | None:
+    def _main_module_name(self) -> str | None:
         # Can GDB ever return a different value here from what we'd get with
         # `info files`, give or take a "remote:"?
         if self.alive() and not pwndbg.aglib.qemu.is_qemu_kernel():
             exe = gdb.execute("info proc exe", to_string=True)
             return exe[exe.find("exe = '") + 7 : exe.rfind("'")]
         return gdb.current_progspace().filename
-
-    @override
-    def main_module_entry(self) -> int | None:
-        main_module = self.main_module()
-        if main_module is None:
-            return None
-
-        return main_module.entry_point()
 
     @override
     def is_dynamically_linked(self) -> bool:
