@@ -40,6 +40,7 @@ from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.lib import SymbolNotRecoveredError
+from pwndbg.lib.config import Parameter
 
 log = logging.getLogger(__name__)
 
@@ -1133,7 +1134,9 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument(
     "count",
     nargs="?",
-    type=lambda n: max(int(n, 0), 1),
+    type=int,
+    # doing it this way rather than in the function body shows a nice (default: x)
+    # text in the command help
     default=pwndbg.config.default_visualize_chunk_number,
     help="Number of chunks to visualize. If the value is big enough and addr isn't provided, this is interpreted as addr instead.",
 )
@@ -1177,8 +1180,8 @@ group.add_argument(
 @pwndbg.commands.Command(parser, aliases=["vis"], category=CommandCategory.GLIBC_MALLOC)
 @OnlyForSaneHeap
 def vis_heap_chunks(
+    count: int | Parameter,
     addr: int | None = None,
-    count: int | None = None,
     no_skip: bool = False,
     beyond_top: bool = False,
     no_truncate: bool = False,
@@ -1190,16 +1193,23 @@ def vis_heap_chunks(
     # Used to determine whether to show command hint
     nothing_supplied = (
         addr is None
-        and count == pwndbg.config.default_visualize_chunk_number
+        and isinstance(count, Parameter)
         and not beyond_top
         and not no_truncate
         and not all_chunks
     )
 
+    # strip Parameter type
+    count = int(count)
+
+    if count < 1:
+        print(message.error("Count needs to be a positive number."))
+        return
+
     # If the first argument (count) is big enough (and address isn't provided) interpret it as an address
-    if addr is None and count is not None and count > 0x1000:
+    if count > 0x1000 and addr is None:
         addr = count
-        count = pwndbg.config.default_visualize_chunk_number
+        count = int(pwndbg.config.default_visualize_chunk_number)
 
     if addr is not None and not pwndbg.aglib.memory.is_readable_address(int(addr)):
         print(message.error("The provided address is not readable."))
