@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ from . import glibc_test_versions
 from . import glibc_version_binaries
 from . import glibc_version_params
 from . import launch_to
+from . import mock_for_heuristic
 from . import pwndbg_test
 
 GLIBC_VERSIONS = glibc_test_versions()
@@ -201,20 +203,20 @@ async def test_heap_heuristic_glibc_version(
     if pwndbg.aglib.arch.name not in ("x86-64", "aarch64"):
         pytest.skip("glibc version tests are x86-64/aarch64 only")
 
-    if use_heuristic:
-        await ctrl.execute("set resolve-heap-via-heuristic force")
-
+    ctx = mock_for_heuristic(mock_all=True) if use_heuristic else contextlib.nullcontext()
     await ctrl.execute("b break_here")
     await ctrl.cont()
 
     allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
-    main_arena = allocator.main_arena
+    with ctx:
+        main_arena = allocator.main_arena
     assert main_arena is not None, (
         f"main_arena not found for glibc {glibc_version} (heuristic={use_heuristic})"
     )
 
-    result = await ctrl.execute_and_capture("heap")
+    with ctx:
+        result = await ctrl.execute_and_capture("heap")
     assert len(result) > 0, f"'heap' command produced no output for glibc {glibc_version}"
 
 
@@ -241,7 +243,6 @@ async def test_heap_heuristic_nodebug_glibc_version(
     if pwndbg.aglib.arch.name not in ("x86-64", "aarch64"):
         pytest.skip("glibc version tests are x86-64/aarch64 only")
 
-    await ctrl.execute("set resolve-heap-via-heuristic force")
     await ctrl.execute("b break_here")
     await ctrl.cont()
 

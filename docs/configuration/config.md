@@ -928,7 +928,10 @@ Maximum allowed depth for a type in an Objective-C method call.
 
      The strategy to resolve heap via heuristic.
 
-    Values explained:
+    *Note: this option has been deprecated - the heap implementation now always attempts
+    to use symbols whenever possible, using heuristics as a fallback.*
+
+    Old values explained:
 
     + `auto` - Pwndbg will try to use heuristics if debug symbols are missing
     + `force` - Pwndbg will always try to use heuristics, even if debug symbols are available
@@ -979,7 +982,10 @@ Maximum allowed depth for a type in an Objective-C method call.
 
      The strategy to resolve heap via heuristic.
 
-    Values explained:
+    *Note: this option has been deprecated - the heap implementation now always attempts
+    to use symbols whenever possible, using heuristics as a fallback.*
+
+    Old values explained:
 
     + `auto` - Pwndbg will try to use heuristics if debug symbols are missing
     + `force` - Pwndbg will always try to use heuristics, even if debug symbols are available
