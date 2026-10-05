@@ -38,7 +38,6 @@ from pwndbg.color import generate_color_function
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-from pwndbg.lib import SymbolNotRecoveredError
 from pwndbg.lib.config import Parameter
 
 log = logging.getLogger(__name__)
