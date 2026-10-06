@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gdb
+import pytest
 
 import pwndbg.aglib
 import pwndbg.color
@@ -209,16 +210,24 @@ lsr r3, #4
 """
 
 
-def test_arm_implicit_branch(qemu_assembly_run):
+@pytest.mark.parametrize("arch", ["arm", "armeb"])
+def test_arm_implicit_branch(qemu_assembly_run, arch):
     """
     In Arm, many general-purpose instructions can target the PC as the destination register, particularly while changing between Arm/Thumb mode
 
     For example, the `add` and `sub` instructions can be used to directory write to the PC, forming a branch.
 
     This test contains a "add" instruction that causes the PC to change. We want there to be a <target> displayed, and a space after it in the disasm
+
+    NOTE:
+        We parameterize over arm and armeb to check that big endian arm also works.
+
+        armeb will compile to B8 mode, where instructions are always little endian.
+
+        If this fails for that, it means that the disassembler/emulator is not correctly configured for Arm B8 mode
     """
 
-    qemu_assembly_run(ARM_IMPLICIT_BRANCH, "arm")
+    qemu_assembly_run(ARM_IMPLICIT_BRANCH, arch)
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
