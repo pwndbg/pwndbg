@@ -116,6 +116,8 @@ class DependencyNotFoundError(Exception):
 class CompilerNotFoundError(DependencyNotFoundError):
     """
     We need a compiler for the target architecture but could not find it.
+
+    This is caught by the top-level command try-except.
     """
     def __init__(self, msg: str | None = None) -> None:
         super().__init__("compiler", msg)

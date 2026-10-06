@@ -9,6 +9,8 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.relocation import RelocationSection
 
 import pwndbg.lib.cache
+from pwndbg.color import gray
+from pwndbg.color import green
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.err import CompilerNotFoundError
@@ -34,7 +36,8 @@ def __get_compiler(
 
     `arch` must be aglib.arch.
     """
-    # FIXME: add pretty messaging
+    print(gray(f"Compiler for {arch.name} needed, looking for it... "), end="")
+
     potentials: list[ToolchainInvocation | None] = []
     best: tuple[ToolchainInvocation, Compiler] | None = None
     errors: list[DependencyNotFoundError] = []
@@ -46,11 +49,15 @@ def __get_compiler(
                 best = (invoc, candidate_compiler)
                 break
         except DependencyNotFoundError as e:
+            print(gray(f"{candidate_compiler.type().value} not present.."), end="")
             errors.append(e)
             invoc = None
         potentials.append(invoc)
 
     if best is not None:
+        # clear line
+        print("\x1b[2K\r", end="")
+        print(green(f"Using compiler {best[1].type().value} for {arch.name}."))
         return best
 
     # There is no compiler which also has objcopy, but maybe there is one
@@ -64,6 +71,13 @@ def __get_compiler(
     for anything, candidate_compiler in zip(potentials, _compilers, strict=True):
         if anything is not None:
             # Yup!
+            # clear line
+            print("\x1b[2K\r", end="")
+            print(
+                green(f"Using compiler {candidate_compiler.type().value} for {arch.name}") +
+                gray(" (no objcopy though)" +
+                green("."))
+              )
             return anything, candidate_compiler
 
     return errors
@@ -81,7 +95,7 @@ def _get_compiler(arch: ArchDefinition) -> tuple[ToolchainInvocation, Compiler]:
     res = __get_compiler(arch)
     if isinstance(res, list):
         assert isinstance(res[0], DependencyNotFoundError)
-        raise CompilerNotFoundError(", ".join([str(err) for err in res]))
+        raise CompilerNotFoundError("\n\t".join([str(err) for err in res]))
 
     return res
 
@@ -107,7 +121,7 @@ def objcopy_invocation(arch: ArchDefinition, objcopy_arguments: list[str]) -> li
     toolchain, compiler = _get_compiler(arch)
     if toolchain.objcopy is None:
         raise DependencyNotFoundError(
-            "objcopy", f"{compiler.type()} is the current compiler but has no objcopy"
+            "objcopy", f"{compiler.type().value} is the current compiler but has no objcopy"
         )
     return toolchain.objcopy + objcopy_arguments
 
@@ -116,7 +130,7 @@ def which(arch: ArchDefinition) -> str:
     Which compiler are we using?
     """
     _, compiler = _get_compiler(arch)
-    return str(compiler.type())
+    return compiler.type().value
 
 # =================== Higher level API ===============
 
@@ -179,7 +193,7 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
 
     if toolchain.objcopy is None:
         raise DependencyNotFoundError(
-            "objcopy", f"{compiler.type()} is the current compiler but has no objcopy"
+            "objcopy", f"{compiler.type().value} is the current compiler but has no objcopy"
         )
 
     header = _asm_header.get(arch.name)
