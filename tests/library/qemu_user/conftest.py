@@ -15,7 +15,7 @@ import gdb
 import pytest
 
 from pwndbg.lib import tempfile
-from pwndbg.lib.compiler.zig import get_zig_executable
+from pwndbg.lib.compiler.zig import _get_executable
 
 _start_binary_called = False
 
@@ -151,7 +151,7 @@ def qemu_assembly_run():
         compiled_file: Path = tmpdir / "out.elf"
 
         # Build the binary with Zig
-        zig_executable = get_zig_executable()
+        zig_executable = _get_executable()
         compile_process = subprocess.run(
             [
                 zig_executable,

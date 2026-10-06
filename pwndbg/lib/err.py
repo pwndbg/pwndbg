@@ -99,3 +99,17 @@ class SymbolNotRecoveredError(Exception):
     def __init__(self, name: str, msg: str) -> None:
         self.name = name
         super().__init__(msg)
+
+class DependencyNotFoundError(Exception):
+    """
+    A dependency (e.g. zig, onegadget, ropr) is not available on the host system.
+
+    Without a provided msg, prints about the dependency not being in PATH.
+    """
+    def __init__(self, dep_name: str, msg: str | None = None) -> None:
+        if msg is None:
+            super().__init__(f"{dep_name} not found: not in PATH")
+        else:
+            super().__init__(f"{dep_name} not found: {msg}")
+
+

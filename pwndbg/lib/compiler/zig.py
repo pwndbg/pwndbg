@@ -8,10 +8,18 @@ import subprocess
 import tempfile
 from typing import Literal
 
-import pwndbg.lib.cache
+from dispatch import CompilerType
+
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
-from pwndbg.lib.arch import Platform
+from pwndbg.lib.err import DependencyNotFoundError
+
+from .util import compiler_target_triple
+
+
+def type() -> CompilerType:
+    return CompilerType.ZIG
+
 
 # Supported architectures can be obtained using the command: `zig targets`
 _arch_mapping: dict[
@@ -74,22 +82,27 @@ _asm_header: dict[str, str] = {
 ZIG_SUPPORTED_VERSION = "0.14.1"
 
 
-@pwndbg.lib.cache.cache_until("forever")
-def get_zig_executable() -> str:
+def _get_executable() -> str:
     """
     Get the path to the zig executable.
     Precedence: ziglang module, zig in PATH.
+
+    Raises:
+        DependencyNotFoundError: zig could not be found or is an unsupported version
     """
     try:
         import ziglang  # type: ignore[import-untyped]
 
-        return os.path.join(os.path.dirname(ziglang.__file__), "zig")
+        if ziglang.__file__ is not None:
+            return os.path.join(os.path.dirname(ziglang.__file__), "zig")
     except ImportError:
         pass
 
     zig_path = shutil.which("zig")
     if zig_path is None:
-        raise ValueError("Python module ziglang not available and zig not found in PATH")
+        raise DependencyNotFoundError(
+            "zig", "python module ziglang not available and zig not found in PATH"
+        )
 
     try:
         result = subprocess.run(
@@ -100,41 +113,25 @@ def get_zig_executable() -> str:
         )
         version = result.stdout.strip()
         if version != ZIG_SUPPORTED_VERSION:
-            raise ValueError(
-                f"Unsupported Zig version: {version}. "
-                f"Only version {ZIG_SUPPORTED_VERSION} is supported."
+            raise DependencyNotFoundError(
+                "zig",
+                f"unsupported zig version: {version}. "
+                f"only version {ZIG_SUPPORTED_VERSION} is supported.",
             )
     except Exception as e:
-        raise ValueError(f"Failed to check Zig version at {zig_path}: {e}")
+        raise DependencyNotFoundError("zig", f"failed to check zig version at {zig_path}: {e}")
 
     return zig_path
 
 
-def _get_zig_target(arch: ArchDefinition) -> str | None:
-    if arch.platform == Platform.LINUX:
-        # "gnu", "gnuabin32", "gnuabi64", "gnueabi", "gnueabihf",
-        # "gnuf32","gnusf", "gnux32", "gnuilp32",
-        # TODO: support soft/hard float abi?
-        osabi = "linux-gnu"
-    elif arch.platform == Platform.DARWIN:
-        osabi = "macos-none"
-    else:
-        return None
+def invocation_with_target(arch: ArchDefinition) -> list[str]:
+    # may throw
+    zig_executable = _get_executable()
 
-    arch_mapping = _arch_mapping.get((arch.name, arch.endian, arch.ptrsize))
-    if arch_mapping is None:
-        return None
-
-    return f"{arch_mapping}-{osabi}"
-
-
-def flags(arch: ArchDefinition) -> list[str]:
-    zig_executable = get_zig_executable()
-
-    zig_target = _get_zig_target(arch)
+    zig_target = compiler_target_triple(arch, _arch_mapping)
     if zig_target is None:
-        raise ValueError(
-            f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})"
+        raise DependencyNotFoundError(
+            "zig", f"can't find zig target for ({(arch.name, arch.endian, arch.ptrsize)})"
         )
 
     return [
@@ -156,7 +153,7 @@ def asm(arch: ArchDefinition, data: str, includes: list[pathlib.Path] | None = N
 
 
 def _asm(arch_mapping: str, data: str, includes: list[pathlib.Path] | None = None) -> bytes:
-    zig_executable = get_zig_executable()
+    zig_executable = _get_executable()
 
     header = _asm_header.get(arch_mapping)
     if header is None:

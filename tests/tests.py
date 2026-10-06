@@ -14,7 +14,7 @@ import time
 from enum import Enum
 from pathlib import Path
 
-from pwndbg.lib.compiler.zig import get_zig_executable
+from pwndbg.lib.compiler.zig import _get_executable
 
 from .host import TestHost
 from .host import TestResult
@@ -362,7 +362,7 @@ def make_all(path: Path, jobs: int = multiprocessing.cpu_count()) -> None:
 
     print(f"[+] make -C {path} -j{jobs} all")
     try:
-        zig_executable = get_zig_executable()
+        zig_executable = _get_executable()
         subprocess.check_call(
             [
                 "make",
