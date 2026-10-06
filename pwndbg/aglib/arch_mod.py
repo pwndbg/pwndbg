@@ -200,8 +200,6 @@ class PwndbgArchitecture(ArchDefinition):
         """
         This is used to configure the emulator. This is the second parameter passed to the Unicorn constructor.
 
-        Many arches don't need any specific config, so just return 0
-
         Override this to return None if we don't support Unicorn emulation for this architecture
         """
         return self._helper_get_unicorn_endianness()
