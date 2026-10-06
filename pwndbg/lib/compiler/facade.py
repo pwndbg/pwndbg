@@ -194,7 +194,13 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
 
         # Check if we have relocations, if yes this is a bug in pwndbg (or assembler)
         with open(compiled_file, "rb") as f:
-            has_relocs = any(s.num_relocations() for s in ELFFile(f).iter_sections() if isinstance(s, RelocationSection))
+            elf = ELFFile(f)
+            # zig emits relocations for debug info (??) so we ignore that
+            text_idx = elf.get_section_index(".text")
+            has_relocs = any(
+                isinstance(s, RelocationSection) and s["sh_info"] == text_idx and s.num_relocations()
+                for s in elf.iter_sections()
+            )
             if has_relocs:
                 raise AssemblingError("assembling error:", "result has relocations. this is a bug in Pwndbg, report it please")
 
