@@ -33,6 +33,23 @@ from capstone6pwndbg import CS_MODE_RISCV_ZBS
 from capstone6pwndbg import CS_MODE_THUMB
 from capstone6pwndbg import CS_MODE_V9
 from typing_extensions import override
+from unicorn import UC_MODE_32
+from unicorn import UC_MODE_64
+from unicorn import UC_MODE_ARM
+from unicorn import UC_MODE_ARMBE8
+from unicorn import UC_MODE_BIG_ENDIAN
+from unicorn import UC_MODE_LITTLE_ENDIAN
+from unicorn import UC_MODE_MCLASS
+from unicorn import UC_MODE_MIPS32
+from unicorn import UC_MODE_MIPS32R6
+from unicorn import UC_MODE_MIPS64
+from unicorn import UC_MODE_PPC32
+from unicorn import UC_MODE_PPC64
+from unicorn import UC_MODE_RISCV32
+from unicorn import UC_MODE_RISCV64
+from unicorn import UC_MODE_SPARC32
+from unicorn import UC_MODE_SPARC64
+from unicorn import UC_MODE_THUMB
 
 import pwndbg
 import pwndbg.aglib
@@ -170,6 +187,25 @@ class PwndbgArchitecture(ArchDefinition):
     def get_capstone_endianness(self) -> int:
         return CAPSTONE_ENDIAN_MAPPING[self.endian]
 
+    def _helper_get_unicorn_endianness(self) -> int:
+        """
+        Subclasses should call this within their get_unicorn_mode, and or (|) it with their
+        custom flags, if its needed.
+        """
+        if pwndbg.aglib.arch.endian == "little":
+            return UC_MODE_LITTLE_ENDIAN
+        return UC_MODE_BIG_ENDIAN
+
+    def get_unicorn_mode(self) -> int | None:
+        """
+        This is used to configure the emulator. This is the second parameter passed to the Unicorn constructor.
+
+        Many arches don't need any specific config, so just return 0
+
+        Override this to return None if we don't support Unicorn emulation for this architecture
+        """
+        return self._helper_get_unicorn_endianness()
+
     def read_thumb_bit(self) -> Literal[0, 1, None]:
         """
         Return 0 or 1, representing the status of the Thumb bit in the current Arm architecture
@@ -193,6 +229,13 @@ class AMD64Arch(PwndbgArchitecture):
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_X86, CS_MODE_64)
 
+    @override
+    def get_unicorn_mode(self) -> int | None:
+        """
+        Note that while this name sounds generic, it only applies at x86
+        """
+        return UC_MODE_64
+
 
 class i386Arch(PwndbgArchitecture):
     """
@@ -208,6 +251,13 @@ class i386Arch(PwndbgArchitecture):
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_X86, CS_MODE_32)
+
+    @override
+    def get_unicorn_mode(self) -> int | None:
+        """
+        Note that while this name sounds generic, it only applies at x86
+        """
+        return UC_MODE_32
 
 
 class i8086Arch(PwndbgArchitecture):
@@ -243,6 +293,63 @@ class ArmArch(PwndbgArchitecture):
         return (CS_ARCH_ARM, mode)
 
     @override
+    def get_capstone_endianness(self) -> int:
+        """
+        Arm has two addressing schemes related to endianness: "BE8" and "BE32"
+
+        In BE32, if you have big endian enabled, it means both instructions and data are treated as bit endian.
+        In BE8, if big endian is enabled, it means data is big endian, while instructions are still little endian.
+
+        Starting at armv7, instructions are always little endian (BE8 is the only scheme).
+        armv6 supports both BE32 and BE8.
+        armv5 and before only supports BE32.
+        """
+        if (sctlr := pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) is not None:
+            # 7th bit dictates the scheme. 0 == B8, 1 == B32
+            b32_scheme = sctlr & (1 << 7)
+            # Indicates current endianness setting
+            big_endian = sctlr & (1 << 25)
+
+            if b32_scheme and big_endian:
+                return CS_MODE_BIG_ENDIAN
+            return CS_MODE_LITTLE_ENDIAN
+
+        return CS_MODE_LITTLE_ENDIAN
+
+    @override
+    def get_unicorn_mode(self) -> int | None:
+        """
+        See the comment of the previous function for details on the different endian modes in arm.
+
+        This chooses the correct setting to start Unicorn so it fetches instructions/data correctly.
+
+        Options for a given setup:
+        - Scheme is B8: if little endian, just use UC_MODE_ARM
+        - Scheme is B8: if big endian, use UC_MODE_ARMBE8
+        - Scheme is B32: set to little/big endian
+
+        """
+        mode = UC_MODE_THUMB if (pwndbg.aglib.regs.read_reg("cpsr") & (1 << 5)) else UC_MODE_ARM
+
+        endian = self._helper_get_unicorn_endianness()
+        # Underlying debuggers expose an API to distinguish between BE8 and BE32, so we have to figure it by ourselves
+        if (sctlr := pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) is not None:
+            # 7th bit dictates the scheme. 0 == B8, 1 == B32
+            b32_scheme = sctlr & (1 << 7)
+            # Indicates current endianness setting
+            big_endian = sctlr & (1 << 25)
+
+            if b32_scheme:
+                mode |= endian
+            elif big_endian:
+                mode |= UC_MODE_ARMBE8
+        else:
+            # If we cannot read the register, default to B32
+            mode |= endian
+
+        return mode
+
+    @override
     def read_thumb_bit(self) -> Literal[0, 1]:
         # When program initially starts, cpsr may not be readable
         if (cpsr := pwndbg.aglib.regs.read_reg("cpsr")) is not None:
@@ -256,6 +363,8 @@ class ArmCortexArch(PwndbgArchitecture):
     Cortex-M processors run the M-profile Arm architecture.
     This architecture is prevalent in bare-metal/embedded systems that lack operating systems.
     Only Thumb-2 instructions are supported, and the Thumb bit is always 1.
+
+    Cortex-M only supports little endian instructions.
     """
 
     max_instruction_size = 4
@@ -267,6 +376,28 @@ class ArmCortexArch(PwndbgArchitecture):
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_ARM, CS_MODE_MCLASS | CS_MODE_THUMB)
+
+    @override
+    def get_unicorn_mode(self) -> int | None:
+        mode = UC_MODE_MCLASS | UC_MODE_THUMB
+
+        endian = self._helper_get_unicorn_endianness()
+        # Underlying debuggers expose an API to distinguish between BE8 and BE32, so we have to figure it by ourselves
+        if (sctlr := pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) is not None:
+            # 7th bit dictates the scheme. 0 == B8, 1 == B32
+            b32_scheme = sctlr & (1 << 7)
+            # Indicates current endianness setting
+            big_endian = sctlr & (1 << 25)
+
+            if b32_scheme:
+                mode |= endian
+            elif big_endian:
+                mode |= UC_MODE_ARMBE8
+        else:
+            # If we cannot read the register, default to B32
+            mode |= endian
+
+        return mode
 
     @override
     def read_thumb_bit(self) -> Literal[0, 1]:
@@ -294,6 +425,10 @@ class AArch64Arch(PwndbgArchitecture):
     def get_capstone_endianness(self) -> int:
         return CS_MODE_LITTLE_ENDIAN
 
+    @override
+    def get_unicorn_mode(self) -> int | None:
+        return UC_MODE_ARM | self._helper_get_unicorn_endianness()
+
 
 class PowerPCArch(PwndbgArchitecture):
     max_instruction_size = 4
@@ -305,6 +440,14 @@ class PowerPCArch(PwndbgArchitecture):
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_PPC, CS_MODE_64)
+
+    @override
+    def get_unicorn_mode(self) -> int | None:
+        if pwndbg.aglib.arch.ptrsize == 4:
+            return UC_MODE_PPC32 | self._helper_get_unicorn_endianness()
+        if pwndbg.aglib.arch.ptrsize == 8:
+            return UC_MODE_PPC64 | self._helper_get_unicorn_endianness()
+        return None
 
 
 class SparcArch(PwndbgArchitecture):
@@ -318,6 +461,14 @@ class SparcArch(PwndbgArchitecture):
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
         mode = CS_MODE_V9 if self.ptrsize == 8 else 0
         return (CS_ARCH_SPARC, mode)
+
+    @override
+    def get_unicorn_mode(self) -> int | None:
+        if pwndbg.aglib.arch.ptrsize == 4:
+            return UC_MODE_SPARC32 | self._helper_get_unicorn_endianness()
+        if pwndbg.aglib.arch.ptrsize == 8:
+            return UC_MODE_SPARC64 | self._helper_get_unicorn_endianness()
+        return None
 
 
 class RISCV32Arch(PwndbgArchitecture):
@@ -338,6 +489,10 @@ class RISCV32Arch(PwndbgArchitecture):
             | CS_MODE_RISCV_ZBS,
         )
 
+    @override
+    def get_unicorn_mode(self) -> int | None:
+        return UC_MODE_RISCV32
+
 
 class RISCV64Arch(PwndbgArchitecture):
     max_instruction_size = 22
@@ -356,6 +511,10 @@ class RISCV64Arch(PwndbgArchitecture):
             | CS_MODE_RISCV_ZBB
             | CS_MODE_RISCV_ZBS,
         )
+
+    @override
+    def get_unicorn_mode(self) -> int | None:
+        return UC_MODE_RISCV64
 
 
 class MipsArch(PwndbgArchitecture):
@@ -376,6 +535,18 @@ class MipsArch(PwndbgArchitecture):
             extra = CS_MODE_MIPS64 if self.ptrsize == 8 else CS_MODE_MIPS32
 
         return (CS_ARCH_MIPS, extra)
+
+    @override
+    def get_unicorn_mode(self) -> int | None:
+
+        if ArchAttribute.MIPS_ISA_32R6 in self.attributes:
+            return UC_MODE_MIPS32R6 | self._helper_get_unicorn_endianness()
+
+        if pwndbg.aglib.arch.ptrsize == 4:
+            return UC_MODE_MIPS32 | self._helper_get_unicorn_endianness()
+        if pwndbg.aglib.arch.ptrsize == 8:
+            return UC_MODE_MIPS64 | self._helper_get_unicorn_endianness()
+        return None
 
 
 class Loongarch64Arch(PwndbgArchitecture):
@@ -416,7 +587,7 @@ class HexagonArch(PwndbgArchitecture):
 
 
 # Register the architecture classes
-all_arches = [
+all_arches: list[PwndbgArchitecture] = [
     AMD64Arch(),
     i386Arch(),
     i8086Arch(),

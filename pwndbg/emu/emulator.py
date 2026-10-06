@@ -33,9 +33,6 @@ from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color.syntax_highlight import syntax_highlight
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
-
 
 def parse_consts(u_consts) -> dict[str, int]:
     """
@@ -307,9 +304,13 @@ class Emulator:
         # Mapping of Pwndbg register name to Unicorn constant for the register
         self.const_regs = arch_to_reg_const_map[self.arch]
 
-        self.uc_mode = self.get_uc_mode()
+        mode = pwndbg.aglib.arch.get_unicorn_mode()
+        if mode is None:
+            raise NotImplementedError(f"Cannot emulate code for {self.arch}. Unicorn mode is None")
+
+        self.uc_mode = mode
         debug(DEBUG_INIT, "# Instantiating Unicorn for %s", self.arch)
-        debug(DEBUG_INIT, "uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
+        debug(DEBUG_INIT, "uc = U.Uc(%r, %x)", (arch_to_UC[self.arch], self.uc_mode))
         self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
 
         debug(DEBUG_INIT, "# Setting TLB mode to virtual")
@@ -657,47 +658,6 @@ class Emulator:
             if (xpsr := self.read_register("xpsr")) is not None:
                 return (xpsr >> 24) & 1
         return 0
-
-    def get_uc_mode(self):
-        """
-        Retrieve the mode used by Unicorn for the current architecture.
-        """
-        arch = pwndbg.aglib.arch.name
-        mode = 0
-
-        if arch == "armcm":
-            mode |= (
-                (U.UC_MODE_MCLASS | U.UC_MODE_THUMB)
-                if (pwndbg.aglib.regs.read_reg("xpsr") & (1 << 24))
-                else U.UC_MODE_MCLASS
-            )
-
-        elif arch in ("arm", "aarch64"):
-            mode |= (
-                U.UC_MODE_THUMB
-                if (pwndbg.aglib.regs.read_reg("cpsr") & (1 << 5))
-                else U.UC_MODE_ARM
-            )
-
-        elif (
-            arch == "mips"
-            and pwndbg.dbg.is_gdblib_available()
-            and "isa32r6" in gdb.newest_frame().architecture().name()
-        ):
-            mode |= U.UC_MODE_MIPS32R6
-        elif arch == "sparc":
-            mode |= {4: U.UC_MODE_SPARC32, 8: U.UC_MODE_SPARC64}[pwndbg.aglib.arch.ptrsize]
-        elif arch == "s390x":
-            pass  # fails with invalid mode error otherwise
-        else:
-            mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.aglib.arch.ptrsize]
-
-        if pwndbg.aglib.arch.endian == "little":
-            mode |= U.UC_MODE_LITTLE_ENDIAN
-        else:
-            mode |= U.UC_MODE_BIG_ENDIAN
-
-        return mode
 
     def map_page(self, page: int) -> bool:
         page = pwndbg.lib.memory.page_align(page)
