@@ -216,19 +216,20 @@ regs_and_instr = {
     ),  # FIXME: Not supported by Unicorn
 }
 test_cases = [
-  pytest.param(
-      name,
-      marks=pytest.mark.xfail(
-          reason="asm() only returns BE32 code :(",
-          # but Thumb-2 only supports BE8 (unicorn, real world hw)
-          raises=UcError,
-          strict=True,
-      ),
-  )
-  if name == "thumbeb"
-  else name
-  for name in regs_and_instr
+    pytest.param(
+        name,
+        marks=pytest.mark.xfail(
+            reason="asm() only returns BE32 code :(",
+            # but Thumb-2 only supports BE8 (unicorn, real world hw)
+            raises=UcError,
+            strict=True,
+        ),
+    )
+    if name == "thumbeb"
+    else name
+    for name in regs_and_instr
 ]
+
 
 @pytest.mark.parametrize("compiler", compilers.values(), ids=compilers.keys())
 @pytest.mark.parametrize("arch", test_cases)
