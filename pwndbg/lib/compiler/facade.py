@@ -196,7 +196,7 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
             raise AssemblingError("assembling error:", compile_process.stdout, compile_process.stderr)
 
         # Check if we have relocations, if yes this is a bug in pwndbg (or assembler)
-        with open(compiled_file) as f:
+        with open(compiled_file, "rb") as f:
             has_relocs = any(s.num_relocations() for s in ELFFile(f).iter_sections() if s.name in (".rel.text", ".rela.text"))
             if has_relocs:
                 raise AssemblingError("assembling error:", "result has relocations. this is a bug in Pwndbg, report it please")
@@ -222,9 +222,6 @@ def compile_program(arch: ArchDefinition, compiler_flags: list[str]) -> Status:
     """
     Compile a C program.
 
-    If the `gcc_compiler_path` argument is set, gcc will be used, otherwise
-    zig (the python package) will be used.
-
     Arguments:
         compiler_flags: The flags to pass to the compiler, including the input and
             output files.
@@ -232,23 +229,13 @@ def compile_program(arch: ArchDefinition, compiler_flags: list[str]) -> Status:
     Returns:
         A status object carrying an error message if compilation failed.
     """
-    toolchain, compiler = _get_compiler(arch)
-
-    if gcc_compiler_path != "":
-        compiler_cmdline = [str(gcc_compiler_path)]
-    else:
-        try:
-            compiler_cmdline = pwndbg.lib.compiler.zig.flags(pwndbg.aglib.arch)
-        except ValueError as exception:
-            return Status.fail(str(exception))
-
-    gcc_cmd: list[str] = compiler_cmdline + compiler_flags
-
+    toolchain, _ = _get_compiler(arch)
+    commandline: list[str] = toolchain.compiler + compiler_flags
     try:
         # capture_output=True makes it so the compilation errors are not instantly
         # dumped to the user, but are in the CalledProcessError object.
         # https://docs.python.org/3/library/subprocess.html#subprocess.run:~:text=stdout%20and%20stderr%20if%20they%20were%20captured
-        subprocess.run(gcc_cmd, check=True, text=True, capture_output=True)
+        subprocess.run(commandline, check=True, text=True, capture_output=True)
         return Status()
     except subprocess.CalledProcessError as exception:
         return Status.fail(

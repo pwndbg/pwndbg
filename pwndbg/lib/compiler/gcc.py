@@ -94,9 +94,9 @@ def additional_flags(arch: ArchDefinition) -> list[str]:
     if arch.name == "i386":
         return ["-m32"]
     if arch.name == "arm":
-        return ["-marm"]
+        return ["-marm", "-march=armv7-a"]
     if arch.name == "armcm":
-        return ["-mthumb"]
+        return ["-mthumb", "-march=armv7-m"]
 
     return []
 

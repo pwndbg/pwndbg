@@ -6,7 +6,7 @@ import pwnlib.context
 import pwnlib.data
 
 import pwndbg.aglib
-import pwndbg.lib.compiler.zig
+import pwndbg.lib.compiler
 
 
 def _get_pwntools_includes() -> list[pathlib.Path]:
@@ -27,4 +27,4 @@ def asm(data: str) -> bytes:
 
     Only call this if the pwndbg.aglib.arch is not None.
     """
-    return pwndbg.lib.compiler.zig.asm(pwndbg.aglib.arch, data, includes=_get_pwntools_includes())
+    return pwndbg.lib.compiler.asm(pwndbg.aglib.arch, data, includes=_get_pwntools_includes())
