@@ -10,7 +10,6 @@ from elftools.elf.relocation import RelocationSection
 
 import pwndbg.lib.cache
 from pwndbg.color import gray
-from pwndbg.color import green
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.err import CompilerNotFoundError
@@ -62,7 +61,7 @@ def __get_compiler(
     if best is not None:
         # clear line
         print("\x1b[2K\r", end="")
-        print(green(f"Using compiler {best[1].type().value} for {arch.name}."))
+        print(gray(f"Using compiler {best[1].type().value} for {arch.name}."))
         return best
 
     # There is no compiler which also has objcopy, but maybe there is one
@@ -78,11 +77,7 @@ def __get_compiler(
             # Yup!
             # clear line
             print("\x1b[2K\r", end="")
-            print(
-                green(f"Using compiler {candidate_compiler.type().value} for {arch.name}") +
-                gray(" (no objcopy though)" +
-                green("."))
-              )
+            print(gray(f"Using compiler {candidate_compiler.type().value} for {arch.name} (no objcopy though)."))
             return anything, candidate_compiler
 
     print()
