@@ -52,6 +52,8 @@ HAVE_JEMALLOC := $(shell $(PKG_CONFIG) --exists jemalloc && echo yes || echo no)
 ifeq ($(HAVE_JEMALLOC),yes)
 JEMALLOC_CFLAGS := $(shell $(PKG_CONFIG) --cflags jemalloc)
 JEMALLOC_LIBS   := $(shell $(PKG_CONFIG) --libs jemalloc)
+# The targets link jemalloc statically, but some distros (e.g. Arch) only ship the shared library.
+HAVE_JEMALLOC := $(shell printf 'int main(void){return 0;}' | $(ZIGCC) -x c -o /dev/null - $(JEMALLOC_CFLAGS) -Wl,-Bstatic $(JEMALLOC_LIBS) -Wl,-Bdynamic >/dev/null 2>&1 && echo yes || echo no)
 endif
 
 # musl is available if musl-gcc compiles+links a trivial program,
@@ -306,7 +308,7 @@ heap_jemalloc_extent_info.native.out: heap_jemalloc_extent_info.native.c
 heap_jemalloc_heap.native.out: heap_jemalloc_heap.native.c
 	@echo "[!] Skip '$@'"
 
-$(info [!] jemalloc not found via $(PKG_CONFIG) – skipping jemalloc targets)
+$(info [!] static jemalloc not found via $(PKG_CONFIG) – skipping jemalloc targets)
 
 endif
 

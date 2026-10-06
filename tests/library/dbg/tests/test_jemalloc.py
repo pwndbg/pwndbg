@@ -11,6 +11,11 @@ from . import pwndbg_test
 
 HEAP_JEMALLOC_EXTENT_INFO = get_binary("heap_jemalloc_extent_info.native.out")
 HEAP_JEMALLOC_HEAP = get_binary("heap_jemalloc_heap.native.out")
+
+pytestmark = pytest.mark.skipif(
+    not (HEAP_JEMALLOC_EXTENT_INFO.exists() and HEAP_JEMALLOC_HEAP.exists()),
+    reason="jemalloc test binaries not built (needs a static jemalloc library)",
+)
 # Relax address regex to accept different virtual address layouts (ASLR / jemalloc mappings).
 # Old pattern assumed addresses starting with 0x7ffff and a limited digit count which fails on some hosts.
 re_match_valid_address = r"0x[0-9a-fA-F]{6,16}"
