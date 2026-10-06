@@ -164,7 +164,7 @@ _asm_header: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, str] = {
 }
 _asm_flags: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, list[str]] = {
     "mips": ["-fno-pic", "-mno-abicalls"],  # needed for gcc
-    "rv32": ["-mno-relax"],  # clang get messed up without these
+    "rv32": ["-mno-relax"],  # clang gets messed up without these
     "rv64": ["-mno-relax"],
 }
 

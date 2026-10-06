@@ -23,7 +23,7 @@ def _get_pwntools_includes() -> list[pathlib.Path]:
 
 def asm(data: str) -> bytes:
     """
-    Assemble the `data` string for the passed architecture and return the assembled bytes.
+    Assemble the `data` string for the current architecture and return the assembled bytes.
 
     This does NOT return a runable ELF nor link against the operating system, it returns
     the raw bytes that can be directly run inside a process.
