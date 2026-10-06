@@ -49,34 +49,6 @@ _arch_mapping: dict[
     ("s390x", "big", 8): "s390x",
 }
 
-_prefix_header = ".global _start\n.global __start\n.section .text\n_start:\n__start:\n"
-_asm_header: dict[str, str] = {
-    # `.intel_syntax noprefix` forces the use of Intel assembly syntax instead of AT&T
-    "x86_64": _prefix_header + ".intel_syntax noprefix\n",
-    "x86": _prefix_header + ".intel_syntax noprefix\n",
-    # `.set noreorder` disables instruction reordering for MIPS to handle delay slots correctly
-    "mips": _prefix_header + ".set noreorder\n",
-    "mipsel": _prefix_header + ".set noreorder\n",
-    "mips64": _prefix_header + ".set noreorder\n",
-    "mips64el": _prefix_header + ".set noreorder\n",
-    "aarch64": _prefix_header,
-    "aarch64_be": _prefix_header,
-    # `.syntax unified` enables the unified assembly syntax for ARM/Thumb
-    "arm": _prefix_header + ".syntax unified\n",
-    "armeb": _prefix_header + ".syntax unified\n",
-    "thumb": _prefix_header + ".syntax unified\n",
-    "thumbeb": _prefix_header + ".syntax unified\n",
-    "riscv32": _prefix_header,
-    "riscv64": _prefix_header,
-    "sparc": _prefix_header,
-    "sparc64": _prefix_header,
-    "powerpc": _prefix_header,
-    "powerpcle": _prefix_header,
-    "powerpc64": _prefix_header,
-    "powerpc64le": _prefix_header,
-    "loongarch64": _prefix_header,
-    "s390x": _prefix_header,
-}
 
 
 ZIG_SUPPORTED_VERSION = "0.14.1"

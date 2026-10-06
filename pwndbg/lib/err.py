@@ -113,3 +113,10 @@ class DependencyNotFoundError(Exception):
             super().__init__(f"{dep_name} not found: {msg}")
 
 
+class CompilerNotFoundError(DependencyNotFoundError):
+    """
+    We need a compiler for the target architecture but could not find it.
+    """
+    def __init__(self, msg: str | None = None) -> None:
+        super().__init__("compiler", msg)
+

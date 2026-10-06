@@ -13,7 +13,6 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.err import DependencyNotFoundError
 
-from .util import compiler_target_triple
 from .util import osabi
 from .util import path_dictionary
 
@@ -51,9 +50,9 @@ _arch_mapping: dict[
     ("mips", "big", 8): "mips64",
     ("mips", "little", 8): "mips64el",
     ("aarch64", "little", 8): "aarch64",
-    ("arm", "little", 4): "arm",  # we need to pass in -march=armv7-a
-    ("arm", "big", 4): "armeb",  # -march=armv7-a
-    ("armcm", "little", 4): "arm",  # -march=thumb
+    ("arm", "little", 4): "arm",  # we need to pass in -marm
+    ("arm", "big", 4): "armeb",  # -marm
+    ("armcm", "little", 4): "arm",  # -mthumb
     ("rv32", "little", 4): "riscv32",
     ("rv64", "little", 8): "riscv64",
     ("sparc", "big", 4): "sparc",
@@ -96,9 +95,9 @@ def additional_flags(arch: ArchDefinition) -> list[str]:
     if arch.name == "i386":
         return ["-m32"]
     if arch.name == "arm":
-        return ["-march=armv7-a"]
+        return ["-marm"]
     if arch.name == "armcm":
-        return ["-march=thumb"]
+        return ["-mthumb"]
 
     return []
 
@@ -146,9 +145,10 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
             continue
 
         driver_triple = name.split("gcc")[0]
+        driver_cpu = driver_triple.split("-")[0]
 
         # Check if the cpu and OS ABI are correct
-        if gcc_cpu in driver_triple and (osabi_ in driver_triple or "-none-eabi" in driver_triple):
+        if gcc_cpu == driver_cpu and (osabi_ in driver_triple or "-none-eabi" in driver_triple):
             # They are!!!
 
             # Make sure objcopy exists under the same triple prefix

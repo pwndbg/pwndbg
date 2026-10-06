@@ -18,11 +18,14 @@ def type() -> CompilerType:
 
 
 # Supported architectures can be obtained using the command: `clang -print-targets`
+# But note that this is not necessarily equal to what clang accepts in the CPU field of
+# the target triple. For instance, it will print support for x86 but not accept this
+# with --triple.
 _arch_mapping: dict[
     tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little", "big"], int], str
 ] = {
     ("x86-64", "little", 8): "x86_64",
-    ("i386", "little", 4): "x86",
+    ("i386", "little", 4): "i386",
     ("mips", "big", 4): "mips",
     ("mips", "little", 4): "mipsel",
     ("mips", "big", 8): "mips64",

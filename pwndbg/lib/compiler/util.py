@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal
 import os
+from typing import Literal
 
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
@@ -77,6 +77,7 @@ def path_dictionary() -> dict[str, str]:
         real = os.path.realpath(d)
         if real in seen_dirs:
             continue
+        seen_dirs.add(real)
 
         try:
             entries = os.scandir(real)
