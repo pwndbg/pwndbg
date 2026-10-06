@@ -377,25 +377,7 @@ class ArmCortexArch(PwndbgArchitecture):
 
     @override
     def get_unicorn_mode(self) -> int | None:
-        mode = UC_MODE_MCLASS | UC_MODE_THUMB
-
-        endian = self._helper_get_unicorn_endianness()
-        # Underlying debuggers expose an API to distinguish between BE8 and BE32, so we have to figure it by ourselves
-        if (sctlr := pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) is not None:
-            # 7th bit dictates the scheme. 0 == B8, 1 == B32
-            b32_scheme = sctlr & (1 << 7)
-            # Indicates current endianness setting
-            big_endian = sctlr & (1 << 25)
-
-            if b32_scheme:
-                mode |= endian
-            elif big_endian:
-                mode |= UC_MODE_ARMBE8
-        else:
-            # If we cannot read the register, default to B32
-            mode |= endian
-
-        return mode
+        return UC_MODE_MCLASS | UC_MODE_THUMB
 
     @override
     def read_thumb_bit(self) -> Literal[0, 1]:
