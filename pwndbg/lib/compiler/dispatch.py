@@ -12,12 +12,14 @@ class CompilerType(Enum):
     CLANG = "clang"
     GCC = "gcc"
 
+
 @dataclass
 class ToolchainInvocation:
     """
     The command line arguments to invoke the toolchain
     for a given target architecture.
     """
+
     compiler: list[str]
     freestanding_assembler: list[str]
     """Assembler invocation that does not link against the operating system"""
@@ -42,4 +44,3 @@ class Compiler(Protocol):
                 unsupported version, or does not support the target arch we need
         """
         ...
-

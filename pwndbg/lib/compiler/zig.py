@@ -111,12 +111,6 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
             "-target",
             zig_target,
         ],
-        freestanding_assembler = [
-            zig_executable,
-            "cc",
-            "-target",
-            freestanding_target,
-            "-c"
-        ],
+        freestanding_assembler=[zig_executable, "cc", "-target", freestanding_target, "-c"],
         objcopy=[zig_executable, "objcopy"],  # it is cross-arch by default
     )

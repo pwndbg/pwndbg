@@ -66,7 +66,6 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
     if exe is None:
         raise DependencyNotFoundError("clang")
 
-
     # try to find objcopy as well
     # FIXME: it could be that llvm-objcopy is present but clang is not,
     # in this case we will not return the existence of llvm-objcopy .
@@ -81,10 +80,6 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
             exe,
             f"--target={target}",
         ],
-        freestanding_assembler = [
-            exe,
-            f"--target={freestanding_target}",
-            "-c"
-        ],
-        objcopy=objcopy_invoc, # cross-arch by default
+        freestanding_assembler=[exe, f"--target={freestanding_target}", "-c"],
+        objcopy=objcopy_invoc,  # cross-arch by default
     )

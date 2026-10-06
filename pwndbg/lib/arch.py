@@ -125,4 +125,4 @@ class ArchDefinition:
     attributes: list[ArchAttribute] = field(default_factory=list)
 
     def __hash__(self) -> int:
-          return hash((self.name, self.ptrsize, self.endian, self.platform, tuple(self.attributes)))
+        return hash((self.name, self.ptrsize, self.endian, self.platform, tuple(self.attributes)))

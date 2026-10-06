@@ -557,7 +557,11 @@ class CommandObj:
                 )
         except CompilerNotFoundError as e:
             arch = pwndbg.aglib.arch
-            print(message.error(f"Could not find a suitable compiler for {(arch.name, arch.endian, arch.ptrsize)}."))
+            print(
+                message.error(
+                    f"Could not find a suitable compiler for {(arch.name, arch.endian, arch.ptrsize)}."
+                )
+            )
             print(e)
             print(
                 "\nPlease install either zig or clang and make sure they are accessible in your PATH."

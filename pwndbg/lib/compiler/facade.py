@@ -77,7 +77,11 @@ def __get_compiler(
             # Yup!
             # clear line
             print("\x1b[2K\r", end="")
-            print(gray(f"Using compiler {candidate_compiler.type().value} for {arch.name} (no objcopy though)."))
+            print(
+                gray(
+                    f"Using compiler {candidate_compiler.type().value} for {arch.name} (no objcopy though)."
+                )
+            )
             return anything, candidate_compiler
 
     print()
@@ -125,12 +129,14 @@ def objcopy_invocation(arch: ArchDefinition, objcopy_arguments: list[str]) -> li
         )
     return toolchain.objcopy + objcopy_arguments
 
+
 def which(arch: ArchDefinition) -> str:
     """
     Which compiler are we using?
     """
     _, compiler = _get_compiler(arch)
     return compiler.type().value
+
 
 # =================== Higher level API ===============
 
@@ -154,13 +160,14 @@ _asm_header: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, str] = {
     "powerpc": _asm_prefix_header,
     "loongarch64": _asm_prefix_header,
     "s390x": _asm_prefix_header,
-    "hexagon": _asm_prefix_header
+    "hexagon": _asm_prefix_header,
 }
 _asm_flags: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, list[str]] = {
-    "mips": ["-fno-pic", "-mno-abicalls"], # needed for gcc
-    "rv32": ["-mno-relax"], # clang get messed up without these
+    "mips": ["-fno-pic", "-mno-abicalls"],  # needed for gcc
+    "rv32": ["-mno-relax"],  # clang get messed up without these
     "rv64": ["-mno-relax"],
 }
+
 
 class AssemblingError(Exception):
     """
@@ -216,7 +223,9 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
 
         extra_asm_flags: list[str] = _asm_flags.get(arch.name, [])
 
-        print(gray(f"Assembling for {arch.name} with {compiler.type().value}... "), end="", flush=True)
+        print(
+            gray(f"Assembling for {arch.name} with {compiler.type().value}... "), end="", flush=True
+        )
 
         # Build the binary with the assembler
         compile_process = subprocess.run(
@@ -226,7 +235,9 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
             text=True,
         )
         if compile_process.returncode != 0:
-            raise AssemblingError("assembling error:", compile_process.stdout, compile_process.stderr)
+            raise AssemblingError(
+                "assembling error:", compile_process.stdout, compile_process.stderr
+            )
 
         # clear line
         print("\x1b[2K\r", end="", flush=True)
@@ -237,26 +248,38 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
             # zig emits relocations for debug info (??) so we ignore that
             text_idx = elf.get_section_index(".text")
             has_relocs = any(
-                isinstance(s, RelocationSection) and s["sh_info"] == text_idx and s.num_relocations()
+                isinstance(s, RelocationSection)
+                and s["sh_info"] == text_idx
+                and s.num_relocations()
                 for s in elf.iter_sections()
             )
             if has_relocs:
-                raise AssemblingError("assembling error:", "result has relocations. this is a bug in Pwndbg, report it please")
+                raise AssemblingError(
+                    "assembling error:",
+                    "result has relocations. this is a bug in Pwndbg, report it please",
+                )
 
-        zig_hint = " (zig compiles objcopy on first usage)" if compiler.type() == CompilerType.ZIG else ""
-        print(gray(f"Assembling (objcopy) for {arch.name} with {compiler.type().value}{zig_hint}... "), end="", flush=True)
+        zig_hint = (
+            " (zig compiles objcopy on first usage)" if compiler.type() == CompilerType.ZIG else ""
+        )
+        print(
+            gray(
+                f"Assembling (objcopy) for {arch.name} with {compiler.type().value}{zig_hint}... "
+            ),
+            end="",
+            flush=True,
+        )
 
         # Extract bytecode
         objcopy_process = subprocess.run(
-            toolchain.objcopy + ["-O", "binary", "--only-section=.text", compiled_file, bytecode_file],
+            toolchain.objcopy
+            + ["-O", "binary", "--only-section=.text", compiled_file, bytecode_file],
             stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
         )
         if objcopy_process.returncode != 0:
-            raise AssemblingError(
-                "objcopy error:", objcopy_process.stdout, objcopy_process.stderr
-            )
+            raise AssemblingError("objcopy error:", objcopy_process.stdout, objcopy_process.stderr)
 
         # clear line
         print("\x1b[2K\r", end="", flush=True)
@@ -264,7 +287,9 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
         with open(bytecode_file, "rb") as f:
             return f.read()
 
+
 # ====== Compiling =====
+
 
 def compile_program(arch: ArchDefinition, compiler_flags: list[str]) -> Status:
     """
@@ -295,4 +320,3 @@ def compile_program(arch: ArchDefinition, compiler_flags: list[str]) -> Status:
         )
     except Exception as exception:
         return Status.fail(str(exception) + "\nAn error occurred while compiling.")
-
