@@ -222,6 +222,11 @@ class PwndbgArchitecture(ArchDefinition):
     def get_arm_endianness_scheme(self) -> tuple[ArmEndiannessScheme, bool] | None:
         """
         Return None if arm endianness is not relevent to the current architecture
+
+        Return (scheme, endianness)
+
+        False = little endian
+        True = big endian
         """
         return None
 
@@ -305,12 +310,6 @@ class ArmArch(PwndbgArchitecture):
 
     @override
     def get_arm_endianness_scheme(self) -> tuple[ArmEndiannessScheme, bool] | None:
-        """
-        Return (scheme, endianness)
-
-        False = little endian
-        True = big endian
-        """
 
         if (sctlr := pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) is not None:
             # 7th bit dictates the scheme. 0 == B8, 1 == B32
@@ -405,6 +404,10 @@ class ArmCortexArch(PwndbgArchitecture):
     @override
     def get_unicorn_mode(self) -> int | None:
         return UC_MODE_MCLASS | UC_MODE_THUMB
+
+    @override
+    def get_arm_endianness_scheme(self) -> tuple[ArmEndiannessScheme, bool] | None:
+        return (ArmEndiannessScheme.BE8, pwndbg.aglib.arch.endian == "big")
 
     @override
     def read_thumb_bit(self) -> Literal[0, 1]:
