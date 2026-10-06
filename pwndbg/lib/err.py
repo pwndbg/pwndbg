@@ -119,6 +119,6 @@ class CompilerNotFoundError(DependencyNotFoundError):
 
     This is caught by the top-level command try-except.
     """
-    def __init__(self, msg: str | None = None) -> None:
+    def __init__(self, msg: str) -> None:
         super().__init__("compiler", msg)
 

@@ -165,5 +165,5 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
 
     raise DependencyNotFoundError(
         "gcc",
-        f"can't find gcc for {(arch.name, arch.endian, arch.ptrsize)}, tried gcc prefix {gcc_cpu}",
+        f"can't find gcc for {(arch.name, arch.endian, arch.ptrsize)}, searched for gcc prefix '{gcc_cpu}'",
     )

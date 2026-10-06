@@ -31,11 +31,15 @@ _compilers: tuple[Compiler, ...] = (zig, clang, gcc)
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def __get_compiler(
     arch: ArchDefinition,
-) -> tuple[ToolchainInvocation, Compiler] | list[DependencyNotFoundError]:
+) -> tuple[ToolchainInvocation, Compiler] | str:
     """
     Find a working toolchain for the given target arch.
 
     `arch` must be aglib.arch.
+
+    Returns:
+        The suitable compiler with its toolchain information,
+        or an error message string if lookup failed.
     """
     print(gray(f"Compiler for {arch.name} needed, looking for it... "), end="", flush=True)
 
@@ -81,7 +85,8 @@ def __get_compiler(
               )
             return anything, candidate_compiler
 
-    return errors
+    print()
+    return "\n\t" + "\n\t".join([str(err) for err in errors])
 
 
 def _get_compiler(arch: ArchDefinition) -> tuple[ToolchainInvocation, Compiler]:
@@ -94,9 +99,8 @@ def _get_compiler(arch: ArchDefinition) -> tuple[ToolchainInvocation, Compiler]:
         CompilerNotFoundError: if a compiler for the target arch could not be found
     """
     res = __get_compiler(arch)
-    if isinstance(res, list):
-        assert isinstance(res[0], DependencyNotFoundError)
-        raise CompilerNotFoundError("\n\t".join([str(err) for err in res]))
+    if isinstance(res, str):
+        raise CompilerNotFoundError(res)
 
     return res
 
