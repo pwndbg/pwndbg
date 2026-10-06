@@ -1,17 +1,17 @@
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
 from typing import Literal
 
-from dispatch import CompilerType
-from dispatch import ToolchainInvocation
-
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.err import DependencyNotFoundError
 
+from .dispatch import CompilerType
+from .dispatch import ToolchainInvocation
 from .util import osabi
 from .util import path_dictionary
 
@@ -105,6 +105,29 @@ def additional_flags(arch: ArchDefinition) -> list[str]:
 gcc_driver_re = re.compile(r"^(.+-)?gcc(-[0-9]+(\.[0-9]+)*)?$")
 
 
+def invocation_from_valid_gcc(arch: ArchDefinition, gcc_path: str) -> ToolchainInvocation:
+    gcc_basename: str = os.path.basename(gcc_path)
+
+    # Get the triple prefix
+    if gcc_basename.startswith("gcc"):
+        triple_prefix = ""
+    else:
+        triple_prefix = gcc_basename.split("gcc")[0]
+
+    # Make sure that objcopy exists, we assume it supports the same stuff.
+    objcopy: str | None = shutil.which(f"{triple_prefix}objcopy")
+    if objcopy is None:
+        objcopy_invoc = None
+    else:
+        objcopy_invoc = [objcopy]
+
+    return ToolchainInvocation(
+        compiler=[gcc_path] + additional_flags(arch),
+        freestanding_assembler=[gcc_path] + additional_flags(arch) + ["-c"],
+        objcopy=objcopy_invoc,
+    )
+
+
 def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
     osabi_ = osabi(arch)
     if osabi_ is None:
@@ -117,26 +140,14 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
             "gcc", f"can't find gcc target for ({(arch.name, arch.endian, arch.ptrsize)})"
         )
 
-    # The most common case first, lets see if the `gcc` binary supports
+    # The most common case, lets see if the `gcc` binary supports
     # the target arch.
     gcc = shutil.which("gcc")
     if gcc is not None:
         triple = triple_from_gcc([gcc])
         if gcc_cpu in triple and (osabi_ in triple or "-none-eabi" in triple):
             # Okay we're good!
-
-            # Make sure that objcopy exists, we assume it supports the same stuff.
-            objcopy: str | None = shutil.which("objcopy")
-            if objcopy is None:
-                objcopy_invoc = None
-            else:
-                objcopy_invoc = [objcopy]
-
-            return ToolchainInvocation(
-                compiler=[gcc] + additional_flags(arch),
-                freestanding_assembler=[gcc] + additional_flags(arch) + ["-c"],
-                objcopy=objcopy_invoc,
-            )
+            return invocation_from_valid_gcc(arch, gcc)
 
     # Okay, now the messy part of searching for the right binary
     path_dict: dict[str, str] = path_dictionary()
@@ -150,19 +161,7 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
         # Check if the cpu and OS ABI are correct
         if gcc_cpu == driver_cpu and (osabi_ in driver_triple or "-none-eabi" in driver_triple):
             # They are!!!
-
-            # Make sure objcopy exists under the same triple prefix
-            objcopy = shutil.which(f"{driver_triple}objcopy")
-            if objcopy is None:
-                objcopy_invoc = None
-            else:
-                objcopy_invoc = [objcopy]
-
-            return ToolchainInvocation(
-                compiler=[driver_path] + additional_flags(arch),
-                freestanding_assembler=[driver_path] + additional_flags(arch) + ["-c"],
-                objcopy=objcopy_invoc,
-            )
+            return invocation_from_valid_gcc(arch, driver_path)
 
     raise DependencyNotFoundError(
         "gcc",

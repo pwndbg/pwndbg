@@ -3,13 +3,12 @@ from __future__ import annotations
 import shutil
 from typing import Literal
 
-from dispatch import CompilerType
-from dispatch import ToolchainInvocation
-
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.err import DependencyNotFoundError
 
+from .dispatch import CompilerType
+from .dispatch import ToolchainInvocation
 from .util import compiler_target_triple
 
 

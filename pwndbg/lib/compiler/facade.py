@@ -4,6 +4,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
+
 from elftools.elf.elffile import ELFFile
 
 import pwndbg.lib.cache
@@ -12,6 +13,7 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.err import CompilerNotFoundError
 from pwndbg.lib.err import DependencyNotFoundError
+from pwndbg.lib.err import Status
 
 from . import clang
 from . import gcc
@@ -105,6 +107,8 @@ def objcopy_invocation(arch: ArchDefinition, objcopy_arguments: list[str]) -> li
 
 
 # =================== Higher level API ===============
+
+# ===== Assembling =====
 
 _asm_prefix_header = ".global _start\n.global __start\n.section .text\n_start:\n__start:\n"
 _asm_header: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, str] = {
@@ -211,3 +215,48 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
 
         with open(bytecode_file, "rb") as f:
             return f.read()
+
+# ====== Compiling =====
+
+def compile_program(arch: ArchDefinition, compiler_flags: list[str]) -> Status:
+    """
+    Compile a C program.
+
+    If the `gcc_compiler_path` argument is set, gcc will be used, otherwise
+    zig (the python package) will be used.
+
+    Arguments:
+        compiler_flags: The flags to pass to the compiler, including the input and
+            output files.
+
+    Returns:
+        A status object carrying an error message if compilation failed.
+    """
+    toolchain, compiler = _get_compiler(arch)
+
+    if gcc_compiler_path != "":
+        compiler_cmdline = [str(gcc_compiler_path)]
+    else:
+        try:
+            compiler_cmdline = pwndbg.lib.compiler.zig.flags(pwndbg.aglib.arch)
+        except ValueError as exception:
+            return Status.fail(str(exception))
+
+    gcc_cmd: list[str] = compiler_cmdline + compiler_flags
+
+    try:
+        # capture_output=True makes it so the compilation errors are not instantly
+        # dumped to the user, but are in the CalledProcessError object.
+        # https://docs.python.org/3/library/subprocess.html#subprocess.run:~:text=stdout%20and%20stderr%20if%20they%20were%20captured
+        subprocess.run(gcc_cmd, check=True, text=True, capture_output=True)
+        return Status()
+    except subprocess.CalledProcessError as exception:
+        return Status.fail(
+            str(exception)
+            + f"\nStdout: {exception.stdout}"
+            + f"\nStderr: {exception.stderr}"
+            + f"\nFailed to compile {compiler_flags[0]}. Please fix any compilation errors there may be."
+        )
+    except Exception as exception:
+        return Status.fail(str(exception) + "\nAn error occurred while compiling.")
+
