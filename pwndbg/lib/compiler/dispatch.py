@@ -4,6 +4,7 @@ import pathlib
 from enum import Enum
 from typing import Protocol
 from pwndbg.lib.err import Status
+from dataclasses import dataclass
 
 from pwndbg.lib.arch import ArchDefinition
 
@@ -13,6 +14,15 @@ class CompilerType(Enum):
     CLANG = "clang"
     GCC = "gcc"
 
+@dataclass
+class ToolchainInvocation:
+    """
+    The command line arguments to invoke the toolchain
+    for a given target architecture.
+    """
+    compiler: list[str]
+    objcopy: list[str] | None
+
 
 class Compiler(Protocol):
     def type(self) -> CompilerType:
@@ -21,9 +31,9 @@ class Compiler(Protocol):
         """
         ...
 
-    def invocation_with_target(self, arch: ArchDefinition) -> list[str]:
+    def invocation_with_target(self, arch: ArchDefinition) -> ToolchainInvocation:
         """
-        The command line arguments to invoke the compiler on architecture `arch`.
+        The command line arguments to invoke the compiler/toolchain on architecture `arch`.
 
         Note: The arch argument must be pwndbg.aglib.arch since only the current
         arch object (the process target architecture) is validly constructed
@@ -34,3 +44,4 @@ class Compiler(Protocol):
                 unsupported version, or does not support the target arch we need
         """
         ...
+

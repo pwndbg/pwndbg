@@ -4,6 +4,7 @@ import shutil
 from typing import Literal
 
 from dispatch import CompilerType
+from dispatch import ToolchainInvocation
 
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
@@ -47,30 +48,35 @@ _arch_mapping: dict[
     ("s390x", "big", 8): "systemz",  # s390x also works
 }
 
-def _get_executable() -> str:
-    """
-    Get the path to the clang executable.
 
-    Raises:
-        DependencyNotFoundError: clang could not be found
-    """
-    path = shutil.which("clang")
-    if path is None:
-        raise DependencyNotFoundError("clang")
-
-    return path
-
-def invocation_with_target(arch: ArchDefinition) -> list[str]:
-    # may throw
-    execu = _get_executable()
-
+def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
     target = compiler_target_triple(arch, _arch_mapping)
     if target is None:
         raise DependencyNotFoundError(
             "clang", f"can't find clang target for ({(arch.name, arch.endian, arch.ptrsize)})"
         )
 
-    return [
-        execu,
-        f"--target={target}",
-    ]
+    # some distributions ship different versions of clang/llvm so a user
+    # might have like llvm-20-objcopy in their PATH, but i'm ignoring this
+    # case for now.
+    exe = shutil.which("clang")
+    if exe is None:
+        raise DependencyNotFoundError("clang")
+
+
+    # try to find objcopy as well
+    # FIXME: it could be that llvm-objcopy is present but clang is not,
+    # in this case we will not return the existence of llvm-objcopy .
+    objcopy: str | None = shutil.which("llvm-objcopy")
+    if objcopy is None:
+        objcopy_invoc = None
+    else:
+        objcopy_invoc = [objcopy]
+
+    return ToolchainInvocation(
+        compiler=[
+            exe,
+            f"--target={target}",
+        ],
+        objcopy=objcopy_invoc, # cross-arch by default
+    )

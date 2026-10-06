@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 from typing import Literal
 
-from dispatch import CompilerType
+from dispatch import CompilerType, ToolchainInvocation
 
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
@@ -124,22 +124,25 @@ def _get_executable() -> str:
     return zig_path
 
 
-def invocation_with_target(arch: ArchDefinition) -> list[str]:
-    # may throw
-    zig_executable = _get_executable()
-
+def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
     zig_target = compiler_target_triple(arch, _arch_mapping)
     if zig_target is None:
         raise DependencyNotFoundError(
             "zig", f"can't find zig target for ({(arch.name, arch.endian, arch.ptrsize)})"
         )
 
-    return [
-        zig_executable,
-        "cc",
-        "-target",
-        zig_target,
-    ]
+    # may throw
+    zig_executable = _get_executable()
+
+    return ToolchainInvocation(
+        compiler=[
+            zig_executable,
+            "cc",
+            "-target",
+            zig_target,
+        ],
+        objcopy=[zig_executable, "objcopy"], # it is cross-arch by default
+    )
 
 
 def asm(arch: ArchDefinition, data: str, includes: list[pathlib.Path] | None = None) -> bytes:
