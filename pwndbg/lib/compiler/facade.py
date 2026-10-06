@@ -89,7 +89,7 @@ def _get_compiler(arch: ArchDefinition) -> tuple[ToolchainInvocation, Compiler]:
 def invocation(arch: ArchDefinition, compiler_arguments: list[str]) -> list[str]:
     """
     Return the command line invocation for running the compiler with
-    `compiler_flags` flags against the target arch.
+    `compiler_arguments` flags against the target arch.
 
     `arch` must be aglib.arch.
     """
@@ -98,6 +98,12 @@ def invocation(arch: ArchDefinition, compiler_arguments: list[str]) -> list[str]
 
 
 def objcopy_invocation(arch: ArchDefinition, objcopy_arguments: list[str]) -> list[str]:
+    """
+    Return the command line invocation for running the compiler toolchain's objcopy with
+    `objcopy_arguments` flags against the target arch.
+
+    `arch` must be aglib.arch.
+    """
     toolchain, compiler = _get_compiler(arch)
     if toolchain.objcopy is None:
         raise DependencyNotFoundError(
@@ -105,6 +111,12 @@ def objcopy_invocation(arch: ArchDefinition, objcopy_arguments: list[str]) -> li
         )
     return toolchain.objcopy + objcopy_arguments
 
+def which(arch: ArchDefinition) -> str:
+    """
+    Which compiler are we using?
+    """
+    _, compiler = _get_compiler(arch)
+    return str(compiler.type())
 
 # =================== Higher level API ===============
 
@@ -152,8 +164,9 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
     `arch` must be aglib.arch.
 
     Raises:
-        AssemblingError: if the compiler failed to assemble
+        CompilerNotFoundError: if a compiler for the target arch could not be found
         DependencyNotFoundError: if objcopy is not present with the associated compiler
+        AssemblingError: if the compiler failed to assemble
     """
     toolchain, compiler = _get_compiler(arch)
 

@@ -11,12 +11,14 @@ from __future__ import annotations
 from .dispatch import Compiler
 from .dispatch import ToolchainInvocation
 from .facade import AssemblingError
+from .facade import which
 from .facade import asm
 from .facade import compile_program
 from .facade import invocation
 from .facade import objcopy_invocation
 
 __all__ = [
+    "which",
     "asm",
     "compile_program",
     "invocation",
