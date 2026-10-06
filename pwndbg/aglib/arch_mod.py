@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import struct
+from enum import Enum
+from enum import auto
 from typing import Literal
 
 import pwnlib
@@ -86,6 +88,11 @@ def get_pwndbg_architecture(name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> Pwndbg
         return None
 
     return registered_architectures[name]
+
+
+class ArmEndiannessScheme(Enum):
+    BE8 = auto()
+    BE32 = auto()
 
 
 CAPSTONE_ENDIAN_MAPPING: dict[EndianType, int] = {
@@ -212,6 +219,12 @@ class PwndbgArchitecture(ArchDefinition):
         """
         return None
 
+    def get_arm_endianness_scheme(self) -> tuple[ArmEndiannessScheme, bool] | None:
+        """
+        Return None if arm endianness is not relevent to the current architecture
+        """
+        return None
+
     def unsigned(self, val: int, shift: int = 0) -> int:
         return (val << shift) & ((1 << self.ptrbits) - 1)
 
@@ -291,6 +304,27 @@ class ArmArch(PwndbgArchitecture):
         return (CS_ARCH_ARM, mode)
 
     @override
+    def get_arm_endianness_scheme(self) -> tuple[ArmEndiannessScheme, bool] | None:
+        """
+        Return (scheme, endianness)
+
+        False = little endian
+        True = big endian
+        """
+
+        if (sctlr := pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) is not None:
+            # 7th bit dictates the scheme. 0 == B8, 1 == B32
+            b32_scheme = sctlr & (1 << 7)
+            big_endian = sctlr & (1 << 25)
+
+            return ArmEndiannessScheme.BE32 if b32_scheme else ArmEndiannessScheme.BE8, bool(
+                big_endian
+            )
+
+        # Default to BE8, which is the default on all new arm processors
+        return (ArmEndiannessScheme.BE8, pwndbg.aglib.arch.endian == "big")
+
+    @override
     def get_capstone_endianness(self) -> int:
         """
         Arm has two addressing schemes related to endianness: "BE8" and "BE32"
@@ -302,16 +336,14 @@ class ArmArch(PwndbgArchitecture):
         armv6 supports both BE32 and BE8.
         armv5 and before only supports BE32.
         """
-        if (sctlr := pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) is not None:
-            # 7th bit dictates the scheme. 0 == B8, 1 == B32
-            b32_scheme = sctlr & (1 << 7)
-            # Indicates current endianness setting
-            big_endian = sctlr & (1 << 25)
 
-            if b32_scheme and big_endian:
-                return CS_MODE_BIG_ENDIAN
-            return CS_MODE_LITTLE_ENDIAN
+        scheme, big_endian = self.get_arm_endianness_scheme()
 
+        match scheme:
+            case ArmEndiannessScheme.BE32:
+                return CS_MODE_BIG_ENDIAN if big_endian else CS_MODE_LITTLE_ENDIAN
+            case ArmEndiannessScheme.BE8:
+                return CS_MODE_LITTLE_ENDIAN
         return CS_MODE_LITTLE_ENDIAN
 
     @override
@@ -327,23 +359,18 @@ class ArmArch(PwndbgArchitecture):
         - Scheme is B32: set to little/big endian
 
         """
-        mode = UC_MODE_THUMB if (pwndbg.aglib.regs.read_reg("cpsr") & (1 << 5)) else UC_MODE_ARM
+        mode = UC_MODE_THUMB if self.read_thumb_bit() else UC_MODE_ARM
 
-        endian = self._helper_get_unicorn_endianness()
-        # Underlying debuggers expose an API to distinguish between BE8 and BE32, so we have to figure it by ourselves
-        if (sctlr := pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) is not None:
-            # 7th bit dictates the scheme. 0 == B8, 1 == B32
-            b32_scheme = sctlr & (1 << 7)
-            # Indicates current endianness setting
-            big_endian = sctlr & (1 << 25)
+        uc_endian = self._helper_get_unicorn_endianness()
 
-            if b32_scheme:
-                mode |= endian
-            elif big_endian:
-                mode |= UC_MODE_ARMBE8
-        else:
-            # If we cannot read the register, default to B32
-            mode |= endian
+        scheme, big_endian = self.get_arm_endianness_scheme()
+
+        match scheme:
+            case ArmEndiannessScheme.BE32:
+                mode |= uc_endian
+            case ArmEndiannessScheme.BE8:
+                if big_endian:
+                    mode |= UC_MODE_ARMBE8
 
         return mode
 
