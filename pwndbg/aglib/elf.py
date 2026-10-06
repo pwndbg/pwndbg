@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import ctypes
 import importlib
-import subprocess
 import sys
 from typing import NamedTuple
 from typing import TypeAlias
@@ -38,7 +37,6 @@ import pwndbg.lib.elftypes
 import pwndbg.lib.memory
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
-from pwndbg.lib import Status
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -492,7 +490,3 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> tuple[pwndbg.lib.memor
         page.objfile = objfile
 
     return tuple(sorted(pages))
-
-
-
-

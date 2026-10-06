@@ -6,9 +6,9 @@ import tempfile
 from pathlib import Path
 
 from elftools.elf.elffile import ELFFile
+from elftools.elf.relocation import RelocationSection
 
 import pwndbg.lib.cache
-from pwndbg.color import gray
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.err import CompilerNotFoundError
@@ -32,7 +32,7 @@ def __get_compiler(
     """
     Find a working toolchain for the given target arch.
 
-    NOTE: `arch` must be pwndbg.aglib.arch.
+    `arch` must be aglib.arch.
     """
     # FIXME: add pretty messaging
     potentials: list[ToolchainInvocation | None] = []
@@ -73,7 +73,7 @@ def _get_compiler(arch: ArchDefinition) -> tuple[ToolchainInvocation, Compiler]:
     """
     Find a working toolchain for the given target arch.
 
-    NOTE: `arch` must be pwndbg.aglib.arch.
+    `arch` must be aglib.arch.
 
     Raises:
         CompilerNotFoundError: if a compiler for the target arch could not be found
@@ -91,7 +91,7 @@ def invocation(arch: ArchDefinition, compiler_arguments: list[str]) -> list[str]
     Return the command line invocation for running the compiler with
     `compiler_flags` flags against the target arch.
 
-    `arch` must be pwndbg.aglib.arch.
+    `arch` must be aglib.arch.
     """
     toolchain, _ = _get_compiler(arch)
     return toolchain.compiler + compiler_arguments
@@ -131,6 +131,7 @@ _asm_header: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, str] = {
     "hexagon": _asm_prefix_header
 }
 _asm_flags: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, list[str]] = {
+    "mips": ["-fno-pic", "-mno-abicalls"], # needed for gcc
     "rv32": ["-mno-relax"], # clang get messed up without these
     "rv64": ["-mno-relax"],
 }
@@ -148,8 +149,7 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
     This does NOT return a runable ELF nor link against the operating system, it returns
     the raw bytes that can be directly run inside a process.
 
-    NOTE: As is in pwndbg, an ArchDefinition is only valid for the current architecture,
-    so you can only pass in pwndbg.aglib.arch. (FIXME)
+    `arch` must be aglib.arch.
 
     Raises:
         AssemblingError: if the compiler failed to assemble
@@ -169,9 +169,6 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
         includes = []
 
     include_str: str = "".join(f'#include "{path}"\n' for path in includes)
-
-    # FIXME: when we only used zig, we used to use "-freestanding" in the target
-    # is it fine that we're not anymore?
 
     with tempfile.TemporaryDirectory() as tmpdir:
         asm_file = os.path.join(tmpdir, "input.S")
@@ -197,7 +194,7 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
 
         # Check if we have relocations, if yes this is a bug in pwndbg (or assembler)
         with open(compiled_file, "rb") as f:
-            has_relocs = any(s.num_relocations() for s in ELFFile(f).iter_sections() if s.name in (".rel.text", ".rela.text"))
+            has_relocs = any(s.num_relocations() for s in ELFFile(f).iter_sections() if isinstance(s, RelocationSection))
             if has_relocs:
                 raise AssemblingError("assembling error:", "result has relocations. this is a bug in Pwndbg, report it please")
 
@@ -223,6 +220,7 @@ def compile_program(arch: ArchDefinition, compiler_flags: list[str]) -> Status:
     Compile a C program.
 
     Arguments:
+        arch: Must be aglib.arch.
         compiler_flags: The flags to pass to the compiler, including the input and
             output files.
 

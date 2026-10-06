@@ -12,7 +12,7 @@ def osabi(arch: ArchDefinition) -> str | None:
     """
     Return the OS ABI part of the target triple.
 
-    The arch argument must be `pwndbg.aglib.arch`.
+    `arch` must be aglib.arch
 
     FIXME: Do we care about bare metal or musl etc?
     """
@@ -40,7 +40,7 @@ def compiler_target_triple(
     Doesn't make sense for GCC since it varies by distro.
 
     Arguments:
-        arch: must be pwndbg.aglib.arch
+        arch: must be aglib.arch
         arch_mapping: the mapping from pwndbg to the compiler architecture in the triple
 
     Returns:

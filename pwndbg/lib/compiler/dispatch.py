@@ -35,9 +35,7 @@ class Compiler(Protocol):
         """
         The command line arguments to invoke the compiler/toolchain on architecture `arch`.
 
-        Note: The arch argument must be pwndbg.aglib.arch since only the current
-        arch object (the process target architecture) is validly constructed
-        (fixme: #3534).
+        `arch` must be aglib.arch (fixme: #3534)
 
         Raises:
             DependencyNotFoundError: if the compiler is not present, is on an

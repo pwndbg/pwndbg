@@ -145,7 +145,7 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
     gcc = shutil.which("gcc")
     if gcc is not None:
         triple = triple_from_gcc([gcc])
-        if gcc_cpu in triple and (osabi_ in triple or "-none-eabi" in triple):
+        if gcc_cpu == triple.split("-")[0] and (osabi_ in triple or "-none-eabi" in triple):
             # Okay we're good!
             return invocation_from_valid_gcc(arch, gcc)
 

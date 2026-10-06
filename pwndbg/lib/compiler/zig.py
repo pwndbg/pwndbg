@@ -80,7 +80,7 @@ def _get_executable() -> str:
             text=True,
             timeout=15,
         )
-        version = tuple([int(num) for num in result.stdout.strip().split(".")])
+        version = tuple([int(num) for num in result.stdout.strip().split("-")[0].split(".")])
         if version < LOWEST_ZIG_SUPPORTED_VERSION:
             raise DependencyNotFoundError(
                 "zig",
