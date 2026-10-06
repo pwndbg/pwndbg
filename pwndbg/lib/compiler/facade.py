@@ -21,6 +21,7 @@ from . import clang
 from . import gcc
 from . import zig
 from .dispatch import Compiler
+from .dispatch import CompilerType
 from .dispatch import ToolchainInvocation
 
 # Order is important.
@@ -36,7 +37,7 @@ def __get_compiler(
 
     `arch` must be aglib.arch.
     """
-    print(gray(f"Compiler for {arch.name} needed, looking for it... "), end="")
+    print(gray(f"Compiler for {arch.name} needed, looking for it... "), end="", flush=True)
 
     potentials: list[ToolchainInvocation | None] = []
     best: tuple[ToolchainInvocation, Compiler] | None = None
@@ -49,7 +50,7 @@ def __get_compiler(
                 best = (invoc, candidate_compiler)
                 break
         except DependencyNotFoundError as e:
-            print(gray(f"{candidate_compiler.type().value} not present.."), end="")
+            print(gray(f"{candidate_compiler.type().value} not present.."), end="", flush=True)
             errors.append(e)
             invoc = None
         potentials.append(invoc)
@@ -216,6 +217,8 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
 
         extra_asm_flags: list[str] = _asm_flags.get(arch.name, [])
 
+        print(gray(f"Assembling for {arch.name} with {compiler.type().value}... "), end="", flush=True)
+
         # Build the binary with the assembler
         compile_process = subprocess.run(
             toolchain.freestanding_assembler + extra_asm_flags + [asm_file, "-o", compiled_file],
@@ -225,6 +228,9 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
         )
         if compile_process.returncode != 0:
             raise AssemblingError("assembling error:", compile_process.stdout, compile_process.stderr)
+
+        # clear line
+        print("\x1b[2K\r", end="", flush=True)
 
         # Check if we have relocations, if yes this is a bug in pwndbg (or assembler)
         with open(compiled_file, "rb") as f:
@@ -238,6 +244,9 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
             if has_relocs:
                 raise AssemblingError("assembling error:", "result has relocations. this is a bug in Pwndbg, report it please")
 
+        zig_hint = " (zig compiles objcopy on first usage)" if compiler.type() == CompilerType.ZIG else ""
+        print(gray(f"Assembling (objcopy) for {arch.name} with {compiler.type().value}{zig_hint}... "), end="", flush=True)
+
         # Extract bytecode
         objcopy_process = subprocess.run(
             toolchain.objcopy + ["-O", "binary", "--only-section=.text", compiled_file, bytecode_file],
@@ -249,6 +258,9 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
             raise AssemblingError(
                 "objcopy error:", objcopy_process.stdout, objcopy_process.stderr
             )
+
+        # clear line
+        print("\x1b[2K\r", end="", flush=True)
 
         with open(bytecode_file, "rb") as f:
             return f.read()
