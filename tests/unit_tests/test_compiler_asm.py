@@ -12,6 +12,7 @@ from unicorn import riscv_const
 from unicorn import s390x_const
 from unicorn import sparc_const
 from unicorn import x86_const
+from unicorn.unicorn import UcError
 
 import pwndbg.lib.cache
 import pwndbg.lib.compiler
@@ -214,8 +215,20 @@ regs_and_instr = {
         None,
     ),  # FIXME: Not supported by Unicorn
 }
-test_cases = list(regs_and_instr.keys())
-
+test_cases = [
+  pytest.param(
+      name,
+      marks=pytest.mark.xfail(
+          reason="asm() only returns BE32 code :(",
+          # but Thumb-2 only supports BE8 (unicorn, real world hw)
+          raises=UcError,
+          strict=True,
+      ),
+  )
+  if name == "thumbeb"
+  else name
+  for name in regs_and_instr
+]
 
 @pytest.mark.parametrize("compiler", compilers.values(), ids=compilers.keys())
 @pytest.mark.parametrize("arch", test_cases)

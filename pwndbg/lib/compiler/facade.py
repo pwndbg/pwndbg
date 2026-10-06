@@ -161,7 +161,14 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
     This does NOT return a runable ELF nor link against the operating system, it returns
     the raw bytes that can be directly run inside a process.
 
-    `arch` must be aglib.arch.
+    FIXME: When assembling for armeb this always emits BE32, never BE8, even though there's
+    lots of stuff that runs BE8. To emit BE8 we need to add a linking step or fix the bytes
+    ourselves.
+
+    Arguments:
+        arch: must be aglib.arch
+        data: the assembly
+        includes: list of extra files to include
 
     Raises:
         CompilerNotFoundError: if a compiler for the target arch could not be found
