@@ -49,7 +49,7 @@ _arch_mapping: dict[
 }
 
 
-LOWEST_ZIG_SUPPORTED_VERSION = (0, 15, 12)
+LOWEST_ZIG_SUPPORTED_VERSION = (0, 15, 2)
 
 
 def _get_executable() -> str:
@@ -100,6 +100,7 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
         raise DependencyNotFoundError(
             "zig", f"can't find zig target for ({(arch.name, arch.endian, arch.ptrsize)})"
         )
+    freestanding_target = _arch_mapping[(arch.name, arch.endian, arch.ptrsize)] + "-freestanding"
 
     # may throw
     zig_executable = _get_executable()
@@ -110,6 +111,13 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
             "cc",
             "-target",
             zig_target,
+        ],
+        freestanding_assembler = [
+            zig_executable,
+            "cc",
+            "-target",
+            freestanding_target,
+            "-c"
         ],
         objcopy=[zig_executable, "objcopy"],  # it is cross-arch by default
     )

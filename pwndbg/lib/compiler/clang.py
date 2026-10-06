@@ -58,6 +58,7 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
         raise DependencyNotFoundError(
             "clang", f"can't find clang target for ({(arch.name, arch.endian, arch.ptrsize)})"
         )
+    freestanding_target = _arch_mapping[(arch.name, arch.endian, arch.ptrsize)] + "-none-elf"
 
     # some distributions ship different versions of clang/llvm so a user
     # might have like llvm-20-objcopy in their PATH, but i'm ignoring this
@@ -80,6 +81,11 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
         compiler=[
             exe,
             f"--target={target}",
+        ],
+        freestanding_assembler = [
+            exe,
+            f"--target={freestanding_target}",
+            "-c"
         ],
         objcopy=objcopy_invoc, # cross-arch by default
     )

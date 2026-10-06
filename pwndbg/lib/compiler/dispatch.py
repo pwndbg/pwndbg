@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import pathlib
+from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
-from pwndbg.lib.err import Status
-from dataclasses import dataclass
 
 from pwndbg.lib.arch import ArchDefinition
 
@@ -21,6 +19,8 @@ class ToolchainInvocation:
     for a given target architecture.
     """
     compiler: list[str]
+    freestanding_assembler: list[str]
+    """Assembler invocation that does not link against the operating system"""
     objcopy: list[str] | None
 
 

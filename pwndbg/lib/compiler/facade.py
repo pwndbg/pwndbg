@@ -4,6 +4,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
+from elftools.elf.elffile import ELFFile
 
 import pwndbg.lib.cache
 from pwndbg.color import gray
@@ -115,8 +116,8 @@ _asm_header: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, str] = {
     "mips": _asm_prefix_header + ".set noreorder\n",
     "aarch64": _asm_prefix_header,
     # `.syntax unified` enables the unified assembly syntax for ARM/Thumb
-    "arm": _asm_prefix_header + ".syntax unified\n",
-    "armcm": _asm_prefix_header + ".syntax unified\n",
+    "arm": _asm_prefix_header + ".syntax unified\n.arm\n",
+    "armcm": _asm_prefix_header + ".syntax unified\n.thumb\n",
     "rv32": _asm_prefix_header,
     "rv64": _asm_prefix_header,
     "sparc": _asm_prefix_header,
@@ -124,6 +125,10 @@ _asm_header: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, str] = {
     "loongarch64": _asm_prefix_header,
     "s390x": _asm_prefix_header,
     "hexagon": _asm_prefix_header
+}
+_asm_flags: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, list[str]] = {
+    "rv32": ["-mno-relax"], # clang get messed up without these
+    "rv64": ["-mno-relax"],
 }
 
 class AssemblingError(Exception):
@@ -135,6 +140,9 @@ class AssemblingError(Exception):
 def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> bytes:
     """
     Assemble the `data` string for the passed architecture and return the assembled bytes.
+
+    This does NOT return a runable ELF nor link against the operating system, it returns
+    the raw bytes that can be directly run inside a process.
 
     NOTE: As is in pwndbg, an ArchDefinition is only valid for the current architecture,
     so you can only pass in pwndbg.aglib.arch. (FIXME)
@@ -171,15 +179,23 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
             f.write(header)
             f.write(data)
 
-        # Build the binary with the compiler
+        extra_asm_flags: list[str] = _asm_flags.get(arch.name, [])
+
+        # Build the binary with the assembler
         compile_process = subprocess.run(
-            toolchain.compiler + [asm_file, "-o", compiled_file],
+            toolchain.freestanding_assembler + extra_asm_flags + [asm_file, "-o", compiled_file],
             stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
         )
         if compile_process.returncode != 0:
-            raise AssemblingError("assembling error", compile_process.stdout, compile_process.stderr)
+            raise AssemblingError("assembling error:", compile_process.stdout, compile_process.stderr)
+
+        # Check if we have relocations, if yes this is a bug in pwndbg (or assembler)
+        with open(compiled_file) as f:
+            has_relocs = any(s.num_relocations() for s in ELFFile(f).iter_sections() if s.name in (".rel.text", ".rela.text"))
+            if has_relocs:
+                raise AssemblingError("assembling error:", "result has relocations. this is a bug in Pwndbg, report it please")
 
         # Extract bytecode
         objcopy_process = subprocess.run(
@@ -190,7 +206,7 @@ def asm(arch: ArchDefinition, data: str, includes: list[Path] | None = None) -> 
         )
         if objcopy_process.returncode != 0:
             raise AssemblingError(
-                "objcopy error", objcopy_process.stdout, objcopy_process.stderr
+                "objcopy error:", objcopy_process.stdout, objcopy_process.stderr
             )
 
         with open(bytecode_file, "rb") as f:

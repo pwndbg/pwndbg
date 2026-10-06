@@ -134,6 +134,7 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
 
             return ToolchainInvocation(
                 compiler=[gcc] + additional_flags(arch),
+                freestanding_assembler=[gcc] + additional_flags(arch) + ["-c"],
                 objcopy=objcopy_invoc,
             )
 
@@ -159,6 +160,7 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
 
             return ToolchainInvocation(
                 compiler=[driver_path] + additional_flags(arch),
+                freestanding_assembler=[driver_path] + additional_flags(arch) + ["-c"],
                 objcopy=objcopy_invoc,
             )
 
