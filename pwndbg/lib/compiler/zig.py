@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import os
 import os.path
-import pathlib
 import shutil
 import subprocess
-import tempfile
 from typing import Literal
 
-from dispatch import CompilerType, ToolchainInvocation
+from dispatch import CompilerType
+from dispatch import ToolchainInvocation
 
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
@@ -50,8 +49,7 @@ _arch_mapping: dict[
 }
 
 
-
-ZIG_SUPPORTED_VERSION = "0.14.1"
+LOWEST_ZIG_SUPPORTED_VERSION = (0, 15, 12)
 
 
 def _get_executable() -> str:
@@ -83,12 +81,12 @@ def _get_executable() -> str:
             text=True,
             timeout=15,
         )
-        version = result.stdout.strip()
-        if version != ZIG_SUPPORTED_VERSION:
+        version = tuple([int(num) for num in result.stdout.strip().split(".")])
+        if version < LOWEST_ZIG_SUPPORTED_VERSION:
             raise DependencyNotFoundError(
                 "zig",
                 f"unsupported zig version: {version}. "
-                f"only version {ZIG_SUPPORTED_VERSION} is supported.",
+                f"only versions >={LOWEST_ZIG_SUPPORTED_VERSION} are supported.",
             )
     except Exception as e:
         raise DependencyNotFoundError("zig", f"failed to check zig version at {zig_path}: {e}")
@@ -113,80 +111,5 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
             "-target",
             zig_target,
         ],
-        objcopy=[zig_executable, "objcopy"], # it is cross-arch by default
+        objcopy=[zig_executable, "objcopy"],  # it is cross-arch by default
     )
-
-
-def asm(arch: ArchDefinition, data: str, includes: list[pathlib.Path] | None = None) -> bytes:
-    arch_mapping = _arch_mapping.get((arch.name, arch.endian, arch.ptrsize))
-    if arch_mapping is None:
-        raise ValueError(
-            f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})"
-        )
-
-    return _asm(arch_mapping, data, includes)
-
-
-def _asm(arch_mapping: str, data: str, includes: list[pathlib.Path] | None = None) -> bytes:
-    zig_executable = _get_executable()
-
-    header = _asm_header.get(arch_mapping)
-    if header is None:
-        raise ValueError(f"Can't find asm header for target {arch_mapping}")
-
-    if includes is None:
-        includes = []
-
-    include_str: str = "".join(f'#include "{path}"\n' for path in includes)
-    target = f"{arch_mapping}-freestanding"
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        asm_file = os.path.join(tmpdir, "input.S")
-        compiled_file = os.path.join(tmpdir, "out.elf")
-        bytecode_file = os.path.join(tmpdir, "out.bytecode")
-
-        with open(asm_file, "w") as f:
-            f.write(include_str)
-            f.write(header)
-            f.write(data)
-
-        # Build the binary with Zig
-        compile_process = subprocess.run(
-            [
-                zig_executable,
-                "cc",
-                "-target",
-                target,
-                asm_file,
-                "-o",
-                compiled_file,
-            ],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-        )
-        if compile_process.returncode != 0:
-            raise Exception("Compilation error", compile_process.stdout, compile_process.stderr)
-
-        # Extract bytecode
-        objcopy_process = subprocess.run(
-            [
-                zig_executable,
-                "objcopy",
-                "-O",
-                "binary",
-                "--only-section=.text",
-                compiled_file,
-                bytecode_file,
-            ],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-        )
-        if objcopy_process.returncode != 0:
-            raise Exception(
-                "Extracting bytecode error", objcopy_process.stdout, objcopy_process.stderr
-            )
-
-        with open(bytecode_file, "rb") as f:
-            return f.read()
