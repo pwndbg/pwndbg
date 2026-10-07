@@ -3,15 +3,15 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib
+import pwndbg.aglib.auxv
 import pwndbg.aglib.memory
+import pwndbg.aglib.search
 import pwndbg.aglib.stack
 import pwndbg.aglib.tls
-import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.dbg_mod
 import pwndbg.libc
-import pwndbg.search
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.libc.dispatch import LibcType
@@ -41,7 +41,7 @@ def canary_from_at_random() -> tuple[int | None, int | None]:
     Returns:
         tuple: (canary_value | None, at_random_addr | None)
     """
-    at_random = pwndbg.auxv.get().AT_RANDOM
+    at_random = pwndbg.aglib.auxv.get().AT_RANDOM
     if at_random is None:
         return None, None
 
@@ -213,7 +213,7 @@ def canary(all) -> None:
         thread_stack = thread_stacks[thread]
 
         stack_canaries = list(
-            pwndbg.search.search(
+            pwndbg.aglib.search.search(
                 actual_canary_packed, start=thread_stack.start, end=thread_stack.end
             )
         )

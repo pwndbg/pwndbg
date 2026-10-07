@@ -23,13 +23,13 @@ from elftools.elf.relocation import RelocationSection
 
 import pwndbg
 import pwndbg.aglib
+import pwndbg.aglib.auxv
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
-import pwndbg.auxv
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.config
@@ -261,7 +261,7 @@ def entry() -> int:
     """
     Return the address of the entry point for the main executable.
     """
-    if entry := pwndbg.auxv.get().AT_ENTRY:
+    if entry := pwndbg.aglib.auxv.get().AT_ENTRY:
         return entry
 
     inf = pwndbg.dbg.selected_inferior()
