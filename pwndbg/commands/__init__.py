@@ -1004,6 +1004,7 @@ def load_commands() -> None:
     import pwndbg.commands.msr
     import pwndbg.commands.nearpc
     import pwndbg.commands.next
+    import pwndbg.commands.objc
     import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
     import pwndbg.commands.paging
