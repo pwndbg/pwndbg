@@ -10,11 +10,11 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.asm
 import pwndbg.aglib.memory
+import pwndbg.aglib.search
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.enhance
-import pwndbg.search
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -243,7 +243,7 @@ def search(
     elif type == "asm" or asmbp:
         value = pwndbg.aglib.asm.asm(value)
 
-    # `pwndbg.search.search` expects a `bytes` object for its pattern. Convert the string pattern we
+    # `pwndbg.aglib.search.search` expects a `bytes` object for its pattern. Convert the string pattern we
     # were given to a bytes object by encoding it as an UTF-8 byte sequence. This matches the behavior
     # we previously got by calling `gdb.Inferior.search_memory` with an `str`, since right about GDB
     # version 7.x or 8.x[1], as it uses a `Py_buffer` object populated with an `'s*'` pattern, which
@@ -316,7 +316,7 @@ def search(
 
     # Perform the search
     for i, address in enumerate(
-        pwndbg.search.search(
+        pwndbg.aglib.search.search(
             value,
             mappings=mappings,
             executable=executable,
