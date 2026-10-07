@@ -32,14 +32,12 @@ from pwndbg.aglib.heap.glibc import Bins
 from pwndbg.aglib.heap.glibc import BinType
 from pwndbg.aglib.heap.glibc import BinVariant
 from pwndbg.aglib.heap.glibc import Chunk
-from pwndbg.aglib.heap.glibc import DebugSymsHeap
 from pwndbg.aglib.heap.glibc import Heap
-from pwndbg.aglib.heap.glibc import HeuristicHeap
 from pwndbg.color import generate_color_function
 from pwndbg.color import ljust_colored
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-from pwndbg.lib import SymbolNotRecoveredError
+from pwndbg.lib.config import Parameter
 
 log = logging.getLogger(__name__)
 
@@ -59,10 +57,14 @@ def read_chunk(addr: int) -> dict[str, int]:
         "mchunk_size": "size",
         "mchunk_prev_size": "prev_size",
     }
-    if isinstance(allocator, DebugSymsHeap):
-        val = pwndbg.aglib.memory.get_typed_pointer_value(allocator.malloc_chunk, addr)
+
+    tval = allocator.malloc_chunk
+
+    if isinstance(tval, pwndbg.dbg_mod.Type):
+        val = pwndbg.aglib.memory.get_typed_pointer_value(tval, addr)
     else:
-        val = allocator.malloc_chunk(addr)
+        val = tval(addr)
+
     value_keys: list[str] = val.type.keys()
     return {renames.get(key, key): int(val[key]) for key in value_keys}
 
@@ -162,9 +164,14 @@ def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
 
     help_text = "the thread hasn't performed any allocations"
 
-    # On glibc >= 2.42, tcache is only allocated after the first tcache-sized
+    # On glibc == 2.42, tcache is only allocated after the first tcache-sized
     # allocation, rather than the first allocation in general, as before
-    if pwndbg.libc.version() >= (2, 42):
+    #
+    # On glibc >= 2.43, tcache is allocated after the first tcache-sized free,
+    # but is never a null pointer, and should always be found
+    if pwndbg.libc.version() >= (2, 43):
+        help_text = "the thread hasn't performed any tcache-sized frees"
+    elif pwndbg.libc.version() == (2, 42):
         help_text = "the thread hasn't performed any tcache-sized allocations"
 
     print(message.notice(f"No tcache bins found for thread {message.hint(tid)} ({help_text})."))
@@ -178,7 +185,7 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
     """
     Check that we can perform glibc heap inspection so a command can proceed.
 
-    Sets the correct heap inspector between HeuristicHeap() and DebugSymsHeap() .
+    Sets the correct heap inspector method between Heuristic, DebugInfo and Auto.
     """
     if callee_func_name is None:
         callee_func_name = "heap_is_sane"
@@ -205,60 +212,10 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
 
     allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
-    # We have to use heuristics
-    if str(pwndbg.config.resolve_heap_via_heuristic) == "force":
-        if isinstance(allocator, DebugSymsHeap):
-            # Use the heuristic one!
-            allocator = pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
+    if not allocator.can_be_resolved():
+        log.error(f"{callee_func_name}: Could not resolve the heap.")
+        return False
 
-        if not allocator.can_be_resolved():
-            log.error(
-                f"{callee_func_name}: You're forcing the usage of heuristics with 'help set resolve-heap-via-heuristic', but the"
-            )
-            log.error("heap cannot be resolved with them. Try 'auto'?")
-            return False
-
-    # We have to use debug syms
-    if str(pwndbg.config.resolve_heap_via_heuristic) == "never":
-        if isinstance(allocator, HeuristicHeap):
-            # Use the debug syms one!
-            allocator = pwndbg.aglib.heap.glibc.set_allocator(DebugSymsHeap())
-
-        if not allocator.can_be_resolved():
-            log.error(
-                f"{callee_func_name}: You're forcing the usage of debug symbols with 'help set resolve-heap-via-heuristic', but the"
-            )
-            log.error("heap cannot be resolved with them. Try 'auto'?")
-            return False
-
-    # We can choose
-    if str(pwndbg.config.resolve_heap_via_heuristic) == "auto":
-        # Can we upgrade?
-        upgraded: bool = False
-        if isinstance(allocator, HeuristicHeap):
-            # FIXME: Feels like DebugSymsHeap.can_be_resolved() should be a staticmethod.
-            maybe_debug_syms = DebugSymsHeap()
-            if maybe_debug_syms.can_be_resolved():
-                # Upgrade!
-                allocator = pwndbg.aglib.heap.glibc.set_allocator(maybe_debug_syms)
-                upgraded = True
-
-        # Can we actually resolve? (if we upgraded we know we can)
-        if not upgraded:
-            if not allocator.can_be_resolved() and isinstance(allocator, DebugSymsHeap):
-                # Maybe we could not resolve because we were already a DebugSymsHeap
-                # and there is no debug info?
-                allocator = pwndbg.aglib.heap.glibc.set_allocator(HeuristicHeap())
-
-            if not allocator.can_be_resolved():
-                # We cannot resolve with either one, bail!
-                # Abusing this exception a bit but w/e
-                raise SymbolNotRecoveredError(
-                    "glibc heap",
-                    "We know its glibc but we could not resolve the heap. This is a bug! Report it!",
-                )
-
-    # Alright, we can resolve, but is the heap initialized?
     if not allocator.is_initialized():
         # We used to allow some commands to run with an uninitialized heap, but no need.
         log.error(f"{callee_func_name}: The heap is not initialized yet.")
@@ -271,8 +228,6 @@ def heap_is_sane(callee_func_name: str | None) -> bool:
 def OnlyForSaneHeap(function: Callable[P, T]) -> Callable[P, T | None]:
     """
     Can we perform glibc heap inspection?
-
-    Also chooses the correct inspector between HeuristicHeap() and DebugSymsHeap() .
 
     Decorate a glibc heap command function with this
     """
@@ -1133,7 +1088,9 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument(
     "count",
     nargs="?",
-    type=lambda n: max(int(n, 0), 1),
+    type=int,
+    # doing it this way rather than in the function body shows a nice (default: x)
+    # text in the command help
     default=pwndbg.config.default_visualize_chunk_number,
     help="Number of chunks to visualize. If the value is big enough and addr isn't provided, this is interpreted as addr instead.",
 )
@@ -1177,8 +1134,8 @@ group.add_argument(
 @pwndbg.commands.Command(parser, aliases=["vis"], category=CommandCategory.GLIBC_MALLOC)
 @OnlyForSaneHeap
 def vis_heap_chunks(
+    count: int | Parameter,
     addr: int | None = None,
-    count: int | None = None,
     no_skip: bool = False,
     beyond_top: bool = False,
     no_truncate: bool = False,
@@ -1190,16 +1147,23 @@ def vis_heap_chunks(
     # Used to determine whether to show command hint
     nothing_supplied = (
         addr is None
-        and count == pwndbg.config.default_visualize_chunk_number
+        and isinstance(count, Parameter)
         and not beyond_top
         and not no_truncate
         and not all_chunks
     )
 
+    # strip Parameter type
+    count = int(count)
+
+    if count < 1:
+        print(message.error("Count needs to be a positive number."))
+        return
+
     # If the first argument (count) is big enough (and address isn't provided) interpret it as an address
-    if addr is None and count is not None and count > 0x1000:
+    if count > 0x1000 and addr is None:
         addr = count
-        count = pwndbg.config.default_visualize_chunk_number
+        count = int(pwndbg.config.default_visualize_chunk_number)
 
     if addr is not None and not pwndbg.aglib.memory.is_readable_address(int(addr)):
         print(message.error("The provided address is not readable."))
