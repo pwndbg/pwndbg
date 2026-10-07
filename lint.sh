@@ -80,8 +80,8 @@ call_shfmt() {
 print_info "Running ruff on python files..."
 
 if [[ $FIX_ONLY == 1 ]]; then
-    $UV_RUN_LINT ruff format ${LINT_FILES}
-    $UV_RUN_LINT ruff check --fix --output-format=full ${LINT_FILES}
+    $UV_RUN_LINT ruff format .
+    $UV_RUN_LINT ruff check --fix --output-format=full .
     call_shfmt -w
     set +o xtrace
     echo ""
@@ -92,11 +92,11 @@ if [[ $FIX_ONLY == 1 ]]; then
     echo "========================================="
     exit 0
 elif [[ $FIX_AND_CHECK == 1 ]]; then
-    $UV_RUN_LINT ruff format ${LINT_FILES}
-    $UV_RUN_LINT ruff check --fix --output-format=full ${LINT_FILES}
+    $UV_RUN_LINT ruff format .
+    $UV_RUN_LINT ruff check --fix --output-format=full .
     call_shfmt -w
 else
-    if ! $UV_RUN_LINT ruff format --check --diff ${LINT_FILES}; then
+    if ! $UV_RUN_LINT ruff format --check --diff .; then
         set +o xtrace
         echo ""
         echo "========================================="
@@ -124,7 +124,7 @@ else
         RUFF_OUTPUT_FORMAT=github
     fi
 
-    $UV_RUN_LINT ruff check --output-format="${RUFF_OUTPUT_FORMAT}" ${LINT_FILES}
+    $UV_RUN_LINT ruff check --output-format="${RUFF_OUTPUT_FORMAT}" .
 fi
 
 # Checking minimum python version
