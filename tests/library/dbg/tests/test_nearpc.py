@@ -518,42 +518,42 @@ async def test_nearpc_plt_jumps_lazy_binding_i386(
             pytest.mark.xfail(reason="LLDB does not correctly find the symbol names", strict=True)
         )
 
-    PLT_ADDRESS = 0x11520
+    PLT_ADDRESS = 0x11490
     dis = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 -t 21")
     dis = pwndbg.color.strip(dis)
 
     expected = (
-        " ► 0x11520                                           ┌┌┌┌┌>   push   dword ptr [_GLOBAL_OFFSET_TABLE_+4]\n"
-        "   0x11526                                           ╎╎╎╎╎    jmp    dword ptr [_GLOBAL_OFFSET_TABLE_+8] <[_GLOBAL_OFFSET_TABLE_+8], now=_dl_runtime_resolve>\n"
+        " ► 0x11490                                           ┌┌┌┌┌>   push   dword ptr [_GLOBAL_OFFSET_TABLE_+4]\n"
+        "   0x11496                                           ╎╎╎╎╎    jmp    dword ptr [_GLOBAL_OFFSET_TABLE_+8] <[_GLOBAL_OFFSET_TABLE_+8], now=_dl_runtime_resolve>\n"
         "                                                     ╎╎╎╎╎ \n"
-        "   0x1152c                                           ╎╎╎╎╎    nop   \n"
-        "   0x1152d                                           ╎╎╎╎╎    nop   \n"
-        "   0x1152e                                           ╎╎╎╎╎    nop   \n"
-        "   0x1152f                                           ╎╎╎╎╎    nop   \n"
-        "   0x11530 <__libc_start_main@plt>                   ╎╎╎╎╎    jmp    dword ptr [__libc_start_main@got.plt] <[__libc_start_main@got.plt], now=__libc_start_main>\n"
+        "   0x1149c                                           ╎╎╎╎╎    nop   \n"
+        "   0x1149d                                           ╎╎╎╎╎    nop   \n"
+        "   0x1149e                                           ╎╎╎╎╎    nop   \n"
+        "   0x1149f                                           ╎╎╎╎╎    nop   \n"
+        "   0x114a0 <__libc_start_main@plt>                   ╎╎╎╎╎    jmp    dword ptr [__libc_start_main@got.plt] <[__libc_start_main@got.plt], now=__libc_start_main>\n"
         "                                                     ╎╎╎╎╎ \n"
-        "   0x11536 <__libc_start_main@plt+6>                 ╎╎╎╎╎    push   0\n"
-        "   0x1153b <__libc_start_main@plt+11>                ╎╎╎╎└<   jmp    0x11520                     <0x11520>\n"
+        "   0x114a6 <__libc_start_main@plt+6>                 ╎╎╎╎╎    push   0\n"
+        "   0x114ab <__libc_start_main@plt+11>                ╎╎╎╎└<   jmp    0x11490                     <0x11490>\n"
         "                                                     ╎╎╎╎  \n"
-        "   0x11540 <puts@plt>                                ╎╎╎╎┌<   jmp    dword ptr [puts@got[plt]]   <[puts@got[plt]], now=puts@plt+6>\n"
+        "   0x114b0 <puts@plt>                                ╎╎╎╎┌<   jmp    dword ptr [puts@got[plt]]   <[puts@got[plt]], now=puts@plt+6>\n"
         "                                                     ╎╎╎╎│ \n"
-        "   0x11546 <puts@plt+6>                              ╎╎╎╎└>   push   8\n"
-        "   0x1154b <puts@plt+11>                             ╎╎╎└─<   jmp    0x11520                     <0x11520>\n"
+        "   0x114b6 <puts@plt+6>                              ╎╎╎╎└>   push   8\n"
+        "   0x114bb <puts@plt+11>                             ╎╎╎└─<   jmp    0x11490                     <0x11490>\n"
         "                                                     ╎╎╎   \n"
-        "   0x11550 <printf@plt>                              ╎╎╎ ┌<   jmp    dword ptr [printf@got[plt]] <[printf@got[plt]], now=printf@plt+6>\n"
+        "   0x114c0 <printf@plt>                              ╎╎╎ ┌<   jmp    dword ptr [printf@got[plt]] <[printf@got[plt]], now=printf@plt+6>\n"
         "                                                     ╎╎╎ │ \n"
-        "   0x11556 <printf@plt+6>                            ╎╎╎ └>   push   0x10\n"
-        "   0x1155b <printf@plt+11>                           ╎╎└──<   jmp    0x11520                     <0x11520>\n"
+        "   0x114c6 <printf@plt+6>                            ╎╎╎ └>   push   0x10\n"
+        "   0x114cb <printf@plt+11>                           ╎╎└──<   jmp    0x11490                     <0x11490>\n"
         "                                                     ╎╎    \n"
-        "   0x11560 <write@plt>                               ╎╎  ┌<   jmp    dword ptr [write@got[plt]]  <[write@got[plt]], now=write@plt+6>\n"
+        "   0x114d0 <write@plt>                               ╎╎  ┌<   jmp    dword ptr [write@got[plt]]  <[write@got[plt]], now=write@plt+6>\n"
         "                                                     ╎╎  │ \n"
-        "   0x11566 <write@plt+6>                             ╎╎  └>   push   0x18\n"
-        "   0x1156b <write@plt+11>                            ╎└───<   jmp    0x11520                     <0x11520>\n"
+        "   0x114d6 <write@plt+6>                             ╎╎  └>   push   0x18\n"
+        "   0x114db <write@plt+11>                            ╎└───<   jmp    0x11490                     <0x11490>\n"
         "                                                     ╎     \n"
-        "   0x11570 <srand@plt>                               ╎   ┌<   jmp    dword ptr [srand@got[plt]]  <[srand@got[plt]], now=srand@plt+6>\n"
+        "   0x114e0 <srand@plt>                               ╎   ┌<   jmp    dword ptr [srand@got[plt]]  <[srand@got[plt]], now=srand@plt+6>\n"
         "                                                     ╎   │ \n"
-        "   0x11576 <srand@plt+6>                             ╎   └>   push   0x20\n"
-        "   0x1157b <srand@plt+11>                            └────<   jmp    0x11520                     <0x11520>\n"
+        "   0x114e6 <srand@plt+6>                             ╎   └>   push   0x20\n"
+        "   0x114eb <srand@plt+11>                            └────<   jmp    0x11490                     <0x11490>\n"
     )
 
     # In some platforms (Fedora), it uses the `_impl` symbol instead.

@@ -12,8 +12,9 @@ import tempfile
 from pathlib import Path
 
 import pwndbg
+import pwndbg.aglib
+import pwndbg.lib.compiler
 import pwndbg.lib.tempfile
-from pwndbg.aglib import elf
 from pwndbg.lib import Status
 
 # Remeber loaded structures. This would be useful for 'remove-symbol-file'.
@@ -50,7 +51,7 @@ def compile_structure(struct_path: Path, compiled_path: str | None = None) -> tu
         "-o",
         compiled_path,
     ]
-    err: Status = elf.compile_with_flags(compiler_extra_flags)
+    err: Status = pwndbg.lib.compiler.compile_program(pwndbg.aglib.arch, compiler_extra_flags)
     if err.is_failure():
         return "", err
 

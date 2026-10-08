@@ -27,6 +27,7 @@ import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.exception
 from pwndbg.color import message
+from pwndbg.lib import CompilerNotFoundError
 from pwndbg.lib import TypeNotRecoveredError
 
 log = logging.getLogger(__name__)
@@ -554,6 +555,25 @@ class CommandObj:
                         "please note that some structs may not be recoverable when CONFIG_RANDSTRUCT=y"
                     )
                 )
+        except CompilerNotFoundError as e:
+            arch = pwndbg.aglib.arch
+            print(
+                message.error(
+                    f"Could not find a suitable compiler for {(arch.name, arch.endian, arch.ptrsize)}."
+                )
+            )
+            print(e)
+            print(
+                "\nPlease install either zig or clang and make sure they are accessible in your PATH."
+            )
+            print("They support cross-compilation by default.")
+            print(
+                "We will also pick up GCC if you have the correct version (for this cpu arch) installed.\n"
+            )
+            print(
+                "If you have a compiler for your target architecture installed but we are not detecting it,"
+            )
+            print("please open a bug report!")
 
         except Exception:
             pwndbg.exception.handle(self.function.__name__)

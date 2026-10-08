@@ -93,7 +93,7 @@ def __check_candidates(
 libc_regex = re.compile(r"^libc6?[-_\.]")
 ld_regex = re.compile(r"ld.*\.so(?:\.[0-9]+)?")
 
-# TODO: A potentially significant performance optimization could be, if we have a LibcWrangler
+# TODO: A potentially significant performance optimization could be, if we have a LibcProvider
 # which is not "unknown", we don't need to clear the cache on objfile events (but probably still
 # should on start events).
 

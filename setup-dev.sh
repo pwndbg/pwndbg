@@ -179,8 +179,8 @@ install_dnf() {
 install_jemalloc() {
     JEMALLOC_STAGE="${HOME}/.cache/pwndbg/jemalloc"
 
-    # Check if jemalloc is already installed
-    if command -v jemalloc-config &> /dev/null; then
+    # Check if jemalloc is already installed and has support for static linking (the arch package doesn't)
+    if command -v jemalloc-config &> /dev/null && [ -f "$(jemalloc-config --libdir)/libjemalloc.a" ]; then
         echo "Jemalloc already installed. Skipping build and install."
     elif [ -n "${GITHUB_ACTIONS}" ] && [ -d "${JEMALLOC_STAGE}" ]; then
         echo "Installing jemalloc from cached build at ${JEMALLOC_STAGE}..."

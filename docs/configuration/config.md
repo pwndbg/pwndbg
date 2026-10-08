@@ -607,17 +607,6 @@ Print a full stacktrace for exceptions raised in Pwndbg commands.
 
 ----------
 
-## **gcc-compiler-path**
-
-
-Path to the gcc/g++ toolchain for generating imported symbols.
-
-
-
-**Default:** ''  
-
-----------
-
 ## **gdb-workaround-stop-event**
 <small style="color: lightgray;">(only in GDB)</small>
 
