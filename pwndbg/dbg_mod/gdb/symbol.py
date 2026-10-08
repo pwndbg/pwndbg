@@ -160,7 +160,7 @@ def _fallback_any_symbol_to_address(name: str, global_only: bool = False) -> gdb
 
         # global_context is only supported in GDB14+
         if gdb_version[0] >= 14:
-            return gdb.parse_and_eval(f"&'{sanitized_symbol_name}'", global_context=global_only)  # type: ignore[call-arg]
+            return gdb.parse_and_eval(f"&'{sanitized_symbol_name}'", global_context=global_only)
 
         return gdb.parse_and_eval(f"&'{sanitized_symbol_name}'")
     except gdb.error:
@@ -186,7 +186,7 @@ class Domain(Enum):
 
 # SYMBOL_FUNCTION_DOMAIN is supported since GDB15+
 if gdb_version[0] < 15:
-    gdb.SYMBOL_FUNCTION_DOMAIN = gdb.SYMBOL_VAR_DOMAIN  # type: ignore[attr-defined]
+    gdb.SYMBOL_FUNCTION_DOMAIN = gdb.SYMBOL_VAR_DOMAIN  # type: ignore[misc]
 
 DOMAIN_MAPPING = {
     # Gdb supported types:
@@ -200,7 +200,7 @@ DOMAIN_MAPPING = {
     # Note: This queries SYMBOL_VAR_DOMAIN, SYMBOL_TYPE_DOMAIN, and SYMBOL_FUNCTION_DOMAIN.
     Domain.VARIABLE: gdb.SYMBOL_VAR_DOMAIN,
     # Specifically for variables. Requires manual filtering to exclude other types.
-    Domain.FUNCTION: gdb.SYMBOL_FUNCTION_DOMAIN,  # type: ignore[attr-defined]
+    Domain.FUNCTION: gdb.SYMBOL_FUNCTION_DOMAIN,
     # Specifically for functions.
 }
 

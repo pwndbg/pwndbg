@@ -1982,11 +1982,11 @@ build = [
 ]
 dev = [
     { name = "sortedcontainers-stubs", specifier = ">=2.4.3,<3" },
-    { name = "types-gdb", specifier = ">=12.1.4.20240704,<13" },
+    { name = "types-gdb", specifier = ">=16.3.0.20260712,<17" },
     { name = "types-psutil", specifier = ">=7.0.0.20250601,<8" },
     { name = "types-pygments", specifier = ">=2.19.0.20250809,<3" },
     { name = "types-requests", specifier = ">=2.32.4.20250809,<3" },
-    { name = "types-tabulate", specifier = ">=0.9.0.20240106,<0.10" },
+    { name = "types-tabulate", specifier = ">=0.10.0.20261006,<0.11" },
 ]
 docs = [
     { name = "griffe-modernized-annotations" },
@@ -2662,11 +2662,11 @@ wheels = [
 
 [[package]]
 name = "types-gdb"
-version = "12.1.4.20240704"
+version = "16.3.0.20260712"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/62/e2/fecd2092bc4c516d095aa3315f3fbb7de64ce200aceed4bb92807a16cc4d/types-gdb-12.1.4.20240704.tar.gz", hash = "sha256:0b537f6acf8339e82dc92388aad057a30c83d89105cd820cf5dc948d6debce10", size = 11819, upload-time = "2024-07-04T02:27:23.104Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/a7/9592a50cc1ffc4597a2ffd7a8336ace84b0a143b6df9715f9308fc32d3f7/types_gdb-16.3.0.20260712.tar.gz", hash = "sha256:0abff0d3f65622cc309534565d5e7fc35d73418de98d64f27ce6bd424a29f20f", size = 25821, upload-time = "2026-07-12T05:13:56.381Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/d4/48df589370499dd5c1011a5351f74ac69b296030fe84d732c37083ce6b4f/types_gdb-12.1.4.20240704-py3-none-any.whl", hash = "sha256:da273ebf395ded84ea12745ef70d0c1560694c26b6d9c04575d500a74929fed1", size = 12067, upload-time = "2024-07-04T02:27:21.247Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/bd/a5d501f1cd978fbfe77eadd6874361aa7999643f555539339e90130004e7/types_gdb-16.3.0.20260712-py3-none-any.whl", hash = "sha256:20e117cb5b00862090a82b5fec83330f6ca8aee4d010874e3ff897041f172d07", size = 31331, upload-time = "2026-07-12T05:13:55.541Z" },
 ]
 
 [[package]]
@@ -2704,11 +2704,11 @@ wheels = [
 
 [[package]]
 name = "types-tabulate"
-version = "0.9.0.20241207"
+version = "0.10.0.20261006"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3f/43/16030404a327e4ff8c692f2273854019ed36718667b2993609dc37d14dd4/types_tabulate-0.9.0.20241207.tar.gz", hash = "sha256:ac1ac174750c0a385dfd248edc6279fa328aaf4ea317915ab879a2ec47833230", size = 8195, upload-time = "2024-12-07T02:54:42.554Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/c0/548058b63e3f29dc2f3c8643ce63095022855d3c7ad00e548388e99e9b3c/types_tabulate-0.10.0.20261006.tar.gz", hash = "sha256:505bb455e337e85f2cf1dfa56c25322ef70059f095673861114444fae3e9e8d7", size = 8606, upload-time = "2026-10-06T08:15:18.526Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5e/86/a9ebfd509cbe74471106dffed320e208c72537f9aeb0a55eaa6b1b5e4d17/types_tabulate-0.9.0.20241207-py3-none-any.whl", hash = "sha256:b8dad1343c2a8ba5861c5441370c3e35908edd234ff036d4298708a1d4cf8a85", size = 8307, upload-time = "2024-12-07T02:54:41.031Z" },
+    { url = "https://files.pythonhosted.org/packages/12/5f/28fa88d90e5cfd3586d4a39d4f6efffa7e1f804a7f6bc6f49fa9f9a4c671/types_tabulate-0.10.0.20261006-py3-none-any.whl", hash = "sha256:b4c5772065de6f5d104daf31a72ce0e78abe07d3b1c7b23e28566b5c95f4faf1", size = 8178, upload-time = "2026-10-06T08:15:17.54Z" },
 ]
 
 [[package]]

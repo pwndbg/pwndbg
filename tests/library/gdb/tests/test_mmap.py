@@ -78,7 +78,9 @@ def test_mmap_executes_properly(start_binary):
     # Load the 16 bytes read in by the read() call in the program, as well as
     # the first 16 bytes present in our newly created memory map, and compare
     # them.
-    data_ptr = int(gdb.newest_frame().read_var("buf").address)
+    maybe_addr = gdb.newest_frame().read_var("buf").address
+    assert maybe_addr is not None
+    data_ptr = int(maybe_addr)
     data_local = pwndbg.aglib.memory.read(data_ptr, 16)
     data_mapped = pwndbg.aglib.memory.read(ptr, 16)
     assert data_local == data_mapped

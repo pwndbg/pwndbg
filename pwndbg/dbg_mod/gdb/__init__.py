@@ -128,13 +128,11 @@ def _get_frame_stack_variables(frame: gdb.Frame) -> tuple[tuple[int, int, str], 
 
                 # If a variable is optimized out, it surely has no memory location
                 # This check also prevents GDB from calling `malloc` within the inferior process
-                # which can cause a crash. See https://github.com/pwndbg/pwndbg/pull/4112
+                # which can cause a crash. See PR #4112 and
+                # https://sourceware.org/bugzilla/show_bug.cgi?id=34716
                 if value.is_optimized_out:
                     continue
 
-                # value.address can be None
-                # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Values-From-Inferior.html#Values-From-Inferior:~:text=Variable%3A%20Value%2Eaddress
-                # https://sourceware.org/bugzilla/show_bug.cgi?id=33860
                 if value.address is None:
                     continue
 
@@ -1606,6 +1604,10 @@ class GDBValue(pwndbg.dbg_mod.Value):
     @property
     @override
     def address(self) -> pwndbg.dbg_mod.Value | None:
+        if self.inner.is_optimized_out:
+            # Not sure if this is a proper fix.
+            # See PR #4112 and https://sourceware.org/bugzilla/show_bug.cgi?id=34716
+            return None
         val = self.inner.address
         if val is None:
             return None
