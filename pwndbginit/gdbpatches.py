@@ -8,7 +8,7 @@ import traceback
 import gdb
 
 
-def fix_exit():
+def fix_exit() -> None:
     major_ver = int(gdb.VERSION.split(".")[0])
     if major_ver <= 15:
         # On certain verions of gdb (used on ubuntu 24.04) using sys.exit() can cause
@@ -30,16 +30,16 @@ def fix_exit():
         sys.exit = _patched_exit
 
 
-def fix_stdout():
+def fix_stdout() -> None:
     # Add the original stdout methods back to gdb._GdbOutputFile for pwnlib colors
     sys.stdout.isatty = sys.__stdout__.isatty
     sys.stdout.fileno = sys.__stdout__.fileno
 
 
-def fix_readline():
+def fix_readline() -> None:
     # Fix gdb readline bug: https://github.com/pwndbg/pwndbg/issues/2232#issuecomment-2542564965
     class GdbRemoveReadlineFinder(importlib.abc.MetaPathFinder):
-        def find_spec(self, fullname, path=None, target=None):
+        def find_spec(self, fullname, path=None, target=None) -> None:
             if fullname == "readline":
                 raise ImportError("readline module disabled under GDB")
 
