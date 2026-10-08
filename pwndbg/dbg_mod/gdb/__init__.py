@@ -132,9 +132,6 @@ def _get_frame_stack_variables(frame: gdb.Frame) -> tuple[tuple[int, int, str], 
                 if value.is_optimized_out:
                     continue
 
-                # value.address can be None
-                # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Values-From-Inferior.html#Values-From-Inferior:~:text=Variable%3A%20Value%2Eaddress
-                # https://sourceware.org/bugzilla/show_bug.cgi?id=33860
                 if value.address is None:
                     continue
 
