@@ -31,6 +31,7 @@
 ## Darwin/libsystem/Mach-O
 
 -  [commpage](darwin_libsystem_mach-o/commpage.md) - Dumps all values from the macOS commpage.
+-  [objc](darwin_libsystem_mach-o/objc.md) - Objective-C Support
 
 ## Developer
 
