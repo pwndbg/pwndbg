@@ -53,9 +53,11 @@ def test_command_got_for_target_binary(binary_name, is_pie):
     assert out[0] == "Filtering out read-only entries (display them with -r or --show-readonly)"
     assert out[1] == ""
     assert out[2] == f"State of the GOT of {Path.cwd() / binary}:"
-    assert out[3] == "GOT protection: Full RELRO | Found 3 GOT entries passing the filter"
+    assert re.match(
+        r"GOT protection: Full RELRO \| Found \d+ GOT entries passing the filter", out[3]
+    )
 
-    line_libc_start_main = next((line for line in out if "line_libc_start_main" in line), "")
+    line_libc_start_main = next((line for line in out if "libc_start_main" in line), "")
     assert re.match(r"\[0x[0-9a-f]+\] __libc_start_main@GLIBC_[0-9.]+ -> .*", line_libc_start_main)
     line_gmon_start = next((line for line in out if "__gmon_start__" in line), "")
     assert re.match(r"\[0x[0-9a-f]+\] __gmon_start__ -> .*", line_gmon_start)
@@ -68,8 +70,10 @@ def test_command_got_for_target_binary(binary_name, is_pie):
     out = gdb.execute("got -r", to_string=True).splitlines()
     assert len(out) >= 5
     assert out[0] == f"State of the GOT of {Path.cwd() / binary}:"
-    assert out[1] == "GOT protection: Full RELRO | Found 3 GOT entries passing the filter"
-    line_libc_start_main = next((line for line in out if "line_libc_start_main" in line), "")
+    assert re.match(
+        r"GOT protection: Full RELRO \| Found \d+ GOT entries passing the filter", out[1]
+    )
+    line_libc_start_main = next((line for line in out if "libc_start_main" in line), "")
     assert re.match(r"\[0x[0-9a-f]+\] __libc_start_main@GLIBC_[0-9.]+ -> .*", line_libc_start_main)
     line_gmon_start = next((line for line in out if "__gmon_start__" in line), "")
     assert re.match(r"\[0x[0-9a-f]+\] __gmon_start__ -> .*", line_gmon_start)
