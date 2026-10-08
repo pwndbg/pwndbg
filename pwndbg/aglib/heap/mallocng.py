@@ -9,13 +9,13 @@ from enum import Enum
 
 import pwndbg
 import pwndbg.aglib
+import pwndbg.aglib.auxv
+import pwndbg.aglib.search
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
-import pwndbg.auxv
 import pwndbg.dbg_mod
-import pwndbg.search
 from pwndbg.aglib import memory
 from pwndbg.color import message
 
@@ -1174,11 +1174,11 @@ class Mallocng:
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L50
         # Extract the secret first.
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/glue.h#L49
-        at_random = int(pwndbg.auxv.get()["AT_RANDOM"])
+        at_random = int(pwndbg.aglib.auxv.get()["AT_RANDOM"])
         secret = memory.read(at_random + 8, uint64size)
 
         secret_matches = list(
-            pwndbg.search.search(secret, executable=False, writable=True, aligned=uint64size)
+            pwndbg.aglib.search.search(secret, executable=False, writable=True, aligned=uint64size)
         )
 
         # There are going to be multiple matches. We don't

@@ -4,12 +4,12 @@ import contextlib
 import shlex
 import string
 
+import pwndbg.aglib.auxv
 import pwndbg.aglib.file
 import pwndbg.aglib.osdata
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.remote
-import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.lib.cache
 import pwndbg.lib.net
@@ -384,7 +384,7 @@ def procinfo() -> None:
                 " used directly by the qemu process)"
             )
         )
-    exe = pwndbg.auxv.get().AT_EXECFN
+    exe = pwndbg.aglib.auxv.get().AT_EXECFN
     print(f"{'exe':<10} {exe!r}")
 
     proc = Process()

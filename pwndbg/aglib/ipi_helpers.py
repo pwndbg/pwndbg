@@ -9,9 +9,9 @@ from __future__ import annotations
 from typing import Any
 
 import pwndbg.aglib.memory
+import pwndbg.aglib.search
 import pwndbg.aglib.vmmap
 import pwndbg.hexdump
-import pwndbg.search
 from pwndbg.lib.tips import color_tip
 
 mr = pwndbg.aglib.memory.read
@@ -60,7 +60,7 @@ def ms(
         ms(b"ELF")
         ms(b"\\x90\\x90", limit=10)
     """
-    results = list(pwndbg.search.search(searchfor=pattern, start=start, end=end, limit=limit))
+    results = list(pwndbg.aglib.search.search(searchfor=pattern, start=start, end=end, limit=limit))
 
     if show:
         for addr in results:

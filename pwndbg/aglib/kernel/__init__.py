@@ -16,6 +16,7 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
+import pwndbg.aglib.search
 import pwndbg.aglib.structures
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
@@ -23,7 +24,6 @@ import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
-import pwndbg.search
 from pwndbg.lib import Status
 from pwndbg.lib import TypeNotFoundError
 from pwndbg.lib import TypeNotRecoveredError
@@ -180,7 +180,7 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
             fallback_mappings.append(mapping)
             continue
 
-        result = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
+        result = next(pwndbg.aglib.search.search(b"Linux version", mappings=[mapping]), None)
 
         if result:
             return mapping
@@ -190,7 +190,7 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
     for mapping in fallback_mappings[1:10] + [fallback_mappings[0]]:
         # this loop handles when the kernel has not finished initialization
         # and the permission of the first ro page has not been properly set
-        result = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
+        result = next(pwndbg.aglib.search.search(b"Linux version", mappings=[mapping]), None)
 
         if result:
             return mapping
@@ -209,11 +209,11 @@ def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig:
         mapping = first_kernel_ro_page()
         result = None
         if mapping is not None:
-            result = next(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]), None)
+            result = next(pwndbg.aglib.search.search(b"IKCFG_ST", mappings=[mapping]), None)
 
         if result is not None:
             config_start = result + len("IKCFG_ST")
-            config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
+            config_end = next(pwndbg.aglib.search.search(b"IKCFG_ED", start=config_start), None)
     if (
         not pwndbg.aglib.memory.is_kernel(config_start)
         or not pwndbg.aglib.memory.is_kernel(config_end)
@@ -252,7 +252,7 @@ def kversion() -> str | None:
     mapping = first_kernel_ro_page()
     if mapping is None:
         return None
-    version_addr = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
+    version_addr = next(pwndbg.aglib.search.search(b"Linux version", mappings=[mapping]), None)
     if version_addr is None:
         return None
     return pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
