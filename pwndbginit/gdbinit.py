@@ -57,7 +57,7 @@ def main() -> None:
     gdb.execute("py import pwndbg")
 
 
-def main_try():
+def main_try() -> None:
     # We wrap everything in try/except so that we can exit GDB with an error code
     # This is used by tests to check if gdbinit.py failed
     try:
