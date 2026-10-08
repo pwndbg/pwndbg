@@ -198,7 +198,7 @@ def read_pointer_width(addr: int) -> int:
     Read one pointer-width integer at the specified address.
 
     Raises:
-        pwndbg.dbg_mod.Error: if memory read fails.
+        pwndbg.dbg_mod.DebuggerError: if memory read fails.
     """
     return pwndbg.aglib.arch.unpack(read(addr, pwndbg.aglib.arch.ptrsize))
 

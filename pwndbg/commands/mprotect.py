@@ -21,9 +21,7 @@ Note that the mprotect syscall may fail for various reasons
 can be decoded with the `errno <value>` command.
 """,
 )
-parser.add_argument(
-    "addr", help="Page-aligned address to all mprotect on.", type=pwndbg.commands.sloppy_gdb_parse
-)
+parser.add_argument("addr", help="Page-aligned address to all mprotect on.", type=int)
 parser.add_argument(
     "length",
     help="Count of bytes to call mprotect on. Needs to be multiple of page size.",

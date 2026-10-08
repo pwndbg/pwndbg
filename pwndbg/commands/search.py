@@ -127,18 +127,18 @@ parser.add_argument(
     "-s",
     "--step",
     default=None,
-    type=str,
+    type=int,
     help="Step search address forward to next alignment after each hit (ex: 0x1000)",
 )
 parser.add_argument(
     "-l",
     "--limit",
     default=None,
-    type=str,
+    type=int,
     help="Max results before quitting the search. Differs from --trunc-out in that it will not save all search results before quitting",
 )
 parser.add_argument(
-    "-a", "--aligned", default=None, type=str, help="Result must be aligned to this byte boundary"
+    "-a", "--aligned", default=None, type=int, help="Result must be aligned to this byte boundary"
 )
 parser.add_argument("value", type=str, help="Value to search for")
 parser.add_argument(
@@ -170,19 +170,19 @@ parser.add_argument(
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def search(
-    type,
-    asmbp,
-    hex,
-    executable,
-    writable,
-    step,
-    limit,
-    aligned,
-    value,
-    mapping_name,
-    save,
-    next,
-    trunc_out,
+    type: str,
+    asmbp: bool,
+    hex: bool,
+    executable: bool,
+    writable: bool,
+    value: str,
+    next: bool,
+    trunc_out: bool,
+    limit: int | None = None,
+    aligned: int | None = None,
+    step: int | None = None,
+    mapping_name: str | None = None,
+    save: bool | None = None,
 ) -> None:
     global saved
     if next and not saved:
@@ -204,23 +204,20 @@ def search(
 
     if hex:
         try:
-            value = codecs.decode(value, "hex")
+            value_bytes: bytes = codecs.decode(value, "hex")
         except binascii.Error as e:
             print(f"invalid input for type hex: {e}")
             return
 
-    if step:
-        step = pwndbg.commands.fix_int(step)
-
-    if aligned:
-        aligned = pwndbg.commands.fix_int(aligned)
-
-    if limit:
-        limit = pwndbg.commands.fix_int(limit)
     # Convert to an integer if needed, and pack to bytes
-    if type not in ("string", "bytes", "asm"):
-        value = pwndbg.commands.fix_int(value)
-        value &= pwndbg.aglib.arch.ptrmask
+    elif type not in ("string", "bytes", "asm"):
+        try:
+            value_int = pwndbg.commands.parse_command_argument_to_int(value)
+        except argparse.ArgumentTypeError as e:
+            print(f"search: error: {e}")
+            return
+
+        value_int &= pwndbg.aglib.arch.ptrmask
         fmt = {"little": "<", "big": ">"}[pwndbg.aglib.arch.endian] + {
             "byte": "B",
             "short": "H",
@@ -230,18 +227,18 @@ def search(
         }[type]
 
         try:
-            value = struct.pack(fmt, value)
+            value_bytes = struct.pack(fmt, value_int)
         except struct.error as e:
             print(f"invalid input for type {type}: {e}")
             return
 
     # Null-terminate strings
     elif type == "string":
-        value = value.encode()
-        value += b"\x00"
+        value_bytes = value.encode()
+        value_bytes += b"\x00"
 
     elif type == "asm" or asmbp:
-        value = pwndbg.aglib.asm.asm(value)
+        value_bytes = pwndbg.aglib.asm.asm(value)
 
     # `pwndbg.aglib.search.search` expects a `bytes` object for its pattern. Convert the string pattern we
     # were given to a bytes object by encoding it as an UTF-8 byte sequence. This matches the behavior
@@ -252,9 +249,10 @@ def search(
     # [1]: https://sourceware.org/git/?p=binutils-gdb.git;a=blame;f=gdb/python/py-inferior.c;h=a1042ee72ac733091f7572bc04b072546d3c1519;hb=23c84db5b3cb4e8a0d555c76e1a0ab56dc8355f3
     # [2]: https://docs.python.org/3.1/c-api/arg.html#strings-and-buffers
 
-    elif type == "bytes" and not hex:
+    else:
+        assert type == "bytes"
         try:
-            value = value.encode("utf-8")
+            value_bytes = value.encode("utf-8")
         except UnicodeError as what:
             print(
                 message.error(
@@ -275,23 +273,24 @@ def search(
 
     # Output appropriate messages based on the detected search type for better clarity
     if is_pointer:
-        print("Searching for a pointer-width integer: " + repr(value))
+        print("Searching for a pointer-width integer: " + repr(value_bytes))
     elif type in {"word", "short"}:
-        print("Searching for a 2-byte integer: " + repr(value))
+        print("Searching for a 2-byte integer: " + repr(value_bytes))
     elif type == "dword":
-        print("Searching for a 4-byte integer: " + repr(value))
+        print("Searching for a 4-byte integer: " + repr(value_bytes))
     elif type == "qword":
-        print("Searching for an 8-byte integer: " + repr(value))
+        print("Searching for an 8-byte integer: " + repr(value_bytes))
     elif type == "string":
-        print("Searching for string: " + repr(value))
+        print("Searching for string: " + repr(value_bytes))
     # If next is passed, only perform a manual search over previously saved addresses
     elif type == "asm" or asmbp:
-        print("Searching for instruction (assembled value): " + repr(value))
+        print("Searching for instruction (assembled value): " + repr(value_bytes))
     else:
-        print("Searching for byte: " + repr(value))
+        print("Searching for byte: " + repr(value_bytes))
 
     if next:
-        val_len = len(value)
+        # FIXME[lint]: what? how can it be unbound?
+        val_len = len(value_bytes)
         new_saved = set()
 
         i = 0
@@ -300,7 +299,7 @@ def search(
                 val = pwndbg.aglib.memory.read(addr, val_len)
             except Exception:
                 continue
-            if val == value:
+            if val == value_bytes:
                 new_saved.add(addr)
                 if not trunc_out or i < 20:
                     print_search_hit(addr)
@@ -317,7 +316,7 @@ def search(
     # Perform the search
     for i, address in enumerate(
         pwndbg.aglib.search.search(
-            value,
+            value_bytes,
             mappings=mappings,
             executable=executable,
             writable=writable,

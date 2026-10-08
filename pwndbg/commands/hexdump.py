@@ -41,7 +41,7 @@ pwndbg.config.add_param(
 
 
 def address_or_module_name(s) -> int:
-    addr_or_str: int | str = pwndbg.commands.sloppy_gdb_parse(s)
+    addr_or_str: int | str = pwndbg.commands.parse_command_argument_to_int_or_str(s)
     if isinstance(addr_or_str, str):
         module_name = addr_or_str
         pages = list(filter(lambda page: module_name in page.objfile, pwndbg.aglib.vmmap.get()))

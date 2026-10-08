@@ -16,7 +16,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "address",
-    type=pwndbg.commands.AddressExpr,
+    type=int,
     help="Address to dump",
 )
 parser.add_argument("-x", "--hex", action="store_true", help="Display non-pointer integers as hex")
@@ -69,7 +69,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     "address",
-    type=pwndbg.commands.AddressExpr,
+    type=int,
     help="Address to dump",
 )
 
