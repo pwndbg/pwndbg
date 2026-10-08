@@ -12,12 +12,12 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
+import pwndbg.aglib.search
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.regs
-import pwndbg.search
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.lib.memory import Page
 from pwndbg.lib.regs import BitFlags
@@ -432,7 +432,9 @@ class x86_64PagingInfo(ArchPagingInfo):
             if not mapping:
                 return None, None
             result = next(
-                pwndbg.search.search(target, mappings=[mapping], aligned=pwndbg.aglib.arch.ptrsize),
+                pwndbg.aglib.search.search(
+                    target, mappings=[mapping], aligned=pwndbg.aglib.arch.ptrsize
+                ),
                 None,
             )
         except Exception as e:
