@@ -87,7 +87,7 @@ def test_command_got_for_target_binary(binary_name, is_pie):
     assert out[1] == ""
     assert out[2] == f"State of the GOT of {Path.cwd() / binary}:"
     assert out[3] == "GOT protection: Full RELRO | Found 1 GOT entries passing the filter"
-    line_puts = next((line for line in out if "puts" in line), "")
+    line_puts = next((line for line in out if "puts@" in line), "")
     assert re.match(r"\[0x[0-9a-f]+\] puts@GLIBC_[0-9.]+ -> .*", line_puts)
 
 
