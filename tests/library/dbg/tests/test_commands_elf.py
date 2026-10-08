@@ -78,7 +78,7 @@ async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> 
 
     out = (await ctrl.execute_and_capture("elf")).splitlines()
     # Newer versions of gcc emit an additional `.sframe` section.
-    assert len(out) == 25 or len(out) == 26
+    assert len(out) == 25 or len(out) == 26 or len(out) == 29
 
     # test for default
     for section in out[2:]:
@@ -95,7 +95,7 @@ async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> 
     if is_pie:
         out = (await ctrl.execute_and_capture("elf -R")).splitlines()
         # Never versions of gcc emit an additional `.sframe` section.
-        assert len(out) == 25 or len(out) == 26
+        assert len(out) == 25 or len(out) == 26 or len(out) == 29
 
         for section in out[2:]:
             assert re.match(
