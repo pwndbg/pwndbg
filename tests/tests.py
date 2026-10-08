@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import cProfile
 import multiprocessing
 import os
+import pstats
 import re
 import shutil
 import signal
@@ -42,6 +44,8 @@ def main() -> None:
     if args.pdb:
         print("Will run tests in serial and with Python debugger")
         args.serial = True
+    if args.profile:
+        print("Will profile the test run with cProfile")
 
     # Build the binaries for the test group.
     #
@@ -79,14 +83,33 @@ def main() -> None:
         sys.exit(0)
 
     # Actually run the tests.
-    run_tests_and_print_stats(
-        host,
-        args.test_name_filter,
-        args.pdb,
-        force_serial or args.serial,
-        args.verbose,
-        coverage_out,
-    )
+    if args.profile:
+        profiler = cProfile.Profile()
+        profiler.enable()
+        run_tests_and_print_stats(
+            host,
+            args.test_name_filter,
+            args.pdb,
+            force_serial or args.serial,
+            args.verbose,
+            coverage_out,
+        )
+        profiler.disable()
+
+        profile_path = Path(".cov/test-profile.pstats")
+        profile_path.parent.mkdir(parents=True, exist_ok=True)
+        profiler.dump_stats(str(profile_path))
+        print(f"\n[*] Profile statistics written to {profile_path}")
+        pstats.Stats(profiler).strip_dirs().sort_stats("cumulative").print_stats(20)
+    else:
+        run_tests_and_print_stats(
+            host,
+            args.test_name_filter,
+            args.pdb,
+            force_serial or args.serial,
+            args.verbose,
+            coverage_out,
+        )
 
 
 def run_tests_and_print_stats(
@@ -322,6 +345,11 @@ def parse_args() -> argparse.Namespace:
         help="enable pdb (Python debugger) post mortem debugger on failed tests",
     )
     parser.add_argument("-c", "--cov", action="store_true", help="enable codecov")
+    parser.add_argument(
+        "--profile",
+        action="store_true",
+        help="profile the test run with cProfile and dump statistics to a file",
+    )
     parser.add_argument(
         "-v",
         "--verbose",
