@@ -4,7 +4,7 @@
 ```text
 usage: vmmap [-h] [-w] [-x] [-s] [-A LINES_AFTER] [-B LINES_BEFORE]
              [-C CONTEXT] [--gaps] [--refresh]
-             [gdbval_or_str]
+             [addr_or_mapping]
 
 ```
 
@@ -30,7 +30,7 @@ Memory pages can also be added manually with the use of vmmap-add, vmmap-clear a
 
 |Positional Argument|Help|
 | :--- | :--- |
-|gdbval_or_str|Address or module name filter|
+|addr_or_mapping|Address or module name filter|
 
 ### Optional arguments
 

@@ -24,7 +24,7 @@ Cyclic pattern creator/finder.
 |-a|--alphabet|The alphabet to use in the cyclic pattern (default: abcdefghijklmnopqrstuvwxyz)|
 |-n|--length|Size of the unique subsequences (default: 4)|
 |-t|--timeout|Timeout in seconds for --detect (default: 2)|
-|-o|--lookup|Do a lookup instead of printing the sequence (accepts constant values as well as expressions)|
+|-o|--lookup|Do a lookup instead of printing the sequence|
 |-d|--detect|Detect cyclic patterns in registers (Immediate values and memory pointed to by registers)|
 
 ### Notes

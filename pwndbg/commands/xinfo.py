@@ -5,12 +5,12 @@ import argparse
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.elf
+import pwndbg.aglib.search
 import pwndbg.aglib.stack
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.commands.canary
-import pwndbg.search
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.memory import Page
 
@@ -45,7 +45,7 @@ def xinfo_stack(page: Page, addr: int) -> None:
 
     if canary_value is not None:
         all_canaries = list(
-            pwndbg.search.search(
+            pwndbg.aglib.search.search(
                 pwndbg.aglib.arch.pack(canary_value), mappings=pwndbg.aglib.stack.get().values()
             )
         )

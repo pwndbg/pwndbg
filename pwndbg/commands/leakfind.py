@@ -62,7 +62,7 @@ Scans memory near the given address, looks for pointers, and continues that proc
 )
 parser.add_argument(
     "address",
-    type=pwndbg.commands.AddressExpr,
+    type=int,
     nargs="?",
     default="$sp",
     help="Starting address to find a leak chain from",

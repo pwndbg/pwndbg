@@ -21,7 +21,7 @@ import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.aglib.symbol
+import pwndbg.aglib.remote
 import pwndbg.color
 import pwndbg.dbg_mod
 import pwndbg.dintegration
@@ -375,7 +375,7 @@ class CommandObj:
                 assert False, "You must add a `help=` string to your argument."
 
             if action.type is int:
-                action.type = fix_int_reraise_arg
+                action.type = parse_command_argument_to_int
             elif type(action) is argparse._StoreAction and action.type is None:
                 # Prevents bugs like https://github.com/pwndbg/pwndbg/pull/3477
                 print(message.error(f"Error parsing arguments for command: {parser.prog}"))
@@ -656,8 +656,8 @@ class Command:
         )
 
 
-def fix(
-    arg: pwndbg.dbg_mod.Value | str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
+def parse_command_argument(
+    arg: str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
 ) -> str | pwndbg.dbg_mod.Value | None:
     """Fix a single command-line argument coming from the CLI.
 
@@ -686,21 +686,25 @@ def fix(
     # context.
     try:
         return target.evaluate_expression(arg)
-    except Exception:
+    except pwndbg.dbg_mod.DebuggerError:
+        pass
+
+    # Check if this is a quoted symbol.
+    # .evaluate_expression() should be able to catch this case, but
+    # https://github.com/pwndbg/pwndbg/issues/4189
+    try:
+        found_symbol = target.lookup_symbol(arg)
+        if found_symbol is not None:
+            return found_symbol
+    except pwndbg.dbg_mod.DebuggerError:
         pass
 
     ex = None
     try:
-        # This will fail if gdblib is not available. While the next check
-        # alleviates the need for this call, it's not really equivalent, and
-        # we'll need a debugger-agnostic version of regs.fix() if we want to
-        # completely get rid of this call. We can't do that now because there's
-        # no debugger-agnostic architecture functions. Those will come later.
-        #
-        # TODO: Port architecutre functions and `pwndbg.gdblib.regs.fix` to debugger-agnostic API and remove this.
+        # replaces all occurances of some_register to $some_register
         arg = pwndbg.aglib.regs.fix(arg)
         return target.evaluate_expression(arg)
-    except Exception as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         ex = e
 
     # If that fails, try to treat the argument as the name of a register, and
@@ -727,48 +731,61 @@ def fix(
     return None
 
 
-def fix_reraise(*a: Any, **kw: Any) -> str | pwndbg.dbg_mod.Value | None:
-    # Type error likely due to https://github.com/python/mypy/issues/6799
-    return fix(*a, reraise=True, **kw)  # type: ignore[misc]
+def parse_command_argument_to_int(arg: str) -> int:
+    """
+    Takes a command argument and tries to evaluate it through the debugger
+    (is it a register? a symbol? a (hex) number? an expression) and get back
+    an int.
 
+    Use this to parse arguments when you need an int.
 
-def fix_reraise_arg(arg: Any) -> pwndbg.dbg_mod.Value:
-    """fix_reraise wrapper for evaluating command arguments"""
+    Note: this is automatically applied to every argparse argument that
+    declares `type=int`, see initialize_parser_recursively().
+
+    Raises:
+        ArgumentTypeError if we could not coerce the argument to an int
+    """
     try:
         # Will always return pwndbg.dbg_mod.Value because
         # sloppy=False (not str) and reraise=True (not None)
-        fixed = fix(arg, sloppy=False, quiet=True, reraise=True)
+        fixed = parse_command_argument(arg, sloppy=False, quiet=True, reraise=True)
         assert isinstance(fixed, pwndbg.dbg_mod.Value)
-        return fixed
     except pwndbg.dbg_mod.DebuggerError as dbge:
         raise argparse.ArgumentTypeError(f"debugger couldn't resolve argument '{arg}': {dbge}")
 
+    # for some reason, int(gdb.Value) for a function and array does not return its address
+    # so we check for this in order to support stuff like `malloc` or `buf`
+    if fixed.type.code in (pwndbg.dbg_mod.TypeCode.FUNC, pwndbg.dbg_mod.TypeCode.ARRAY):
+        addr = fixed.address
+        if addr is None:
+            raise argparse.ArgumentTypeError(
+                f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Value is not addressable."
+            )
+        return int(addr)
 
-def fix_int(*a: Any, **kw: Any) -> int:
-    return int(fix(*a, **kw))
-
-
-def fix_int_reraise(*a: Any, **kw: Any) -> int:
-    return fix_int(*a, reraise=True, **kw)
-
-
-def fix_int_reraise_arg(arg: Any) -> int:
-    """fix_int_reraise wrapper for evaluating command arguments"""
     try:
-        fixed: pwndbg.dbg_mod.Value = fix_reraise_arg(arg)
-        if fixed.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            # Fixes issues with function ptrs (e.g. passing in `malloc`).
-            func_addr = fixed.address
-            if func_addr is None:
-                raise argparse.ArgumentTypeError(
-                    f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Function is not addressable."
-                )
-            return int(func_addr)
         return int(fixed)
     except pwndbg.dbg_mod.DebuggerError as e:
         raise argparse.ArgumentTypeError(
             f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: {e}"
         )
+
+
+def parse_command_argument_to_int_or_str(arg: str) -> int | str:
+    """
+    Takes a command argument and tries to evaluate it through the debugger
+    (is it a register? a symbol? a (hex) number? an expression) and get back
+    an int.
+
+    If it cannot, returns the same argument back.
+
+    Used for e.g. vmmap.
+    """
+    try:
+        int_res: int = parse_command_argument_to_int(arg)
+        return int_res
+    except argparse.ArgumentTypeError:
+        return arg
 
 
 def func_name(function: Callable[P, T]) -> str:
@@ -897,57 +914,6 @@ def OnlyWhenRunning(
     return func_when_no_kwargs
 
 
-def sloppy_gdb_parse(s: str) -> int | str:
-    """
-    This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
-
-    This makes the type being parsed as gdb value and if that parsing fails,
-    a string is returned.
-
-    :param s: String.
-    :return: Whatever gdb.parse_and_eval returns or string.
-    """
-
-    frame = pwndbg.dbg.selected_frame()
-    try:
-        target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
-            frame or pwndbg.dbg.selected_inferior()
-        )
-    except pwndbg.dbg_mod.NoInferior:
-        raise AssertionError("Reached command expression evaluation with no frame or inferior")
-
-    try:
-        val = pwndbg.aglib.symbol.lookup_symbol(s) or target.evaluate_expression(s)
-        if val.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            return int(val.address)
-        return int(val)
-    except (TypeError, pwndbg.dbg_mod.DebuggerError):
-        return s
-
-
-def AddressExpr(s: str) -> int:
-    """
-    Parses an address expression. Returns an int.
-    """
-    val = sloppy_gdb_parse(s)
-
-    if not isinstance(val, int):
-        raise argparse.ArgumentTypeError(f"Incorrect address (or GDB expression): {s}")
-
-    return val
-
-
-def HexOrAddressExpr(s: str) -> int:
-    """
-    Parses string as hexadecimal int or an address expression. Returns an int.
-    (e.g. '1234' will return 0x1234)
-    """
-    try:
-        return int(s, 16)
-    except ValueError:
-        return AddressExpr(s)
-
-
 def load_commands() -> None:
     # pylint: disable=import-outside-toplevel
     import pwndbg.dbg_mod
@@ -1024,6 +990,7 @@ def load_commands() -> None:
     import pwndbg.commands.msr
     import pwndbg.commands.nearpc
     import pwndbg.commands.next
+    import pwndbg.commands.objc
     import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
     import pwndbg.commands.paging

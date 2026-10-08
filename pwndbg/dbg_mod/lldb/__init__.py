@@ -2330,6 +2330,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def lex_args(self, command_line: str) -> list[str]:
+        # copies GDBs behaviour
         return pwndbg.lib.strings.lex_args(command_line)
 
     def _any_inferior(self) -> LLDBProcess:

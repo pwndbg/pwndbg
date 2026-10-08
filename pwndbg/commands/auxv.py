@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import pwndbg.auxv
+import pwndbg.aglib.auxv
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.lib.cache
@@ -13,7 +13,7 @@ from pwndbg.commands import CommandCategory
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenUserspace
 def auxv() -> None:
-    for k, v in pwndbg.auxv.get().items():
+    for k, v in pwndbg.aglib.auxv.get().items():
         if v is not None:
             print(k.ljust(24), v if not isinstance(v, int) else pwndbg.chain.format(v))
 
@@ -27,8 +27,8 @@ def auxv_explore() -> None:
     old_value = pwndbg.config.auto_explore_auxv.value
     pwndbg.config.auto_explore_auxv.value = "yes"
     try:
-        pwndbg.lib.cache.clear_function_cache(pwndbg.auxv.get)
-        pwndbg.auxv.get()
+        pwndbg.lib.cache.clear_function_cache(pwndbg.aglib.auxv.get)
+        pwndbg.aglib.auxv.get()
     finally:
         pwndbg.config.auto_explore_auxv.value = old_value
 

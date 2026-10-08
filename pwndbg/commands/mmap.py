@@ -33,9 +33,7 @@ flags or permissions or a single number corresponding to the bitwise OR of the
 protection and flag numbers.
 """,
 )
-parser.add_argument(
-    "addr", help="Address hint to be given to mmap.", type=pwndbg.commands.sloppy_gdb_parse
-)
+parser.add_argument("addr", help="Address hint to be given to mmap.", type=int)
 parser.add_argument(
     "length",
     help="Length of the mapping, in bytes. Needs to be greater than zero.",
@@ -95,7 +93,16 @@ mmap 0xdeadbeef 0x1000
 """,
 )
 @pwndbg.commands.OnlyWhenRunning
-def mmap(addr, length, prot=7, flags=0x22, fd=-1, offset=0, quiet=False, force=False) -> None:
+def mmap(
+    addr: int,
+    length: int,
+    prot: int = 7,
+    flags: int = 0x22,
+    fd: int = -1,
+    offset: int = 0,
+    quiet: bool = False,
+    force: bool = False,
+) -> None:
     aligned_addr = int(pwndbg.lib.memory.page_align(addr))
     if flags & mutils.FLAG_DICT["MAP_FIXED"] != 0:
         # When using MAP_FIXED, it's only safe to call mmap(2) when the address
@@ -104,7 +111,6 @@ def mmap(addr, length, prot=7, flags=0x22, fd=-1, offset=0, quiet=False, force=F
         #
         # Additionally, it's nice to highlight cases where the call is likely
         # to fail because the address is not properly aligned.
-        addr = int(addr)
         if addr != aligned_addr and not quiet:
             print(
                 message.warn(
@@ -169,7 +175,7 @@ wish to proceed."
                 )
                 return
 
-    elif int(addr) != aligned_addr and not quiet:
+    elif addr != aligned_addr and not quiet:
         # Highlight to the user that the address they've specified is likely to
         # be changed by the kernel.
         print(
