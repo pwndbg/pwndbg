@@ -35,6 +35,13 @@ from capstone6pwndbg import CS_MODE_RISCV_ZBS
 from capstone6pwndbg import CS_MODE_THUMB
 from capstone6pwndbg import CS_MODE_V9
 from typing_extensions import override
+from unicorn import UC_ARCH_ARM
+from unicorn import UC_ARCH_ARM64
+from unicorn import UC_ARCH_MIPS
+from unicorn import UC_ARCH_PPC
+from unicorn import UC_ARCH_RISCV
+from unicorn import UC_ARCH_S390X
+from unicorn import UC_ARCH_X86
 from unicorn import UC_MODE_32
 from unicorn import UC_MODE_64
 from unicorn import UC_MODE_ARM
@@ -49,8 +56,6 @@ from unicorn import UC_MODE_PPC32
 from unicorn import UC_MODE_PPC64
 from unicorn import UC_MODE_RISCV32
 from unicorn import UC_MODE_RISCV64
-from unicorn import UC_MODE_SPARC32
-from unicorn import UC_MODE_SPARC64
 from unicorn import UC_MODE_THUMB
 
 import pwndbg
@@ -98,6 +103,11 @@ class ArmEndiannessScheme(Enum):
 CAPSTONE_ENDIAN_MAPPING: dict[EndianType, int] = {
     "little": CS_MODE_LITTLE_ENDIAN,
     "big": CS_MODE_BIG_ENDIAN,
+}
+
+BOOLEAN_TO_ENDIAN_NAME_MAPPING: dict[bool, str] = {
+    False: "little",
+    True: "big",
 }
 
 
@@ -185,31 +195,37 @@ class PwndbgArchitecture(ArchDefinition):
     def unpack_size(self, data: bytes | bytearray, size: int) -> int:
         return struct.unpack(self.fmts[size], data)[0]
 
+    def _helper_get_capstone_endianness(self) -> int:
+        """
+        Subclasses should call this within their get_capstone_constants, and or (|) it with their
+        custom flags, if its needed.
+        """
+        return CAPSTONE_ENDIAN_MAPPING[self.endian]
+
     def get_capstone_constants(self, address: int) -> tuple[int, int] | None:
         """
         Return tuple of (CAPSTONE ARCH, CAPSTONE MODE) used to instantiate the Capstone disassembler for this architecture.
         """
         return None
 
-    def get_capstone_endianness(self) -> int:
-        return CAPSTONE_ENDIAN_MAPPING[self.endian]
-
     def _helper_get_unicorn_endianness(self) -> int:
         """
-        Subclasses should call this within their get_unicorn_mode, and or (|) it with their
+        Subclasses should call this within their get_unicorn_constants, and or (|) it with their
         custom flags, if its needed.
         """
         if pwndbg.aglib.arch.endian == "little":
             return UC_MODE_LITTLE_ENDIAN
         return UC_MODE_BIG_ENDIAN
 
-    def get_unicorn_mode(self) -> int | None:
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
         """
-        This is used to configure the emulator. This is the second parameter passed to the Unicorn constructor.
+        Return tuple of (UNICORN ARCH, UNICORN MODE)
+
+        These are the two parameters to instantiate the Unicorn emulator.
 
         Override this to return None if we don't support Unicorn emulation for this architecture
         """
-        return self._helper_get_unicorn_endianness()
+        return None
 
     def read_thumb_bit(self) -> Literal[0, 1, None]:
         """
@@ -230,6 +246,9 @@ class PwndbgArchitecture(ArchDefinition):
         """
         return None
 
+    def get_additional_arch_info(self) -> str | None:
+        return None
+
     def unsigned(self, val: int, shift: int = 0) -> int:
         return (val << shift) & ((1 << self.ptrbits) - 1)
 
@@ -243,14 +262,14 @@ class AMD64Arch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        return (CS_ARCH_X86, CS_MODE_64)
+        return CS_ARCH_X86, CS_MODE_64
 
     @override
-    def get_unicorn_mode(self) -> int | None:
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
         """
         Note that while this name sounds generic, it only applies at x86
         """
-        return UC_MODE_64
+        return UC_ARCH_X86, UC_MODE_64
 
 
 class i386Arch(PwndbgArchitecture):
@@ -266,14 +285,14 @@ class i386Arch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        return (CS_ARCH_X86, CS_MODE_32)
+        return CS_ARCH_X86, CS_MODE_32
 
     @override
-    def get_unicorn_mode(self) -> int | None:
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
         """
         Note that while this name sounds generic, it only applies at x86
         """
-        return UC_MODE_32
+        return UC_ARCH_X86, UC_MODE_32
 
 
 class i8086Arch(PwndbgArchitecture):
@@ -289,7 +308,7 @@ class i8086Arch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        return (CS_ARCH_X86, CS_MODE_16)
+        return CS_ARCH_X86, CS_MODE_16
 
 
 class ArmArch(PwndbgArchitecture):
@@ -300,78 +319,80 @@ class ArmArch(PwndbgArchitecture):
         super().__init__("arm")
 
     @override
-    def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        thumb_mode = pwndbg.aglib.disasm.disassembly.emulated_arm_mode_cache[address]
-        if thumb_mode is None:
-            thumb_mode = self.read_thumb_bit()
-        mode = CS_MODE_THUMB if thumb_mode else CS_MODE_ARM
-
-        return (CS_ARCH_ARM, mode)
-
-    @override
-    def get_arm_endianness_scheme(self) -> tuple[ArmEndiannessScheme, bool] | None:
+    def get_arm_endianness_scheme(self) -> tuple[ArmEndiannessScheme, bool]:
 
         if (sctlr := pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) is not None:
             # 7th bit dictates the scheme. 0 == B8, 1 == B32
             b32_scheme = sctlr & (1 << 7)
-            big_endian = sctlr & (1 << 25)
 
-            return ArmEndiannessScheme.BE32 if b32_scheme else ArmEndiannessScheme.BE8, bool(
-                big_endian
-            )
+            if b32_scheme:
+                return ArmEndiannessScheme.BE32, True
+            if (cpsr := pwndbg.aglib.regs.read_reg("cpsr")) is not None:
+                big_endian = cpsr & (1 << 9)
+                return ArmEndiannessScheme.BE8, bool(big_endian)
 
         # Default to BE8, which is the default on all new arm processors
-        return (ArmEndiannessScheme.BE8, pwndbg.aglib.arch.endian == "big")
+        big_endian = pwndbg.aglib.arch.endian == "big"
+        if (cpsr := pwndbg.aglib.regs.read_reg("cpsr")) is not None:
+            big_endian = cpsr & (1 << 9)
+
+        return (ArmEndiannessScheme.BE8, bool(big_endian))
 
     @override
-    def get_capstone_endianness(self) -> int:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         """
         Arm has two addressing schemes related to endianness: "BE8" and "BE32"
 
-        In BE32, if you have big endian enabled, it means both instructions and data are treated as bit endian.
-        In BE8, if big endian is enabled, it means data is big endian, while instructions are still little endian.
+        In BE32, instructions and data are always big endian.
+        In BE8, instructions are always little endian. Data can be little or big endian
 
         Starting at armv7, instructions are always little endian (BE8 is the only scheme).
         armv6 supports both BE32 and BE8.
         armv5 and before only supports BE32.
         """
+        thumb_mode = pwndbg.aglib.disasm.disassembly.emulated_arm_mode_cache[address]
+        if thumb_mode is None:
+            thumb_mode = self.read_thumb_bit()
+        mode = CS_MODE_THUMB if thumb_mode else CS_MODE_ARM
 
+        endian_flag = 0
         scheme, big_endian = self.get_arm_endianness_scheme()
 
         match scheme:
             case ArmEndiannessScheme.BE32:
-                return CS_MODE_BIG_ENDIAN if big_endian else CS_MODE_LITTLE_ENDIAN
+                # TODO CHECK THIS. Why not always big endian?
+                endian_flag = CS_MODE_BIG_ENDIAN if big_endian else CS_MODE_LITTLE_ENDIAN
             case ArmEndiannessScheme.BE8:
-                return CS_MODE_LITTLE_ENDIAN
-        return CS_MODE_LITTLE_ENDIAN
+                endian_flag = CS_MODE_LITTLE_ENDIAN
+
+        return (CS_ARCH_ARM, mode | endian_flag)
 
     @override
-    def get_unicorn_mode(self) -> int | None:
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
         """
         See the comment of the previous function for details on the different endian modes in arm.
 
         This chooses the correct setting to start Unicorn so it fetches instructions/data correctly.
 
         Options for a given setup:
+        - Scheme is B32: set to big endian
         - Scheme is B8: if little endian, just use UC_MODE_ARM
         - Scheme is B8: if big endian, use UC_MODE_ARMBE8
-        - Scheme is B32: set to little/big endian
-
         """
         mode = UC_MODE_THUMB if self.read_thumb_bit() else UC_MODE_ARM
 
-        uc_endian = self._helper_get_unicorn_endianness()
+        # uc_endian = self._helper_get_unicorn_endianness()
 
         scheme, big_endian = self.get_arm_endianness_scheme()
 
         match scheme:
             case ArmEndiannessScheme.BE32:
-                mode |= uc_endian
+                mode |= UC_MODE_BIG_ENDIAN
             case ArmEndiannessScheme.BE8:
                 if big_endian:
                     mode |= UC_MODE_ARMBE8
 
-        return mode
+        return UC_ARCH_ARM, mode
 
     @override
     def read_thumb_bit(self) -> Literal[0, 1]:
@@ -380,6 +401,21 @@ class ArmArch(PwndbgArchitecture):
             return (cpsr >> 5) & 1  # type: ignore[return-value]
 
         return 0
+
+    @override
+    def get_additional_arch_info(self) -> str | None:
+
+        scheme, big_endian = self.get_arm_endianness_scheme()
+
+        contents = f"Endianness scheme: {scheme.name}"
+
+        match scheme:
+            case ArmEndiannessScheme.BE32:
+                contents += " (big endian instructions and data)"
+            case ArmEndiannessScheme.BE8:
+                contents += f" (data endianness={BOOLEAN_TO_ENDIAN_NAME_MAPPING[big_endian]})"
+
+        return contents
 
 
 class ArmCortexArch(PwndbgArchitecture):
@@ -402,11 +438,11 @@ class ArmCortexArch(PwndbgArchitecture):
         return (CS_ARCH_ARM, CS_MODE_MCLASS | CS_MODE_THUMB)
 
     @override
-    def get_unicorn_mode(self) -> int | None:
-        return UC_MODE_MCLASS | UC_MODE_THUMB
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
+        return UC_ARCH_ARM, UC_MODE_MCLASS | UC_MODE_THUMB
 
     @override
-    def get_arm_endianness_scheme(self) -> tuple[ArmEndiannessScheme, bool] | None:
+    def get_arm_endianness_scheme(self) -> tuple[ArmEndiannessScheme, bool]:
         return (ArmEndiannessScheme.BE8, pwndbg.aglib.arch.endian == "big")
 
     @override
@@ -429,15 +465,11 @@ class AArch64Arch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        return (CS_ARCH_AARCH64, CS_MODE_ARM)
+        return (CS_ARCH_AARCH64, CS_MODE_ARM | CS_MODE_LITTLE_ENDIAN)
 
     @override
-    def get_capstone_endianness(self) -> int:
-        return CS_MODE_LITTLE_ENDIAN
-
-    @override
-    def get_unicorn_mode(self) -> int | None:
-        return UC_MODE_ARM | self._helper_get_unicorn_endianness()
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
+        return UC_ARCH_ARM64, UC_MODE_ARM | self._helper_get_unicorn_endianness()
 
 
 class PowerPCArch(PwndbgArchitecture):
@@ -449,14 +481,17 @@ class PowerPCArch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        return (CS_ARCH_PPC, CS_MODE_64)
+        return (CS_ARCH_PPC, CS_MODE_64 | self._helper_get_capstone_endianness())
 
     @override
-    def get_unicorn_mode(self) -> int | None:
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
+
+        endian_flags = self._helper_get_unicorn_endianness()
+
         if pwndbg.aglib.arch.ptrsize == 4:
-            return UC_MODE_PPC32 | self._helper_get_unicorn_endianness()
+            return UC_ARCH_PPC, UC_MODE_PPC32 | endian_flags
         if pwndbg.aglib.arch.ptrsize == 8:
-            return UC_MODE_PPC64 | self._helper_get_unicorn_endianness()
+            return UC_ARCH_PPC, UC_MODE_PPC64 | endian_flags
         return None
 
 
@@ -470,14 +505,15 @@ class SparcArch(PwndbgArchitecture):
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
         mode = CS_MODE_V9 if self.ptrsize == 8 else 0
-        return (CS_ARCH_SPARC, mode)
+        return (CS_ARCH_SPARC, mode | self._helper_get_capstone_endianness())
 
     @override
-    def get_unicorn_mode(self) -> int | None:
-        if pwndbg.aglib.arch.ptrsize == 4:
-            return UC_MODE_SPARC32 | self._helper_get_unicorn_endianness()
-        if pwndbg.aglib.arch.ptrsize == 8:
-            return UC_MODE_SPARC64 | self._helper_get_unicorn_endianness()
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
+        # TODO: explain that segfaults happen, so we disable this
+        # if pwndbg.aglib.arch.ptrsize == 4:
+        #     return UC_MODE_SPARC32 | self._helper_get_unicorn_endianness()
+        # if pwndbg.aglib.arch.ptrsize == 8:
+        #     return UC_MODE_SPARC64 | self._helper_get_unicorn_endianness()
         return None
 
 
@@ -496,12 +532,13 @@ class RISCV32Arch(PwndbgArchitecture):
             | CS_MODE_RISCV_C
             | CS_MODE_RISCV_ZBA
             | CS_MODE_RISCV_ZBB
-            | CS_MODE_RISCV_ZBS,
+            | CS_MODE_RISCV_ZBS
+            | self._helper_get_capstone_endianness(),
         )
 
     @override
-    def get_unicorn_mode(self) -> int | None:
-        return UC_MODE_RISCV32
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
+        return UC_ARCH_RISCV, UC_MODE_RISCV32
 
 
 class RISCV64Arch(PwndbgArchitecture):
@@ -519,12 +556,13 @@ class RISCV64Arch(PwndbgArchitecture):
             | CS_MODE_RISCV_C
             | CS_MODE_RISCV_ZBA
             | CS_MODE_RISCV_ZBB
-            | CS_MODE_RISCV_ZBS,
+            | CS_MODE_RISCV_ZBS
+            | self._helper_get_capstone_endianness(),
         )
 
     @override
-    def get_unicorn_mode(self) -> int | None:
-        return UC_MODE_RISCV64
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
+        return UC_ARCH_RISCV, UC_MODE_RISCV64
 
 
 class MipsArch(PwndbgArchitecture):
@@ -544,18 +582,20 @@ class MipsArch(PwndbgArchitecture):
         if extra == 0:
             extra = CS_MODE_MIPS64 if self.ptrsize == 8 else CS_MODE_MIPS32
 
-        return (CS_ARCH_MIPS, extra)
+        return (CS_ARCH_MIPS, extra | self._helper_get_capstone_endianness())
 
     @override
-    def get_unicorn_mode(self) -> int | None:
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
+
+        endian_flags = self._helper_get_unicorn_endianness()
 
         if ArchAttribute.MIPS_ISA_32R6 in self.attributes:
-            return UC_MODE_MIPS32R6 | self._helper_get_unicorn_endianness()
+            return UC_ARCH_MIPS, UC_MODE_MIPS32R6 | endian_flags
 
         if pwndbg.aglib.arch.ptrsize == 4:
-            return UC_MODE_MIPS32 | self._helper_get_unicorn_endianness()
+            return UC_ARCH_MIPS, UC_MODE_MIPS32 | endian_flags
         if pwndbg.aglib.arch.ptrsize == 8:
-            return UC_MODE_MIPS64 | self._helper_get_unicorn_endianness()
+            return UC_ARCH_MIPS, UC_MODE_MIPS64 | endian_flags
         return None
 
 
@@ -569,7 +609,7 @@ class Loongarch64Arch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        return (CS_ARCH_LOONGARCH, CS_MODE_LOONGARCH64)
+        return (CS_ARCH_LOONGARCH, CS_MODE_LOONGARCH64 | self._helper_get_capstone_endianness())
 
 
 class S390xArch(PwndbgArchitecture):
@@ -581,7 +621,11 @@ class S390xArch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        return (CS_ARCH_SYSTEMZ, 0)
+        return (CS_ARCH_SYSTEMZ, self._helper_get_capstone_endianness())
+
+    @override
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
+        return UC_ARCH_S390X, self._helper_get_unicorn_endianness()
 
 
 class HexagonArch(PwndbgArchitecture):

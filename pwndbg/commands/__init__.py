@@ -934,6 +934,7 @@ def load_commands() -> None:
         import pwndbg.commands.segments
         import pwndbg.commands.updown
 
+    import pwndbg.commands.archinfo
     import pwndbg.commands.argv
     import pwndbg.commands.aslr
     import pwndbg.commands.asm

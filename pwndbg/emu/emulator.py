@@ -7,6 +7,7 @@ from __future__ import annotations
 import binascii
 import re
 import string
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from enum import auto
@@ -29,6 +30,7 @@ import pwndbg.enhance
 import pwndbg.lib.memory
 import pwndbg.lib.regs
 from pwndbg import color
+from pwndbg.aglib.arch_mod import ArmEndiannessScheme
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color.syntax_highlight import syntax_highlight
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
@@ -74,21 +76,6 @@ def create_reg_to_const_map(
 
     return reg_to_const
 
-
-# Map our internal architecture names onto Unicorn Engine's architecture types.
-arch_to_UC: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, int] = {
-    "i386": U.UC_ARCH_X86,
-    "x86-64": U.UC_ARCH_X86,
-    "mips": U.UC_ARCH_MIPS,
-    # "sparc": U.UC_ARCH_SPARC,
-    "arm": U.UC_ARCH_ARM,
-    "armcm": U.UC_ARCH_ARM,
-    "aarch64": U.UC_ARCH_ARM64,
-    "powerpc": U.UC_ARCH_PPC,
-    "rv32": U.UC_ARCH_RISCV,
-    "rv64": U.UC_ARCH_RISCV,
-    "s390x": U.UC_ARCH_S390X,
-}
 
 # Architecture specific maps: Map<"UC_*_REG_*",constant>
 arch_to_UC_consts: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]] = {
@@ -161,6 +148,25 @@ arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]]
     "s390x": create_reg_to_const_map(arch_to_UC_consts["s390x"]),
 }
 
+
+def armeb_cpsr_endianness_handler(name: str, val: int) -> int:
+    endianness_scheme, big_endian = pwndbg.aglib.arch.get_arm_endianness_scheme()
+
+    # On real CPUs, the "big endianness" on BE32 binaries is controlled by a register
+    # in SCTLR. Unicorn, however, keys this of a the endianness bit in CPSR (which in reality, doesn't exist for these CPUs)
+    # So, we force the bit to be 1
+    if endianness_scheme == ArmEndiannessScheme.BE32:
+        val |= 1 << 9
+
+    return val
+
+
+# Before writing certain registers to the emulator, we might need to modify it,
+# because Unicorn doesn't perfectly model real CPU. Sometimes control registers are simplified
+# or something is configured via a register in Unicorn but not in a real CPU
+INTERCEPT_REG_WRITE_HANDLERS: dict[
+    PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, Callable[[str, int], int]]
+] = {"arm": {"cpsr": armeb_cpsr_endianness_handler}}
 
 # combine the flags with | operator. -1 for all
 (
@@ -295,23 +301,23 @@ class Emulator:
     However, it may be benign, since we lazily copy memory into the emulator.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, unicorn_init_info: tuple[int, int] | None = None) -> None:
         self.arch = pwndbg.aglib.arch.name
 
-        if self.arch not in arch_to_UC:
-            raise NotImplementedError(f"Cannot emulate code for {self.arch}")
+        if unicorn_init_info is None:
+            unicorn_init_info = pwndbg.aglib.arch.get_unicorn_constants()
+            if unicorn_init_info is None:
+                raise NotImplementedError(f"Cannot emulate code for {self.arch}")
+
+        uc_arch, mode = unicorn_init_info
+        self.uc_mode = mode
 
         # Mapping of Pwndbg register name to Unicorn constant for the register
         self.const_regs = arch_to_reg_const_map[self.arch]
 
-        mode = pwndbg.aglib.arch.get_unicorn_mode()
-        if mode is None:
-            raise NotImplementedError(f"Cannot emulate code for {self.arch}. Unicorn mode is None")
-
-        self.uc_mode = mode
         debug(DEBUG_INIT, "# Instantiating Unicorn for %s", self.arch)
-        debug(DEBUG_INIT, "uc = U.Uc(%r, %x)", (arch_to_UC[self.arch], self.uc_mode))
-        self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
+        debug(DEBUG_INIT, "uc = U.Uc(%r, %#x)", (uc_arch, self.uc_mode))
+        self.uc = U.Uc(uc_arch, self.uc_mode)
 
         debug(DEBUG_INIT, "# Setting TLB mode to virtual")
         self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
@@ -336,30 +342,40 @@ class Emulator:
         # (address_successfully_executed, size_of_instruction)
         self.last_single_step_result = InstructionExecutedResult(False, None, None)
 
+        arch_reg_intercept_handlers = INTERCEPT_REG_WRITE_HANDLERS.get(self.arch)
+
         # Initialize the register state
         for emu_reg in self.reg_set.emulated_regs_order:
-            reg = emu_reg.name
-            enum = self.get_reg_enum(reg)
+            reg_name = emu_reg.name
+            enum = self.get_reg_enum(reg_name)
 
-            if not reg:
-                debug(DEBUG_INIT, "# Could not set register %r", reg)
+            if not reg_name:
+                debug(DEBUG_INIT, "# Could not set register %r", reg_name)
                 continue
 
-            if reg in blacklisted_regs:
-                debug(DEBUG_INIT, "Skipping blacklisted register %r", reg)
+            if reg_name in blacklisted_regs:
+                debug(DEBUG_INIT, "Skipping blacklisted register %r", reg_name)
                 continue
-            value = pwndbg.aglib.regs.read_reg(reg)
+
+            value = pwndbg.aglib.regs.read_reg(reg_name)
+
             if None in (enum, value):
-                if reg not in blacklisted_regs:
-                    debug(DEBUG_INIT, "# Could not set register %r", reg)
+                if reg_name not in blacklisted_regs:
+                    debug(DEBUG_INIT, "# Could not set register %r", reg_name)
                 continue
+
+            if (
+                arch_reg_intercept_handlers is not None
+                and (intercept := arch_reg_intercept_handlers.get(reg_name)) is not None
+            ):
+                value = intercept(reg_name, value)
 
             # Most registers are initialized to zero.
             # However, some registers (CPSR on AArch64) do not default to zero, so we must explicitly set them to 0
             if not emu_reg.force_write and value == 0:
                 continue
 
-            name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
+            name = f"U.*.*_REG_{reg_name.upper()}"
             debug(DEBUG_INIT, "uc.reg_write(%(name)s, %(value)#x)", locals())
             self.uc.reg_write(enum, value)
 
