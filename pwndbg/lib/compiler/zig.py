@@ -47,6 +47,19 @@ _arch_mapping: dict[
     ("s390x", "big", 8): "s390x",
 }
 
+def additional_flags(arch: ArchDefinition) -> list[str]:
+    """
+    To compile some architectures, it's not enough to use the correct target triple,
+    but we need to pass additional flags as well.
+    """
+
+    # Just using sparc-freestanding target will fail compilation (as of Zig 0.17.0).
+    # We need to specify a target CPU
+    if arch.name == "sparc" and arch.ptrsize == 4:
+        return ["-mcpu=v8"]
+
+    return []
+
 
 LOWEST_ZIG_SUPPORTED_VERSION = (0, 15, 2)
 
@@ -110,7 +123,7 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
             "cc",
             "-target",
             zig_target,
-        ],
-        freestanding_assembler=[zig_executable, "cc", "-target", freestanding_target, "-c"],
+        ] + additional_flags(arch),
+        freestanding_assembler=[zig_executable, "cc", "-target", freestanding_target] + additional_flags(arch) + ["-c"],
         objcopy=[zig_executable, "objcopy"],  # it is cross-arch by default
     )
