@@ -5,6 +5,7 @@ import pytest
 
 import pwndbg.aglib
 import pwndbg.color
+from pwndbg.aglib.arch_mod import ArmEndiannessScheme
 
 ARM_PREAMBLE = """
 .text
@@ -51,11 +52,41 @@ end:
 """
 
 
-def test_arm_simple_branch(qemu_assembly_run):
+@pytest.mark.parametrize(
+    "compile_params",
+    [
+        ("arm", ArmEndiannessScheme.BE8, False, ()),
+        # A v5 cpu which forces BE32
+        ("armeb", ArmEndiannessScheme.BE32, True, ("-mcpu=arm926ej_s",)),
+        # Use a CPU with BE8 support. This compiles to make the data big endian
+        ("armeb", ArmEndiannessScheme.BE8, True, ("-mcpu=cortex_a7",)),
+    ],
+)
+def test_arm_simple_branch(qemu_assembly_run, compile_params):
     """
     Simple test to ensure branches are being followed correctly and that they are remembered when stepping past them
+
+    NOTE:
+        We parameterize over arm and armeb to check that big endian arm also works.
+
+        armeb will compile to B8 mode, where instructions are always little endian.
+
+        If this fails for that, it means that the disassembler/emulator is not correctly configured for Arm B8 mode
+
+        Note that we are using this test specifically, in that is has a interworking branch, which changes Thumb mode
+        correctly regardless of the architecture (new Arm allows explicitly writing to pc with other instructions to interwork,
+        which didn't work on older Arm CPUs)
     """
-    qemu_assembly_run(ARM_BRANCHES, "arm")
+
+    arch, intended_endianness_scheme, intended_big_endian, extra_zig_flags = compile_params
+
+    qemu_assembly_run(ARM_BRANCHES, arch, extra_zig_flags=extra_zig_flags)
+
+    current_scheme, current_endianness = pwndbg.aglib.arch.get_arm_endianness_scheme()
+
+    assert (
+        current_scheme == intended_endianness_scheme and current_endianness == intended_big_endian
+    )
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
@@ -210,24 +241,16 @@ lsr r3, #4
 """
 
 
-@pytest.mark.parametrize("arch", ["arm", "armeb"])
-def test_arm_implicit_branch(qemu_assembly_run, arch):
+def test_arm_implicit_branch(qemu_assembly_run):
     """
     In Arm, many general-purpose instructions can target the PC as the destination register, particularly while changing between Arm/Thumb mode
 
     For example, the `add` and `sub` instructions can be used to directory write to the PC, forming a branch.
 
     This test contains a "add" instruction that causes the PC to change. We want there to be a <target> displayed, and a space after it in the disasm
-
-    NOTE:
-        We parameterize over arm and armeb to check that big endian arm also works.
-
-        armeb will compile to B8 mode, where instructions are always little endian.
-
-        If this fails for that, it means that the disassembler/emulator is not correctly configured for Arm B8 mode
     """
 
-    qemu_assembly_run(ARM_IMPLICIT_BRANCH, arch)
+    qemu_assembly_run(ARM_IMPLICIT_BRANCH, "arm")
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
