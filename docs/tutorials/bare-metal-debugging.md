@@ -13,6 +13,8 @@ set auto-explore-stack no
 # disable the stack
 set context-sections regs disasm code backtrace expressions threads heap_tracker
 set dereference-limit 0
+# prevent speculative MMIO reads
+set emulate off
 ```
 The `.gdbinit` file can be in your project-specific folder, and will be loaded after your `~/.gdbinit`.
 
