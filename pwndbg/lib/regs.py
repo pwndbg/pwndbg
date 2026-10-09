@@ -628,7 +628,7 @@ arm32_sctrl_el1_flags = BitFlags(
 arm = RegisterSet(
     retaddr=(Reg("lr", 4),),
     flags={"cpsr": arm_cpsr_flags},
-    extra_flags={"sctlr_el1": arm32_sctrl_el1_flags},
+    extra_flags={"sctlr": arm32_sctrl_el1_flags, "sctlr_el1": arm32_sctrl_el1_flags},
     gpr=(
         Reg("r0", 4),
         Reg("r1", 4),
