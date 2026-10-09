@@ -52,16 +52,18 @@ end:
 """
 
 
-@pytest.mark.parametrize(
-    "compile_params",
-    [
-        ("arm", ArmEndiannessScheme.BE8, False, ()),
-        # A v5 cpu which forces BE32
-        ("armeb", ArmEndiannessScheme.BE32, True, ("-mcpu=arm926ej_s",)),
-        # Use a CPU with BE8 support. This compiles to make the data big endian
-        ("armeb", ArmEndiannessScheme.BE8, True, ("-mcpu=cortex_a7",)),
-    ],
-)
+ARM_MULTIPLE_ENDIANNESS_COMPILE_PARAMS: list[
+    tuple[str, ArmEndiannessScheme, bool, tuple[str, ...]]
+] = [
+    ("arm", ArmEndiannessScheme.BE8, False, ()),
+    # A v5 cpu which forces BE32
+    ("armeb", ArmEndiannessScheme.BE32, True, ("-mcpu=arm926ej_s",)),
+    # Use a CPU with BE8 support. This compiles to make the data big endian
+    ("armeb", ArmEndiannessScheme.BE8, True, ("-mcpu=cortex_a7",)),
+]
+
+
+@pytest.mark.parametrize("compile_params", ARM_MULTIPLE_ENDIANNESS_COMPILE_PARAMS)
 def test_arm_simple_branch(qemu_assembly_run, compile_params):
     """
     Simple test to ensure branches are being followed correctly and that they are remembered when stepping past them
@@ -218,6 +220,155 @@ def test_arm_interworking_branch(qemu_assembly_run):
     )
 
     assert dis_1 == expected_1
+
+
+# This can be compiled to thumb1
+ARM_THUMB1_INTERWORKING_BRANCH = f"""
+{ARM_PREAMBLE}
+add r0, pc, #1
+bx r0
+
+.THUMB
+movs r2, #4
+adds r2, r2, r0
+
+end:
+movs r0, 0
+movs r7, 0xf8
+swi #0
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+"""
+
+
+@pytest.mark.parametrize("compile_params", ARM_MULTIPLE_ENDIANNESS_COMPILE_PARAMS)
+def test_arm_thumb1_interworking_branch(qemu_assembly_run, compile_params):
+    """
+    This assembly can be compiled with thumb1 instructions, allowing the following configuration:
+
+    BE8 little endian, BE8 big endian, and BE32 to compile it
+    """
+    arch, intended_endianness_scheme, intended_big_endian, extra_zig_flags = compile_params
+
+    qemu_assembly_run(ARM_THUMB1_INTERWORKING_BRANCH, arch, extra_zig_flags=extra_zig_flags)
+
+    current_scheme, current_endianness = pwndbg.aglib.arch.get_arm_endianness_scheme()
+
+    assert (
+        current_scheme == intended_endianness_scheme and current_endianness == intended_big_endian
+    )
+
+    dis_0 = gdb.execute("context disasm", to_string=True)
+    dis_0 = pwndbg.color.strip(dis_0)
+
+    expected_0 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        " ► 0x200b4 <_start>       add    r0, pc, #1     R0 => 0x200bd (_start+9) (0x200bc + 0x1)\n"
+        "   0x200b8 <_start+4>     bx     r0                          <_start+8>\n"
+        "    ↓\n"
+        "   0x200bc <_start+8>     movs   r2, #4                  R2 => 4\n"
+        "   0x200be <_start+10>    adds   r2, r2, r0              R2 => 0x200c1 (end+1) (0x4 + 0x200bd)\n"
+        "   0x200c0 <end>          movs   r0, #0                  R0 => 0\n"
+        "   0x200c2 <end+2>        movs   r7, #0xf8               R7 => 0xf8\n"
+        "   0x200c4 <end+4>        svc    #0 <SYS_exit_group>\n"
+        "   0x200c6 <end+6>        nop   \n"
+        "   0x200c8 <end+8>        nop   \n"
+        "   0x200ca <end+10>       nop   \n"
+        "   0x200cc <end+12>       nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_0 == expected_0
+
+    # Make sure the transition is remembered
+
+    gdb.execute("si 2")
+
+    dis_1 = gdb.execute("context disasm", to_string=True)
+    dis_1 = pwndbg.color.strip(dis_1)
+
+    expected_1 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────[ DISASM / arm / thumb mode / set emulate on ]─────────────────\n"
+        "   0x200b4 <_start>       add    r0, pc, #1     R0 => 0x200bd (_start+9) (0x200bc + 0x1)\n"
+        "   0x200b8 <_start+4>     bx     r0                          <_start+8>\n"
+        "    ↓\n"
+        " ► 0x200bc <_start+8>     movs   r2, #4                  R2 => 4\n"
+        "   0x200be <_start+10>    adds   r2, r2, r0              R2 => 0x200c1 (end+1) (0x4 + 0x200bd)\n"
+        "   0x200c0 <end>          movs   r0, #0                  R0 => 0\n"
+        "   0x200c2 <end+2>        movs   r7, #0xf8               R7 => 0xf8\n"
+        "   0x200c4 <end+4>        svc    #0 <SYS_exit_group>\n"
+        "   0x200c6 <end+6>        nop   \n"
+        "   0x200c8 <end+8>        nop   \n"
+        "   0x200ca <end+10>       nop   \n"
+        "   0x200cc <end+12>       nop   \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_1 == expected_1
+
+
+ARM_ENDIANNESS_SCHEME_LOADS = f"""
+.data
+val: .word 0x41
+
+{ARM_PREAMBLE}
+ldr r4, =val
+ldr r0, [r4]
+add r0, r0, #1
+str r0, [r4]
+ldr r0, [r4]
+
+{ARM_GRACEFUL_EXIT}
+"""
+
+
+@pytest.mark.parametrize("compile_params", ARM_MULTIPLE_ENDIANNESS_COMPILE_PARAMS)
+def test_arm_big_endianness_loads(qemu_assembly_run, compile_params):
+    """
+    Do some memory loads in different endian settings.
+
+    If the annotations are wrong, it means we likely initialized Unicorn incorrectly.
+    """
+    arch, intended_endianness_scheme, intended_big_endian, extra_zig_flags = compile_params
+
+    qemu_assembly_run(ARM_ENDIANNESS_SCHEME_LOADS, arch, extra_zig_flags=extra_zig_flags)
+
+    current_scheme, current_endianness = pwndbg.aglib.arch.get_arm_endianness_scheme()
+
+    assert (
+        current_scheme == intended_endianness_scheme and current_endianness == intended_big_endian
+    )
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        " ► 0x200d4 <_start>       ldr    r4, [pc, #0x3c]         R4, [_start+68] => 0x3011c (val) ◂— 0x41\n"
+        "   0x200d8 <_start+4>     ldr    r0, [r4]                R0, [val] => 0x41\n"
+        "   0x200dc <_start+8>     add    r0, r0, #1              R0 => 0x42 (0x41 + 0x1)\n"
+        "   0x200e0 <_start+12>    str    r0, [r4]                [val] <= 0x42\n"
+        "   0x200e4 <_start+16>    ldr    r0, [r4]                R0, [val] => 0x42\n"
+        "   0x200e8 <_start+20>    mov    r0, #0                  R0 => 0\n"
+        "   0x200ec <_start+24>    mov    r7, #0xf8               R7 => 0xf8\n"
+        "   0x200f0 <_start+28>    svc    #0 <SYS_exit_group>\n"
+        "   0x200f4 <_start+32>    mov    r0, r0\n"
+        "   0x200f8 <_start+36>    mov    r0, r0\n"
+        "   0x200fc <_start+40>    mov    r0, r0\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
 
 
 ARM_IMPLICIT_BRANCH = f"""
