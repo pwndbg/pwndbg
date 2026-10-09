@@ -13,9 +13,6 @@ def test_config():
     # \u2500 is ─
     assert "'#' ('\u2500')" in gdb.execute("theme", to_string=True)
 
-    gdb.execute("set global-max-fast 0x80")
-    assert "'0x80' ('0')" in gdb.execute("heap-config", to_string=True)
-
 
 def test_config_filtering():
     out = gdb.execute("config context-disasm-lines", to_string=True).splitlines()

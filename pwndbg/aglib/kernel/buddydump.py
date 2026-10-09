@@ -60,7 +60,7 @@ def find_zone_offsets() -> tuple[int, int, int, int, int]:
         MAX_ORDER * (pwndbg.aglib.kernel.symbol.nmtypes() * 0x10 + 8)
     ) + 0x10  # guessed MAX_ORDER * sizeof(struct list_head) + some other fields
     # find the next `zone_pgdat`
-    for i in range(100):  # the pcp offset should exist in those range
+    for _ in range(100):  # the pcp offset should exist in those range
         val = pwndbg.aglib.memory.u64(ptr)
         ptr += 8
         if pwndbg.aglib.memory.is_kernel(val):

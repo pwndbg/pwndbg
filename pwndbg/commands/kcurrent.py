@@ -175,8 +175,9 @@ def ksighand(pid: int) -> None:
         if not thread.user_task:
             indent.print(message.warn("not user task"))
             return
-        for i, (handler, flags) in enumerate(thread.sighand):
-            m = pwndbg.aglib.signal.PER_ARCH_SIGNAL_MAPPINGS[pwndbg.aglib.arch.name]
+        m = pwndbg.aglib.signal.PER_ARCH_SIGNAL_MAPPINGS[pwndbg.aglib.arch.name]
+        # `sighand->action` is indexed by `signal - 1`, so entry `i` describes signal `i + 1`
+        for i, (handler, flags) in enumerate(thread.sighand, start=1):
             if i not in m:
                 continue
             name = color.blue(f"{m[i]:<10}")

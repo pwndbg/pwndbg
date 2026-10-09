@@ -303,18 +303,16 @@ class BinderVisitor:
             else:
                 res.append(self._format_field("from_parent"))
                 with self.indent:
-                    for transaction in for_each_transaction(
-                        transaction["from_parent"], "from_parent"
-                    ):
-                        res.append(self.format_transaction(transaction))
+                    for tx in for_each_transaction(transaction["from_parent"], "from_parent"):
+                        res.append(self.format_transaction(tx))
 
             if int(transaction["to_parent"]) == 0:
                 res.append(self._format_field("to_parent", "NULL"))
             else:
                 res.append(self._format_field("to_parent"))
                 with self.indent:
-                    for transaction in for_each_transaction(transaction["to_parent"], "to_parent"):
-                        res.append(self.format_transaction(transaction))
+                    for tx in for_each_transaction(transaction["to_parent"], "to_parent"):
+                        res.append(self.format_transaction(tx))
 
         return "\n".join(res)
 

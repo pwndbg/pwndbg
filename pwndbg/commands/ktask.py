@@ -297,7 +297,7 @@ def get_ktasks() -> tuple[Ktask, ...]:
             for task in for_each_entry(_init_task["tasks"], "struct task_struct", "tasks"):
                 if (task := int(task)) and task not in seen and pwndbg.aglib.memory.is_kernel(task):
                     seen.add(task)
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"ERROR (get_ktasks): {e}"))
         return ()
     return tuple(Ktask(task) for task in seen)

@@ -18,12 +18,15 @@ import pwndbg.color.syntax_highlight as H
 import pwndbg.dintegration
 import pwndbg.lib.config
 import pwndbg.lib.disasm.helpers as bit_math
+import pwndbg.lib.pretty_print
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
+from pwndbg.aglib.disasm.instruction import MemoryDereferenceInfo
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import boolean_to_instruction_condition
 from pwndbg.color import message
+from pwndbg.emu.emulator import EmulatorCrashData
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.regs import PseudoEmulatedRegisterFile
 
@@ -88,7 +91,7 @@ pwndbg.config.add_param(
 )
 
 
-def syntax_highlight(ins):
+def syntax_highlight(ins: str):
     return H.syntax_highlight(ins, filename=".asm")
 
 
@@ -146,6 +149,22 @@ class DisassemblyAssistant:
     supports_manual_emulation = False
     """This feature relies on the Capstone .regs_access() features that not all architectures have reliable support for"""
 
+    _can_reason_about_process_state: bool = False
+    """
+    While enhancing an instruction, will we be allowed to read from the current process state to read registers / memory
+    that could provide more context on what the instruction does?
+
+    For example, if the instruction is `LOAD R9, [RAX]`, can we read the register RAX and dereference it?
+
+    This is only true in one case: when enhancing the instruction that the CPU is currently paused on!
+    Otherwise, we use the emulator.
+    """
+
+    emu_crash_reason: EmulatorCrashData | None = None
+    """
+    If the emulator stopped while we attempted to step it, this will contain the data for the crash
+    """
+
     def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         self.architecture = architecture
         self.manual_register_values = PseudoEmulatedRegisterFile(
@@ -153,7 +172,7 @@ class DisassemblyAssistant:
         )
 
         self.op_handlers: dict[
-            int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator], int | None]
+            int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator | None], int | None]
         ] = {
             CS_OP_IMM: self._parse_immediate,  # Return immediate value
             CS_OP_REG: self._parse_register,  # Return value of register
@@ -169,13 +188,24 @@ class DisassemblyAssistant:
             CS_OP_MEM: self._memory_string,
         }
 
-    def enhance(self, instruction: PwndbgInstruction, emu: Emulator = None) -> None:
+    def enhance(
+        self,
+        instruction: PwndbgInstruction,
+        current_cpu_instruction: bool,
+        emu: Emulator | None = None,
+    ) -> None:
         """
         Enhance the instruction - resolving branch targets, conditionals, and adding annotations
 
         This is the only public method that should be called on this object externally.
         """
+        # Reset this every time we enhance (and thus try to step the emulator)
+        self.emu_crash_reason = None
+
+        instruction.enhanced = True
         # It is assumed that the emulator's pc is at the instruction's address
+
+        self._can_reason_about_process_state = current_cpu_instruction
 
         # There are 3 degrees of emulation:
         # 1. No emulation at all. In this case, the `emu` parameter should be None
@@ -292,11 +322,11 @@ class DisassemblyAssistant:
             print("Done enhancing")
 
     # This is run before enhancement - often used to handle edge case behavior
-    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         return None
 
     # Subclasses for specific architecture should override this
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         """
         The goal of this function is to set the `annotation` field of the instruction,
         which is the string to be printed in a disasm view.
@@ -304,7 +334,7 @@ class DisassemblyAssistant:
         return
 
     def _enhance_operands(
-        self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
+        self, instruction: PwndbgInstruction, emu: Emulator | None, jump_emu: Emulator | None
     ) -> bool:
         """
         Enhances the operands by determining values and symbols
@@ -366,10 +396,13 @@ class DisassemblyAssistant:
                     )
 
         # Execute the instruction
-        if jump_emu and None in jump_emu.single_step(instruction=instruction):
-            # This branch is taken if stepping the emulator failed
-            jump_emu = None
-            emu = None
+        if jump_emu:
+            step_attempt = jump_emu.single_step(instruction=instruction)
+            if not step_attempt.success:
+                # This branch is taken if stepping the emulator failed
+                jump_emu = None
+                emu = None
+                self.emu_crash_reason = step_attempt.emulator_crash_data
 
         # Set after_value after single stepping the emulator
         if emu is not None:
@@ -393,18 +426,18 @@ class DisassemblyAssistant:
 
         return jump_emu is not None
 
-    def can_reason_about_process_state(self, instruction: PwndbgInstruction) -> bool:
+    def can_reason_about_process_state(self) -> bool:
         """
         Determine if the program counter of the process equals the address of the instruction being enhanced.
         If so, it means we can safely reason and read from registers and memory to enhance values that
         we can add to the annotation string. This becomes relevent when NOT emulating, and is meant to
         allow more details when the PC is at the instruction being enhanced
         """
-        return instruction.address == pwndbg.aglib.regs.pc
+        return self._can_reason_about_process_state
 
     # Delegates to "read_register", which takes Capstone ID for register.
     def _parse_register(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         reg = op.reg
         return self._read_register(instruction, reg, emu)
@@ -412,17 +445,17 @@ class DisassemblyAssistant:
     # Determine memory address of operand (Ex: in x86, mov rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
     # Subclasses override for specific architectures
     def _parse_memory(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         return None
 
     def _parse_immediate(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         return op.imm
 
     def _read_register(
-        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
+        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator | None
     ) -> int | None:
         """
         Read value in register. Return None if cannot reason about the value in the register.
@@ -445,7 +478,7 @@ class DisassemblyAssistant:
             if DEBUG_ENHANCEMENT:
                 print(f"Register in emulation returned {regname}={hex(value)}")
             return value
-        if self.can_reason_about_process_state(instruction):
+        if self.can_reason_about_process_state():
             # When instruction address == pc, we can reason about all registers.
             # The values will just reflect values prior to executing the instruction, instead of after,
             # which is relevent if we are writing to this register.
@@ -458,35 +491,48 @@ class DisassemblyAssistant:
             return reg_value
         return None
 
-    # Read memory of given size, taking into account emulation and being able to reason about the memory location
     def _read_memory(
         self,
         address: int,
         size: int,
         instruction: PwndbgInstruction,
-        emu: Emulator,
+        emu: Emulator | None,
+        force_allow_process_read: bool = False,
     ) -> int | None:
-        address_list = self._telescope(address, 1, instruction, emu, read_size=size)
+        """
+        Read memory of given size, taking into account emulation and being able to reason about the memory location
+        """
+        address_list = self._telescope(
+            address,
+            1,
+            instruction,
+            emu,
+            read_size=size,
+            force_allow_process_read=force_allow_process_read,
+        )
 
         if len(address_list) >= 2:
             return address_list[1]
 
         return None
 
-    # Pass in a operand and it's value, and determine the actual value used during an instruction
-    # Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
-    # a register or a memory value to dereference, and we want the actual value used.
-    # Override this to implement memory lookups in given architecture (if it's relevent)
-    # Different architecture read memory differently:
-    # - Only a couple Capstone architectures support the memory .size field, which determines read width.
-    # - In others, read/write width is implied.
     def _resolve_used_value(
         self,
         value: int | None,
         instruction: PwndbgInstruction,
         operand: EnhancedOperand,
-        emu: Emulator,
+        emu: Emulator | None,
+        force_allow_process_read: bool = False,
     ) -> int | None:
+        """
+        Pass in a operand and it's value, and determine the actual value used during an instruction
+        Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
+        a register or a memory value to dereference, and we want the actual value used.
+        Override this to implement memory lookups in given architecture (if it's relevent)
+        Different architecture read memory differently:
+        - Only a couple Capstone architectures support the memory .size field, which determines read width.
+        - In others, read/write width is implied.
+        """
         if value is None:
             return None
 
@@ -495,7 +541,13 @@ class DisassemblyAssistant:
         if operand.type == CS_OP_MEM:
             # Assume that we are reading ptrsize - subclasses should override this function
             # to provide a more specific value if needed
-            self._read_memory(value, pwndbg.aglib.arch.ptrsize, instruction, emu)
+            return self._read_memory(
+                value,
+                pwndbg.aglib.arch.ptrsize,
+                instruction,
+                emu,
+                force_allow_process_read=force_allow_process_read,
+            )
 
         return None
 
@@ -504,8 +556,9 @@ class DisassemblyAssistant:
         address: int,
         limit: int,
         instruction: PwndbgInstruction,
-        emu: Emulator,
-        read_size: int = None,
+        emu: Emulator | None,
+        read_size: int | None = None,
+        force_allow_process_read: bool = False,
     ) -> list[int]:
         """
         Dereference an address recursively - takes into account emulation.
@@ -515,11 +568,9 @@ class DisassemblyAssistant:
         The list that the function returns is guaranteed have len >= 1
         """
 
-        can_read_process_state = self.can_reason_about_process_state(instruction)
-
         if emu:
             return emu.telescope(address, limit, read_size=read_size)
-        if can_read_process_state:
+        if self.can_reason_about_process_state() or force_allow_process_read:
             # Can reason about memory in this case.
 
             if read_size is not None and read_size < pwndbg.aglib.arch.ptrsize:
@@ -531,7 +582,7 @@ class DisassemblyAssistant:
                         pwndbg.aglib.memory.get_typed_pointer_value(size_type, address)
                     )
                     result.append(read_value)
-                except pwndbg.dbg_mod.Error:
+                except pwndbg.dbg_mod.DebuggerError:
                     pass
 
                 return result
@@ -557,16 +608,12 @@ class DisassemblyAssistant:
                     address = int(pwndbg.aglib.memory.get_typed_pointer_value(size_type, address))
                     address &= pwndbg.aglib.arch.ptrmask
                     address_list.append(address)
-                except pwndbg.dbg_mod.Error:
+                except pwndbg.dbg_mod.DebuggerError:
                     break
             else:
                 break
 
         return address_list
-
-        # We cannot telescope, but we can still return the address.
-        # Just without any further information
-        return [address]
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
     def _telescope_format_list(self, addresses: list[int], limit: int, emu: Emulator) -> str:
@@ -620,7 +667,7 @@ class DisassemblyAssistant:
 
         return None
 
-    def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         if CS_GRP_INT not in instruction.groups:
             return
 
@@ -636,7 +683,9 @@ class DisassemblyAssistant:
                 or f"<unk_{instruction.syscall}>"
             )
 
-    def _get_syscall_arch_info(self, instruction) -> tuple[str, str]:
+    def _get_syscall_arch_info(
+        self, instruction: PwndbgInstruction
+    ) -> tuple[str, str] | tuple[None, None]:
         """
         Return tuple of (name of syscall architecture, syscall register name)
 
@@ -646,7 +695,7 @@ class DisassemblyAssistant:
             return (None, None)
         return (pwndbg.aglib.arch.name, pwndbg.aglib.arch.syscall_abi.syscall_register)
 
-    def _enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         """
         Sets the `condition` of the instruction
 
@@ -664,11 +713,13 @@ class DisassemblyAssistant:
         instruction.condition = self._condition(instruction, emu)
 
     # Subclasses should override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         return InstructionCondition.UNCONDITIONAL
 
     def _enhance_next(
-        self, instruction: PwndbgInstruction, emu: Emulator, jump_emu: Emulator
+        self, instruction: PwndbgInstruction, emu: Emulator | None, jump_emu: Emulator | None
     ) -> None:
         """
         Set the `next` and `target` field of the instruction.
@@ -781,9 +832,30 @@ class DisassemblyAssistant:
         # Assume only single-operand jumps.
         if len(instruction.operands) == 1:
             op = instruction.operands[0]
-            addr = self._resolve_used_value(op.before_value, instruction, op, emu)
-            if addr:
+            addr = op.before_value_resolved
+            if addr is not None:
                 addr &= pwndbg.aglib.arch.ptrmask
+            elif op.is_mem_with_constant_addr and op.before_value is not None:
+                # The memory lookup failed. If it's a constant address, it possibly because
+                # we couldn't reason about the memory value (writable memory) at the moment the process is paused
+                # Example: `jmp [constant_address]`, where constant_address is in writable memory
+                before_value_resolved = self._resolve_used_value(
+                    op.before_value, instruction, op, emu, force_allow_process_read=True
+                )
+                instruction.target_memory_operand = MemoryDereferenceInfo(
+                    op.before_value, op.str, before_value_resolved
+                )
+            elif (
+                op.type == CS_OP_MEM
+                and op.before_value is not None
+                and not pwndbg.aglib.memory.peek(op.before_value)
+            ):
+                # We have memory address that we know is not a constant address.
+                # And we were unable to read the memory location containing the jump target.
+                # Example: `jmp [rax]`, where the `rax` is in unmapped memory
+                instruction.target_memory_operand = MemoryDereferenceInfo(
+                    op.before_value, op.str, None
+                )
         else:
             # Some architectures have jumps with multiple operands. In this case, this default implementation
             # does a simple naive check. Iterate all operands, pick the first one resolves to a symbol or lands in executable memory
@@ -791,7 +863,7 @@ class DisassemblyAssistant:
 
             # Reversed order, just because through observation the immediates and labels are often farther right
             for op in reversed(instruction.operands):
-                resolved_addr = self._resolve_used_value(op.before_value, instruction, op, emu)
+                resolved_addr = op.before_value_resolved
                 if resolved_addr:
                     resolved_addr &= pwndbg.aglib.arch.ptrmask
                     if op.symbol:
@@ -819,7 +891,7 @@ class DisassemblyAssistant:
         return repr(instruction)
 
     # String functions assume the .before_value and .after_value have been set
-    def _immediate_string(self, instruction, operand) -> str:
+    def _immediate_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand) -> str:
         return pwndbg.lib.pretty_print.int_to_string(operand.before_value)
 
     def _register_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
@@ -1052,8 +1124,12 @@ class DisassemblyAssistant:
         if len(instruction.operands) == 2:
             left, right = instruction.operands
             # If we already used emulation, use the result, otherwise take the source operand before_value
-            result = left.after_value or right.before_value
-            if result is not None and result >= 0:
+            result = left.after_value if left.after_value is not None else right.before_value
+
+            if result is not None:
+                # It may be a negative number if it was an immediate
+                result &= pwndbg.aglib.arch.ptrmask
+
                 # We have determined the value written to this register - propagate this to future instructions.
                 instruction.register_writes[left.reg] = result
 
@@ -1080,7 +1156,7 @@ class DisassemblyAssistant:
         op_one: int | None,
         op_two: int | None,
         char_to_separate_operands: str,
-        memory_assignment=False,
+        memory_assignment: bool = False,
     ) -> None:
         # Ex: "0x198723 + 0x2b8"
         math_string = None
@@ -1109,6 +1185,7 @@ class DisassemblyAssistant:
 
 
 def basic_enhance(ins: PwndbgInstruction) -> None:
+    ins.enhanced = True
     # Apply syntax highlighting and inline symbol replacement
     # Used in cases were we don't want to do the full enhancement process
     # for performance reasons.

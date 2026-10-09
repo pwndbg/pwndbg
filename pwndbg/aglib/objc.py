@@ -14,6 +14,7 @@ from collections.abc import Generator
 from typing import Generic
 from typing import TypeVar
 
+from typing_extensions import assert_never
 from typing_extensions import override
 
 import pwndbg
@@ -383,6 +384,8 @@ class _ListArray(Generic[T]):
         elif tag == 2:
             # This is a relative list of lists.
             for ll in _RelativeListOfLists(self._ty, ptr).entries():
+                if ll is None:
+                    continue
                 yield from ll.get_list().entries()
 
 
@@ -552,11 +555,9 @@ class Class(Object):
                 return ro_or_rw_ext.ro()
             if isinstance(ro_or_rw_ext, _ClassRoPtr):
                 return ro_or_rw_ext
-            # FIXME: Should be `typing.assert_never`, needs Python 3.11
-            assert False
+            assert_never(ro_or_rw_ext)
         else:
-            # FIXME: Should be `typing.assert_never`, needs Python 3.11
-            assert False
+            assert_never(data)
 
     def _rw_ext(self) -> _ClassRwExtPtr | None:
         data = self._data_bits().data()
@@ -568,11 +569,9 @@ class Class(Object):
                 return ro_or_rw_ext
             if isinstance(ro_or_rw_ext, _ClassRoPtr):
                 return None
-            # FIXME: Should be `typing.assert_never`, needs Python 3.11
-            assert False
+            assert_never(ro_or_rw_ext)
         else:
-            # FIXME: Should be `typing.assert_never`, needs Python 3.11
-            assert False
+            assert_never(data)
 
     @property
     def superclass(self) -> Class | None:
@@ -717,6 +716,13 @@ class Selector:
 
     def __init__(self, ptr: int):
         self._ptr = ptr
+
+    @property
+    def address(self) -> int:
+        """
+        The address at which this selector lives.
+        """
+        return self._ptr
 
     @property
     def name(self) -> bytes:
@@ -1148,3 +1154,29 @@ def try_resolve_call_at_current_pc(insn: PwndbgInstruction) -> pwndbg.lib.functi
 
     # Not a an Objective-C call or not a type we know about.
     return None
+
+
+def classes_per_module() -> Generator[tuple[str, int, Generator[Class]]]:
+    """
+    Looks up the Objective-C classes present in the metadata from modules in the
+    address space of the currently running process.
+
+    Returns a generator that yields tuples of (module_name, section_address, classes).
+    """
+    for (
+        address,
+        size,
+        section,
+        module,
+    ) in pwndbg.dbg.selected_inferior().module_section_locations():
+        # __objc_classlist is a simple array of pointers to the classes in a
+        # module, so we look for it.
+        if section == "__objc_classlist":
+            yield module, address, _classes_in_objc_classlist(address, size)
+
+
+def _classes_in_objc_classlist(address: int, size: int) -> Generator[Class]:
+    # Instantiate a class for every pointer in the __objc_classlist array.
+    for i in range(size // pwndbg.aglib.typeinfo.ptrsize):
+        ptr = pwndbg.aglib.memory.read_pointer_width(address + i * pwndbg.aglib.typeinfo.ptrsize)
+        yield Class(ptr)

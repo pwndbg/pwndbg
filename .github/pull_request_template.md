@@ -1,7 +1,10 @@
 <!--
-    Please make sure to read the linting and testing instructions at
-    https://pwndbg.re/dev/contributing/ before creating a PR.
+  Read https://pwndbg.re/dev/contributing/ before creating a PR.
+  Check out "Linting", "Writing Tests" and other sections.
+  
+  Please mark the bullets below if you did them with `[x]`
+  and add any PR description before or after them
 -->
 
-+ [ ] I read the contributing documentation.
-+ [ ] I am providing a screenshot of the (new feature) / (fixed bug).
++ [ ] I read the contributing documentation
++ [ ] I include before and after screenshots (or relevant outputs) of the new feature/fixed bug

@@ -59,7 +59,7 @@ def get() -> tuple[int, str]:
             return maybe_errno, ""
 
         err_str = "TLS variable `errno` not found in the libc symbol table."
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         err_str = str(e)
 
     # We don't really need to do this, but we do it for a better diagnostic.
@@ -95,6 +95,6 @@ def get() -> tuple[int, str]:
                 "*((int *(*) (void)) __errno_location) ()"
             )
         ), ""
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         err_str += f"\nFailed executing __errno_location(): {e}"
         return -1, err_str

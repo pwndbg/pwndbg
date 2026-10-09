@@ -84,7 +84,7 @@ def convert_to_markdown(scope: str, debugger_to_params: dict[str, list[Extracted
 
 def check_index(num_scopes: int):
     assert (
-        num_scopes == 3
+        num_scopes == 2
         and "It seems a new scope has been added, "
         f"please update the index file ({INDEX_PATH}) and bump this number accordingly."
     )

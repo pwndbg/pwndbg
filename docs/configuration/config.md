@@ -228,6 +228,17 @@ Number of spaces that a <tab> in the source code counts for.
 
 ----------
 
+## **context-disasm-back-linear-lines**
+
+
+Maximum number of lines to disassemble backwards linearly in memory.
+
+
+
+**Default:** 'auto'  
+
+----------
+
 ## **context-disasm-lines**
 
 
@@ -303,7 +314,7 @@ Which context sections are displayed (controls order).
 
 
 
-**Default:** 'last_signal regs disasm code ghidra stack backtrace expressions threads heap_tracker'  
+**Default:** 'regs disasm code ghidra stack backtrace expressions threads heap_tracker last_signal'  
 
 ----------
 
@@ -596,17 +607,6 @@ Print a full stacktrace for exceptions raised in Pwndbg commands.
 
 ----------
 
-## **gcc-compiler-path**
-
-
-Path to the gcc/g++ toolchain for generating imported symbols.
-
-
-
-**Default:** ''  
-
-----------
-
 ## **gdb-workaround-stop-event**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -623,6 +623,17 @@ Values explained:
 
 **Default:** 'disabled'  
 **Valid values:** 'disabled', 'disabled-deadlock', 'enabled'
+
+----------
+
+## **glibc**
+
+
+Glibc version for heap heuristics resolution (e.g. 2.31).
+
+
+
+**Default:** ''  
 
 ----------
 
@@ -645,6 +656,39 @@ The soft line width for go-dump pretty printing.
 
 
 **Default:** 80  
+
+----------
+
+## **heap-corruption-check-limit**
+
+
+Amount of chunks to traverse for the bin corruption check.
+
+The bins are traversed both forwards and backwards.
+
+**Default:** 64  
+
+----------
+
+## **heap-dereference-limit**
+
+
+Number of chunks to dereference in each bin.
+
+
+
+**Default:** 8  
+
+----------
+
+## **heuristic-backwards-disasm**
+
+
+Toggle backwards linear disassembly during emulation.
+
+
+
+**Default:** on  
 
 ----------
 
@@ -819,6 +863,32 @@ Whether to show call arguments below instruction.
 
 ----------
 
+## **ng-search-on-fail**
+
+
+Let the ng-slot* commands search the heap if necessary.
+
+For freed, avail(able) and corrupted slots, it may be
+impossible to recover the start of the group and meta.
+
+When this option is set to True, the ng-slotu and ng-slots
+commands will search the heap to try to find the correct meta/group.
+
+**Default:** on  
+
+----------
+
+## **ng-vis-count**
+
+
+Default count for ng-vis.
+
+
+
+**Default:** 10  
+
+----------
+
 ## **objc-max-function-arguments**
 
 
@@ -838,6 +908,105 @@ Maximum allowed depth for a type in an Objective-C method call.
 
 
 **Default:** 32  
+
+----------
+
+## **resolve-heap-via-heuristic**
+
+=== "GDB"
+
+     The strategy to resolve heap via heuristic.
+
+    *Note: this option has been deprecated - the heap implementation now always attempts
+    to use symbols whenever possible, using heuristics as a fallback.*
+
+    Old values explained:
+
+    + `auto` - Pwndbg will try to use heuristics if debug symbols are missing
+    + `force` - Pwndbg will always try to use heuristics, even if debug symbols are available
+    + `never` - Pwndbg will never use heuristics to resolve the heap
+
+    If the output of the heap related command produces errors with heuristics, you
+    can try manually setting the libc symbol addresses.
+    For this, see the `heap_config` command output and set the `main_arena`, `mp_`,
+    `global_max_fast`, `tcache` and `thread_arena` addresses.
+
+    Note: Pwndbg will generate more reliable results with proper debug symbols.
+    Therefore, when debug symbols are missing, you should try to install them first
+    if you haven't already.
+
+    They can probably be installed via the package manager of your choice.
+    See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html .
+
+    E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and
+    32-bit binaries):
+    ```bash
+    sudo apt-get install libc6-dbg
+    sudo dpkg --add-architecture i386
+    sudo apt-get install libc-dbg:i386
+    ```
+    If you used setup.sh on Arch based distro you'll need to do a power cycle or set
+    environment variable manually like this:
+    ```bash
+    export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
+    ```
+
+    In addition, even you have the debug symbols of libc, you might still see the
+    following warning when debugging a multi-threaded program:
+    ```
+    warning: Unable to find libthread_db matching inferior's thread library, thread
+    debugging will not be available.
+    ```
+
+    You'll need to ensure that the correct `libthread_db.so` is loaded. To do this,
+    set the search path using:
+    ```
+    set libthread-db-search-path <path having correct libthread_db.so>
+    ```
+    Then, restart your program to enable proper thread debugging.
+
+    **Default:** 'auto'  
+    **Valid values:** 'auto', 'force', 'never'
+=== "LLDB"
+
+     The strategy to resolve heap via heuristic.
+
+    *Note: this option has been deprecated - the heap implementation now always attempts
+    to use symbols whenever possible, using heuristics as a fallback.*
+
+    Old values explained:
+
+    + `auto` - Pwndbg will try to use heuristics if debug symbols are missing
+    + `force` - Pwndbg will always try to use heuristics, even if debug symbols are available
+    + `never` - Pwndbg will never use heuristics to resolve the heap
+
+    If the output of the heap related command produces errors with heuristics, you
+    can try manually setting the libc symbol addresses.
+    For this, see the `heap_config` command output and set the `main_arena`, `mp_`,
+    `global_max_fast`, `tcache` and `thread_arena` addresses.
+
+    Note: Pwndbg will generate more reliable results with proper debug symbols.
+    Therefore, when debug symbols are missing, you should try to install them first
+    if you haven't already.
+
+    They can probably be installed via the package manager of your choice.
+    See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html .
+
+    E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and
+    32-bit binaries):
+    ```bash
+    sudo apt-get install libc6-dbg
+    sudo dpkg --add-architecture i386
+    sudo apt-get install libc-dbg:i386
+    ```
+    If you used setup.sh on Arch based distro you'll need to do a power cycle or set
+    environment variable manually like this:
+    ```bash
+    export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
+    ```
+
+    **Default:** 'auto'  
+    **Valid values:** 'auto', 'force', 'never'
 
 ----------
 

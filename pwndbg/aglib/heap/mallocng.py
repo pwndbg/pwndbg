@@ -7,18 +7,15 @@ from __future__ import annotations
 
 from enum import Enum
 
-from typing_extensions import override
-
 import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.heap.heap
+import pwndbg.aglib.auxv
+import pwndbg.aglib.search
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
-import pwndbg.auxv
 import pwndbg.dbg_mod
-import pwndbg.search
 from pwndbg.aglib import memory
 from pwndbg.color import message
 
@@ -83,7 +80,7 @@ class Group:
         inaccessible memory exceptions here and not worry about it later.
 
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         data = memory.read(self.addr, pwndbg.aglib.arch.ptrsize + 1)
         self._meta = Meta(pwndbg.aglib.arch.unpack(data[: pwndbg.aglib.arch.ptrsize]))
@@ -93,7 +90,7 @@ class Group:
     def meta(self) -> Meta:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._meta is None:
             self._meta = Meta(memory.read_pointer_width(self.addr))
@@ -104,7 +101,7 @@ class Group:
     def active_idx(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._active_idx is None:
             self._active_idx = memory.u8(self.addr + pwndbg.aglib.arch.ptrsize) & 0b11111
@@ -121,7 +118,7 @@ class Group:
         The size of this group, in bytes.
 
         Raises:
-            pwndbg.dbg_mod.Error: When reading meta fails.
+            pwndbg.dbg_mod.DebuggerError: When reading meta fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L234
         return self.meta.stride * self.meta.cnt + UNIT
@@ -193,7 +190,7 @@ class Slot:
         need to worry about exceptions coming from them.
 
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         # == Read the p header.
         pheader = memory.read(self.p - 8, 8)
@@ -227,7 +224,7 @@ class Slot:
         cause any more memory reads nor raise any more exceptions.
 
         Raises:
-            pwndbg.dbg_mod.Error: When the meta is corrupt and/or
+            pwndbg.dbg_mod.DebuggerError: When the meta is corrupt and/or
                 reading memory fails.
         """
         # Make sure stride is valid.
@@ -255,7 +252,7 @@ class Slot:
     def offset(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L132
         if self._offset is None:
@@ -273,7 +270,7 @@ class Slot:
     def pn3(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._pn3 is None:
             self._pn3 = memory.u8(self.p - 3)
@@ -284,7 +281,7 @@ class Slot:
     def idx(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L133
         if self._idx is None:
@@ -308,7 +305,7 @@ class Slot:
     def big_offset_check(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L134
         if self._big_offset_check is None:
@@ -322,7 +319,7 @@ class Slot:
     def start(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading meta fails.
+            pwndbg.dbg_mod.DebuggerError: When reading meta fails.
         """
         # We have this if-statement so Slot.from_start() can
         # populate _start, giving us lots of fields even with
@@ -339,7 +336,7 @@ class Slot:
         Returns zero if is_cyclic() is False.
 
         Raises:
-            pwndbg.dbg_mod.Error: When reading meta fails.
+            pwndbg.dbg_mod.DebuggerError: When reading meta fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L216
         # Not sure why musl saves it, it doesn't seem to use it.
@@ -358,7 +355,7 @@ class Slot:
     def startn3(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._startn3 is None:
             if self.p == self.start:
@@ -378,7 +375,7 @@ class Slot:
         reserved_in_header() != 5.
 
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L161
         if self._reserved_ft is None:
@@ -395,7 +392,7 @@ class Slot:
     def end(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading meta fails.
+            pwndbg.dbg_mod.DebuggerError: When reading meta fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L109
         return self.start + self.meta.stride - IB
@@ -407,7 +404,7 @@ class Slot:
         Returns -1 if reserved_in_header() == 7.
 
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L161
         # Lots of asserts here..
@@ -432,7 +429,7 @@ class Slot:
     def nominal_size(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading meta fails.
+            pwndbg.dbg_mod.DebuggerError: When reading meta fails.
         """
         # Special case (probably) freed slots (see Slot.reserved):
         if self.reserved == -1:
@@ -447,7 +444,7 @@ class Slot:
     def user_size(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading meta fails.
+            pwndbg.dbg_mod.DebuggerError: When reading meta fails.
         """
         return self.nominal_size
 
@@ -455,7 +452,7 @@ class Slot:
     def slack(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading meta fails.
+            pwndbg.dbg_mod.DebuggerError: When reading meta fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L199
         return (self.meta.stride - self.nominal_size - IB) // UNIT
@@ -474,7 +471,7 @@ class Slot:
     def meta(self) -> Meta:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L140
         if self._meta is None:
@@ -493,7 +490,7 @@ class Slot:
             meta_says: SlotState | None = None
             try:
                 meta_says = self.meta.slotstate_at_index(self.idx)
-            except pwndbg.dbg_mod.Error:
+            except pwndbg.dbg_mod.DebuggerError:
                 # We can't reach the meta. Either the slot is not allocated
                 # or it is allocated but the meta pointer is corrupted.
                 meta_says = None
@@ -644,7 +641,7 @@ class Meta:
         inaccessible memory exceptions here and not worry about it later.
 
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         ptrsize = pwndbg.aglib.arch.ptrsize
         endian = pwndbg.aglib.arch.endian
@@ -682,7 +679,7 @@ class Meta:
     def prev(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._prev is None:
             self._prev = memory.read_pointer_width(self.addr)
@@ -693,7 +690,7 @@ class Meta:
     def next(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._next is None:
             self._next = memory.read_pointer_width(self.addr + pwndbg.aglib.arch.ptrsize)
@@ -704,7 +701,7 @@ class Meta:
     def mem(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._mem is None:
             self._mem = memory.read_pointer_width(self.addr + pwndbg.aglib.arch.ptrsize * 2)
@@ -715,7 +712,7 @@ class Meta:
     def avail_mask(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._avail_mask is None:
             # While the type is technically a signed int, it makes more
@@ -728,7 +725,7 @@ class Meta:
     def freed_mask(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._freed_mask is None:
             offset = pwndbg.aglib.arch.ptrsize * 3 + int_size()
@@ -741,7 +738,7 @@ class Meta:
     def last_idx(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._last_idx is None:
             offset = pwndbg.aglib.arch.ptrsize * 3 + int_size() * 2
@@ -754,7 +751,7 @@ class Meta:
     def freeable(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._freeable is None:
             offset = pwndbg.aglib.arch.ptrsize * 3 + int_size() * 2
@@ -766,7 +763,7 @@ class Meta:
     def sizeclass(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._sizeclass is None:
             offset = pwndbg.aglib.arch.ptrsize * 3 + int_size() * 2
@@ -778,7 +775,7 @@ class Meta:
     def maplen(self) -> int:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.DebuggerError: When reading memory fails.
         """
         if self._maplen is None:
             offset = pwndbg.aglib.arch.ptrsize * 3 + int_size() * 2
@@ -1100,7 +1097,7 @@ class MallocContext:
         return True
 
 
-class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
+class Mallocng:
     """
     Tracks the allocator state.
     By leveraging the __malloc_context symbol.
@@ -1177,11 +1174,11 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L50
         # Extract the secret first.
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/glue.h#L49
-        at_random = int(pwndbg.auxv.get()["AT_RANDOM"])
+        at_random = int(pwndbg.aglib.auxv.get()["AT_RANDOM"])
         secret = memory.read(at_random + 8, uint64size)
 
         secret_matches = list(
-            pwndbg.search.search(secret, executable=False, writable=True, aligned=uint64size)
+            pwndbg.aglib.search.search(secret, executable=False, writable=True, aligned=uint64size)
         )
 
         # There are going to be multiple matches. We don't
@@ -1254,7 +1251,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             # how to do that though so fall through for now.
             pass
 
-        for addr, mapname in possible:
+        for addr, _mapname in possible:
             if addr not in known_invalid:
                 maybe_ctx = MallocContext(addr)
                 if maybe_ctx.looks_valid():
@@ -1316,7 +1313,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         while meta_area_addr:
             try:
                 meta_area = MetaArea(meta_area_addr)
-            except pwndbg.dbg_mod.Error as e:
+            except pwndbg.dbg_mod.DebuggerError as e:
                 # Can't get `next` if the main_area is corrupted.
                 print(
                     message.error(
@@ -1332,7 +1329,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     if not meta.mem:
                         # Skip unused metas.
                         continue
-                except pwndbg.dbg_mod.Error as e:
+                except pwndbg.dbg_mod.DebuggerError as e:
                     print(
                         message.error(
                             f"Mallocng.containing: Could not read/parse meta.({e}), skipping it.."
@@ -1353,7 +1350,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         # Yes it is!
                         hit_group = group
                         break
-                except pwndbg.dbg_mod.Error as e:
+                except pwndbg.dbg_mod.DebuggerError as e:
                     print(
                         message.error(
                             "Mallocng.containing: Could not read/parse meta at"
@@ -1386,7 +1383,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 hit_grouped_slot = GroupedSlot(hit_group, slot_idx)
                 hit_slot = Slot.from_start(hit_grouped_slot.start)
                 return hit_grouped_slot, hit_slot
-            except pwndbg.dbg_mod.Error as e:
+            except pwndbg.dbg_mod.DebuggerError as e:
                 print(
                     message.error(
                         "Mallocng.containing: Failed reading memory while traversing"
@@ -1431,7 +1428,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
             return hit_grouped_slot, hit_slot
 
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             print(
                 message.error(
                     "Mallocng.containing: Failed reading memory while traversing"
@@ -1441,7 +1438,6 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             # Could be None.
             return hit_grouped_slot, hit_slot
 
-    @override
     def containing(self, address: int, metadata: bool = False, shallow: bool = False) -> int:
         """
         Same as find_slot() but returns only the `start` address of the slot, or zero
@@ -1458,7 +1454,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         linked list. Map them to their index in the list.
 
         Raises:
-            pwndbg.dbg_mod.Error: If some meta cannot be read or is
+            pwndbg.dbg_mod.DebuggerError: If some meta cannot be read or is
                 corrupted.
 
         Returns:

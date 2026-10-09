@@ -31,6 +31,7 @@
 ## Darwin/libsystem/Mach-O
 
 -  [commpage](darwin_libsystem_mach-o/commpage.md) - Dumps all values from the macOS commpage.
+-  [objc](darwin_libsystem_mach-o/objc.md) - Objective-C Support
 
 ## Developer
 
@@ -46,25 +47,25 @@
 -  [emulate](disassemble/emulate.md) - Like nearpc, but will emulate instructions from the current $PC forward.
 -  [nearpc](disassemble/nearpc.md) - Disassemble near a specified address.
 
-## GLibc ptmalloc2 Heap
+## GLibc Heap
 
--  [arena](glibc_ptmalloc2_heap/arena.md) - Print the contents of an arena.
--  [arenas](glibc_ptmalloc2_heap/arenas.md) - List this process's arenas.
--  [bins](glibc_ptmalloc2_heap/bins.md) - Print the contents of all an arena's bins and a thread's tcache.
--  [fastbins](glibc_ptmalloc2_heap/fastbins.md) - Print the contents of an arena's fastbins.
--  [find-fake-fast](glibc_ptmalloc2_heap/find-fake-fast.md) - Find candidate fake fast or tcache chunks overlapping the specified address.
--  [heap](glibc_ptmalloc2_heap/heap.md) - Iteratively print chunks on a heap.
--  [hi](glibc_ptmalloc2_heap/hi.md) - Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.
--  [largebins](glibc_ptmalloc2_heap/largebins.md) - Print the contents of an arena's largebins.
--  [malloc-chunk](glibc_ptmalloc2_heap/malloc-chunk.md) - Print a chunk.
--  [mp](glibc_ptmalloc2_heap/mp.md) - Print the mp_ struct's contents.
--  [smallbins](glibc_ptmalloc2_heap/smallbins.md) - Print the contents of an arena's smallbins.
--  [tcache](glibc_ptmalloc2_heap/tcache.md) - Print a thread's tcache contents.
--  [tcachebins](glibc_ptmalloc2_heap/tcachebins.md) - Print the contents of a tcache.
--  [top-chunk](glibc_ptmalloc2_heap/top-chunk.md) - Print relevant information about an arena's top chunk.
--  [try-free](glibc_ptmalloc2_heap/try-free.md) - Check what would happen if free was called with given address.
--  [unsortedbin](glibc_ptmalloc2_heap/unsortedbin.md) - Print the contents of an arena's unsortedbin.
--  [vis-heap-chunks](glibc_ptmalloc2_heap/vis-heap-chunks.md) - Visualize chunks on a heap.
+-  [arena](glibc_heap/arena.md) - Print the contents of an arena.
+-  [arenas](glibc_heap/arenas.md) - List this process's arenas.
+-  [bins](glibc_heap/bins.md) - Print the contents of all an arena's bins and a thread's tcache.
+-  [fastbins](glibc_heap/fastbins.md) - Print the contents of an arena's fastbins.
+-  [find-fake-fast](glibc_heap/find-fake-fast.md) - Find candidate fake fast or tcache chunks overlapping the specified address.
+-  [heap](glibc_heap/heap.md) - Iteratively print chunks on a heap.
+-  [hi](glibc_heap/hi.md) - Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.
+-  [largebins](glibc_heap/largebins.md) - Print the contents of an arena's largebins.
+-  [malloc-chunk](glibc_heap/malloc-chunk.md) - Print a chunk.
+-  [mp](glibc_heap/mp.md) - Print the mp_ struct's contents.
+-  [smallbins](glibc_heap/smallbins.md) - Print the contents of an arena's smallbins.
+-  [tcache](glibc_heap/tcache.md) - Print a thread's tcache contents.
+-  [tcachebins](glibc_heap/tcachebins.md) - Print the contents of a tcache.
+-  [top-chunk](glibc_heap/top-chunk.md) - Print relevant information about an arena's top chunk.
+-  [try-free](glibc_heap/try-free.md) - Check what would happen if free was called with given address.
+-  [unsortedbin](glibc_heap/unsortedbin.md) - Print the contents of an arena's unsortedbin.
+-  [vis-heap-chunks](glibc_heap/vis-heap-chunks.md) - Visualize chunks on a heap.
 
 ## Integrations
 
@@ -119,6 +120,7 @@
 -  [elfsections](linux_libc_elf/elfsections.md) - Prints the section mappings contained in the ELF header.
 -  [envp](linux_libc_elf/envp.md) - Prints out the contents of the environment.
 -  [errno](linux_libc_elf/errno.md) - Converts errno (or argument) to its string representation.
+-  [exithandlers](linux_libc_elf/exithandlers.md) - List currently registered glibc exit handlers.
 -  [got](linux_libc_elf/got.md) - Show the state of the Global Offset Table.
 -  [gotplt](linux_libc_elf/gotplt.md) - Prints any symbols found in the .got.plt section if it exists.
 -  [libcinfo](linux_libc_elf/libcinfo.md) - Show various information about the currently used libc
@@ -192,7 +194,6 @@
 -  [bugreport](pwndbg/bugreport.md) - Generate a bug report.
 -  [config](pwndbg/config.md) - Shows Pwndbg-specific configuration.
 -  [configfile](pwndbg/configfile.md) - Generates a configuration file for the current Pwndbg options.
--  [heap-config](pwndbg/heap-config.md) - Shows heap related configuration.
 -  [pwndbg](pwndbg/pwndbg.md) - Prints out a list of all Pwndbg commands.
 -  [theme](pwndbg/theme.md) - Shows Pwndbg-specific theme configuration.
 -  [themefile](pwndbg/themefile.md) - Generates a configuration file for the current Pwndbg theme options.
@@ -210,6 +211,7 @@
 -  [canary](stack/canary.md) - Print out the current stack canary.
 -  [retaddr](stack/retaddr.md) - Print out the stack addresses that contain return addresses.
 -  [stack-explore](stack/stack-explore.md) - Explore stack from all threads.
+-  [stack-vis](stack/stack-vis.md) - Visualize stack frames of the current thread.
 -  [stack](stack/stack.md) - Dereferences on stack data with specified count and offset.
 -  [stackf](stack/stackf.md) - Dereferences on stack data, printing the entire stack frame with specified count and offset .
 

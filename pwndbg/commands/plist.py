@@ -199,7 +199,7 @@ def plist(
     # Have GDB parse the path for us and check if it's valid.
     try:
         first = pwndbg.dbg.selected_frame().evaluate_expression(path)
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"{e}"))
         return
 
@@ -224,7 +224,7 @@ def plist(
         deref = "*"
         try:
             first = first.dereference()
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             print(message.error(f"Pointer at {path} could not be dereferenced: {e}"))
             return
 
@@ -247,7 +247,7 @@ def plist(
         try:
             inner = first[inner_name]
             inner_sep = "->"
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             print(message.error(f"Cannot find component {inner_name} in {path}: {e}"))
             return
         if inner.is_optimized_out:
@@ -265,7 +265,7 @@ def plist(
             next_ptr = inner[next]
             next_ptr_loc = inner
             next_ptr_name = f"{inner_name}.{next}"
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"Cannot find component {next_ptr_name} in {path}: {e}"))
         return
 
@@ -295,7 +295,7 @@ def plist(
     if field_name is not None:
         try:
             field = first[field_name]
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             print(message.error(f"Cannot find component {field_name} in {path}: {e}"))
             return
         field_type = field.type
@@ -438,7 +438,7 @@ def plist(
             symbol = f"<{symbol}>" if symbol else ""
 
             print(f"{target_address:#x} {symbol}: {value.value_to_human_readable()}")
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             print(message.error(f"Cannot dereference {address:#x} for list link #{i + 1}: {e}"))
             print(message.error("Is the linked list corrupted or is the sentinel value wrong?"))
             return

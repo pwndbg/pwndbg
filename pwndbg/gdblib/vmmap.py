@@ -140,7 +140,7 @@ def enhance_known_pages_info(pages: list[pwndbg.lib.memory.Page]) -> None:
     stack_addr = None
     vdso_addr = None
 
-    # TODO/FIXME: Can we uxe `pwndbg.auxv.get()` for this somehow?
+    # TODO/FIXME: Can we uxe `pwndbg.aglib.auxv.get()` for this somehow?
     auxv = pwndbg.gdblib.info.auxv().splitlines()
     for line in auxv:
         if "AT_EXECFN" in line:

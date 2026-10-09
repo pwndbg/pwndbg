@@ -239,7 +239,7 @@ def _load_rtree_geom() -> _RtreeGeom:
         # https://github.com/jemalloc/jemalloc/blob/81034ce1f1373e37dc865038e1bc8eeecf559ce8/include/jemalloc/internal/rtree.h#L37-L88
         compact = leaf_sizeof == (1 << LG_SIZEOF_PTR)
         return _RtreeGeom(levels, nhib, compact, node_sizeof, leaf_sizeof)
-    except (pwndbg.dbg_mod.Error, ValueError, TypeError):
+    except (pwndbg.dbg_mod.DebuggerError, ValueError, TypeError):
         return _default_rtree_geom()
 
 
@@ -257,7 +257,7 @@ class RTree:
 
         rtree_s = pwndbg.aglib.typeinfo.load("struct rtree_s")
         if rtree_s is None:
-            raise pwndbg.dbg_mod.Error("rtree_s type not found")
+            raise pwndbg.dbg_mod.DebuggerError("rtree_s type not found")
 
         # self._Value = pwndbg.aglib.memory.poi(emap_s, self._addr)
 
@@ -274,7 +274,7 @@ class RTree:
     def get_rtree() -> RTree:
         addr = pwndbg.aglib.symbol.lookup_symbol_addr("je_arena_emap_global")
         if addr is None:
-            raise pwndbg.dbg_mod.Error("Required je_arena_emap_global symbol not found")
+            raise pwndbg.dbg_mod.DebuggerError("Required je_arena_emap_global symbol not found")
         return RTree(addr)
 
     @property
@@ -417,7 +417,7 @@ class RTree:
 
                     self._extents.append(extent_tmp)
 
-            except pwndbg.dbg_mod.Error:
+            except pwndbg.dbg_mod.DebuggerError:
                 pass
 
         return self._extents

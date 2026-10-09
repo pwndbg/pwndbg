@@ -351,7 +351,7 @@ def _get_moduledata_types() -> tuple[tuple[int, int], ...] | None:
             emit_warning(
                 "Warning: Could not find `runtime.firstmoduledata` symbol, so a heuristic is used instead"
             )
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         emit_warning(
             f"Warning: Exception '{e}' occurred while trying to parse `runtime.firstmoduledata`, so a heuristic is used instead"
         )

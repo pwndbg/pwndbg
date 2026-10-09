@@ -24,7 +24,7 @@ The `lint.sh` script runs ruff, shfmt, and vermin. ruff is (mostly) able to auto
     You can find the configuration files for these tools in `pyproject.toml` or by checking the arguments passed inside `lint.sh`.
     You can also run `./lint.sh -fo` to skip vermin and mypy, allowing for a quicker lint.
 
-When submitting a PR, the continuous integration (CI) job defined in `.github/workflows/lint.yml` will verify that running `./lint.sh` succeeds. Furthermore, you must not increase the number of `mypy --strict` errors as compared to the `dev` branch (see `.github/workflows/lint.sh`). Otherwise the job will fail and we won't be able to merge your PR. Make sure to have a type checker (mypy --strict, pyright, ty, pyrefly, ...) running in your python editor / IDE.
+When submitting a PR, the continuous integration (CI) job defined in `.github/workflows/lint.yml` will verify that running `./lint.sh` succeeds. Furthermore, you must not increase the number of `mypy --strict --strict-optional` errors as compared to the `dev` branch (see `.github/workflows/lint.sh`). Otherwise the job will fail and we won't be able to merge your PR. Make sure to have a type checker (mypy --strict --strict-optional, pyright, ty, pyrefly, ...) running in your python editor / IDE.
 
 It is recommended to enable the pre-push git hook to run the lint if you haven't already done so. You may re-run `./setup-dev.sh` to set it.
 ## Running tests
@@ -98,12 +98,6 @@ If you wish to preview the documentation locally, you may do so by running:
 ```{.bash .copy}
 ./scripts/docs-live.sh
 ```
-The build will take some time due to the `Source` section being built. You may disable this by temporarily commenting these lines
-```
-  - api-autonav:
-      modules: ['pwndbg']
-      nav_section_title: "Source"
-```
-in the `mkdocs.yml` file. This will provide much faster build times (but make sure not to commit those changes!). Visit `http://127.0.0.1:8000/pwndbg/` to see the docs. Note that the `Home` section will not be available (it is generated in the CI by copying the README.md), and the site will lack the version selector.
+Visit `http://127.0.0.1:8000/pwndbg/` to see the docs. Note that the `Home` section will not be available (it is generated in the CI by copying the README.md), and the site will lack the version selector.
 
 [^1]: Actually, the `./docs/configuration/index.md` file is hand-written, and the intro text to the `./docs/functions/index.md` file is defined in the doc generating file's source code.

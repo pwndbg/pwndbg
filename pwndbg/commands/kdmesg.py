@@ -156,6 +156,6 @@ def kdmesg(ctime: bool = False) -> None:
                 break
             did = (did + 1) & desc_id_mask
 
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"ERROR: {e}"))
         return

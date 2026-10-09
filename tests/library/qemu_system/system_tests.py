@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import os
-import platform
 import signal
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from os.path import dirname
@@ -40,7 +39,7 @@ def info(*args, **kwargs):
 
 def error(*args, **kwargs):
     print(f"{ANSI_RED}[-]{ANSI_RESET}", *args, **kwargs)
-    exit(-1)
+    sys.exit(-1)
 
 
 def runcmd(*args: str, fail_on_error=False, verbose=True) -> str | None:

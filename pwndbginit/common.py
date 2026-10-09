@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import cProfile
 import hashlib
 import logging
 import os
 import shutil
 import subprocess
 import sys
+import time
+from logging import StreamHandler
 from pathlib import Path
+from typing import TextIO
 
 
 def hash_file(file_path: str | Path) -> str:
@@ -100,23 +104,14 @@ def update_deps(src_root: Path) -> None:
         sys.exit(return_code)
 
 
-def is_system_installation(src_root: Path) -> bool:
-    # NOTE: This is intentionally duplicated (inlined) in the top-level `gdbinit.py`
-    # so that gdbinit doesn't import the `pwndbginit` package before `fixup_paths()`
-    # corrects `sys.path` (see https://github.com/pwndbg/pwndbg/issues/3963). If you
-    # change the logic here, update `is_system_installation` in `gdbinit.py` too.
-    #
+def is_editable_install(src_root: Path) -> bool:
     # If pwndbg is installed in `/venv/lib/pythonX.Y/site-packages/pwndbg/`,
     # the `.pwndbg_root` file will not exist because `src_root` will point to the
     # `/venv/lib/pythonX.Y/site-packages/` directory, not the original source directory
     #
     # However, if pwndbg is installed in editable mode (our recommended way), this file will exist,
     # and the condition will be False, allowing auto-update.
-    is_system_install = not (src_root / ".pwndbg_root").exists()
-    if is_system_install:
-        return True
-
-    return False
+    return (src_root / ".pwndbg_root").exists()
 
 
 def skip_autoupdate(src_root: Path) -> bool:
@@ -124,15 +119,99 @@ def skip_autoupdate(src_root: Path) -> bool:
     if no_auto_update:
         return True
 
-    if is_system_installation(src_root):
+    if not is_editable_install(src_root):
         return True
 
     return False
 
 
-def verify_venv():
+def verify_venv() -> None:
     src_root = Path(__file__).parent.parent.resolve()
     if skip_autoupdate(src_root):
         return
 
     update_deps(src_root)
+
+
+def setup_load_profiler() -> tuple[cProfile.Profile, float | None]:
+    profiler = cProfile.Profile()
+
+    load_profile_start_time: float | None = None
+    if os.environ.get("PWNDBG_PROFILE") == "1":
+        load_profile_start_time = time.time()
+        profiler.enable()
+
+    return (profiler, load_profile_start_time)
+
+
+def set_debuginfod_timeouts() -> None:
+    """
+    The default value for DEBUGINFOD_TIMEOUT is 90 seconds. Since
+    https://debuginfod.ubuntu.com/ is often broken, the download can
+    stall for a while.
+
+    This is a double-problem because GDB / gnu libdebuginfod does not
+    serve a Ctrl-C during this time. See #4079 for extra info.
+
+    Set more sane values if the user did not already touch them.
+    """
+    if "DEBUGINFOD_TIMEOUT" not in os.environ:
+        # default is 90
+        os.environ["DEBUGINFOD_TIMEOUT"] = "5"
+    if "DEBUGINFOD_RETRY_LIMIT" not in os.environ:
+        # default is 2
+        os.environ["DEBUGINFOD_RETRY_LIMIT"] = "0"
+
+
+def init_logger() -> logging.StreamHandler[TextIO]:
+    log_level_env = os.environ.get("PWNDBG_LOGLEVEL", "WARNING")
+    log_level = getattr(logging, log_level_env.upper())
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+
+    # Add a custom StreamHandler we will use to customize log message formatting. We
+    # configure the handler later, after pwndbg has been imported.
+    handler = logging.StreamHandler()
+    root_logger.addHandler(handler)
+
+    return handler
+
+
+def pre_debugger_init() -> None:
+    """
+    Initialization to run before any debugger-specific stuff gets loaded.
+    """
+    import pwndbg
+
+    # Marker used to detect double-loading (checked in ../gdbinit.py).
+    # Can happen if you run `pwndbg /bin/sh` and have `source /path/to/gdbinit.py`
+    # in your `~/.gdbinit`.
+    # Note that the variable name is a bit deceptive since this also gets set
+    # from `gdb` + `source /path/to/gdbinit.py` and not only the `pwndbg` command,
+    # but renaming it now will cause desync for users who have different versions
+    # of pwndbg installed.
+    pwndbg._is_loaded_from_pwndbg = True
+
+    set_debuginfod_timeouts()
+
+
+def post_debugger_init(
+    profiler, load_profile_start_time: float | None, log_handler: StreamHandler[TextIO]
+) -> None:
+    """
+    Initialization to run after Debugger.setup() gets run.
+    """
+    import pwndbg
+    import pwndbg.log
+    import pwndbg.profiling
+
+    pwndbg.profiling.init(profiler, load_profile_start_time)
+    assert pwndbg.profiling.profiler is not None
+
+    if os.environ.get("PWNDBG_PROFILE") == "1":
+        pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
+        pwndbg.profiling.profiler.start()
+
+    # ColorFormatter relies on pwndbg being loaded, so we can't set it up until now
+    log_handler.setFormatter(pwndbg.log.ColorFormatter())

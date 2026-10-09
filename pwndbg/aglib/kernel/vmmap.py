@@ -42,7 +42,7 @@ def _apply_address_markers(pages: tuple[Page, ...]) -> None:
     if pi and pages:
         sections = pi.markers()
         # this is needed for context annotations
-        for i, page in enumerate(pages):
+        for page in pages:
             name = _get_name(sections, page.start)
             if name is not None:
                 page.objfile = name
@@ -258,7 +258,7 @@ def kernel_vmmap_via_monitor_info_mem() -> tuple[Page, ...]:
 
     try:
         monitor_info_mem = pwndbg.dbg.selected_inferior().send_monitor("info mem")
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         # Exception should not happen in new qemu, can we clean up it?
         # Older versions of QEMU/GDB may throw `gdb.error: "monitor" command
         # not supported by this target`. Newer versions will not throw, but will

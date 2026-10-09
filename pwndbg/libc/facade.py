@@ -16,6 +16,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
 import pwndbg.lib.path
 
+from . import bionic
 from . import glibc
 from . import musl
 from . import unknown
@@ -25,7 +26,7 @@ from .dispatch import LibcType
 from .dispatch import LibcURLs
 
 # Order is important.
-_libc_implementations: tuple[LibcProvider, ...] = (glibc, musl, unknown)
+_libc_implementations: tuple[LibcProvider, ...] = (glibc, musl, bionic, unknown)
 
 
 class LibcNotFound(Exception):
@@ -92,7 +93,7 @@ def __check_candidates(
 libc_regex = re.compile(r"^libc6?[-_\.]")
 ld_regex = re.compile(r"ld.*\.so(?:\.[0-9]+)?")
 
-# TODO: A potentially significant performance optimization could be, if we have a LibcWrangler
+# TODO: A potentially significant performance optimization could be, if we have a LibcProvider
 # which is not "unknown", we don't need to clear the cache on objfile events (but probably still
 # should on start events).
 
@@ -322,6 +323,30 @@ def loader_filepath() -> Path:
     return path
 
 
+def _get_fallback_addr(target_path: str) -> int | None:
+    """
+    Fallback function for retrieving the base address of a module.
+
+    When doing remote debugging (Android via lldb-server, for example),
+    the target path returned by filepath() points
+    to the local module cache on the host machine (~/.lldb/module_cache/...).
+    However, the vmmap fetched from the target contains the remote paths
+    (/apex/com.android.runtime/...).
+
+    Because the directory prefixes differ, the exact path match fails.
+    This fallback iterates over the memory maps and matches strictly by basename.
+    """
+
+    target_name = os.path.basename(target_path)
+
+    for page in pwndbg.aglib.vmmap.get():
+        obj = page.objfile
+        if obj and os.path.basename(obj) == target_name:
+            return page.start
+
+    return None
+
+
 def addr() -> int:
     """
     The start load address of the libc shared object file.
@@ -330,7 +355,12 @@ def addr() -> int:
     objfile.
     May be the same as loader_addr() for some libc's.
     """
+
     yes = pwndbg.aglib.vmmap.named_region_start(str(filepath()))
+
+    if yes is None:
+        yes = _get_fallback_addr(str(filepath()))
+
     if yes is None:
         raise LibcNotFound(
             "Binary path from filepath() is not listed in memory maps "
@@ -348,6 +378,10 @@ def loader_addr() -> int:
     May be the same as addr() for some libc's.
     """
     yes = pwndbg.aglib.vmmap.named_region_start(str(loader_filepath()))
+
+    if yes is None:
+        yes = _get_fallback_addr(str(loader_filepath()))
+
     if yes is None:
         raise LibcNotFound(
             "Binary path from loader_filepath() is not listed in memory maps "
@@ -374,7 +408,7 @@ def section_address_by_name(section_name: str) -> int:
     libc_path: str = str(filepath())
     for (
         address,
-        size,
+        _size,
         candidate_section_name,
         module_name,
     ) in pwndbg.dbg.selected_inferior().module_section_locations():

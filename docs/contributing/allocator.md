@@ -117,7 +117,7 @@ Now that we understand how the commands should feel, lets go over some tips on i
 
 ### Use pwndbg.aglib.structures
 
-You should use the `pwndbg.aglib.structures` API when implementing your allocator. It allows you to load an arbitrary C structure into the debugger, which in turn allows you to read out a C structure from memory and intract with it from your python code. See the `pwndbg/aglib/kernel` subsystem on how to properly do this. The glibc malloc code does not do this and uses the travesty that is `pwndbg/aglib/heap/structs.py`. The mallocng code does not do this but rather does direct memory reads - this is terrible both because it causes unnecessarily bloated code and because it makes it hard to modify if the structs change in a new version of the upstream allocator.
+You should use the `pwndbg.aglib.structures` API when implementing your allocator. It allows you to load an arbitrary C structure into the debugger, which in turn allows you to read out a C structure from memory and intract with it from your python code. See the `pwndbg/aglib/kernel` subsystem on how to properly do this. The glibc malloc code does not do this and uses the travesty that is `../../pwndbg/aglib/heap/glibc_structs.py`. The mallocng code does not do this but rather does direct memory reads - this is terrible both because it causes unnecessarily bloated code and because it makes it hard to modify if the structs change in a new version of the upstream allocator.
 
 ### Comment with links to the source
 

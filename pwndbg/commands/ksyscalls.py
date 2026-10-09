@@ -39,7 +39,7 @@ def ksyscalls(syscall_name=None) -> None:
                 "sizeof(sys_call_table) / sizeof(void *)"
             )
         )
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         print(
             "The sys_call_table symbol was not found. This may indicate that the symbol is not available in the current build."
         )
@@ -66,6 +66,6 @@ def ksyscalls(syscall_name=None) -> None:
             print_entry = lambda: print(f"{i:>4} {hex(sc_addr):>18} {symbol or '<unknown>'}")
             print_entry()
 
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"ERROR: {e}"))
         return

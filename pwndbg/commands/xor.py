@@ -23,9 +23,7 @@ def xor_memory(address, key, count):
 
 
 parser = argparse.ArgumentParser(description="XOR `count` bytes at `address` with the key `key`.")
-parser.add_argument(
-    "address", type=pwndbg.commands.sloppy_gdb_parse, help="The address to start xoring at."
-)
+parser.add_argument("address", type=int, help="The address to start xoring at.")
 parser.add_argument("key", type=str, help="The key to use.")
 parser.add_argument("count", type=int, help="The number of bytes to xor.")
 
@@ -36,7 +34,7 @@ def xor(address, key, count) -> None:
     try:
         xorred_memory = xor_memory(address, key, count)
         pwndbg.aglib.memory.write(address, xorred_memory)
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(e)
 
 

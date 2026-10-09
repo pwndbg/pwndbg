@@ -28,12 +28,18 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             self.pc = pc
 
         async def launch(
-            self, binary: Path, args: list[str] = [], env: dict[str, str] = {}
+            self, binary: Path, args: list[str] = None, env: dict[str, str] = None
         ) -> None:
+            if env is None:
+                env = {}
+            if args is None:
+                args = []
             if not os.path.exists(binary):
                 pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
 
             await self.pc.execute("set context-reserve-lines never")
+            await self.pc.execute("set heuristic-backwards-disasm off")
+            await self.pc.execute("set context-disasm-back-linear-lines 0")
             # Disable debuginfod globally for LLDB tests: a partial/laggy
             # download triggers `LLVM ERROR: CachedFileStream was not committed`
             # which aborts the whole process and makes CI flaky (commonly seen

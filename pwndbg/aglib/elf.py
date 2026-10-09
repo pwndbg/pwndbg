@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import ctypes
 import importlib
-import subprocess
 import sys
 from typing import NamedTuple
 from typing import TypeAlias
@@ -23,22 +22,21 @@ from elftools.elf.relocation import RelocationSection
 
 import pwndbg
 import pwndbg.aglib
+import pwndbg.aglib.auxv
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
-import pwndbg.auxv
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
+import pwndbg.lib.compiler.zig
 import pwndbg.lib.config
 import pwndbg.lib.elftypes
 import pwndbg.lib.memory
-import pwndbg.lib.zig
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
-from pwndbg.lib import Status
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -261,7 +259,7 @@ def entry() -> int:
     """
     Return the address of the entry point for the main executable.
     """
-    if entry := pwndbg.auxv.get().AT_ENTRY:
+    if entry := pwndbg.aglib.auxv.get().AT_ENTRY:
         return entry
 
     inf = pwndbg.dbg.selected_inferior()
@@ -272,7 +270,7 @@ def entry() -> int:
     for name in ["_start", "start", "__start", "main"]:
         try:
             return pwndbg.aglib.symbol.lookup_symbol_addr(name) or 0
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             pass
 
     # Can't find it, give up.
@@ -492,52 +490,3 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> tuple[pwndbg.lib.memor
         page.objfile = objfile
 
     return tuple(sorted(pages))
-
-
-gcc_compiler_path = pwndbg.config.add_param(
-    "gcc-compiler-path",
-    "",
-    "path to the gcc/g++ toolchain for generating imported symbols",
-    param_class=pwndbg.lib.config.PARAM_OPTIONAL_FILENAME,
-)
-
-
-def compile_with_flags(compiler_flags: list[str]) -> Status:
-    """
-    Compile a C program.
-
-    If the `gcc_compiler_path` argument is set, gcc will be used, otherwise
-    zig (the python package) will be used.
-
-    Arguments:
-        compiler_flags: The flags to pass to the compiler, including the input and
-            output files.
-
-    Returns:
-        A status object carrying an error message if compilation failed.
-    """
-    if gcc_compiler_path != "":
-        compiler_cmdline = [str(gcc_compiler_path)]
-    else:
-        try:
-            compiler_cmdline = pwndbg.lib.zig.flags(pwndbg.aglib.arch)
-        except ValueError as exception:
-            return Status.fail(str(exception))
-
-    gcc_cmd: list[str] = compiler_cmdline + compiler_flags
-
-    try:
-        # capture_output=True makes it so the compilation errors are not instantly
-        # dumped to the user, but are in the CalledProcessError object.
-        # https://docs.python.org/3/library/subprocess.html#subprocess.run:~:text=stdout%20and%20stderr%20if%20they%20were%20captured
-        subprocess.run(gcc_cmd, check=True, text=True, capture_output=True)
-        return Status()
-    except subprocess.CalledProcessError as exception:
-        return Status.fail(
-            str(exception)
-            + f"\nStdout: {exception.stdout}"
-            + f"\nStderr: {exception.stderr}"
-            + f"\nFailed to compile {compiler_flags[0]}. Please fix any compilation errors there may be."
-        )
-    except Exception as exception:
-        return Status.fail(str(exception) + "\nAn error occurred while compiling.")

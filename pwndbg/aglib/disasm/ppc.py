@@ -82,7 +82,7 @@ class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
         self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {}
 
     @override
-    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         # Prepare is called before emulation.
         # At this point, we want to read the value of the ctr register.
         # This is because branch instructions might mutate ctr within the emulator, which the read_register_name may fetch from
@@ -93,7 +93,9 @@ class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
             self.saved_ctr = self._read_register_name(instruction, "ctr", emu)
 
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         if instruction.id in POWERPC_CONDITIONAL_BRANCHES:
             cr = self._read_register_name(instruction, "cr", emu)
 

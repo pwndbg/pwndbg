@@ -18,20 +18,16 @@ from typing_extensions import ParamSpec
 from typing_extensions import override
 
 import pwndbg.aglib
-import pwndbg.aglib.heap
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.aglib.symbol
+import pwndbg.aglib.remote
+import pwndbg.color
 import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.exception
-import pwndbg.libc
-from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
-from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
-from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
 from pwndbg.color import message
-from pwndbg.lib import SymbolNotRecoveredError
+from pwndbg.lib import CompilerNotFoundError
 from pwndbg.lib import TypeNotRecoveredError
 
 log = logging.getLogger(__name__)
@@ -47,7 +43,7 @@ class CommandCategory(str, Enum):
     START = "Start"
     NEXT = "Step/Next/Continue"
     CONTEXT = "Context"
-    PTMALLOC2 = "GLibc ptmalloc2 Heap"
+    GLIBC_MALLOC = "GLibc Heap"
     ALLOCATORS = "Allocators"
     BREAKPOINT = "Breakpoint"
     MEMORY = "Memory"
@@ -319,7 +315,8 @@ class CommandObj:
             # Workaround until https://github.com/pwndbg/pwndbg/issues/3523
             # is fixed.
             parser.prog = (
-                parser.prog.replace("pwndbg-lldb", "")
+                pwndbg.color.strip(parser.prog)
+                .replace("pwndbg-lldb", "")
                 .replace("launch_guest.py", "")
                 .replace("python3 -m tests.host.lldb.launch_guest", "")
             )
@@ -349,18 +346,36 @@ class CommandObj:
                 # No need to do anything about it.
                 continue
 
-            if not isinstance(action, argparse._SubParsersAction) and action.help is None:
+            if isinstance(action, argparse._SubParsersAction):
+                # `_choices_actions` holds only subcommands that have `help=` set,
+                # while `choices` holds all names, including aliases.
+                real_names = {a.dest for a in action._choices_actions}
+                # An alias and its original are the same parser object, so we skip
+                # duplicates to avoid reporting an alias as a missing `help=`.
+                seen_parsers = set()
+                for name, subparser in action.choices.items():
+                    if id(subparser) in seen_parsers:
+                        continue
+                    seen_parsers.add(id(subparser))
+
+                    # A name not in `real_names` means a subcommand without `help=`.
+                    if name not in real_names:
+                        print(message.error(f"Error parsing arguments for command: {parser.prog}"))
+                        print("You must add a `help=` string to your subcommand.")
+                        print(f"Erroneous subcommand: '{name}'")
+                        assert False, (
+                            "You must add a `help=` string to your subcommand's add_parser() call."
+                        )
+            elif action.help is None:
                 # When we do `cmd -h` we want each argument to have a one-line
                 # description.
-                # Unfortunately, I don't know how to enforce that each subcommand has a help=
-                # passed to its add_parser() :(
                 print(message.error(f"Error parsing arguments for command: {parser.prog}"))
                 print("You must add a `help=` string to your argument.")
                 print(f"Erroneous action:\n\t{repr(action)}\n")
                 assert False, "You must add a `help=` string to your argument."
 
             if action.type is int:
-                action.type = fix_int_reraise_arg
+                action.type = parse_command_argument_to_int
             elif type(action) is argparse._StoreAction and action.type is None:
                 # Prevents bugs like https://github.com/pwndbg/pwndbg/pull/3477
                 print(message.error(f"Error parsing arguments for command: {parser.prog}"))
@@ -450,7 +465,7 @@ class CommandObj:
         # Put the arguments through the debugger
         try:
             arg_list = pwndbg.dbg.lex_args(argument)
-        except (TypeError, pwndbg.dbg_mod.Error):
+        except (TypeError, pwndbg.dbg_mod.DebuggerError):
             pwndbg.exception.handle(self.function.__name__)
             return
 
@@ -540,6 +555,25 @@ class CommandObj:
                         "please note that some structs may not be recoverable when CONFIG_RANDSTRUCT=y"
                     )
                 )
+        except CompilerNotFoundError as e:
+            arch = pwndbg.aglib.arch
+            print(
+                message.error(
+                    f"Could not find a suitable compiler for {(arch.name, arch.endian, arch.ptrsize)}."
+                )
+            )
+            print(e)
+            print(
+                "\nPlease install either zig or clang and make sure they are accessible in your PATH."
+            )
+            print("They support cross-compilation by default.")
+            print(
+                "We will also pick up GCC if you have the correct version (for this cpu arch) installed.\n"
+            )
+            print(
+                "If you have a compiler for your target architecture installed but we are not detecting it,"
+            )
+            print("please open a bug report!")
 
         except Exception:
             pwndbg.exception.handle(self.function.__name__)
@@ -559,13 +593,15 @@ class Command:
         *,  # All further parameters are not positional
         category: CommandCategory,
         command_name: str | None = None,
-        aliases: list[str] = [],
+        aliases: list[str] = None,
         examples: str = "",
         notes: str = "",
         only_debuggers: set[pwndbg.dbg_mod.DebuggerType] | None = None,
         exclude_debuggers: set[pwndbg.dbg_mod.DebuggerType] | None = None,
     ) -> None:
         # Setup an ArgumentParser even if we were only passed a description.
+        if aliases is None:
+            aliases = []
         if isinstance(parser_or_desc, str):
             self.parser = argparse.ArgumentParser(description=parser_or_desc)
         else:
@@ -620,8 +656,8 @@ class Command:
         )
 
 
-def fix(
-    arg: pwndbg.dbg_mod.Value | str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
+def parse_command_argument(
+    arg: str, sloppy: bool = False, quiet: bool = True, reraise: bool = False
 ) -> str | pwndbg.dbg_mod.Value | None:
     """Fix a single command-line argument coming from the CLI.
 
@@ -650,21 +686,25 @@ def fix(
     # context.
     try:
         return target.evaluate_expression(arg)
-    except Exception:
+    except pwndbg.dbg_mod.DebuggerError:
+        pass
+
+    # Check if this is a quoted symbol.
+    # .evaluate_expression() should be able to catch this case, but
+    # https://github.com/pwndbg/pwndbg/issues/4189
+    try:
+        found_symbol = target.lookup_symbol(arg)
+        if found_symbol is not None:
+            return found_symbol
+    except pwndbg.dbg_mod.DebuggerError:
         pass
 
     ex = None
     try:
-        # This will fail if gdblib is not available. While the next check
-        # alleviates the need for this call, it's not really equivalent, and
-        # we'll need a debugger-agnostic version of regs.fix() if we want to
-        # completely get rid of this call. We can't do that now because there's
-        # no debugger-agnostic architecture functions. Those will come later.
-        #
-        # TODO: Port architecutre functions and `pwndbg.gdblib.regs.fix` to debugger-agnostic API and remove this.
+        # replaces all occurances of some_register to $some_register
         arg = pwndbg.aglib.regs.fix(arg)
         return target.evaluate_expression(arg)
-    except Exception as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         ex = e
 
     # If that fails, try to treat the argument as the name of a register, and
@@ -691,48 +731,61 @@ def fix(
     return None
 
 
-def fix_reraise(*a: Any, **kw: Any) -> str | pwndbg.dbg_mod.Value | None:
-    # Type error likely due to https://github.com/python/mypy/issues/6799
-    return fix(*a, reraise=True, **kw)  # type: ignore[misc]
+def parse_command_argument_to_int(arg: str) -> int:
+    """
+    Takes a command argument and tries to evaluate it through the debugger
+    (is it a register? a symbol? a (hex) number? an expression) and get back
+    an int.
 
+    Use this to parse arguments when you need an int.
 
-def fix_reraise_arg(arg: Any) -> pwndbg.dbg_mod.Value:
-    """fix_reraise wrapper for evaluating command arguments"""
+    Note: this is automatically applied to every argparse argument that
+    declares `type=int`, see initialize_parser_recursively().
+
+    Raises:
+        ArgumentTypeError if we could not coerce the argument to an int
+    """
     try:
         # Will always return pwndbg.dbg_mod.Value because
         # sloppy=False (not str) and reraise=True (not None)
-        fixed = fix(arg, sloppy=False, quiet=True, reraise=True)
+        fixed = parse_command_argument(arg, sloppy=False, quiet=True, reraise=True)
         assert isinstance(fixed, pwndbg.dbg_mod.Value)
-        return fixed
-    except pwndbg.dbg_mod.Error as dbge:
+    except pwndbg.dbg_mod.DebuggerError as dbge:
         raise argparse.ArgumentTypeError(f"debugger couldn't resolve argument '{arg}': {dbge}")
 
+    # for some reason, int(gdb.Value) for a function and array does not return its address
+    # so we check for this in order to support stuff like `malloc` or `buf`
+    if fixed.type.code in (pwndbg.dbg_mod.TypeCode.FUNC, pwndbg.dbg_mod.TypeCode.ARRAY):
+        addr = fixed.address
+        if addr is None:
+            raise argparse.ArgumentTypeError(
+                f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Value is not addressable."
+            )
+        return int(addr)
 
-def fix_int(*a: Any, **kw: Any) -> int:
-    return int(fix(*a, **kw))
-
-
-def fix_int_reraise(*a: Any, **kw: Any) -> int:
-    return fix_int(*a, reraise=True, **kw)
-
-
-def fix_int_reraise_arg(arg: Any) -> int:
-    """fix_int_reraise wrapper for evaluating command arguments"""
     try:
-        fixed: pwndbg.dbg_mod.Value = fix_reraise_arg(arg)
-        if fixed.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            # Fixes issues with function ptrs (e.g. passing in `malloc`).
-            func_addr = fixed.address
-            if func_addr is None:
-                raise argparse.ArgumentTypeError(
-                    f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Function is not addressable."
-                )
-            return int(func_addr)
         return int(fixed)
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         raise argparse.ArgumentTypeError(
             f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: {e}"
         )
+
+
+def parse_command_argument_to_int_or_str(arg: str) -> int | str:
+    """
+    Takes a command argument and tries to evaluate it through the debugger
+    (is it a register? a symbol? a (hex) number? an expression) and get back
+    an int.
+
+    If it cannot, returns the same argument back.
+
+    Used for e.g. vmmap.
+    """
+    try:
+        int_res: int = parse_command_argument_to_int(arg)
+        return int_res
+    except argparse.ArgumentTypeError:
+        return arg
 
 
 def func_name(function: Callable[P, T]) -> str:
@@ -861,191 +914,6 @@ def OnlyWhenRunning(
     return func_when_no_kwargs
 
 
-def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
-    @functools.wraps(function)
-    def _OnlyWithTcache(*a: P.args, **kw: P.kwargs) -> T | None:
-        assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
-        if pwndbg.aglib.heap.current.has_tcache():
-            return function(*a, **kw)
-        log.error(
-            f"{func_name(function)}: This version of GLIBC was not compiled with tcache support."
-        )
-        return None
-
-    return _OnlyWithTcache
-
-
-def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, T | None]:
-    @functools.wraps(function)
-    def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> T | None:
-        if pwndbg.aglib.heap.current is not None and pwndbg.aglib.heap.current.is_initialized():
-            return function(*a, **kw)
-        log.error(f"{func_name(function)}: Heap is not initialized yet.")
-        return None
-
-    return _OnlyWhenHeapIsInitialized
-
-
-def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) -> T | None:
-    e = log.error
-    w = log.warning
-    # Note: We will still raise the error for developers when exception-* is set to "on"
-    try:
-        return function(*a, **kw)
-    except SymbolNotRecoveredError as err:
-        e(f"{func_name(function)}: Fail to resolve the symbol: `{err.name}`")
-        if "thread_arena" == err.name:
-            w(
-                "You are probably debugging a multi-threaded target without debug symbols, so we failed to determine which arena is used by the current thread.\n"
-                "To resolve this issue, you can use the `arenas` command to list all arenas, and use `set thread-arena <addr>` to set the current thread's arena address you think is correct.\n"
-            )
-        else:
-            w(
-                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap-config` command output and set the config for `{err.name}`."
-            )
-        if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
-            raise err
-
-        pwndbg.exception.inform_verbose_and_debug()
-    except Exception as err:
-        e(f"{func_name(function)}: An unknown error occurred when running this command.")
-        if isinstance(pwndbg.aglib.heap.current, HeuristicHeap):
-            w(
-                "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap-config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
-            )
-        else:
-            w("You can try `set resolve-heap-via-heuristic force` and re-run this command.\n")
-        if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
-            raise err
-
-        pwndbg.exception.inform_verbose_and_debug()
-    return None
-
-
-def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
-    @functools.wraps(function)
-    def _OnlyWithResolvedHeapSyms(*a: P.args, **kw: P.kwargs) -> T | None:
-        e = log.error
-        w = log.warning
-
-        # Operating under the assumption that the pwndbg/libc/ code can figure out
-        # that we are using glibc with at least as good accuracy as the ptmalloc code.
-        if pwndbg.libc.which() != pwndbg.libc.LibcType.GLIBC:
-            e(f"The currently active libc isn't glibc. It's {pwndbg.libc.which().value}.")
-            return None
-
-        if (
-            isinstance(pwndbg.aglib.heap.current, HeuristicHeap)
-            and pwndbg.config.resolve_heap_via_heuristic == "auto"
-            and DebugSymsHeap().can_be_resolved()
-        ):
-            # In auto mode, we will try to use the debug symbols if possible
-            pwndbg.aglib.heap.current = DebugSymsHeap()
-
-        if (
-            pwndbg.aglib.heap.current is not None
-            and isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
-            and pwndbg.aglib.heap.current.can_be_resolved()
-        ):
-            return _try2run_heap_command(function, *a, **kw)
-
-        static = not pwndbg.dbg.selected_inferior().is_dynamically_linked()
-        if (
-            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
-            and pwndbg.config.resolve_heap_via_heuristic == "auto"
-        ):
-            # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
-            heuristic_heap = HeuristicHeap()
-            if heuristic_heap.can_be_resolved():
-                pwndbg.aglib.heap.current = heuristic_heap
-                w(
-                    "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
-                    "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
-                )
-                return _try2run_heap_command(function, *a, **kw)
-            if static:
-                e(
-                    "Can't find GLIBC version required for this command to work since this is a statically linked binary"
-                )
-                w(
-                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
-                )
-            else:
-                e(
-                    "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
-                )
-                w(
-                    "If you believe the GLIBC is loaded or this is a statically linked binary. "
-                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
-                )
-        elif (
-            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
-            and pwndbg.config.resolve_heap_via_heuristic == "force"
-        ):
-            e(
-                "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
-            )
-            w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
-        else:
-            # Note: Should not see this error, but just in case
-            e("An unknown error occurred when resolved the heap.")
-            pwndbg.exception.inform_report_issue("An unknown error occurred when resolved the heap")
-        return None
-
-    return _OnlyWithResolvedHeapSyms
-
-
-def sloppy_gdb_parse(s: str) -> int | str:
-    """
-    This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
-
-    This makes the type being parsed as gdb value and if that parsing fails,
-    a string is returned.
-
-    :param s: String.
-    :return: Whatever gdb.parse_and_eval returns or string.
-    """
-
-    frame = pwndbg.dbg.selected_frame()
-    try:
-        target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
-            frame or pwndbg.dbg.selected_inferior()
-        )
-    except pwndbg.dbg_mod.NoInferior:
-        raise AssertionError("Reached command expression evaluation with no frame or inferior")
-
-    try:
-        val = pwndbg.aglib.symbol.lookup_symbol(s) or target.evaluate_expression(s)
-        if val.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            return int(val.address)
-        return int(val)
-    except (TypeError, pwndbg.dbg_mod.Error):
-        return s
-
-
-def AddressExpr(s: str) -> int:
-    """
-    Parses an address expression. Returns an int.
-    """
-    val = sloppy_gdb_parse(s)
-
-    if not isinstance(val, int):
-        raise argparse.ArgumentTypeError(f"Incorrect address (or GDB expression): {s}")
-
-    return val
-
-
-def HexOrAddressExpr(s: str) -> int:
-    """
-    Parses string as hexadecimal int or an address expression. Returns an int.
-    (e.g. '1234' will return 0x1234)
-    """
-    try:
-        return int(s, 16)
-    except ValueError:
-        return AddressExpr(s)
-
-
 def load_commands() -> None:
     # pylint: disable=import-outside-toplevel
     import pwndbg.dbg_mod
@@ -1055,12 +923,12 @@ def load_commands() -> None:
         import pwndbg.commands.attachp
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
+        import pwndbg.commands.glibc_malloc_tracking
         import pwndbg.commands.got_tracking
         import pwndbg.commands.ignore
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.killthreads
         import pwndbg.commands.peda
-        import pwndbg.commands.ptmalloc2_tracking
         import pwndbg.commands.reload
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
@@ -1087,8 +955,10 @@ def load_commands() -> None:
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
     import pwndbg.commands.errno
+    import pwndbg.commands.exithandlers
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
+    import pwndbg.commands.glibc_malloc
     import pwndbg.commands.godbg
     import pwndbg.commands.got
     import pwndbg.commands.hex2ptr
@@ -1120,6 +990,7 @@ def load_commands() -> None:
     import pwndbg.commands.msr
     import pwndbg.commands.nearpc
     import pwndbg.commands.next
+    import pwndbg.commands.objc
     import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
     import pwndbg.commands.paging
@@ -1130,7 +1001,6 @@ def load_commands() -> None:
     import pwndbg.commands.probeleak
     import pwndbg.commands.procinfo
     import pwndbg.commands.profiler
-    import pwndbg.commands.ptmalloc2
     import pwndbg.commands.pwndbg_
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr
@@ -1141,6 +1011,7 @@ def load_commands() -> None:
     import pwndbg.commands.sigreturn
     import pwndbg.commands.slab
     import pwndbg.commands.spray
+    import pwndbg.commands.stackvis
     import pwndbg.commands.start
     import pwndbg.commands.strings
     import pwndbg.commands.telescope

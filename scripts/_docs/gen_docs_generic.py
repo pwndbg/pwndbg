@@ -9,7 +9,7 @@ ALL_DEBUGGERS = ["gdb", "lldb"]
 
 def get_files_in_dir(directory) -> list[str]:
     file_paths = []
-    for root, dirs, files in os.walk(directory):
+    for root, _dirs, files in os.walk(directory):
         for file in files:
             full_path = os.path.join(root, file)
             relative_path = os.path.relpath(full_path, directory)
@@ -57,7 +57,7 @@ def update_files_simple(filename_to_markdown: dict[str, str]):
             file.write(markdown)
 
 
-def verify_files_simple(filename_to_markdown: dict[str, str], skip: list[str] = []) -> str | None:
+def verify_files_simple(filename_to_markdown: dict[str, str], skip: list[str] = None) -> str | None:
     """
     Verify all the markdown files are up to date with the sources.
 
@@ -66,6 +66,8 @@ def verify_files_simple(filename_to_markdown: dict[str, str], skip: list[str] = 
         A string containing the error message if something is not.
     """
 
+    if skip is None:
+        skip = []
     for filename, markdown in filename_to_markdown.items():
         if filename in skip:
             print(f"Skipping {filename}")

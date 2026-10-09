@@ -36,6 +36,14 @@ def eprint(msg: str):
     print(msg, file=sys.stderr)
 
 
+def try_run(args: list[str]) -> str | None:
+    """Like `run`, but returns None instead of bailing out when the command fails."""
+    result = subprocess.run(args, capture_output=True)
+    if result.returncode != 0:
+        return None
+    return result.stdout.decode("utf-8")
+
+
 def run(args: list[str], no_error=False) -> str:
     result = subprocess.run(args, capture_output=True)
     if result.returncode != 0:
@@ -68,12 +76,18 @@ def iter_macho_deps(binary_path: Path) -> typing.Iterator[Path]:
         yield lib_path
 
 
-def iter_elf_deps(binary_path: Path) -> typing.Iterator[Path]:
-    def stripped_strs(strs: typing.Iterable[str]) -> typing.Iterable[str]:
-        return (cleaned for x in strs for cleaned in [x.strip()] if cleaned != "")
+def stripped_strs(strs: typing.Iterable[str]) -> typing.Iterable[str]:
+    return (cleaned for x in strs for cleaned in [x.strip()] if cleaned != "")
 
+
+def parse_rpaths(raw_rpath: str) -> list[str]:
+    # An empty entry means "current working directory" to the loader, drop those.
+    return list(stripped_strs(raw_rpath.split(":")))
+
+
+def iter_elf_deps(binary_path: Path) -> typing.Iterator[Path]:
     def get_rpaths(exe: str) -> typing.Iterable[str]:
-        return stripped_strs(run(["patchelf", "--print-rpath", exe]).split(":"))
+        return parse_rpaths(run(["patchelf", "--print-rpath", exe]))
 
     def resolve_origin(origin: str, paths: typing.Iterable[str]) -> typing.Iterable[str]:
         return (path.replace("$ORIGIN", origin) for path in paths)
@@ -239,6 +253,40 @@ def patch_library_elf(binary_path: Path, root_dst: Path, *, is_exe: bool):
     cleanup_nixrefs(binary_path)
 
 
+def is_elf_exe(path: Path) -> bool:
+    return check_file_type(path) == "ELF" and bool(path.stat().st_mode & stat.S_IXUSR)
+
+
+def patch_venv_exe_rpath_elf(binary_path: Path, root_dst: Path):
+    # Executables shipped inside the venv, e.g.
+    # site-packages/lldb_for_pwndbg/_vendor/bin/lldb, come from prebuilt PyPI
+    # wheels rather than from the Nix store. `bundle_library` has nothing to do
+    # for them, since none of their dependencies live in /nix/store, so they
+    # would otherwise keep resolving libc/libm/... against the *host* instead of
+    # against the glibc we bundle. That breaks as soon as the host is different
+    # from what the wheel was built against.
+    # See https://github.com/pwndbg/pwndbg/issues/4081.
+    #
+    # The rpath is extended, never replaced: lldb ships RUNPATH=$ORIGIN/../lib,
+    # which is how it finds its own libpython_loader_lldb.so and liblldb_stub.so.
+    bundle_lib = '$ORIGIN/' + str(Path(os.path.relpath(root_dst, binary_path.parent)) / 'lib')
+
+    raw_rpath = try_run(["patchelf", "--print-rpath", str(binary_path)])
+    if raw_rpath is None:
+        # Statically linked, e.g. ziglang/zig, so there is no .dynamic section.
+        print(f'SkippingRpath {binary_path.name}, not dynamically linked')
+        return
+
+    rpaths = parse_rpaths(raw_rpath)
+    if bundle_lib in rpaths:
+        # Some wheels, e.g. gdb_for_pwndbg, already ship the right RUNPATH.
+        print(f'SkippingRpath {binary_path.name}, already points at {bundle_lib}')
+        return
+
+    print(f'PatchingRpath {binary_path.name}: {rpaths}+[{bundle_lib}]')
+    run(["patchelf", "--set-rpath", ":".join([*rpaths, bundle_lib]), str(binary_path)])
+
+
 if sys.platform == 'darwin':
     patch_library = patch_library_macho
 else:
@@ -368,6 +416,7 @@ def bundle_library(binary_path: Path, root_dst: Path, *, is_exe: bool, dst_path:
 
 def bundle_python_venv(src_lib_dir: Path, out_lib_dir: Path, root_dst: Path):
     bundle_libs = set()
+    bundle_exes = set()
     for _, files in iter_dir_recursive(src_lib_dir):
         for src_file_path in files:
             # search for so files:
@@ -379,12 +428,26 @@ def bundle_python_venv(src_lib_dir: Path, out_lib_dir: Path, root_dst: Path):
                 '.dylib',
             ))
 
-            real_file = copy_with_symlink_normal(src_file_path, src_lib_dir, out_lib_dir, is_so=is_so)
-            if is_so and real_file:
+            # search for executables shipped by wheels, they have no suffix:
+            # - /gdb_for_pwndbg/_vendor/bin/gdb
+            # - /lldb_for_pwndbg/_vendor/bin/lldb
+            is_exe = not is_so and sys.platform != 'darwin' and is_elf_exe(src_file_path)
+
+            # Both are $ORIGIN-sensitive, so they get the same symlink restriction.
+            real_file = copy_with_symlink_normal(src_file_path, src_lib_dir, out_lib_dir, is_so=is_so or is_exe)
+            if real_file is None:
+                continue
+
+            if is_so:
                 bundle_libs.add(real_file)
+            elif is_exe:
+                bundle_exes.add(real_file)
 
     for file in bundle_libs:
         bundle_library(file, root_dst, is_exe=False)
+
+    for file in bundle_exes:
+        patch_venv_exe_rpath_elf(file, root_dst)
 
 
 def main():

@@ -159,7 +159,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssista
         }
 
     @override
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         if instruction.id in RISCV_LOAD_INSTRUCTIONS:
             read_size = RISCV_LOAD_INSTRUCTIONS[instruction.id]
             self._common_load_annotator(
@@ -227,7 +227,9 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssista
             )
 
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         """
         Checks if the current instruction is a jump that is taken.
         """
@@ -308,7 +310,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssista
 
     @override
     def _parse_memory(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         """
         Parse the `RISCVOpMem` Capstone object to determine the concrete memory address used.

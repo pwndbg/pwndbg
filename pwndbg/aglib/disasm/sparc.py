@@ -83,7 +83,9 @@ ICC_CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
 
 class SparcDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         if instruction.id in SPARC_CONDITIONAL_BRANCHES:
             cc_field = instruction.cs_insn.cc_field
 

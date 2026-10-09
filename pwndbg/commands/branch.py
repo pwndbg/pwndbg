@@ -28,7 +28,7 @@ class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
         # where previously it was not. The enhancement process will figure out if all the conditions
         # this branch requires in order to be taken have been met.
         assistant = pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
-        assistant.enhance(self.instruction)
+        assistant.enhance(self.instruction, current_cpu_instruction=True)
         condition_met = self.instruction.is_conditional_jump_taken
 
         return condition_met == self.taken
