@@ -1657,6 +1657,19 @@ class GDBValue(pwndbg.dbg_mod.Value):
             raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
+    def raw_bytes(self) -> bytes:
+        # gdb.Value.bytes was added in GDB 15.1
+        if not hasattr(self.inner, "bytes"):
+            raise pwndbg.dbg_mod.DebuggerError(
+                "reading raw bytes not support on current GDB version"
+            )
+
+        try:
+            return bytes(self.inner.bytes)
+        except gdb.error as e:
+            raise pwndbg.dbg_mod.DebuggerError(e)
+
+    @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
         assert isinstance(type, GDBType)
         type: GDBType = type

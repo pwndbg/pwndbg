@@ -779,6 +779,15 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         return self.inner.GetValueAsSigned()
 
     @override
+    def raw_bytes(self) -> bytes:
+        data = self.inner.GetData()
+        error = lldb.SBError()
+        raw = data.ReadRawData(error, 0, data.GetByteSize())
+        if not error.Success():
+            raise pwndbg.dbg_mod.DebuggerError(f"cannot get the raw bytes of value: {error}")
+        return bytes(raw)
+
+    @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
         assert isinstance(type, LLDBType)
         type: LLDBType = type
