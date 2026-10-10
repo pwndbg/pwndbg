@@ -96,7 +96,13 @@ def instructions_and_padding(instructions: list[PwndbgInstruction], linear: bool
         zip(instructions, (one_instruction(i, linear) for i in instructions))
     ):
         if ins.has_jump_target:
-            asm = f"{ljust_colored(asm, 36)} <{ins.target_string}>"
+            # Make sure that we don't show the symbol name twice,
+            # in the case we replaced an inline constant with the symbol
+            if ins.symbol_inline_replaced:
+                target = mem_color.get(ins.target)
+                asm = f"{ljust_colored(asm, 36)} <{target}>"
+            else:
+                asm = f"{ljust_colored(asm, 36)} <{ins.target_string}>"
 
             paddings.append(None)
             if current_group:

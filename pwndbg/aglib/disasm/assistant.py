@@ -90,6 +90,12 @@ pwndbg.config.add_param(
     "replacing constant operands with their symbol in the disassembly",
 )
 
+pwndbg.config.add_param(
+    "disasm-inline-jmp-symbols",
+    False,
+    "replacing constant operands with their symbol in the disassembly",
+)
+
 
 def syntax_highlight(ins: str):
     return H.syntax_highlight(ins, filename=".asm")
@@ -390,10 +396,17 @@ class DisassemblyAssistant:
                     and op.type in (CS_OP_IMM, CS_OP_MEM)
                     and pwndbg.config.disasm_inline_symbols
                 ):
-                    # Make an inline replacement, so `jmp 0x400122` becomes `jmp function_name`
-                    instruction.asm_string = instruction.asm_string.replace(
-                        hex(op.before_value), op.symbol
-                    )
+                    # If it's a `jmp constant`, by default, we don't replace the constant
+                    # with the symbol name, because the jmp <target> already has the symbol
+                    if not instruction.jump_like or pwndbg.config.disasm_inline_jmp_symbols:
+                        asm_string_before = instruction.asm_string
+                        # Make an inline replacement, so `jmp 0x400122` becomes `jmp function_name`
+                        instruction.asm_string = instruction.asm_string.replace(
+                            hex(op.before_value), op.symbol
+                        )
+
+                        if asm_string_before != instruction.asm_string:
+                            instruction.symbol_inline_replaced = True
 
         # Execute the instruction
         if jump_emu:
