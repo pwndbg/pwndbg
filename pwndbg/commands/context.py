@@ -1187,7 +1187,7 @@ parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers t
 
 @pwndbg.commands.Command(parser, category=CommandCategory.CONTEXT)
 @pwndbg.commands.OnlyWhenRunning
-def regs(regs: list[str | VisitableRegister | None] | None = None) -> None:
+def regs(regs: list[str] | None = None) -> None:
     """Print out all registers and enhance the information."""
     print("\n".join(get_regs(regs)))
 
@@ -1205,31 +1205,28 @@ class RegisterContext(RegisterContextProtocol):
     def get_prefix(self, reg: str) -> str:
         # Make the register stand out and give a color if changed
         regname = ctx_color.register(reg.ljust(4).upper())
-        if reg in self.changed:
+        if reg.lower() in self.changed:
             regname = ctx_color.register_changed(regname)
 
         # Show a marker next to the register if it changed
         change_marker = f"{ctx_color.config_register_changed_marker}"
         m = (
             " " * len(change_marker)
-            if reg not in self.changed
+            if reg.lower() not in self.changed
             else ctx_color.register_changed(change_marker)
         )
         return f"{m}{regname}"
 
     def get_register_value(self, reg: str) -> int | None:
-        val = pwndbg.aglib.regs.read_reg(reg)
+        val = pwndbg.aglib.regs.read_reg(reg, reg.lower())
         if val is None:
             print(message.warn(f"Unknown register: {reg!r}"))
             return None
         return val
 
     @override
-    def flag_register_context(self, reg: str, bit_flags: BitFlags) -> str | None:
-        val = self.get_register_value(reg)
-        if val is None:
-            return None
-        desc = ctx_color.format_flags(val, bit_flags, pwndbg.aglib.regs.last.get(reg, 0))
+    def flag_register_context(self, reg: str, value: int, bit_flags: BitFlags) -> str | None:
+        desc = ctx_color.format_flags(value, bit_flags, pwndbg.aglib.regs.last.get(reg.lower(), 0))
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
 
@@ -1245,90 +1242,80 @@ class RegisterContext(RegisterContextProtocol):
         return result
 
     @override
-    def addressing_register_context(self, reg: str, is_virtual: bool) -> str | None:
+    def addressing_register_context(self, reg: str, value: int, is_virtual: bool) -> str | None:
         if is_virtual:
-            return self.register_context_default(reg)
-        val = self.get_register_value(reg)
-        if val is None:
-            return None
+            return self.register_context_default(reg, value)
         prefix = self.get_prefix(reg)
-        desc = hex(val)
+        desc = hex(value)
         if pwndbg.aglib.kernel.has_debug_symbols():
             try:
-                virtual = pwndbg.aglib.kernel.phys_to_virt(val)
+                virtual = pwndbg.aglib.kernel.phys_to_virt(value)
                 desc += f" [virtual: {pwndbg.chain.format(virtual)}]"
             except Exception:
                 pass
         return f"{prefix} {desc}"
 
-    def register_context_default(self, reg: str) -> str | None:
-        val = self.get_register_value(reg)
-        if val is None:
-            return None
-        desc = pwndbg.chain.format(val)
+    def register_context_default(self, reg: str, value: int) -> str | None:
+        desc = pwndbg.chain.format(value)
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
 
+    def render(self, reg: str, printer: VisitableRegister | None = None) -> str | None:
+        # Resolve "sp" and "pc" to the real architectural register names
+        reg = pwndbg.aglib.regs.current.resolve_aliases(reg)
 
-def get_regs(in_regs: list[str | VisitableRegister | None] | None = None) -> list[str]:
-    # Python default parameters are instantiated once and shared across calls.
-    # Instead of a default value of [], we need to do this check so we get a fresh list each time
-    if in_regs is None:
-        in_regs = []
-    regs: list[str | VisitableRegister | None] = in_regs
-    result: list[str] = []
+        if printer is None:
+            # Check if we have a registered pretty printer
+            printer = pwndbg.aglib.regs.current.pretty_printers.get(reg.lower())
+
+        val = self.get_register_value(reg)
+        if val is None:
+            return None
+
+        if printer is not None:
+            return printer.context(self, reg, val)
+
+        # Default printer for register values
+        return self.register_context_default(reg, val)
+
+
+def get_regs(in_regs: list[str] | None = None) -> list[str]:
     rc = RegisterContext()
+    result: list[str | None] = []
 
-    if len(regs) == 0:
-        regs += pwndbg.aglib.regs.gpr
+    if in_regs:
+        result += [rc.render(reg) for reg in in_regs]
+    else:
+        result += [rc.render(reg) for reg in pwndbg.aglib.regs.gpr]
 
-        regs.append(pwndbg.aglib.regs.frame)
-        regs.append(pwndbg.aglib.regs.stack)
+        if pwndbg.aglib.regs.frame is not None:
+            result.append(rc.render(pwndbg.aglib.regs.frame))
+
+        result.append(rc.render(pwndbg.aglib.regs.stack))
 
         if pwndbg.config.show_retaddr_reg:
-            regs += pwndbg.aglib.regs.retaddr
+            result += [rc.render(reg) for reg in pwndbg.aglib.regs.retaddr]
 
-        regs.append(pwndbg.aglib.regs.current.pc)
+        result.append(rc.render(pwndbg.aglib.regs.current.pc))
 
         if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel is not None:
             controls = pwndbg.aglib.regs.kernel.controls
             if controls is not None:
-                for regname, control in controls.items():
-                    control.update(regname)
-                    regs.append(control)
+                result += [rc.render(reg, printer) for reg, printer in controls.items()]
             msrs = pwndbg.aglib.regs.kernel.msrs
             if msrs is not None:
-                for regname, msr in msrs.items():
-                    msr.update(regname)
-                    regs.append(msr)
+                result += [rc.render(reg, printer) for reg, printer in msrs.items()]
+
         if pwndbg.config.show_flags:
             flags = pwndbg.aglib.regs.flags
             if flags is not None:
-                for regname, flag in flags.items():
-                    flag.update(regname)
-                    regs.append(flag)
+                result += [rc.render(reg, printer) for reg, printer in flags.items()]
+
         if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel is not None:
             if pwndbg.aglib.regs.kernel.segments is not None:
-                regs.append(pwndbg.aglib.regs.kernel.segments)
+                result.append(pwndbg.aglib.regs.kernel.segments.context(rc))
 
-    for reg in regs:
-        if reg is None:
-            continue
-        # If it's a VisitableRegister which has special logic to determine what to print
-        if not isinstance(reg, str):
-            desc = reg.context(rc)
-            if desc is not None:
-                result.append(desc)
-            continue
-
-        # Resolve "sp" and "pc" to the real architectural register names
-        reg = pwndbg.aglib.regs.current.resolve_aliases(reg)
-
-        desc = rc.register_context_default(reg)
-        if desc is not None:
-            result.append(desc)
-
-    return result
+    return [desc for desc in result if desc is not None]
 
 
 disasm_lines = pwndbg.config.add_param(

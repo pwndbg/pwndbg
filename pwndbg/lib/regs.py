@@ -25,31 +25,25 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 
 class RegisterContextProtocol(Protocol):
-    def flag_register_context(self, reg: str, bit_flags: BitFlags) -> str | None: ...
+    def flag_register_context(self, reg: str, value: int, bit_flags: BitFlags) -> str | None: ...
 
-    def addressing_register_context(self, reg: str, is_virtual: bool) -> str | None: ...
+    def addressing_register_context(self, reg: str, value: int, is_virtual: bool) -> str | None: ...
 
     def segment_registers_context(self, regs: list[str]) -> str | None: ...
 
 
 # Represents a register or a set of registers that can be printed in the context register view
 class VisitableRegister(Protocol):
-    def context(self, rc: RegisterContextProtocol) -> str | None: ...
+    def context(self, rc: RegisterContextProtocol, reg: str, value: int) -> str | None: ...
 
 
 class BitFlags(VisitableRegister):
-    # this is intentionally uninitialized -- arm uses the same self.flags structuture for different registers
-    # for example
-    #   - aarch64_cpsr_flags is used for "cpsr", "spsr_el1", "spsr_el2", "spsr_el3"
-    #   - aarch64_sctlr_flags is used for "sctlr", "sctlr_el2", "sctlr_el3"
-    regname: str
     flags: OrderedDict[str, int | tuple[int, int]]
     value: int
 
     def __init__(self, flags: list[tuple[str, int | tuple[int, int]]] = None):
         if flags is None:
             flags = []
-        self.regname = ""
         self.flags = OrderedDict()
         for name, bits in flags:
             self.flags[name] = bits
@@ -80,12 +74,9 @@ class BitFlags(VisitableRegister):
     def __repr__(self):
         return f"BitFlags({self.flags})"
 
-    def update(self, regname: str) -> None:
-        self.regname = regname
-
     @override
-    def context(self, rc: RegisterContextProtocol) -> str | None:
-        return rc.flag_register_context(self.regname, self)
+    def context(self, rc: RegisterContextProtocol, reg: str, value: int) -> str | None:
+        return rc.flag_register_context(reg, value, self)
 
 
 class AddressingRegister(VisitableRegister):
@@ -93,24 +84,17 @@ class AddressingRegister(VisitableRegister):
     Represents a register that is used to store an address, e.g. cr3, gsbase, fsbase
     """
 
-    reg: str
-    value: int
     is_virtual: bool
 
-    def __init__(self, reg: str, is_virtual: bool):
-        self.reg = reg
-        self.value = 0
+    def __init__(self, is_virtual: bool):
         self.is_virtual = is_virtual
 
-    def update(self, regname: str) -> None:
-        pass
-
     @override
-    def context(self, rc: RegisterContextProtocol) -> str | None:
-        return rc.addressing_register_context(self.reg, self.is_virtual)
+    def context(self, rc: RegisterContextProtocol, reg: str, value: int) -> str | None:
+        return rc.addressing_register_context(reg, value, self.is_virtual)
 
 
-class SegmentRegisters(VisitableRegister):
+class SegmentRegisters:
     """
     Represents the x86 segment register set
     """
@@ -120,7 +104,6 @@ class SegmentRegisters(VisitableRegister):
     def __init__(self, regs: list[str]):
         self.regs = regs
 
-    @override
     def context(self, rc: RegisterContextProtocol) -> str | None:
         return rc.segment_registers_context(self.regs)
 
@@ -238,6 +221,11 @@ class RegisterSet:
     - "pc" -> instruction pointer register name
     """
 
+    pretty_printers: dict[str, VisitableRegister]
+    """
+    Map register name to a VisibleRegister (which implements pretty printing logic)
+    """
+
     def __init__(
         self,
         pc: Reg = Reg("pc"),
@@ -335,12 +323,28 @@ class RegisterSet:
         self.special_aliases["sp"] = self.stack
         self.special_aliases["pc"] = self.pc
 
+        # Register pretty printers for direct lookup
+        self.pretty_printers = {}
+
+        for flag_name, bitflags in self.flags.items():
+            self.pretty_printers[flag_name] = bitflags
+
+        for flag_name, bitflags in self.extra_flags.items():
+            self.pretty_printers[flag_name] = bitflags
+
+        if self.kernel is not None:
+            for reg_name, printer in self.kernel.controls.items():
+                self.pretty_printers[reg_name] = printer
+
+            for reg_name, printer in self.kernel.msrs.items():
+                self.pretty_printers[reg_name] = printer
+
     def resolve_aliases(self, reg: str) -> str:
         """
         Convert "sp" and "pc" to the real architectural registers.
         For all others, returns `reg`
         """
-        return self.special_aliases.get(reg, reg)
+        return self.special_aliases.get(reg.lower(), reg)
 
     def __contains__(self, reg: str) -> bool:
         return reg in self.all
@@ -614,9 +618,17 @@ aarch64_scr_flags = BitFlags(
 
 aarch64_mmfr_flags = BitFlags([("VARange", (16, 19))])
 
+arm32_sctrl_el1_flags = BitFlags(
+    [
+        ("B", 7),
+        ("EE", 25),
+    ]
+)
+
 arm = RegisterSet(
     retaddr=(Reg("lr", 4),),
     flags={"cpsr": arm_cpsr_flags},
+    extra_flags={"sctlr": arm32_sctrl_el1_flags, "sctlr_el1": arm32_sctrl_el1_flags},
     gpr=(
         Reg("r0", 4),
         Reg("r1", 4),
@@ -736,7 +748,7 @@ amd64_kernel = KernelRegisterSet(
     controls={
         # only displays the security related bits, otherwise it can be too clustered
         "cr0": BitFlags([("PE", 0), ("WP", 16), ("PG", 31)]),
-        "cr3": AddressingRegister("cr3", False),
+        "cr3": AddressingRegister(False),
         "cr4": BitFlags(
             [
                 ("UMIP", 11),
@@ -751,8 +763,8 @@ amd64_kernel = KernelRegisterSet(
     },
     msrs={
         "efer": BitFlags([("NXE", 11)]),
-        "gs_base": AddressingRegister("gs_base", True),
-        "fs_base": AddressingRegister("fs_base", True),
+        "gs_base": AddressingRegister(True),
+        "fs_base": AddressingRegister(True),
     },
 )
 
