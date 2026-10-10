@@ -1106,6 +1106,9 @@ class Value:
     def raw_bytes(self) -> bytes:
         """
         The raw bytes of this value
+        
+        Raises:
+            DebuggerError: When the raw bytes cannot be read or the debugger does not support it
         """
         raise NotImplementedError()
 
