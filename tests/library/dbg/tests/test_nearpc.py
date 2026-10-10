@@ -349,10 +349,10 @@ async def test_nearpc_function(ctrl: Controller) -> None:
     # disassemble current function
     dis = await ctrl.execute_and_capture("nearpc --function")
     expected_break_here = (
-        "b+ 0x10014d0 <break_here>      push   rbp\n"
-        " ► 0x10014d1 <break_here+1>    mov    rbp, rsp\n"
-        "   0x10014d4 <break_here+4>    pop    rbp\n"
-        "   0x10014d5 <break_here+5>    ret   \n"
+        "b+ 0x1001530 <break_here>      push   rbp\n"
+        " ► 0x1001531 <break_here+1>    mov    rbp, rsp\n"
+        "   0x1001534 <break_here+4>    pop    rbp\n"
+        "   0x1001535 <break_here+5>    ret   \n"
     )
     assert dis == expected_break_here
 
@@ -360,10 +360,10 @@ async def test_nearpc_function(ctrl: Controller) -> None:
     await ctrl.execute("up")
     dis = (await ctrl.execute_and_capture("nearpc --function")).splitlines()[-4:]
     expected = [
-        " ► 0x1001502 <main+34>    xor    eax, eax",
-        "   0x1001504 <main+36>    add    rsp, 0x10",
-        "   0x1001508 <main+40>    pop    rbp",
-        "   0x1001509 <main+41>    ret   ",
+        " ► 0x1001562 <main+34>    xor    eax, eax",
+        "   0x1001564 <main+36>    add    rsp, 0x10",
+        "   0x1001568 <main+40>    pop    rbp",
+        "   0x1001569 <main+41>    ret   ",
     ]
     assert dis == expected
 
@@ -430,34 +430,34 @@ async def test_nearpc_plt_jumps_lazy_binding_x86_64(
             pytest.mark.xfail(reason="LLDB does not correctly find the symbol names", strict=True)
         )
 
-    PLT_ADDRESS = 0x555555555670
+    PLT_ADDRESS = 0x5555555556A0
     dis_0 = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 -t 15")
     dis_0 = pwndbg.color.strip(dis_0)
 
     expected_0 = (
-        " ► 0x555555555670                                ┌┌┌┌─>   push   qword ptr [rip + 0x11b2]\n"
-        "   0x555555555676                                ╎╎╎╎     jmp    qword ptr [rip + 0x11b4]    <[0x555555556830], now=_dl_runtime_resolve_xsavec>\n"
+        " ► 0x5555555556a0                                ┌┌┌┌─>   push   qword ptr [rip + 0x11a2]\n"
+        "   0x5555555556a6                                ╎╎╎╎     jmp    qword ptr [rip + 0x11a4]    <[0x555555556850], now=_dl_runtime_resolve_xsavec>\n"
         "                                                 ╎╎╎╎  \n"
-        "   0x55555555567c                                ╎╎╎╎     nop    dword ptr [rax]\n"
-        "   0x555555555680 <puts@plt>                     ╎╎╎╎┌<   jmp    qword ptr [rip + 0x11b2]    <[puts@got[plt]], now=puts@plt+6>\n"
+        "   0x5555555556ac                                ╎╎╎╎     nop    dword ptr [rax]\n"
+        "   0x5555555556b0 <puts@plt>                     ╎╎╎╎┌<   jmp    qword ptr [rip + 0x11a2]    <[puts@got[plt]], now=puts@plt+6>\n"
         "                                                 ╎╎╎╎│ \n"
-        "   0x555555555686 <puts@plt+6>                   ╎╎╎╎└>   push   0\n"
-        "   0x55555555568b <puts@plt+11>                  ╎╎╎└─<   jmp    0x555555555670              <0x555555555670>\n"
+        "   0x5555555556b6 <puts@plt+6>                   ╎╎╎╎└>   push   0\n"
+        "   0x5555555556bb <puts@plt+11>                  ╎╎╎└─<   jmp    0x5555555556a0              <0x5555555556a0>\n"
         "                                                 ╎╎╎   \n"
-        "   0x555555555690 <printf@plt>                   ╎╎╎ ┌<   jmp    qword ptr [rip + 0x11aa]    <[printf@got[plt]], now=printf@plt+6>\n"
+        "   0x5555555556c0 <printf@plt>                   ╎╎╎ ┌<   jmp    qword ptr [rip + 0x119a]    <[printf@got[plt]], now=printf@plt+6>\n"
         "                                                 ╎╎╎ │ \n"
-        "   0x555555555696 <printf@plt+6>                 ╎╎╎ └>   push   1\n"
-        "   0x55555555569b <printf@plt+11>                ╎╎└──<   jmp    0x555555555670              <0x555555555670>\n"
+        "   0x5555555556c6 <printf@plt+6>                 ╎╎╎ └>   push   1\n"
+        "   0x5555555556cb <printf@plt+11>                ╎╎└──<   jmp    0x5555555556a0              <0x5555555556a0>\n"
         "                                                 ╎╎    \n"
-        "   0x5555555556a0 <write@plt>                    ╎╎  ┌<   jmp    qword ptr [rip + 0x11a2]    <[write@got[plt]], now=write@plt+6>\n"
+        "   0x5555555556d0 <write@plt>                    ╎╎  ┌<   jmp    qword ptr [rip + 0x1192]    <[write@got[plt]], now=write@plt+6>\n"
         "                                                 ╎╎  │ \n"
-        "   0x5555555556a6 <write@plt+6>                  ╎╎  └>   push   2\n"
-        "   0x5555555556ab <write@plt+11>                 ╎└───<   jmp    0x555555555670              <0x555555555670>\n"
+        "   0x5555555556d6 <write@plt+6>                  ╎╎  └>   push   2\n"
+        "   0x5555555556db <write@plt+11>                 ╎└───<   jmp    0x5555555556a0              <0x5555555556a0>\n"
         "                                                 ╎     \n"
-        "   0x5555555556b0 <srand@plt>                    ╎   ┌<   jmp    qword ptr [rip + 0x119a]    <[srand@got[plt]], now=srand@plt+6>\n"
+        "   0x5555555556e0 <srand@plt>                    ╎   ┌<   jmp    qword ptr [rip + 0x118a]    <[srand@got[plt]], now=srand@plt+6>\n"
         "                                                 ╎   │ \n"
-        "   0x5555555556b6 <srand@plt+6>                  ╎   └>   push   3\n"
-        "   0x5555555556bb <srand@plt+11>                 └────<   jmp    0x555555555670              <0x555555555670>\n"
+        "   0x5555555556e6 <srand@plt+6>                  ╎   └>   push   3\n"
+        "   0x5555555556eb <srand@plt+11>                 └────<   jmp    0x5555555556a0              <0x5555555556a0>\n"
     )
 
     assert dis_0 == expected_0
@@ -470,29 +470,29 @@ async def test_nearpc_plt_jumps_lazy_binding_x86_64(
 
     # At this point, some of the symbols have been resolved
     expected_1 = (
-        " ► 0x555555555670                                 ┌┌┌┌>   push   qword ptr [rip + 0x11b2]\n"
-        "   0x555555555676                                 ╎╎╎╎    jmp    qword ptr [rip + 0x11b4]    <[0x555555556830], now=_dl_runtime_resolve_xsavec>\n"
+        " ► 0x5555555556a0                                 ┌┌┌┌>   push   qword ptr [rip + 0x11a2]\n"
+        "   0x5555555556a6                                 ╎╎╎╎    jmp    qword ptr [rip + 0x11a4]    <[0x555555556850], now=_dl_runtime_resolve_xsavec>\n"
         "                                                  ╎╎╎╎ \n"
-        "   0x55555555567c                                 ╎╎╎╎    nop    dword ptr [rax]\n"
-        "   0x555555555680 <puts@plt>                      ╎╎╎╎    jmp    qword ptr [rip + 0x11b2]    <[puts@got[plt]], now=puts>\n"
+        "   0x5555555556ac                                 ╎╎╎╎    nop    dword ptr [rax]\n"
+        "   0x5555555556b0 <puts@plt>                      ╎╎╎╎    jmp    qword ptr [rip + 0x11a2]    <[puts@got[plt]], now=puts>\n"
         "                                                  ╎╎╎╎ \n"
-        "   0x555555555686 <puts@plt+6>                    ╎╎╎╎    push   0\n"
-        "   0x55555555568b <puts@plt+11>                   ╎╎╎└<   jmp    0x555555555670              <0x555555555670>\n"
+        "   0x5555555556b6 <puts@plt+6>                    ╎╎╎╎    push   0\n"
+        "   0x5555555556bb <puts@plt+11>                   ╎╎╎└<   jmp    0x5555555556a0              <0x5555555556a0>\n"
         "                                                  ╎╎╎  \n"
-        "   0x555555555690 <printf@plt>                    ╎╎╎     jmp    qword ptr [rip + 0x11aa]    <[printf@got[plt]], now=printf>\n"
+        "   0x5555555556c0 <printf@plt>                    ╎╎╎     jmp    qword ptr [rip + 0x119a]    <[printf@got[plt]], now=printf>\n"
         "                                                  ╎╎╎  \n"
-        "   0x555555555696 <printf@plt+6>                  ╎╎╎     push   1\n"
-        "   0x55555555569b <printf@plt+11>                 ╎╎└─<   jmp    0x555555555670              <0x555555555670>\n"
+        "   0x5555555556c6 <printf@plt+6>                  ╎╎╎     push   1\n"
+        "   0x5555555556cb <printf@plt+11>                 ╎╎└─<   jmp    0x5555555556a0              <0x5555555556a0>\n"
         "                                                  ╎╎   \n"
-        "   0x5555555556a0 <write@plt>                     ╎╎ ┌<   jmp    qword ptr [rip + 0x11a2]    <[write@got[plt]], now=write@plt+6>\n"
+        "   0x5555555556d0 <write@plt>                     ╎╎ ┌<   jmp    qword ptr [rip + 0x1192]    <[write@got[plt]], now=write@plt+6>\n"
         "                                                  ╎╎ │ \n"
-        "   0x5555555556a6 <write@plt+6>                   ╎╎ └>   push   2\n"
-        "   0x5555555556ab <write@plt+11>                  ╎└──<   jmp    0x555555555670              <0x555555555670>\n"
+        "   0x5555555556d6 <write@plt+6>                   ╎╎ └>   push   2\n"
+        "   0x5555555556db <write@plt+11>                  ╎└──<   jmp    0x5555555556a0              <0x5555555556a0>\n"
         "                                                  ╎    \n"
-        "   0x5555555556b0 <srand@plt>                     ╎  ┌<   jmp    qword ptr [rip + 0x119a]    <[srand@got[plt]], now=srand@plt+6>\n"
+        "   0x5555555556e0 <srand@plt>                     ╎  ┌<   jmp    qword ptr [rip + 0x118a]    <[srand@got[plt]], now=srand@plt+6>\n"
         "                                                  ╎  │ \n"
-        "   0x5555555556b6 <srand@plt+6>                   ╎  └>   push   3\n"
-        "   0x5555555556bb <srand@plt+11>                  └───<   jmp    0x555555555670              <0x555555555670>\n"
+        "   0x5555555556e6 <srand@plt+6>                   ╎  └>   push   3\n"
+        "   0x5555555556eb <srand@plt+11>                  └───<   jmp    0x5555555556a0              <0x5555555556a0>\n"
     )
 
     assert dis_1 == expected_1
