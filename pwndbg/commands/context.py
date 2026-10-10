@@ -1224,14 +1224,24 @@ class RegisterContext(RegisterContextProtocol):
             return None
         return val
 
+    def get_register_abstract_value(self, reg: str) -> pwndbg.dbg_mod.Value | None:
+        val = pwndbg.aglib.regs.read_reg_abstract_value(reg.lower())
+        if val is None:
+            print(message.warn(f"Unknown register: {reg!r}"))
+            return None
+        return val
+
     @override
-    def flag_register_context(self, reg: str, value: int, bit_flags: BitFlags) -> str | None:
+    def flag_register_pretty_print(self, reg: str, bit_flags: BitFlags) -> str | None:
+        value = self.get_register_value(reg)
+        if value is None:
+            return None
         desc = ctx_color.format_flags(value, bit_flags, pwndbg.aglib.regs.last.get(reg.lower(), 0))
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
 
     @override
-    def segment_registers_context(self, regs: list[str]) -> str | None:
+    def segment_registers_pretty_print(self, regs: list[str]) -> str | None:
         result = ""
         for reg in regs:
             val = self.get_register_value(reg)
@@ -1242,9 +1252,12 @@ class RegisterContext(RegisterContextProtocol):
         return result
 
     @override
-    def addressing_register_context(self, reg: str, value: int, is_virtual: bool) -> str | None:
+    def addressing_register_pretty_print(self, reg: str, is_virtual: bool) -> str | None:
         if is_virtual:
-            return self.register_context_default(reg, value)
+            return self.default_register_pretty_print(reg)
+        value = self.get_register_value(reg)
+        if value is None:
+            return None
         prefix = self.get_prefix(reg)
         desc = hex(value)
         if pwndbg.aglib.kernel.has_debug_symbols():
@@ -1255,7 +1268,28 @@ class RegisterContext(RegisterContextProtocol):
                 pass
         return f"{prefix} {desc}"
 
-    def register_context_default(self, reg: str, value: int) -> str | None:
+    @override
+    def vector_register_pretty_print(self, reg: str) -> str | None:
+        val = self.get_register_abstract_value(reg)
+        if val is None:
+            return None
+
+        try:
+            raw = val.raw_bytes()
+        except pwndbg.dbg_mod.DebuggerError as e:
+            print(message.warn(f"Cannot read vector register {reg}: {e}"))
+            return None
+
+        # Show entire contents of registers as hex (including leading 0 bytes)
+        value = int.from_bytes(raw, pwndbg.aglib.arch.endian)
+        desc = f"{value:#0{2 + 2 * len(raw)}x}"
+        prefix = self.get_prefix(reg)
+        return f"{prefix} {desc}"
+
+    def default_register_pretty_print(self, reg: str) -> str | None:
+        value = self.get_register_value(reg)
+        if value is None:
+            return None
         desc = pwndbg.chain.format(value)
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
@@ -1268,15 +1302,10 @@ class RegisterContext(RegisterContextProtocol):
             # Check if we have a registered pretty printer
             printer = pwndbg.aglib.regs.current.pretty_printers.get(reg.lower())
 
-        val = self.get_register_value(reg)
-        if val is None:
-            return None
-
         if printer is not None:
-            return printer.context(self, reg, val)
+            return printer.pretty_print(self, reg)
 
-        # Default printer for register values
-        return self.register_context_default(reg, val)
+        return self.default_register_pretty_print(reg)
 
 
 def get_regs(in_regs: list[str] | None = None) -> list[str]:
@@ -1313,7 +1342,7 @@ def get_regs(in_regs: list[str] | None = None) -> list[str]:
 
         if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel is not None:
             if pwndbg.aglib.regs.kernel.segments is not None:
-                result.append(pwndbg.aglib.regs.kernel.segments.context(rc))
+                result.append(pwndbg.aglib.regs.kernel.segments.pretty_print(rc))
 
     return [desc for desc in result if desc is not None]
 

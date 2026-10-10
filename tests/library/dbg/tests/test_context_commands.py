@@ -796,3 +796,22 @@ async def test_regs_flags_register_pretty_printed(ctrl: Controller) -> None:
 
     # Remove either * (changed) or space from front, since we don't know if it has been mutated or not
     assert out.lstrip("* ") == "EFLAGS 0x246 [ cf PF af ZF sf IF df of iopl:00 ac ]\n"
+
+
+@pwndbg_test
+async def test_regs_vector_register(ctrl: Controller) -> None:
+    """
+    Test for `regs xmm0`
+    """
+    await ctrl.launch(SYSCALLS_BINARY)
+
+    xmm = await ctrl.execute_and_capture("regs xmm0")
+    ymm = await ctrl.execute_and_capture("regs YMM0")
+
+    xmm_match = re.fullmatch(r"XMM0 0x([0-9a-f]{32})\n", xmm.lstrip("* "))
+    ymm_match = re.fullmatch(r"YMM0 0x([0-9a-f]{64})\n", ymm.lstrip("* "))
+    assert xmm_match is not None
+    assert ymm_match is not None
+
+    # xmm0 is the lower half of ymm0
+    assert ymm_match.group(1).endswith(xmm_match.group(1))

@@ -25,16 +25,18 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 
 class RegisterContextProtocol(Protocol):
-    def flag_register_context(self, reg: str, value: int, bit_flags: BitFlags) -> str | None: ...
+    def flag_register_pretty_print(self, reg: str, bit_flags: BitFlags) -> str | None: ...
 
-    def addressing_register_context(self, reg: str, value: int, is_virtual: bool) -> str | None: ...
+    def addressing_register_pretty_print(self, reg: str, is_virtual: bool) -> str | None: ...
 
-    def segment_registers_context(self, regs: list[str]) -> str | None: ...
+    def segment_registers_pretty_print(self, regs: list[str]) -> str | None: ...
+
+    def vector_register_pretty_print(self, reg: str) -> str | None: ...
 
 
 # Represents a register or a set of registers that can be printed in the context register view
 class VisitableRegister(Protocol):
-    def context(self, rc: RegisterContextProtocol, reg: str, value: int) -> str | None: ...
+    def pretty_print(self, rc: RegisterContextProtocol, reg: str) -> str | None: ...
 
 
 class BitFlags(VisitableRegister):
@@ -75,8 +77,8 @@ class BitFlags(VisitableRegister):
         return f"BitFlags({self.flags})"
 
     @override
-    def context(self, rc: RegisterContextProtocol, reg: str, value: int) -> str | None:
-        return rc.flag_register_context(reg, value, self)
+    def pretty_print(self, rc: RegisterContextProtocol, reg: str) -> str | None:
+        return rc.flag_register_pretty_print(reg, self)
 
 
 class AddressingRegister(VisitableRegister):
@@ -90,8 +92,18 @@ class AddressingRegister(VisitableRegister):
         self.is_virtual = is_virtual
 
     @override
-    def context(self, rc: RegisterContextProtocol, reg: str, value: int) -> str | None:
-        return rc.addressing_register_context(reg, value, self.is_virtual)
+    def pretty_print(self, rc: RegisterContextProtocol, reg: str) -> str | None:
+        return rc.addressing_register_pretty_print(reg, self.is_virtual)
+
+
+class VectorRegister(VisitableRegister):
+    """
+    Pretty printer for SIMD registers, like `xmm0` on x86 or `v0` on Arm64
+    """
+
+    @override
+    def pretty_print(self, rc: RegisterContextProtocol, reg: str) -> str | None:
+        return rc.vector_register_pretty_print(reg)
 
 
 class SegmentRegisters:
@@ -104,8 +116,8 @@ class SegmentRegisters:
     def __init__(self, regs: list[str]):
         self.regs = regs
 
-    def context(self, rc: RegisterContextProtocol) -> str | None:
-        return rc.segment_registers_context(self.regs)
+    def pretty_print(self, rc: RegisterContextProtocol) -> str | None:
+        return rc.segment_registers_pretty_print(self.regs)
 
 
 class KernelRegisterSet:
@@ -158,8 +170,9 @@ class Reg:
     zero_extend_writes: bool = False
     """Upon writing a value to this subregister, are the higher bits of the full register zeroed out?"""
     subregisters: tuple[Reg, ...] = ()
-    """Bitmask for register. None if the register size is arch.ptrsize"""
+    """Example: RAX register has subregisters EAX, AX, AH, and AL"""
     mask: int | None = None
+    """Bitmask for register. None if the register size is arch.ptrsize"""
 
     def __post_init__(self) -> None:
         if self.size:
@@ -221,6 +234,9 @@ class RegisterSet:
     - "pc" -> instruction pointer register name
     """
 
+    vector: tuple[str, ...]
+    """SIMD registers"""
+
     pretty_printers: dict[str, VisitableRegister]
     """
     Map register name to a VisibleRegister (which implements pretty printing logic)
@@ -239,6 +255,7 @@ class RegisterSet:
         args: tuple[str, ...] = (),
         kernel: KernelRegisterSet | None = None,
         retval: str | None = None,
+        vector: tuple[Reg, ...] = (),
     ) -> None:
         if extra_flags is None:
             extra_flags = {}
@@ -255,6 +272,9 @@ class RegisterSet:
         self.args = args
         self.retval = retval
         self.kernel = kernel
+        self.vector = tuple(
+            r.name for reg in vector for r in itertools.chain((reg,), reg.subregisters)
+        )
 
         all_subregisters: list[str] = []
 
@@ -338,6 +358,10 @@ class RegisterSet:
 
             for reg_name, printer in self.kernel.msrs.items():
                 self.pretty_printers[reg_name] = printer
+
+        vector_printer = VectorRegister()
+        for reg_name in self.vector:
+            self.pretty_printers[reg_name] = vector_printer
 
     def resolve_aliases(self, reg: str) -> str:
         """
@@ -927,6 +951,7 @@ amd64 = RegisterSet(
     kernel=amd64_kernel,
     args=("rdi", "rsi", "rdx", "rcx", "r8", "r9"),
     retval="rax",
+    vector=tuple(Reg(f"ymm{i}", 32, subregisters=(Reg(f"xmm{i}", 16),)) for i in range(16)),
 )
 
 i386 = RegisterSet(
@@ -978,6 +1003,7 @@ i386 = RegisterSet(
         "ip",
     ),
     retval="eax",
+    vector=tuple(Reg(f"ymm{i}", 32, subregisters=(Reg(f"xmm{i}", 16),)) for i in range(8)),
 )
 
 

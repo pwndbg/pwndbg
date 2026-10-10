@@ -1103,6 +1103,12 @@ class Value:
         """
         raise NotImplementedError()
 
+    def raw_bytes(self) -> bytes:
+        """
+        The raw bytes of this value
+        """
+        raise NotImplementedError()
+
     # Because casting is still sloppy (i.e. it accepts `gdb.Type` objects) in
     # some places, we have to allow `Any` here for lints to pass.
     #
