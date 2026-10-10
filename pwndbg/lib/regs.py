@@ -344,7 +344,7 @@ class RegisterSet:
         Convert "sp" and "pc" to the real architectural registers.
         For all others, returns `reg`
         """
-        return self.special_aliases.get(reg, reg)
+        return self.special_aliases.get(reg.lower(), reg)
 
     def __contains__(self, reg: str) -> bool:
         return reg in self.all

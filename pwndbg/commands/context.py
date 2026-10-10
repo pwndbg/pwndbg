@@ -1205,20 +1205,20 @@ class RegisterContext(RegisterContextProtocol):
     def get_prefix(self, reg: str) -> str:
         # Make the register stand out and give a color if changed
         regname = ctx_color.register(reg.ljust(4).upper())
-        if reg in self.changed:
+        if reg.lower() in self.changed:
             regname = ctx_color.register_changed(regname)
 
         # Show a marker next to the register if it changed
         change_marker = f"{ctx_color.config_register_changed_marker}"
         m = (
             " " * len(change_marker)
-            if reg not in self.changed
+            if reg.lower() not in self.changed
             else ctx_color.register_changed(change_marker)
         )
         return f"{m}{regname}"
 
     def get_register_value(self, reg: str) -> int | None:
-        val = pwndbg.aglib.regs.read_reg(reg)
+        val = pwndbg.aglib.regs.read_reg(reg, reg.lower())
         if val is None:
             print(message.warn(f"Unknown register: {reg!r}"))
             return None
@@ -1226,7 +1226,7 @@ class RegisterContext(RegisterContextProtocol):
 
     @override
     def flag_register_context(self, reg: str, value: int, bit_flags: BitFlags) -> str | None:
-        desc = ctx_color.format_flags(value, bit_flags, pwndbg.aglib.regs.last.get(reg, 0))
+        desc = ctx_color.format_flags(value, bit_flags, pwndbg.aglib.regs.last.get(reg.lower(), 0))
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
 
@@ -1261,8 +1261,6 @@ class RegisterContext(RegisterContextProtocol):
         return f"{prefix} {desc}"
 
     def render(self, reg: str, printer: VisitableRegister | None = None) -> str | None:
-        reg = reg.lower()
-
         # Resolve "sp" and "pc" to the real architectural register names
         reg = pwndbg.aglib.regs.current.resolve_aliases(reg)
 
