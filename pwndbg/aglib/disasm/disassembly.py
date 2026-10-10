@@ -408,8 +408,6 @@ def get_previous_linear_address_with_heuristic(current_address: int) -> int | No
 def get_disassembler(cs_info: tuple[int, int]) -> Cs:
     arch, mode = cs_info
 
-    mode |= pwndbg.aglib.arch.get_capstone_endianness()
-
     cs = Cs(arch, mode)
 
     flavor = pwndbg.dbg.x86_disassembly_flavor()
@@ -714,8 +712,9 @@ def near(
 
     disassembling_from_pc = pc == address
 
+    unicorn_init_info = pwndbg.aglib.arch.get_unicorn_constants()
     # Some architecture aren't emulated yet
-    if not pwndbg.emu or pwndbg.aglib.arch.name not in pwndbg.emu.emulator.arch_to_UC:
+    if not pwndbg.emu or unicorn_init_info is None:
         emulate = False
 
     emu: pwndbg.emu.emulator.Emulator | None = None
@@ -724,7 +723,7 @@ def near(
     # processor state to instantiate the emulator.
     if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
         try:
-            emu = pwndbg.emu.emulator.Emulator()
+            emu = pwndbg.emu.emulator.Emulator(unicorn_init_info=unicorn_init_info)
         except pwndbg.dbg_mod.DebuggerError as e:
             match = re.search(r"Memory at address (\w+) unavailable\.", str(e))
             if match:
