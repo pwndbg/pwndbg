@@ -263,7 +263,8 @@ def entry() -> int:
         return entry
 
     inf = pwndbg.dbg.selected_inferior()
-    if entry := inf.main_module_entry():
+    main_module = inf.main_module()
+    if main_module and (entry := main_module.entry_point()):
         return entry
 
     # Try common names

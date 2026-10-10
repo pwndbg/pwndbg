@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import bisect
-import collections
 import enum
 import functools
 import os
@@ -948,6 +947,61 @@ class LLDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     def cont_selected_thread(self, target: pwndbg.dbg_mod.StopPoint) -> Awaitable[None]:
         assert isinstance(target, LLDBStopPoint)
         return OneShotAwaitable(YieldContinue(target, selected_thread=True))
+
+
+class LLDBSection(pwndbg.dbg_mod.Section):
+    _inner: lldb.SBSection
+    _module: LLDBModule
+
+    def __init__(self, module: LLDBModule, inner: lldb.SBSection):
+        self._inner = inner
+        self._module = module
+
+    @override
+    def module(self) -> pwndbg.dbg_mod.Module:
+        return self._module
+
+    @override
+    def offset(self) -> int:
+        return self._inner.GetFileOffset()
+
+    @override
+    def address(self) -> int | None:
+        addr = self._inner.GetLoadAddress()
+        if addr == lldb.LLDB_INVALID_ADDRESS:
+            return None
+        return addr
+
+    @override
+    def name(self) -> str | None:
+        return self._inner.GetName()
+
+
+class LLDBModule(pwndbg.dbg_mod.Module):
+    _inner: lldb.SBModule
+
+    def __init__(self, inner: lldb.SBModule):
+        self._inner = inner
+
+    @override
+    def sections(self) -> Iterator[pwndbg.dbg_mod.Section]:
+        return (self._inner.GetSectionAtIndex(i) for i in range(self._inner.GetNumSections()))
+
+    @override
+    def path(self) -> str:
+        return self._inner.GetPlatformFileSpec().fullpath
+
+    @override
+    def local_path(self) -> str:
+        return self._inner.GetFileSpec().fullpath
+
+    @override
+    def entry_point(self) -> int | None:
+        entry = self._inner.GetObjectFileEntryPointAddress()
+        if not entry:
+            return None
+
+        return entry.GetLoadAddress()
 
 
 # Our execution controller doesn't need to change between uses, as all the state
@@ -2045,54 +2099,14 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         return self.target.GetABIName().lower().startswith("sysv")
 
     @override
-    def module_section_locations(self) -> list[tuple[int, int, str, str]]:
-        result = []
-        for i in range(self.target.GetNumModules()):
-            module = self.target.GetModuleAtIndex(i)
-
-            queue = collections.deque(
-                module.GetSectionAtIndex(j) for j in range(module.GetNumSections())
-            )
-            while len(queue) > 0:
-                section = queue.popleft()
-                children = section.GetNumSubSections()
-                if children > 0:
-                    queue.extendleft(section.GetSubSectionAtIndex(k) for k in range(children))
-                    continue
-
-                load = section.GetLoadAddress(self.target)
-                if load == lldb.LLDB_INVALID_ADDRESS:
-                    # This section is not loaded.
-                    continue
-
-                fullpath = pwndbg.lib.path.clean_path(str(module.GetFileSpec()))
-
-                result.append((load, section.GetByteSize(), section.GetName(), fullpath))
-
-        return result
-
-    @override
-    def main_module_name(self) -> str:
-        spec = (
-            self.target.GetModuleAtIndex(0).GetFileSpec()
-            if self.target.GetNumModules() > 0
-            else None
-        )
-
-        if spec is None:
-            return None
-
-        return pwndbg.lib.path.clean_path(str(spec))
-
-    @override
-    def main_module_entry(self) -> int | None:
+    def modules(self) -> Iterator[pwndbg.dbg_mod.Module]:
         return (
-            self.target.GetModuleAtIndex(0)
-            .GetObjectFileEntryPointAddress()
-            .GetLoadAddress(self.target)
-            if self.target.GetNumModules() > 0
-            else None
+            LLDBModule(self.target.GetModuleAtIndex(i)) for i in range(self.target.GetNumModules())
         )
+
+    @override
+    def main_module(self) -> pwndbg.dbg_mod.Module | None:
+        return self.target.GetModuleAtIndex(0) if self.target.GetNumModules() > 0 else None
 
     @override
     def is_dynamically_linked(self) -> bool:
