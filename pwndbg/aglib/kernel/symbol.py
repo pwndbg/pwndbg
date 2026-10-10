@@ -11,9 +11,7 @@ import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
-import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 

@@ -244,6 +244,7 @@ def kversion() -> str | None:
     try:
         if has_debug_symbols("linux_banner"):
             version_addr = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
+            assert version_addr
             result = pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
             assert len(result) > 0
             return result
