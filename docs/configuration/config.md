@@ -49,7 +49,7 @@ The name of the large language model to query.
 
 Changing this affects the behavior, response quality, and cost (if applicable) of AI responses.
 
-**Default:** 'gpt-3.5-turbo'  
+**Default:** 'gpt-4o-mini'  
 
 ----------
 

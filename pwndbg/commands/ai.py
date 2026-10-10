@@ -54,7 +54,7 @@ pwndbg.config.add_param(
 )
 pwndbg.config.add_param(
     "ai-model",
-    "gpt-3.5-turbo",  # the new conversational model
+    "gpt-4o-mini",
     "the name of the large language model to query",
     help_docstring="Changing this affects the behavior, response quality, and cost (if applicable) of AI responses.",
 )
