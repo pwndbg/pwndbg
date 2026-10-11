@@ -21,7 +21,7 @@ Ask an LLM a question about the current debugging context.
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
-|-M|--model|The OpenAI model to use.|
+|-M|--model|The model to use.|
 |-t|--temperature|The temperature to use.|
 |-m|--max-tokens|The maximum number of tokens to generate.|
 |-v|--verbose|Print the prompt and response.|
