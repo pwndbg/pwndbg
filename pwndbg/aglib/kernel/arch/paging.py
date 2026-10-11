@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import struct
+from abc import abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -14,9 +15,19 @@ import pwndbg.lib.cache
 from pwndbg.lib.memory import Page
 from pwndbg.lib.regs import BitFlags
 
+from .aarch64.paging import aarch64Paging
+from .i386.paging import i386Paging
+from .rv64.paging import rv64Paging
+from .x86_64.paging import x86_64Paging
+
 # don't return None but rather an invalid value for address markers
 # this way arithmetic ops do not panic if physmap is not found
 INVALID_ADDR = 1 << 64
+
+
+def BIT(shift: int):
+    assert 0 <= shift < 64
+    return 1 << shift
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -244,6 +255,48 @@ class Paging:
     def STRUCT_PAGE_SHIFT(self) -> int:
         return int(math.log2(self.STRUCT_PAGE_SIZE))
 
+    @abstractmethod
+    def virt_to_phys(self, virt: int) -> int:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def phys_to_virt(self, phys: int) -> int:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def phys_to_pfn(self, phys: int) -> int:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def pfn_to_phys(self, pfn: int) -> int:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def pfn_to_page(self, pfn: int) -> int:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def page_to_pfn(self, page: int) -> int:
+        raise NotImplementedError()
+
+    def virt_to_pfn(self, virt: int) -> int:
+        return self.phys_to_pfn(self.virt_to_phys(virt))
+
+    def pfn_to_virt(self, pfn: int) -> int:
+        return self.phys_to_virt(self.pfn_to_phys(pfn))
+
+    def phys_to_page(self, phys: int) -> int:
+        return self.pfn_to_page(self.phys_to_pfn(phys))
+
+    def page_to_phys(self, page: int) -> int:
+        return self.pfn_to_phys(self.page_to_pfn(page))
+
+    def virt_to_page(self, virt: int) -> int:
+        return self.pfn_to_page(self.virt_to_pfn(virt))
+
+    def page_to_virt(self, page: int) -> int:
+        return self.pfn_to_virt(self.page_to_pfn(page))
+
     @property
     def physmap(self) -> int:
         raise NotImplementedError()
@@ -256,9 +309,11 @@ class Paging:
     def vmemmap(self) -> int:
         raise NotImplementedError()
 
+    @abstractmethod
     def slab_to_virt(self, slab: int) -> int:
         raise NotImplementedError()
 
+    @abstractmethod
     def virt_to_slab(self, virt: int) -> int:
         raise NotImplementedError()
 
@@ -282,6 +337,7 @@ class Paging:
     def paging_level(self) -> int:
         raise NotImplementedError()
 
+    @abstractmethod
     def adjust(self, name: str) -> str:
         raise NotImplementedError()
 
@@ -289,6 +345,7 @@ class Paging:
     def markers(self) -> tuple[tuple[str | None, int | None], ...]:
         raise NotImplementedError()
 
+    @abstractmethod
     def handle_kernel_pages(self, pages: tuple[Page, ...]) -> None:
         # this is arch dependent
         raise NotImplementedError()
@@ -309,9 +366,11 @@ class Paging:
 
         return None
 
-    def pagewalk(self, target: int, entry: int | None, virt: bool = True) -> PagewalkResult:
+    @abstractmethod
+    def pagewalk(self, target: int, entry: int | None = None, virt: bool = True) -> PagewalkResult:
         raise NotImplementedError()
 
+    @abstractmethod
     def pagescan(self, entry: int | None = None) -> list[Page]:
         raise NotImplementedError()
 
@@ -327,6 +386,7 @@ class Paging:
     def PAGE_INDEX_MASK(self) -> int:
         return (1 << (self.PAGE_INDEX_LEN)) - 1
 
+    @abstractmethod
     @pwndbg.lib.cache.cache_until("stop")
     def pagetablescan(self, entry: int) -> PageTableScan | None:
         return PageTableScan(self)
@@ -376,9 +436,11 @@ class Paging:
             pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
         return result
 
+    @abstractmethod
     def bitflags(self, level: PageTableLevel) -> BitFlags:
         raise NotImplementedError()
 
+    @abstractmethod
     def should_stop_pagewalk(self, entry: int) -> bool:
         raise NotImplementedError()
 
@@ -393,3 +455,17 @@ class Paging:
     @property
     def pagetable_level_names(self) -> tuple[str, ...]:
         raise NotImplementedError()
+
+
+def select() -> Paging:
+    match pwndbg.aglib.arch.name:
+        case "aarch64":
+            return aarch64Paging()
+        case "x86-64":
+            return x86_64Paging()
+        case "i386":
+            return i386Paging()
+        case "rv64":
+            return rv64Paging()
+        case _:
+            raise NotImplementedError(f"{pwndbg.aglib.arch.name} is not supported")

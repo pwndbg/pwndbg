@@ -128,7 +128,7 @@ def check_find(counter: int, physmap_addr: int, pba: ParsedBuddyArgs, cbp: Curre
         if counter < MAX_PG_FREE_LIST_STR_RESULT_CNT:
             return True
         return False
-    end = physmap_addr + pwndbg.aglib.kernel.page_size() * (1 << cbp.order)
+    end = physmap_addr + pwndbg.aglib.kernel.paging.page_size * (1 << cbp.order)
     return pba.find >= physmap_addr and pba.find < end
 
 
@@ -259,7 +259,7 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
             cbp.nr_types = nr_pcp_lists % MIGRATE_PCPTYPES
         cbp.sections[2] = (
             f"order {order}",
-            f"size: {cbp.indent.aux_hex(pwndbg.aglib.kernel.page_size() * (1 << order))}",
+            f"size: {cbp.indent.aux_hex(pwndbg.aglib.kernel.paging.page_size * (1 << order))}",
         )
         cbp.order = order
         print_mtypes(pba, cbp)
@@ -274,7 +274,7 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
             continue
         cbp.freelists = free_area[order]["free_list"]
         nr_free = int(free_area[order]["nr_free"])
-        size = pwndbg.aglib.kernel.page_size() * (1 << order)
+        size = pwndbg.aglib.kernel.paging.page_size * (1 << order)
         cbp.sections[2] = (
             f"order {order}",
             f"nr_free: {cbp.indent.aux_hex(nr_free)}, size: {cbp.indent.aux_hex(size)}",

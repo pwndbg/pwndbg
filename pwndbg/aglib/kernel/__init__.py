@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import functools
 import re
-from abc import ABC
-from abc import abstractmethod
 from collections.abc import Callable
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
@@ -14,6 +12,7 @@ from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib
+import .arch.paging as _paging
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.search
@@ -326,253 +325,26 @@ def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
     return name in cache.name
 
 
-class ArchOps(ABC):
-    # More information on the physical memory model of the Linux kernel and
-    # especially the mapping between pages and page frame numbers (pfn) can
-    # be found at https://docs.kernel.org/mm/memory-model.html
-    # The provided link also includes guidance on detecting the memory model in
-    # use through kernel configuration, enabling support for additional models
-    # in the page_to_pfn() and pfn_to_page() methods in the future.
+@requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
+def per_cpu(
+    addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
+) -> pwndbg.dbg_mod.Value | None:
+    if cpu is None:
+        cpu = current_cpu()
 
-    @abstractmethod
-    def per_cpu(
-        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value | None:
-        raise NotImplementedError()
+    per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
+    if per_cpu_offset is None:
+        return None
 
-    @abstractmethod
-    def virt_to_phys(self, virt: int) -> int:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def phys_to_virt(self, phys: int) -> int:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def phys_to_pfn(self, phys: int) -> int:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def pfn_to_phys(self, pfn: int) -> int:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def pfn_to_page(self, pfn: int) -> int:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def page_to_pfn(self, page: int) -> int:
-        raise NotImplementedError()
-
-    def _paginginfo(self) -> pwndbg.aglib.kernel.paging.ArchPagingInfo:
-        result = arch_paginginfo()
-        if not result:
-            raise NotImplementedError()
-        return result
-
-    @property
-    @pwndbg.lib.cache.cache_until("start")
-    def STRUCT_PAGE_SIZE(self):
-        return self._paginginfo().STRUCT_PAGE_SIZE
-
-    @property
-    @pwndbg.lib.cache.cache_until("start")
-    def STRUCT_PAGE_SHIFT(self):
-        return self._paginginfo().STRUCT_PAGE_SHIFT
-
-    @property
-    def page_offset(self) -> int:
-        return self._paginginfo().physmap
-
-    @property
-    def ram_phys_start(self) -> int:
-        return self._paginginfo().ram_phys_start
-
-    @property
-    def page_shift(self) -> int:
-        return self._paginginfo().page_shift
-
-    @property
-    def vmemmap(self) -> int:
-        return self._paginginfo().vmemmap
-
-    @property
-    def kbase(self) -> int | None:
-        return self._paginginfo().kbase
-
-    @property
-    def vmalloc(self) -> int:
-        return self._paginginfo().vmalloc
-
-    @property
-    def page_size(self) -> int:
-        return self._paginginfo().page_size
-
-    def virt_to_pfn(self, virt: int) -> int:
-        return phys_to_pfn(virt_to_phys(virt))
-
-    def pfn_to_virt(self, pfn: int) -> int:
-        return phys_to_virt(pfn_to_phys(pfn))
-
-    def phys_to_page(self, phys: int) -> int:
-        return pfn_to_page(phys_to_pfn(phys))
-
-    def page_to_phys(self, page: int) -> int:
-        return pfn_to_phys(page_to_pfn(page))
-
-    def virt_to_page(self, virt: int) -> int:
-        return pfn_to_page(virt_to_pfn(virt))
-
-    def page_to_virt(self, page: int) -> int:
-        return pfn_to_virt(page_to_pfn(page))
+    offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
+    per_cpu_addr = pwndbg.aglib.arch.unsigned(int(addr) + offset)
+    if isinstance(addr, pwndbg.dbg_mod.Value):
+        return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
+    return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
 
-class x86Ops(ArchOps):
-    def phys_to_virt(self, phys: int) -> int:
-        return pwndbg.aglib.arch.unsigned(phys + self.page_offset)
-
-    def phys_to_pfn(self, phys: int) -> int:
-        return phys >> self.page_shift
-
-    def pfn_to_phys(self, pfn: int) -> int:
-        return pfn << self.page_shift
-
-    @staticmethod
-    def paging_enabled() -> bool:
-        return int(pwndbg.aglib.regs.read_reg("cr0")) & BIT(31) != 0
-
-
-class i386Ops(x86Ops):
-    def virt_to_phys(self, virt: int) -> int:
-        return (virt - self.page_offset) % (1 << 32)
-
-    def per_cpu(
-        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value:
-        raise NotImplementedError()
-
-    def pfn_to_page(self, pfn: int) -> int:
-        raise NotImplementedError()
-
-    def page_to_pfn(self, page: int) -> int:
-        raise NotImplementedError()
-
-
-class x86_64Ops(x86Ops):
-    def __init__(self) -> None:
-        self.phys_base = 0x1000000
-
-    @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
-    def per_cpu(
-        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value | None:
-        if cpu is None:
-            cpu = current_cpu()
-
-        per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
-        if per_cpu_offset is None:
-            return None
-
-        offset = pwndbg.aglib.memory.read_pointer_width(per_cpu_offset + (cpu * 8))
-        per_cpu_addr = (int(addr) + offset) % 2**64
-        if isinstance(addr, pwndbg.dbg_mod.Value):
-            return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
-        return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
-
-    def virt_to_phys(self, virt: int) -> int:
-        _virt: int | None = virt
-        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < self.vmalloc):
-            # if not within physmap range, first find the physmap address
-            _virt = pagewalk(virt).virt
-        if _virt is None:
-            _virt = virt
-        return _virt - self.page_offset
-
-    def pfn_to_page(self, pfn: int) -> int:
-        # assumption: SPARSEMEM_VMEMMAP memory model used
-        # FLATMEM or SPARSEMEM not (yet) implemented
-        return (pfn << self.STRUCT_PAGE_SHIFT) + self.vmemmap
-
-    def page_to_pfn(self, page: int) -> int:
-        # assumption: SPARSEMEM_VMEMMAP memory model used
-        # FLATMEM or SPARSEMEM not (yet) implemented
-        return (page - self.vmemmap) >> self.STRUCT_PAGE_SHIFT
-
-
-class Aarch64Ops(ArchOps):
-    @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
-    def per_cpu(
-        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-    ) -> pwndbg.dbg_mod.Value | None:
-        if cpu is None:
-            cpu = current_cpu()
-
-        per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
-        if per_cpu_offset is None:
-            return None
-
-        offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
-        per_cpu_addr = (int(addr) + offset) % 2**64
-        if isinstance(addr, pwndbg.dbg_mod.Value):
-            return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
-        return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
-
-    def virt_to_phys(self, virt: int) -> int:
-        _virt: int | None = virt
-        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < self.vmalloc):
-            # if not within physmap range, first find the physmap address
-            _virt = pagewalk(virt).virt
-        if _virt is None:
-            _virt = virt
-        return _virt - self.page_offset + self.ram_phys_start
-
-    def phys_to_virt(self, phys: int) -> int:
-        # https://elixir.bootlin.com/linux/v6.16.4/source/arch/arm64/include/asm/memory.h#L356
-        return phys - self.ram_phys_start + self.page_offset
-
-    def phys_to_pfn(self, phys: int) -> int:
-        return phys >> self.page_shift
-
-    def pfn_to_phys(self, pfn: int) -> int:
-        return pfn << self.page_shift
-
-    def pfn_to_page(self, pfn: int) -> int:
-        # assumption: SPARSEMEM_VMEMMAP memory model used
-        # FLATMEM or SPARSEMEM not (yet) implemented
-        return (pfn << self.STRUCT_PAGE_SHIFT) + self.vmemmap
-
-    def page_to_pfn(self, page: int) -> int:
-        # assumption: SPARSEMEM_VMEMMAP memory model used
-        # FLATMEM or SPARSEMEM not (yet) implemented
-        return (page - self.vmemmap) >> self.STRUCT_PAGE_SHIFT
-
-    @staticmethod
-    def paging_enabled() -> bool:
-        # AArch64 system control register: newer QEMU releases (tested on
-        # 10.2.0) expose it as `SCTLR_EL1`; older releases used the generic
-        # `SCTLR`. Bit 0 (M) is the MMU-enable flag in either case. See
-        # #3871 / #3875.
-        return int(pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) & BIT(0) != 0
-
-
-@pwndbg.lib.cache.cache_until("start")
-def arch_paginginfo() -> pwndbg.aglib.kernel.paging.ArchPagingInfo | None:
-    if pwndbg.aglib.arch.name == "aarch64":
-        return pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
-    if pwndbg.aglib.arch.name == "x86-64":
-        return pwndbg.aglib.kernel.paging.x86_64PagingInfo()
-    return None
-
-
-@pwndbg.lib.cache.cache_until("start")
-def arch_ops() -> ArchOps | None:
-    if pwndbg.aglib.arch.name == "aarch64":
-        return Aarch64Ops()
-    if pwndbg.aglib.arch.name == "x86-64":
-        return x86_64Ops()
-    if pwndbg.aglib.arch.name == "i386":
-        return i386Ops()
-    return None
+# TODO: on start: refresh
+paging: _paging.Paging = _paging.select()
 
 
 @pwndbg.lib.cache.cache_until("start")
@@ -584,18 +356,6 @@ def arch_symbols() -> pwndbg.aglib.kernel.symbol.ArchSymbols | None:
     return None
 
 
-def page_size() -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.page_size
-    raise NotImplementedError()
-
-
-def per_cpu(addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
-    ops = arch_ops()
-    if ops:
-        return ops.per_cpu(addr, cpu)
-    raise NotImplementedError()
 
 
 def virt_to_phys(virt: int) -> int:

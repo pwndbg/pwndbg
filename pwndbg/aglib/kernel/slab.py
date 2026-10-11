@@ -172,7 +172,7 @@ class SlabCache:
 
     @property
     def slab_size(self) -> int:
-        return kernel.page_size() << self.oo_order
+        return kernel.paging.page_size << self.oo_order
 
     @property
     def object_size(self) -> int:

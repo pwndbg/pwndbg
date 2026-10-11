@@ -15,6 +15,7 @@ from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.lib.memory import Page
 from pwndbg.lib.regs import BitFlags
 
+from ..paging import BIT
 from ..paging import INVALID_ADDR
 from ..paging import PageTableLevel
 from ..paging import PagewalkResult
@@ -22,9 +23,46 @@ from ..paging import Paging
 from ..paging import first_kernel_page_start
 
 
-class Aarch64Paging(Paging):
+class aarch64Paging(Paging):
     def __init__(self) -> None:
         self.VMEMMAP_START = self.VMEMMAP_SIZE = self.PAGE_OFFSET = None
+
+    def virt_to_phys(self, virt: int) -> int:
+        _virt: int | None = virt
+        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < self.vmalloc):
+            # if not within physmap range, first find the physmap address
+            _virt = self.pagewalk(virt).virt
+        if _virt is None:
+            _virt = virt
+        return _virt - self.physmap + self.ram_phys_start
+
+    def phys_to_virt(self, phys: int) -> int:
+        # https://elixir.bootlin.com/linux/v6.16.4/source/arch/arm64/include/asm/memory.h#L356
+        return phys - self.ram_phys_start + self.physmap
+
+    def phys_to_pfn(self, phys: int) -> int:
+        return phys >> self.page_shift
+
+    def pfn_to_phys(self, pfn: int) -> int:
+        return pfn << self.page_shift
+
+    def pfn_to_page(self, pfn: int) -> int:
+        # assumption: SPARSEMEM_VMEMMAP memory model used
+        # FLATMEM or SPARSEMEM not (yet) implemented
+        return (pfn << self.STRUCT_PAGE_SHIFT) + self.vmemmap
+
+    def page_to_pfn(self, page: int) -> int:
+        # assumption: SPARSEMEM_VMEMMAP memory model used
+        # FLATMEM or SPARSEMEM not (yet) implemented
+        return (page - self.vmemmap) >> self.STRUCT_PAGE_SHIFT
+
+    @staticmethod
+    def paging_enabled() -> bool:
+        # AArch64 system control register: newer QEMU releases (tested on
+        # 10.2.0) expose it as `SCTLR_EL1`; older releases used the generic
+        # `SCTLR`. Bit 0 (M) is the MMU-enable flag in either case. See
+        # #3871 / #3875.
+        return int(pwndbg.aglib.regs.read_reg("SCTLR_EL1", "SCTLR")) & BIT(0) != 0
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -333,7 +371,7 @@ class Aarch64Paging(Paging):
             pass
         return 0x40000000  # default
 
-    def pagewalk(self, target: int, entry: int | None, virt: bool = True) -> PagewalkResult:
+    def pagewalk(self, target: int, entry: int | None = None, virt: bool = True) -> PagewalkResult:
         if pwndbg.aglib.memory.is_kernel(target):
             entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
         elif entry is None:
