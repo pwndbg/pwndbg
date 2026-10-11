@@ -69,7 +69,7 @@
 
 ## Integrations
 
--  [ai](integrations/ai.md) - Ask GPT-3 a question about the current debugging context.
+-  [ai](integrations/ai.md) - Ask an LLM a question about the current debugging context.
 -  [decomp](integrations/decomp.md) - Use the current integration to decompile code near an address.
 -  [decompiler-integration](integrations/decompiler-integration.md) - Control Pwndbg decompiler integration.
 -  [r2](integrations/r2.md) - Launches radare2.
