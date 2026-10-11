@@ -6,7 +6,6 @@ from typing import Any
 
 import pwndbg.aglib
 import pwndbg.aglib.kernel
-import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.symbol
 from pwndbg.color import message
@@ -209,7 +208,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
         krelease = pwndbg.aglib.kernel.krelease()
         if krelease is None or krelease < (5, 19):
             return False
-        val = pwndbg.aglib.kernel.symbol.try_usymbol("tainted_mask")
+        val = pwndbg.aglib.kernel.try_usymbol("tainted_mask")
         return val is not None and val != 0
 
     @property

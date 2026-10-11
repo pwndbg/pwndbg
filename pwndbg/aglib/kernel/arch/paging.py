@@ -4,6 +4,7 @@ import math
 import struct
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import pwndbg
 import pwndbg.aglib.kernel
@@ -14,10 +15,11 @@ import pwndbg.lib.cache
 from pwndbg.lib.memory import Page
 from pwndbg.lib.regs import BitFlags
 
-from .aarch64.paging import aarch64Paging
-from .i386.paging import i386Paging
-from .rv64.paging import rv64Paging
-from .x86_64.paging import x86_64Paging
+if TYPE_CHECKING:
+    from .aarch64.paging import aarch64Paging
+    from .i386.paging import i386Paging
+    from .rv64.paging import rv64Paging
+    from .x86_64.paging import x86_64Paging
 
 # don't return None but rather an invalid value for address markers
 # this way arithmetic ops do not panic if physmap is not found

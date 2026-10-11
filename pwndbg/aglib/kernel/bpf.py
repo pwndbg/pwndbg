@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import pwndbg
-import pwndbg.aglib.kernel.symbol
+import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.typing
 import pwndbg.aglib.memory
 
 
 def get_struct_bpf_prog() -> str:
-    result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
+    result = f"#define KVERSION {pwndbg.aglib.kernel.kversion_cint()}\n"
     result += """
     /* the enum types (probably) have been added to the kernel in decending order */
     enum bpf_prog_type {
@@ -223,17 +224,17 @@ def get_bpf_struct_offsets(prog_idr: int, map_idr: int) -> int | None:
     return xarray_pad_sz
 
 
-@pwndbg.aglib.kernel.typeinfo_recovery("struct bpf_map", requires_kversion=True)
+@pwndbg.aglib.kernel.typing.typeinfo_recovery("struct bpf_map", requires_kversion=True)
 def recover_bpf_typeinfo() -> str:
-    prog_idr = pwndbg.aglib.kernel.prog_idr()
-    map_idr = pwndbg.aglib.kernel.map_idr()
+    prog_idr = pwndbg.aglib.kernel.symbol.prog_idr
+    map_idr = pwndbg.aglib.kernel.symbol.map_idr
     if not prog_idr or not map_idr:
         raise AssertionError("cannot find either prog_idr or map_idr")
     xarray_pad_sz = get_bpf_struct_offsets(int(prog_idr), int(map_idr))
     assert xarray_pad_sz, (
         "cannot find xa_head -- might be uninitialized (add a bpf prog/map first!)"
     )
-    result = pwndbg.aglib.kernel.symbol.COMMON_TYPES
+    result = pwndbg.aglib.kernel.typing.COMMON_TYPES
     result += f"""
     struct xarray {{
         char _xarray_pad[{xarray_pad_sz}];

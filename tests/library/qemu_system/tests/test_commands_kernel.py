@@ -14,7 +14,6 @@ from typing_extensions import ParamSpec
 import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
-import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.color

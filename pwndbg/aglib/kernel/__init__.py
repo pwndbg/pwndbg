@@ -6,31 +6,27 @@ from collections.abc import Callable
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 from typing import TypeVar
+from typing import cast
 
 from elftools.elf.elffile import ELFFile
 from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.kernel.arch.paging as _paging
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.search
-import pwndbg.aglib.structures
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
-from pwndbg.lib import Status
-from pwndbg.lib import TypeNotFoundError
-from pwndbg.lib import TypeNotRecoveredError
 
 if TYPE_CHECKING:
+    import pwndbg.aglib.kernel.arch.paging
+    import pwndbg.aglib.kernel.arch.symbol
     import pwndbg.aglib.kernel.kconfig_mod
     import pwndbg.aglib.kernel.slab
-    import pwndbg.aglib.kernel.symbol
     import pwndbg.aglib.kernel.vmmap
 
 _kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
@@ -98,55 +94,6 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
                 return default
 
             raise Exception(f"Function {f.__name__} requires .debug_info section")
-
-        return func
-
-    return decorator
-
-
-def typeinfo_recovery(
-    name: str, requires_kversion: bool = False, requires_kbase: bool = False
-) -> Callable[[Callable[P, str]], Callable[P, None]]:
-    """
-    Attached to functions which return the C source-code of the `name` type (usually struct).
-
-    Compiles and adds the debug info for the struct into the debugger, from then on accessible via APIs
-    like `pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)`.
-    """
-
-    def decorator(f: Callable[P, str]) -> Callable[P, None]:
-        # returns true if the type exists or has been successfully recovered
-        @functools.wraps(f)
-        def func(*args: P.args, **kwargs: P.kwargs) -> None:
-            if not pwndbg.dbg.selected_inferior().is_linux():
-                # make sure the target is linux, should we specify symbols instead?
-                raise TypeNotRecoveredError(name, "target is not linux")
-            if has_debug_info():
-                return
-            if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
-                return
-            recover_common_types_func = pwndbg.aglib.kernel.symbol.recover_page_typeinfo
-            if f.__name__ != recover_common_types_func.__name__:
-                recover_common_types_func()
-            if requires_kversion and kversion() is None:
-                raise TypeNotRecoveredError(name, "kernel version is unavailable")
-            if requires_kbase and paging.kbase is None:
-                raise TypeNotRecoveredError(name, "kernel base not found")
-
-            try:
-                result = f(*args, **kwargs)
-            except TypeNotFoundError as e:
-                raise TypeNotRecoveredError(name, str(e))
-            except AssertionError as e:
-                # FIXME: Some type recovery functions `assert` under the assumption that the assert
-                # will be caught here.
-                raise TypeNotRecoveredError(name, str(e))
-
-            fname = name.split()[-1] + "_structs"
-            err: Status = pwndbg.aglib.structures.add(fname, result)
-            if err.is_failure():
-                raise TypeNotRecoveredError(name, err.message)
-            return
 
         return func
 
@@ -274,6 +221,9 @@ def get_idt_entries() -> Iterator[pwndbg.lib.kernel.structs.IDTEntry]:
     base = pwndbg.aglib.regs.idt
     limit = pwndbg.aglib.regs.idt_limit
 
+    if base is None or limit is None:
+        return
+
     size = pwndbg.aglib.arch.ptrsize * 2
     num_entries = (limit + 1) // size
 
@@ -324,16 +274,11 @@ def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
 
 
 @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
-def per_cpu(
-    addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
-) -> pwndbg.dbg_mod.Value | None:
+def per_cpu(addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
     if cpu is None:
         cpu = current_cpu()
 
-    per_cpu_offset = pwndbg.aglib.kernel.per_cpu_offset()
-    if per_cpu_offset is None:
-        return None
-
+    per_cpu_offset = symbol.per_cpu_offset
     offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
     per_cpu_addr = pwndbg.aglib.arch.unsigned(int(addr) + offset)
     if isinstance(addr, pwndbg.dbg_mod.Value):
@@ -341,20 +286,6 @@ def per_cpu(
     return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
 
-# TODO: on start: refresh
-paging: _paging.Paging = _paging.select()
-
-
-@pwndbg.lib.cache.cache_until("start")
-def arch_symbols() -> pwndbg.aglib.kernel.symbol.ArchSymbols | None:
-    if pwndbg.aglib.arch.name == "aarch64":
-        return pwndbg.aglib.kernel.symbol.Aarch64Symbols()
-    if pwndbg.aglib.arch.name == "x86-64":
-        return pwndbg.aglib.kernel.symbol.x86_64Symbols()
-    return None
-
-
-@requires_debug_symbols("node_states", default=1)
 def num_numa_nodes() -> int:
     """Returns the number of NUMA nodes that are online on the system"""
     kc = kconfig()
@@ -376,79 +307,140 @@ def num_numa_nodes() -> int:
     if max_nodes == 1:
         return 1
 
-    val = pwndbg.aglib.kernel.symbol.try_usymbol("nr_online_nodes", 32)
+    val = pwndbg.aglib.kernel.try_usymbol("nr_online_nodes", 32)
     if val is None:
         return 1
 
     return val
 
 
-@pwndbg.lib.cache.cache_until("stop")
-def node_data() -> int | None:
-    if (syms := arch_symbols()) is not None:
-        return syms.node_data()
-    return None
+paging = cast(pwndbg.aglib.kernel.arch.paging.Paging, None)
+symbol = cast(pwndbg.aglib.kernel.arch.symbol.ArchSymbols, None)
 
 
-@pwndbg.lib.cache.cache_until("stop")
-def slab_caches() -> pwndbg.dbg_mod.Value | None:
-    if (syms := arch_symbols()) is not None:
-        if addr := syms.slab_caches():
-            return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", addr)
-    return None
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def per_cpu_offset() -> int | None:
-    if (syms := arch_symbols()) is not None:
-        return syms.per_cpu_offset()
-    return None
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def modules() -> int | None:
-    if (syms := arch_symbols()) is not None:
-        return syms.modules()
-    return None
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def db_list() -> int | None:
-    if (syms := arch_symbols()) is not None:
-        return syms.db_list()
-    return None
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def prog_idr() -> int | None:
-    if (syms := arch_symbols()) is not None:
-        return syms.prog_idr()
-    return None
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def map_idr() -> int | None:
-    if (syms := arch_symbols()) is not None:
-        return syms.map_idr()
-    return None
+@pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.START)
+def _set_paging_and_symbol_on_start():
+    global paging, symbol
+    paging = pwndbg.aglib.kernel.arch.paging.select()
+    symbol = pwndbg.aglib.kernel.arch.symbol.select()
 
 
 @pwndbg.lib.cache.cache_until("stop")
 def current_task(cpu: int | None = None) -> int | None:
-    if (syms := arch_symbols()) is not None:
-        result = syms.current_task()
-        if not isinstance(result, int):
+    result = symbol.current_task
+    if result is None:
+        return None
+    if pwndbg.aglib.arch.name == "aarch64":
+        # TODO: how to get the kcurrent for different cpus
+        return result
+    ptr = int(per_cpu(result, cpu=cpu))
+    return pwndbg.aglib.memory.read_pointer_width(ptr)
+
+
+POSSIBLE_ZONE_NAMES = (
+    "DMA",
+    "DMA32",
+    "Normal",
+    "HighMem",
+    "Movable",
+    "Device",
+)
+
+
+@pwndbg.lib.cache.cache_until("objfile")
+def migratetype_names() -> tuple[str, ...]:
+    names = [
+        "Unmovable",
+        "Movable",
+        "Reclaimable",
+        "HighAtomic",
+    ]
+    kconfig = pwndbg.aglib.kernel.kconfig()
+    if "CONFIG_CMA" in kconfig:
+        names.append("CMA")
+    if "CONFIG_MEMORY_ISOLATION" in kconfig:
+        names.append("Isolate")
+    return tuple(names)
+
+
+# try getting value of a symbol as an unsigned integer
+def try_usymbol(name: str, size: int | None = None) -> int | None:
+    if not pwndbg.aglib.kernel.has_debug_symbols():
+        return None
+    try:
+        if pwndbg.aglib.kernel.has_debug_info():
+            return pwndbg.aglib.symbol.lookup_symbol_value(name)
+
+        symbol = pwndbg.aglib.symbol.lookup_symbol_addr(name)
+        if symbol is None:
             return None
-        if pwndbg.aglib.arch.name == "aarch64":
-            # TODO: how to get the kcurrent for different cpus
-            return result
-        ptr = int(per_cpu(result, cpu=cpu))
-        return pwndbg.aglib.memory.read_pointer_width(ptr)
-    return None
+
+        if size is None:
+            size = pwndbg.aglib.arch.ptrbits
+
+        if size == 8:
+            return pwndbg.aglib.memory.u(symbol)
+        if size == 16:
+            return pwndbg.aglib.memory.u16(symbol)
+        if size == 32:
+            return pwndbg.aglib.memory.u32(symbol)
+
+        return pwndbg.aglib.memory.u64(symbol)
+    except Exception:
+        # for kpti
+        return None
 
 
-@pwndbg.lib.cache.cache_until("stop")
-def init_task() -> int | None:
-    if (syms := arch_symbols()) is not None:
-        return syms.init_task()
-    return None
+@requires_debug_symbols("zone_names", default=4)
+def nzones() -> int:
+    _zone_names = pwndbg.aglib.symbol.lookup_symbol_addr("zone_names")
+    for i in range(len(POSSIBLE_ZONE_NAMES) + 1):
+        char_ptr = pwndbg.aglib.memory.u64(_zone_names + i * 8)
+        if pwndbg.aglib.memory.string(char_ptr).decode() not in POSSIBLE_ZONE_NAMES:
+            return i
+    assert False, "cannot determine the number of zones"
+
+
+def nmtypes() -> int:
+    return len(migratetype_names())
+
+
+def node_data_pointer() -> pwndbg.dbg_mod.Value | None:
+    addr = symbol.node_data
+    if addr is None:
+        return None
+    node_data = pwndbg.aglib.memory.get_typed_pointer("struct pglist_data", addr)
+    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
+        return node_data.cast(node_data.type.pointer())
+    return node_data
+
+
+def npcplist() -> int:
+    """returns NR_PCP_LISTS (https://elixir.bootlin.com/linux/v6.13/source/include/linux/mmzone.h#L671)"""
+    if not pwndbg.aglib.kernel.has_debug_info():
+        if (kversion := krelease()) and kversion >= (5, 14):
+            return 12
+        return 3
+    node_data = node_data_pointer()
+    if not node_data or "CONFIG_NUMA" not in pwndbg.aglib.kernel.kconfig():
+        node_data0 = node_data
+    else:
+        node_data0 = node_data.dereference()
+    zone = node_data0[0]["node_zones"][0]
+    # index 0 should always exist
+    if zone.type.has_field("per_cpu_pageset"):
+        lists = zone["per_cpu_pageset"]["lists"]
+        return lists.type.array_len
+    if zone.type.has_field("pageset"):
+        lists = zone["pageset"]["pcp"]["lists"]
+        return lists.type.array_len
+    return 0
+
+
+def kversion_cint(kversion: tuple[int, ...] | None = None) -> int | None:
+    if kversion is None:
+        kversion = pwndbg.aglib.kernel.krelease()
+    if kversion is None or len(kversion) != 3:
+        return None
+    x, y, z = kversion
+    return ((x) * 65536) + ((y) * 256) + (z)

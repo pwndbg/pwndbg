@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Generator
 
 import pwndbg
-import pwndbg.aglib.kernel.symbol
+import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.typing
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
@@ -15,9 +16,16 @@ from pwndbg.aglib.kernel.macros import memdesc_flag_or_int
 from pwndbg.aglib.kernel.macros import swab
 
 
+def get_slab_caches() -> pwndbg.dbg_mod.Value | None:
+    addr = pwndbg.aglib.kernel.symbol.slab_caches
+    if addr is None:
+        return None
+    return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", addr)
+
+
 def caches() -> Generator[SlabCache, None, None]:
     recover_slab_typeinfo()
-    slab_caches = pwndbg.aglib.kernel.slab_caches()
+    slab_caches = get_slab_caches()
     if slab_caches is None:
         # Symbol not found
         return
@@ -27,7 +35,7 @@ def caches() -> Generator[SlabCache, None, None]:
 
 
 def get_cache(target_name: str) -> SlabCache | None:
-    slab_caches = pwndbg.aglib.kernel.slab_caches()
+    slab_caches = get_slab_caches()
     if slab_caches is None:
         # Symbol not found
         return None
@@ -225,12 +233,12 @@ class SlabCache:
     @property
     def node_caches(self) -> Generator[NodeCache, None, None]:
         """returns node caches for all NUMA nodes"""
-        if kernel.krelease() >= (7, 1):
-            for node in range(kernel.num_numa_nodes()):
-                yield NodeCache(self._slab_cache["per_node"][node]["node"], self, node)
-        else:
+        if (krelease := kernel.krelease()) and krelease < (7, 1):
             for node in range(kernel.num_numa_nodes()):
                 yield NodeCache(self._slab_cache["node"][node], self, node)
+        else:
+            for node in range(kernel.num_numa_nodes()):
+                yield NodeCache(self._slab_cache["per_node"][node]["node"], self, node)
 
     @property
     def cpu_partial(self) -> int | None:
@@ -578,7 +586,7 @@ def kmem_cache_node_pad_sz(val: int) -> int | None:
 
 
 def get_kmem_cache():
-    slab_caches = kernel.slab_caches()
+    slab_caches = get_slab_caches()
     assert slab_caches, "can't find slab_caches"
     return int(slab_caches["prev"]) & ~0xFF
 
@@ -697,9 +705,9 @@ def get_kmem_cache_padding_sz() -> int:
 
 
 def kmem_cache_structs(node_cache_pad: int) -> str:
-    if pwndbg.aglib.kernel.symbol.kversion_cint() is None:
+    if pwndbg.aglib.kernel.kversion_cint() is None:
         return ""
-    result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
+    result = f"#define KVERSION {pwndbg.aglib.kernel.kversion_cint()}\n"
     if "CONFIG_SLUB_CPU_PARTIAL" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_SLUB_CPU_PARTIAL\n"
     result += f"""
@@ -792,7 +800,7 @@ def kmem_cache_structs(node_cache_pad: int) -> str:
     return result
 
 
-@pwndbg.aglib.kernel.typeinfo_recovery("struct kmem_cache", requires_kversion=True)
+@pwndbg.aglib.kernel.typing.typeinfo_recovery("struct kmem_cache", requires_kversion=True)
 def recover_slab_typeinfo() -> str:
     kconfig = pwndbg.aglib.kernel.kconfig()
     defs = []
@@ -812,9 +820,9 @@ def recover_slab_typeinfo() -> str:
         if config in kconfig:
             defs.append(config)
     sz, node_cache_pad = kmem_cache_pad_sz()
-    result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
+    result = f"#define KVERSION {pwndbg.aglib.kernel.kversion_cint()}\n"
     result += "\n".join(f"#define {s}" for s in defs)
-    result += pwndbg.aglib.kernel.symbol.COMMON_TYPES
+    result += pwndbg.aglib.kernel.typing.COMMON_TYPES
     result += kmem_cache_structs(node_cache_pad)
     # this is the kmem_cache SLUB representation for all 5.x and 6.x
     result += f"""

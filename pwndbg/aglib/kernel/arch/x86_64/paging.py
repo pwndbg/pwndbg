@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pwndbg
 import pwndbg.aglib.kernel
-import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
 import pwndbg.aglib.search
 import pwndbg.aglib.typeinfo
@@ -95,7 +94,7 @@ class x86_64Paging(Paging):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def physmap(self) -> int:
-        result: int | None = pwndbg.aglib.kernel.symbol.try_usymbol("page_offset_base")
+        result: int | None = pwndbg.aglib.kernel.try_usymbol("page_offset_base")
         if not result:
             result = first_kernel_page_start()
         return result
@@ -117,7 +116,7 @@ class x86_64Paging(Paging):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmalloc(self) -> int:
-        result: int | None = pwndbg.aglib.kernel.symbol.try_usymbol("vmalloc_base")
+        result: int | None = pwndbg.aglib.kernel.try_usymbol("vmalloc_base")
         if result is not None:
             return result
         result, _ = self.get_vmalloc_vmemmap_bases()
@@ -129,7 +128,7 @@ class x86_64Paging(Paging):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmemmap(self) -> int:
-        result: int | None = pwndbg.aglib.kernel.symbol.try_usymbol("vmemmap_base")
+        result: int | None = pwndbg.aglib.kernel.try_usymbol("vmemmap_base")
         if result is not None:
             return result
         _, result = self.get_vmalloc_vmemmap_bases()

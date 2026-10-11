@@ -15,6 +15,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
+import pwndbg.lib.config
 import pwndbg.lib.err
 import pwndbg.lib.memory
 from pwndbg.aglib.kernel.arch.paging import Paging
@@ -68,7 +69,7 @@ def _handle_page_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
 
 def _get_kernel_stacks() -> list[tuple[int, int, str]]:
     stacks = []
-    for task in pwndbg.commands.ktask.get_ktasks():
+    for task in pwndbg.aglib.kernel.ktask.get_ktasks():
         for thread in task.threads:
             if thread.stack:
                 stacks.append((thread.stack, thread.pid, thread.name))
@@ -76,10 +77,10 @@ def _get_kernel_stacks() -> list[tuple[int, int, str]]:
 
 
 def _handle_user_stack_and_filepaths(pages: pwndbg.dbg_mod.MemoryMap) -> None:
-    task = pwndbg.aglib.kernel.current_task()
-    if task is None:
+    _task = pwndbg.aglib.kernel.current_task()
+    if _task is None:
         return
-    task = pwndbg.commands.ktask.Kthread(task)
+    task = pwndbg.aglib.kernel.ktask.Kthread(_task)
     user_stack = task.user_stack
     for page in pages.ranges():
         if pwndbg.aglib.memory.is_kernel(page.start):
@@ -329,7 +330,7 @@ def kernel_vmmap_pages() -> tuple[Page, ...]:
             # has the user set the pgd with kcurrent?
             # None if not which gets properly handled
             entry = None
-            if (kcurrent := pwndbg.commands.kcurrent.get_kcurrent()) is not None:
+            if (kcurrent := pwndbg.aglib.kernel.ktask.get_kcurrent()) is not None:
                 entry = kcurrent.pgd
             if pwndbg.aglib.memory.is_kernel(entry):
                 entry = pwndbg.aglib.kernel.paging.pagewalk(entry, virt=False).phys

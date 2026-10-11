@@ -5,12 +5,12 @@ import math
 
 import pwndbg.aglib
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.chain
 import pwndbg.color.context as ctx_color
 import pwndbg.commands
-import pwndbg.commands.kcurrent
 from pwndbg import color
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -69,7 +69,7 @@ def page_type(page) -> str:
 def pagewalk(vaddr, entry=None) -> None:
     if entry is not None:
         entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
-    elif (kcurrent := pwndbg.commands.kcurrent.get_kcurrent()) is not None:
+    elif (kcurrent := pwndbg.aglib.kernel.ktask.get_kcurrent()) is not None:
         # did the user set pgd with kcurrent?
         # safe because pagewalk fallbacks to control regs when entry==None
         entry = kcurrent.pgd

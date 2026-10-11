@@ -5,8 +5,8 @@ import logging
 from dataclasses import dataclass
 
 import pwndbg
+import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.buddydump
-import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.commands
@@ -214,7 +214,7 @@ def print_pglist(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 
 def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     freelists, nr_types = cbp.freelists, cbp.nr_types
-    mtypes = pwndbg.aglib.kernel.symbol.migratetype_names()
+    mtypes = pwndbg.aglib.kernel.migratetype_names()
     if nr_types is None:
         nr_types = len(mtypes)
     for i in range(nr_types):
@@ -240,7 +240,7 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     if pcp is None or pcp_lists is None:
         log.warning("cannot find pcplist")
         return
-    nr_pcp_lists = pwndbg.aglib.kernel.symbol.npcplist()
+    nr_pcp_lists = pwndbg.aglib.kernel.npcplist()
     # https://elixir.bootlin.com/linux/v6.13.12/source/include/linux/mmzone.h#L52
     MIGRATE_PCPTYPES = pba.MIGRATE_TYPES
     migratetype = pwndbg.aglib.typeinfo.load("enum migratetype")
@@ -285,7 +285,7 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 
 def print_zones(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams, zones, pcp_only):
     target_cpu = pba.cpu
-    for i in range(pwndbg.aglib.kernel.symbol.nzones()):
+    for i in range(pwndbg.aglib.kernel.nzones()):
         cbp.zone = zones[i]
         name = zones[i]["name"].string()
         if pba.zone is not None and pba.zone != name:
@@ -359,7 +359,7 @@ def buddydump(
     MIGRATE_TYPES: int,
 ) -> None:
     pwndbg.aglib.kernel.buddydump.recover_buddydump_typeinfo()
-    node_data = pwndbg.aglib.kernel.symbol.node_data_pointer()
+    node_data = pwndbg.aglib.kernel.node_data_pointer()
     if not node_data:
         log.warning("WARNING: Symbol 'node_data' not found")
         return
