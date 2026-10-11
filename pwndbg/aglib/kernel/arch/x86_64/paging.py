@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pwndbg
-import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.aglib.search
 import pwndbg.aglib.typeinfo
@@ -74,7 +74,7 @@ class x86_64Paging(Paging):
         result = None
         try:
             target = self.physmap.to_bytes(8, byteorder="little")
-            mapping = pwndbg.aglib.kernel.first_kernel_ro_page()
+            mapping = pwndbg.aglib.kernel.vmmap.first_kernel_ro_page()
             if not mapping:
                 return None, None
             result = next(

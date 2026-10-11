@@ -9,8 +9,8 @@ from pwnlib.util.packing import u32
 from pwnlib.util.packing import u64
 
 import pwndbg.aglib
-import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.kmod
+import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.lib.cache
 from pwndbg.color import message
@@ -44,7 +44,7 @@ class Kallsyms:
             print(message.warn("could not find kbase, kernel has not finished initialization?"))
             return
 
-        mapping = pwndbg.aglib.kernel.first_kernel_ro_page()
+        mapping = pwndbg.aglib.kernel.vmmap.first_kernel_ro_page()
         assert mapping is not None, "kernel memory mappings are missing"
 
         self.r_base = mapping.vaddr

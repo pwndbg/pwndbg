@@ -17,7 +17,7 @@ parser.add_argument("-l", "--load", type=str, dest="file_path", help="load kerne
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kconfig(config_name=None, file_path=None) -> None:
-    kconfig_ = pwndbg.aglib.kernel.kconfig()
+    kconfig_ = pwndbg.aglib.kernel.kconfig_mod.kconfig()
     if file_path is not None:
         kconfig_.update_with_file(file_path)
         return

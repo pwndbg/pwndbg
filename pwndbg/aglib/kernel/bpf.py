@@ -144,7 +144,7 @@ def get_struct_bpf_prog() -> str:
 
 def get_struct_bpf_map() -> str:
     result = ""
-    if "CONFIG_SECURITY" in pwndbg.aglib.kernel.kconfig():
+    if "CONFIG_SECURITY" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         result += "#define CONFIG_SECURITY\n"
     result += """
     enum bpf_map_type {

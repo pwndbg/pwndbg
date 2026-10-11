@@ -3,7 +3,6 @@ from __future__ import annotations
 import functools
 import re
 from collections.abc import Callable
-from typing import TYPE_CHECKING
 from typing import Any
 
 from typing_extensions import ParamSpec
@@ -12,11 +11,6 @@ import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.symbol
-import pwndbg.lib.cache
-
-if TYPE_CHECKING:
-    from .aarch64.symbol import Aarch64Symbols
-    from .x86_64.symbol import x86_64Symbols
 
 P = ParamSpec("P")
 
@@ -110,7 +104,7 @@ class ArchSymbols:
     @property
     @kernel_symbol()
     def node_data(self) -> int:
-        if "CONFIG_NUMA" not in pwndbg.aglib.kernel.kconfig():
+        if "CONFIG_NUMA" not in pwndbg.aglib.kernel.kconfig_mod.kconfig():
             addr = pwndbg.aglib.symbol.lookup_symbol_addr("contig_page_data")
             if addr:
                 return addr
@@ -189,14 +183,3 @@ class ArchSymbols:
 
     def _init_task(self) -> int | None:
         return pwndbg.aglib.kernel.ktask.INIT_TASK
-
-
-@pwndbg.lib.cache.cache_until("start")
-def select() -> ArchSymbols:
-    match pwndbg.aglib.arch.name:
-        case "aarch64":
-            return Aarch64Symbols()
-        case "x86-64":
-            return x86_64Symbols()
-        case _:
-            raise NotImplementedError()

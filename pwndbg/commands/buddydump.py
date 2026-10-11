@@ -373,7 +373,7 @@ def buddydump(
         if node is not None and node_idx != node:
             continue
         zones = None
-        if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
+        if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
             # only display one node per invocation is probably sufficient under most use cases
             zones = node_data.dereference()[node_idx]["node_zones"]
         else:

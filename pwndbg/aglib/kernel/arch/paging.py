@@ -4,7 +4,6 @@ import math
 import struct
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 import pwndbg
 import pwndbg.aglib.kernel
@@ -14,12 +13,6 @@ import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 from pwndbg.lib.memory import Page
 from pwndbg.lib.regs import BitFlags
-
-if TYPE_CHECKING:
-    from .aarch64.paging import aarch64Paging
-    from .i386.paging import i386Paging
-    from .rv64.paging import rv64Paging
-    from .x86_64.paging import x86_64Paging
 
 # don't return None but rather an invalid value for address markers
 # this way arithmetic ops do not panic if physmap is not found
@@ -447,17 +440,3 @@ class Paging:
     @property
     def pagetable_level_names(self) -> tuple[str, ...]:
         raise NotImplementedError()
-
-
-def select() -> Paging:
-    match pwndbg.aglib.arch.name:
-        case "aarch64":
-            return aarch64Paging()
-        case "x86-64":
-            return x86_64Paging()
-        case "i386":
-            return i386Paging()
-        case "rv64":
-            return rv64Paging()
-        case _:
-            raise NotImplementedError(f"{pwndbg.aglib.arch.name} is not supported")

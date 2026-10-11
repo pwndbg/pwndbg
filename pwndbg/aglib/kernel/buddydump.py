@@ -15,7 +15,7 @@ def find_zone_offsets() -> tuple[int, int, int, int, int]:
     pcp_off, name_off, freelist_off, pcp_pad, zone_sz = None, None, None, None, None
     node_data0 = pwndbg.aglib.kernel.symbol.node_data
     assert node_data0, "cannot find node_data"
-    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
+    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         node_data0 = pwndbg.aglib.memory.read_pointer_width(node_data0)
     ptr = node_data0
     for i in range(20):  # the pcp offset should exist in those range
@@ -82,7 +82,7 @@ def recover_buddydump_typeinfo() -> str:
     result = f"#define KVERSION {pwndbg.aglib.kernel.kversion_cint()}\n"
     result += pwndbg.aglib.kernel.typing.COMMON_TYPES
     pcp_off, name_off, freearea_off, pcp_pad, zone_sz = find_zone_offsets()
-    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
+    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         result += "#define CONFIG_NUMA\n"
     result += f"""
     struct free_area {{

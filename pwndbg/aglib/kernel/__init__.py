@@ -6,7 +6,6 @@ from collections.abc import Callable
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 from typing import TypeVar
-from typing import cast
 
 from elftools.elf.elffile import ELFFile
 from typing_extensions import ParamSpec
@@ -20,16 +19,11 @@ import pwndbg.aglib.symbol
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
-import pwndbg.lib.memory
 
 if TYPE_CHECKING:
-    import pwndbg.aglib.kernel.arch.paging
-    import pwndbg.aglib.kernel.arch.symbol
+    import pwndbg.aglib.kernel.arch
     import pwndbg.aglib.kernel.kconfig_mod
-    import pwndbg.aglib.kernel.slab
     import pwndbg.aglib.kernel.vmmap
-
-_kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 
 P = ParamSpec("P")
 D = TypeVar("D")
@@ -106,73 +100,6 @@ def nproc() -> int:
     return len(pwndbg.dbg.selected_inferior().send_monitor("info cpus").splitlines())
 
 
-@pwndbg.lib.cache.cache_until("stop")
-def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
-    """Returns the first kernel mapping which contains the linux_banner"""
-    base = paging.kbase
-    if base is None:
-        return None
-
-    banner = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
-    fallback_mappings = []
-    for mapping in pwndbg.aglib.kernel.vmmap.kernel_vmmap_pages():
-        if mapping.vaddr < base:
-            continue
-        if banner is not None and banner in mapping:
-            return mapping
-        if not mapping.read or mapping.write or mapping.execute:
-            fallback_mappings.append(mapping)
-            continue
-
-        result = next(pwndbg.aglib.search.search(b"Linux version", mappings=[mapping]), None)
-
-        if result:
-            return mapping
-    # optimization: observe that the first Linux kernel region is the kernel text so search it last
-    # it now finds the first ro page almost instantly even for kernels that are partially initialized
-    # should find it within the first few page chunks if debugging linux kernel (reason for [:10])
-    for mapping in fallback_mappings[1:10] + [fallback_mappings[0]]:
-        # this loop handles when the kernel has not finished initialization
-        # and the permission of the first ro page has not been properly set
-        result = next(pwndbg.aglib.search.search(b"Linux version", mappings=[mapping]), None)
-
-        if result:
-            return mapping
-
-    return None
-
-
-@pwndbg.lib.cache.cache_until("objfile")
-def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig:
-    global _kconfig
-    config_start, config_end = None, None
-    if has_debug_symbols():
-        config_start = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data")
-        config_end = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data_end")
-    else:
-        mapping = first_kernel_ro_page()
-        result = None
-        if mapping is not None:
-            result = next(pwndbg.aglib.search.search(b"IKCFG_ST", mappings=[mapping]), None)
-
-        if result is not None:
-            config_start = result + len("IKCFG_ST")
-            config_end = next(pwndbg.aglib.search.search(b"IKCFG_ED", start=config_start), None)
-    if (
-        not pwndbg.aglib.memory.is_kernel(config_start)
-        or not pwndbg.aglib.memory.is_kernel(config_end)
-        or config_start >= config_end
-    ):
-        _kconfig = pwndbg.aglib.kernel.kconfig_mod.Kconfig(None)
-        return _kconfig
-
-    config_size = config_end - config_start
-
-    compressed_config = pwndbg.aglib.memory.read(config_start, config_size)
-    _kconfig = pwndbg.aglib.kernel.kconfig_mod.Kconfig(compressed_config)
-    return _kconfig
-
-
 @requires_debug_symbols("saved_command_line", default="")
 @pwndbg.lib.cache.cache_until("start")
 def kcmdline() -> str:
@@ -194,7 +121,7 @@ def kversion() -> str | None:
             return result
     except Exception:
         pass
-    mapping = first_kernel_ro_page()
+    mapping = pwndbg.aglib.kernel.vmmap.first_kernel_ro_page()
     if mapping is None:
         return None
     version_addr = next(pwndbg.aglib.search.search(b"Linux version", mappings=[mapping]), None)
@@ -263,16 +190,6 @@ def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -
     return result
 
 
-def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
-    # name is a substr of any of the target caches' names
-    _, cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
-    if not cache:
-        return False
-    if strict:
-        return name == cache.name
-    return name in cache.name
-
-
 @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
 def per_cpu(addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
     if cpu is None:
@@ -288,7 +205,7 @@ def per_cpu(addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.
 
 def num_numa_nodes() -> int:
     """Returns the number of NUMA nodes that are online on the system"""
-    kc = kconfig()
+    kc = pwndbg.aglib.kernel.kconfig_mod.kconfig()
 
     if "CONFIG_NUMA" not in kc:
         return 1
@@ -314,15 +231,15 @@ def num_numa_nodes() -> int:
     return val
 
 
-paging = cast(pwndbg.aglib.kernel.arch.paging.Paging, None)
-symbol = cast(pwndbg.aglib.kernel.arch.symbol.ArchSymbols, None)
+paging: pwndbg.aglib.kernel.arch.Paging
+symbol: pwndbg.aglib.kernel.arch.ArchSymbols
 
 
 @pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.START)
-def _set_paging_and_symbol_on_start():
+def set_paging_and_symbol_on_start():
     global paging, symbol
-    paging = pwndbg.aglib.kernel.arch.paging.select()
-    symbol = pwndbg.aglib.kernel.arch.symbol.select()
+    paging = pwndbg.aglib.kernel.arch.select_paging()
+    symbol = pwndbg.aglib.kernel.arch.select_symbol()
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -355,7 +272,7 @@ def migratetype_names() -> tuple[str, ...]:
         "Reclaimable",
         "HighAtomic",
     ]
-    kconfig = pwndbg.aglib.kernel.kconfig()
+    kconfig = pwndbg.aglib.kernel.kconfig_mod.kconfig()
     if "CONFIG_CMA" in kconfig:
         names.append("CMA")
     if "CONFIG_MEMORY_ISOLATION" in kconfig:
@@ -410,7 +327,7 @@ def node_data_pointer() -> pwndbg.dbg_mod.Value | None:
     if addr is None:
         return None
     node_data = pwndbg.aglib.memory.get_typed_pointer("struct pglist_data", addr)
-    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
+    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         return node_data.cast(node_data.type.pointer())
     return node_data
 
@@ -422,7 +339,7 @@ def npcplist() -> int:
             return 12
         return 3
     node_data = node_data_pointer()
-    if not node_data or "CONFIG_NUMA" not in pwndbg.aglib.kernel.kconfig():
+    if not node_data or "CONFIG_NUMA" not in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         node_data0 = node_data
     else:
         node_data0 = node_data.dereference()

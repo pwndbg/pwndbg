@@ -69,7 +69,7 @@ def kdmabuf() -> None:
     db_name = "db_list"
     if pwndbg.aglib.kernel.krelease() >= (6, 10):
         db_name = "debugfs_list"
-        if "CONFIG_DEBUG_FS" not in pwndbg.aglib.kernel.kconfig():
+        if "CONFIG_DEBUG_FS" not in pwndbg.aglib.kernel.kconfig_mod.kconfig():
             print(message.warn("dma_buf->priv does not exist"))
     db_list = pwndbg.aglib.kernel.symbol.db_list
     if db_list is None:

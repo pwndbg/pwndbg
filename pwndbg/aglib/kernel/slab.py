@@ -23,6 +23,16 @@ def get_slab_caches() -> pwndbg.dbg_mod.Value | None:
     return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", addr)
 
 
+def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
+    # name is a substr of any of the target caches' names
+    _, cache = find_containing_slab_cache(val)
+    if not cache:
+        return False
+    if strict:
+        return name == cache.name
+    return name in cache.name
+
+
 def caches() -> Generator[SlabCache, None, None]:
     recover_slab_typeinfo()
     slab_caches = get_slab_caches()
@@ -171,7 +181,9 @@ class SlabCache:
     @property
     def random(self) -> int:
         return (
-            int(self._slab_cache["random"]) if "SLAB_FREELIST_HARDENED" in kernel.kconfig() else 0
+            int(self._slab_cache["random"])
+            if "SLAB_FREELIST_HARDENED" in kernel.kconfig_mod.kconfig()
+            else 0
         )
 
     @property
@@ -477,7 +489,7 @@ class Slab:
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def virt_address(self) -> int:
-        if "CONFIG_SLAB_VIRTUAL" not in kernel.kconfig():
+        if "CONFIG_SLAB_VIRTUAL" not in kernel.kconfig_mod.kconfig():
             return kernel.paging.page_to_virt(self.slab_address)
         return kernel.paging.slab_to_virt(self.slab_address)
 
@@ -540,7 +552,7 @@ class Slab:
 def find_containing_slab_cache(addr: int) -> tuple[int | None, SlabCache | None]:
     recover_slab_typeinfo()  # throws a separate exception
     try:
-        if "CONFIG_SLAB_VIRTUAL" not in kernel.kconfig():
+        if "CONFIG_SLAB_VIRTUAL" not in kernel.kconfig_mod.kconfig():
             page = pwndbg.aglib.memory.get_typed_pointer_value(
                 "struct page", kernel.paging.virt_to_page(addr)
             )
@@ -595,7 +607,7 @@ def kmem_cache_pad_sz() -> tuple[int, int]:
     # find the distance between the first kmem_cache's name and its first node cache
     # the name for the first kmem_cache (most likely) has the name "kmem_cache"
     # and the global var is also named "kmem_cache"
-    kconfig = kernel.kconfig()
+    kconfig = kernel.kconfig_mod.kconfig()
     name = "kmem_cache"
     name_off = None
     ptrsize = pwndbg.aglib.arch.ptrsize
@@ -657,7 +669,11 @@ def kmem_cache_pad_sz() -> tuple[int, int]:
         if config in kconfig:
             distance -= ptrsize
     if kasan_config_name in kconfig and krelease:  # kasan
-        if krelease >= (6, 3) or krelease < (6, 1) or "CONFIG_KASAN_GENERIC" in kernel.kconfig():
+        if (
+            krelease >= (6, 3)
+            or krelease < (6, 1)
+            or "CONFIG_KASAN_GENERIC" in kernel.kconfig_mod.kconfig()
+        ):
             distance -= pwndbg.aglib.typeinfo.uint.sizeof * 2
         if (5, 12) <= krelease < (6, 3):
             distance -= ptrsize
@@ -670,7 +686,7 @@ def kmem_cache_pad_sz() -> tuple[int, int]:
 def get_kmem_cache_padding_sz() -> int:
     ptrsize = pwndbg.aglib.arch.ptrsize
     off = ptrsize  # __page_flags
-    if "CONFIG_SLAB_VIRTUAL" in kernel.kconfig():
+    if "CONFIG_SLAB_VIRTUAL" in kernel.kconfig_mod.kconfig():
         off = None
         # per cpu cache always exists because CONFIG_SLAB_VIRTUAL -> !CONFIG_SLUB_TINY
         kmem_cache_addr = get_kmem_cache()
@@ -683,7 +699,7 @@ def get_kmem_cache_padding_sz() -> int:
             )  # struct slab *slab
             if pwndbg.aglib.memory.is_kernel(ptr):
                 slabs.append(ptr)
-            if "CONFIG_SLUB_CPU_PARTIAL" in kernel.kconfig():
+            if "CONFIG_SLUB_CPU_PARTIAL" in kernel.kconfig_mod.kconfig():
                 ptr = pwndbg.aglib.memory.read_pointer_width(_cache_cpu + ptrsize * 3)  # partial
                 if pwndbg.aglib.memory.is_kernel(ptr):
                     slabs.append(ptr)
@@ -708,7 +724,7 @@ def kmem_cache_structs(node_cache_pad: int) -> str:
     if pwndbg.aglib.kernel.kversion_cint() is None:
         return ""
     result = f"#define KVERSION {pwndbg.aglib.kernel.kversion_cint()}\n"
-    if "CONFIG_SLUB_CPU_PARTIAL" in pwndbg.aglib.kernel.kconfig():
+    if "CONFIG_SLUB_CPU_PARTIAL" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         result += "#define CONFIG_SLUB_CPU_PARTIAL\n"
     result += f"""
     struct kmem_cache_node {{
@@ -787,7 +803,7 @@ def kmem_cache_structs(node_cache_pad: int) -> str:
         /* irrelevant fields*/
     }};
     """
-    if "CONFIG_SLAB_VIRTUAL" in kernel.kconfig():
+    if "CONFIG_SLAB_VIRTUAL" in kernel.kconfig_mod.kconfig():
         # TODO: the size of freed_slabs_lock is inaccurate but I'm not sure how to handle it
         result += """
         struct kmem_cache_virtual {
@@ -802,7 +818,7 @@ def kmem_cache_structs(node_cache_pad: int) -> str:
 
 @pwndbg.aglib.kernel.typing.typeinfo_recovery("struct kmem_cache", requires_kversion=True)
 def recover_slab_typeinfo() -> str:
-    kconfig = pwndbg.aglib.kernel.kconfig()
+    kconfig = pwndbg.aglib.kernel.kconfig_mod.kconfig()
     defs = []
     configs = (
         "CONFIG_SLUB_TINY",

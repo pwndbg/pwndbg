@@ -73,7 +73,7 @@ def get_stack_offset(tasks: list[int]) -> int:
 def get_tasks_offset(mm_offset: int) -> tuple[list[int], int]:
     ptrsize = pwndbg.aglib.arch.ptrsize
     tasks_offset = mm_offset - ptrsize * 2
-    if "CONFIG_SMP" in pwndbg.aglib.kernel.kconfig():
+    if "CONFIG_SMP" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         tasks_offset -= ptrsize * 8
     tasks = None
     for i in range(pwndbg.aglib.kernel.nproc()):
@@ -98,7 +98,7 @@ def get_mm_offset(task: int) -> int:
     for i in range(0x200):
         off = i * ptrsize
         val = pwndbg.aglib.memory.read_pointer_width(task + off)
-        if pwndbg.aglib.kernel.in_kmem_cache(val, "mm_struct") or (init_mm and init_mm == val):
+        if pwndbg.aglib.kernel.slab.in_kmem_cache(val, "mm_struct") or (init_mm and init_mm == val):
             mm_offset = off
             break
     else:
@@ -106,7 +106,7 @@ def get_mm_offset(task: int) -> int:
             "task_struct", f"cound not find the offset of task_struct->mm: (task: {hex(task)}"
         )
     mm_active = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
-    if not pwndbg.aglib.kernel.in_kmem_cache(mm_active, "mm_struct"):
+    if not pwndbg.aglib.kernel.slab.in_kmem_cache(mm_active, "mm_struct"):
         # we actually found active_mm instead
         mm_offset -= ptrsize
     return mm_offset
@@ -122,7 +122,7 @@ def get_vm_area_struct(mm: int) -> str:
     for vma in vmafinder:
         for i in range(6, 0x50):
             val = pwndbg.aglib.memory.read_pointer_width(vma + i * ptrsize)
-            if pwndbg.aglib.kernel.in_kmem_cache(val, "filp"):
+            if pwndbg.aglib.kernel.slab.in_kmem_cache(val, "filp"):
                 off = i * ptrsize
                 break
         if off is not None:
@@ -290,7 +290,7 @@ def get_thread_list_offset(pid_offset: int) -> int:
     assert krelease, "cannot find kernel version (shouldn't happen)"
     if krelease < (6, 7, 0):
         off += 2 * ptrsize
-    if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
+    if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         off += ptrsize
     return off
 
@@ -518,7 +518,7 @@ def get_file_struct(file: int | None) -> str:
     krelease = pwndbg.aglib.kernel.krelease()
     assert krelease, "cannot find kernel version (shouldn't happen)"
     kbase: int | None = pwndbg.aglib.kernel.paging.kbase
-    if "CONFIG_SECURITY" in pwndbg.aglib.kernel.kconfig():
+    if "CONFIG_SECURITY" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         result += "#define CONFIG_SECURITY\n"
     result += """
     typedef unsigned int fmode_t;
@@ -571,7 +571,7 @@ def get_file_struct(file: int | None) -> str:
         fmode_offset = ptrsize * 2 + 8
         for i in range(2, 0x20):
             val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
-            if pwndbg.aglib.kernel.in_kmem_cache(val, "inode", strict=False):
+            if pwndbg.aglib.kernel.slab.in_kmem_cache(val, "inode", strict=False):
                 inode_offset = (i - 2) * ptrsize
                 break
         if inode_offset == 0:  # fallback by finding f_op
@@ -613,7 +613,7 @@ def get_file_struct(file: int | None) -> str:
         off = 0
         for i in range(7, 0x20):
             val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
-            if pwndbg.aglib.kernel.in_kmem_cache(val, "cred_jar"):
+            if pwndbg.aglib.kernel.slab.in_kmem_cache(val, "cred_jar"):
                 off = i * ptrsize
                 off += ptrsize + (0x10 + ptrsize * 2) + 8  # f_cred, f_ra, f_version
                 break
@@ -878,7 +878,7 @@ def recover_ktask_typeinfo() -> str:
     result += nsproxy_struct
     result += sighand_struct
     result += get_signal_struct()
-    if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
+    if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         result += "#define CONFIG_STACKPROTECTOR\n"
     result += f"#define stack_offset {stack_offset}\n"
     result += f"""
@@ -1035,7 +1035,7 @@ def seccomp(task: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
             continue
         additional = 1 if pwndbg.aglib.arch.ptrsize == 8 or (krelease and krelease < (5, 9)) else 2
         val = pwndbg.aglib.memory.read_pointer_width(start + (i + additional) * ptrsize)
-        if pwndbg.aglib.kernel.in_kmem_cache(val, "kmalloc-", strict=False):
+        if pwndbg.aglib.kernel.slab.in_kmem_cache(val, "kmalloc-", strict=False):
             seccomp = start + i * ptrsize
             _filter = val
             break

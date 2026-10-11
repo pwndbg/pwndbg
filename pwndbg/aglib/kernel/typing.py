@@ -140,7 +140,7 @@ def recover_page_typeinfo() -> str:
         "CONFIG_MEMCG",
         "CONFIG_KASAN",
     ):
-        if config in pwndbg.aglib.kernel.kconfig():
+        if config in pwndbg.aglib.kernel.kconfig_mod.kconfig():
             defs.append(config)
     result = f"#define KVERSION {pwndbg.aglib.kernel.kversion_cint()}\n"
     result += "\n".join(f"#define {s}" for s in defs)

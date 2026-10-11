@@ -13,6 +13,8 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
+import pwndbg.aglib.search
+import pwndbg.aglib.symbol
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.config
@@ -368,3 +370,39 @@ def kernel_vmmap() -> tuple[pwndbg.lib.memory.Page, ...]:
                 page.flags |= 1
 
     return tuple(pages)
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
+    """Returns the first kernel mapping which contains the linux_banner"""
+    base = pwndbg.aglib.kernel.paging.kbase
+    if base is None:
+        return None
+
+    banner = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
+    fallback_mappings = []
+    for mapping in kernel_vmmap_pages():
+        if mapping.vaddr < base:
+            continue
+        if banner is not None and banner in mapping:
+            return mapping
+        if not mapping.read or mapping.write or mapping.execute:
+            fallback_mappings.append(mapping)
+            continue
+
+        result = next(pwndbg.aglib.search.search(b"Linux version", mappings=[mapping]), None)
+
+        if result:
+            return mapping
+    # optimization: observe that the first Linux kernel region is the kernel text so search it last
+    # it now finds the first ro page almost instantly even for kernels that are partially initialized
+    # should find it within the first few page chunks if debugging linux kernel (reason for [:10])
+    for mapping in fallback_mappings[1:10] + [fallback_mappings[0]]:
+        # this loop handles when the kernel has not finished initialization
+        # and the permission of the first ro page has not been properly set
+        result = next(pwndbg.aglib.search.search(b"Linux version", mappings=[mapping]), None)
+
+        if result:
+            return mapping
+
+    return None
