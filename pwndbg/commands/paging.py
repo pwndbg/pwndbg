@@ -74,19 +74,19 @@ def pagewalk(vaddr, entry=None) -> None:
         # safe because pagewalk fallbacks to control regs when entry==None
         entry = kcurrent.pgd
     if pwndbg.aglib.memory.is_kernel(entry):
-        entry = pwndbg.aglib.kernel.pagewalk(entry, virt=False).phys
+        entry = pwndbg.aglib.kernel.paging.pagewalk(entry, virt=False).phys
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
-    result = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
+    result = pwndbg.aglib.kernel.paging.pagewalk(vaddr, entry)
     for level in result.levels[::-1]:
         name, entry, vaddr, idx = level.name, level.entry, level.virt, level.idx
         if name is None or entry is None or vaddr is None or idx is None:
             break
-        pageflags = pwndbg.aglib.kernel.bitflags(level)
+        pageflags = pwndbg.aglib.kernel.paging.bitflags(level)
         flags = ""
         arrow_right = pwndbg.chain.c.arrow(f"{pwndbg.chain.config_arrow_right}")
         if pwndbg.aglib.arch.name == "x86-64":
             name = name.ljust(3, " ")
-        nbits = pwndbg.aglib.kernel.page_shift() - math.ceil(
+        nbits = pwndbg.aglib.kernel.paging.page_shift - math.ceil(
             math.log2(pwndbg.aglib.arch.ptrsize)
         )  # each idx has that many bits
         idxlen = len(str((1 << nbits) - 1))
@@ -130,8 +130,8 @@ p2v_parser.add_argument("paddr", type=str, help="")
 def p2v(paddr) -> None:
     paddr = int(pwndbg.dbg.selected_frame().evaluate_expression(paddr))
     try:
-        vaddr = pwndbg.aglib.kernel.phys_to_virt(paddr)
-        page = pwndbg.aglib.kernel.phys_to_page(paddr)
+        vaddr = pwndbg.aglib.kernel.paging.phys_to_virt(paddr)
+        page = pwndbg.aglib.kernel.paging.phys_to_page(paddr)
         print_pageinfo(vaddr, paddr, page)
     except Exception:
         print(message.warn("physical to virtual address failed, invalid physical address?"))
@@ -150,13 +150,13 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def v2p(vaddr) -> None:
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
-    result = pwndbg.aglib.kernel.pagewalk(vaddr)  # more accurate
+    result = pwndbg.aglib.kernel.paging.pagewalk(vaddr)  # more accurate
     entry, paddr = result.entry, result.phys
     if not entry or paddr is None:
         print(message.warn("virtual to physical address failed, unmapped virtual address?"))
         return
 
-    page = pwndbg.aglib.kernel.phys_to_page(paddr)
+    page = pwndbg.aglib.kernel.paging.phys_to_page(paddr)
     print_pageinfo(vaddr, paddr, page)
 
 
@@ -174,8 +174,8 @@ page_parser.add_argument("page", type=str, help="")
 def pageinfo(page) -> None:
     page = int(pwndbg.dbg.selected_frame().evaluate_expression(page))
     try:
-        vaddr = pwndbg.aglib.kernel.page_to_virt(page)
-        paddr = pwndbg.aglib.kernel.page_to_phys(page)
+        vaddr = pwndbg.aglib.kernel.paging.page_to_virt(page)
+        paddr = pwndbg.aglib.kernel.paging.page_to_phys(page)
         print_pageinfo(vaddr, paddr, page)
     except Exception:
         print(message.warn("invalid page struct pointer"))

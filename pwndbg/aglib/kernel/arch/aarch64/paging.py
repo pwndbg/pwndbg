@@ -56,8 +56,8 @@ class aarch64Paging(Paging):
         # FLATMEM or SPARSEMEM not (yet) implemented
         return (page - self.vmemmap) >> self.STRUCT_PAGE_SHIFT
 
-    @staticmethod
-    def paging_enabled() -> bool:
+    @property
+    def enabled(self) -> bool:
         # AArch64 system control register: newer QEMU releases (tested on
         # 10.2.0) expose it as `SCTLR_EL1`; older releases used the generic
         # `SCTLR`. Bit 0 (M) is the MMU-enable flag in either case. See
@@ -371,6 +371,7 @@ class aarch64Paging(Paging):
             pass
         return 0x40000000  # default
 
+    @pwndbg.lib.cache.cache_until("stop")
     def pagewalk(self, target: int, entry: int | None = None, virt: bool = True) -> PagewalkResult:
         if pwndbg.aglib.memory.is_kernel(target):
             entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
@@ -381,19 +382,20 @@ class aarch64Paging(Paging):
         entry |= 3  # marks the entry as a table
         return self._pagewalk(target, entry, virt)
 
-    def pagescan(self, entry: int | None = None) -> list[Page]:
+    @pwndbg.lib.cache.cache_until("stop")
+    def pagescan(self, entry: int | None = None) -> tuple[Page, ...]:
         # assumes entry should be from `kcurrent --set` and should be TTBR0_EL1 for a task
         if entry is None:
             entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
         if entry is None:
-            return []
+            return ()
         result = self._pagescan(entry | 3, is_kernel=False)
         if pwndbg.aglib.memory.is_kernel(pwndbg.aglib.regs.pc):
             entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
             if entry is None:
-                return []
+                return ()
             result += self._pagescan(entry | 3, is_kernel=True)
-        return result
+        return tuple(result)
 
     def bitflags(self, level: PageTableLevel) -> BitFlags:
         if level.level == 1 or not level.entry or self.should_stop_pagewalk(level.entry):

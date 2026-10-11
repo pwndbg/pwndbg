@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import math
 import struct
-from abc import abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -255,27 +254,21 @@ class Paging:
     def STRUCT_PAGE_SHIFT(self) -> int:
         return int(math.log2(self.STRUCT_PAGE_SIZE))
 
-    @abstractmethod
     def virt_to_phys(self, virt: int) -> int:
         raise NotImplementedError()
 
-    @abstractmethod
     def phys_to_virt(self, phys: int) -> int:
         raise NotImplementedError()
 
-    @abstractmethod
     def phys_to_pfn(self, phys: int) -> int:
         raise NotImplementedError()
 
-    @abstractmethod
     def pfn_to_phys(self, pfn: int) -> int:
         raise NotImplementedError()
 
-    @abstractmethod
     def pfn_to_page(self, pfn: int) -> int:
         raise NotImplementedError()
 
-    @abstractmethod
     def page_to_pfn(self, page: int) -> int:
         raise NotImplementedError()
 
@@ -309,11 +302,9 @@ class Paging:
     def vmemmap(self) -> int:
         raise NotImplementedError()
 
-    @abstractmethod
     def slab_to_virt(self, slab: int) -> int:
         raise NotImplementedError()
 
-    @abstractmethod
     def virt_to_slab(self, virt: int) -> int:
         raise NotImplementedError()
 
@@ -334,10 +325,13 @@ class Paging:
         return 1 << self.page_shift
 
     @property
+    def enabled(self) -> bool:
+        raise NotImplementedError()
+
+    @property
     def paging_level(self) -> int:
         raise NotImplementedError()
 
-    @abstractmethod
     def adjust(self, name: str) -> str:
         raise NotImplementedError()
 
@@ -345,7 +339,6 @@ class Paging:
     def markers(self) -> tuple[tuple[str | None, int | None], ...]:
         raise NotImplementedError()
 
-    @abstractmethod
     def handle_kernel_pages(self, pages: tuple[Page, ...]) -> None:
         # this is arch dependent
         raise NotImplementedError()
@@ -366,12 +359,12 @@ class Paging:
 
         return None
 
-    @abstractmethod
+    @pwndbg.lib.cache.cache_until("stop")
     def pagewalk(self, target: int, entry: int | None = None, virt: bool = True) -> PagewalkResult:
         raise NotImplementedError()
 
-    @abstractmethod
-    def pagescan(self, entry: int | None = None) -> list[Page]:
+    @pwndbg.lib.cache.cache_until("stop")
+    def pagescan(self, entry: int | None = None) -> tuple[Page, ...]:
         raise NotImplementedError()
 
     @property
@@ -386,7 +379,6 @@ class Paging:
     def PAGE_INDEX_MASK(self) -> int:
         return (1 << (self.PAGE_INDEX_LEN)) - 1
 
-    @abstractmethod
     @pwndbg.lib.cache.cache_until("stop")
     def pagetablescan(self, entry: int) -> PageTableScan | None:
         return PageTableScan(self)
@@ -436,11 +428,9 @@ class Paging:
             pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
         return result
 
-    @abstractmethod
     def bitflags(self, level: PageTableLevel) -> BitFlags:
         raise NotImplementedError()
 
-    @abstractmethod
     def should_stop_pagewalk(self, entry: int) -> bool:
         raise NotImplementedError()
 

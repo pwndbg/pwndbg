@@ -7,7 +7,7 @@ from ..paging import BIT
 from ..paging import Paging
 
 
-class i3860Paging(Paging):
+class i386Paging(Paging):
     def phys_to_virt(self, phys: int) -> int:
         return pwndbg.aglib.arch.unsigned(phys + self.physmap)
 
@@ -17,6 +17,6 @@ class i3860Paging(Paging):
     def pfn_to_phys(self, pfn: int) -> int:
         return pfn << self.page_shift
 
-    @staticmethod
-    def paging_enabled() -> bool:
+    @property
+    def enabled(self) -> bool:
         return int(pwndbg.aglib.regs.read_reg("cr0")) & BIT(31) != 0

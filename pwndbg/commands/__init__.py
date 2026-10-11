@@ -881,7 +881,7 @@ def OnlyWithKernelSymbols(function: Callable[P, T]) -> Callable[P, T | None]:
 def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWhenPagingEnabled(*a: P.args, **kw: P.kwargs) -> T | None:
-        if pwndbg.aglib.kernel.paging_enabled():
+        if pwndbg.aglib.kernel.paging.enabled:
             return function(*a, **kw)
         log.error(f"{func_name(function)}: This command may only be run when paging is enabled.")
         return None

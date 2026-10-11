@@ -50,8 +50,8 @@ class x86_64Paging(Paging):
         # FLATMEM or SPARSEMEM not (yet) implemented
         return (page - self.vmemmap) >> self.STRUCT_PAGE_SHIFT
 
-    @staticmethod
-    def paging_enabled() -> bool:
+    @property
+    def enabled(self) -> bool:
         return int(pwndbg.aglib.regs.read_reg("cr0")) & BIT(31) != 0
 
     @property
@@ -240,6 +240,7 @@ class x86_64Paging(Paging):
             if stack in page:
                 page.objfile += " [stack]"
 
+    @pwndbg.lib.cache.cache_until("stop")
     def pagewalk(self, target: int, entry: int | None = None, virt: bool = True) -> PagewalkResult:
         if entry is None:
             entry = pwndbg.aglib.regs.read_reg("cr3")
@@ -247,12 +248,13 @@ class x86_64Paging(Paging):
             return PagewalkResult()
         return self._pagewalk(target, entry, virt)
 
-    def pagescan(self, entry: int | None = None) -> list[Page]:
+    @pwndbg.lib.cache.cache_until("stop")
+    def pagescan(self, entry: int | None = None) -> tuple[Page, ...]:
         if entry is None:
             entry = pwndbg.aglib.regs.read_reg("cr3")
         if entry is None:
-            return []
-        return self._pagescan(entry)
+            return ()
+        return tuple(self._pagescan(entry))
 
     def bitflags(self, level: PageTableLevel) -> BitFlags:
         return BitFlags([("NX", 63), ("PS", 7), ("A", 5), ("U", 2), ("W", 1), ("P", 0)])

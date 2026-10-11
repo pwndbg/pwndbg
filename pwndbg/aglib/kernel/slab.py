@@ -470,8 +470,8 @@ class Slab:
     @pwndbg.lib.cache.cache_until("stop")
     def virt_address(self) -> int:
         if "CONFIG_SLAB_VIRTUAL" not in kernel.kconfig():
-            return kernel.page_to_virt(self.slab_address)
-        return kernel.slab_to_virt(self.slab_address)
+            return kernel.paging.page_to_virt(self.slab_address)
+        return kernel.paging.slab_to_virt(self.slab_address)
 
     @property
     def object_count(self) -> int:
@@ -534,17 +534,17 @@ def find_containing_slab_cache(addr: int) -> tuple[int | None, SlabCache | None]
     try:
         if "CONFIG_SLAB_VIRTUAL" not in kernel.kconfig():
             page = pwndbg.aglib.memory.get_typed_pointer_value(
-                "struct page", kernel.virt_to_page(addr)
+                "struct page", kernel.paging.virt_to_page(addr)
             )
             head_page = compound_head(page)
             address = head_page.address
             assert address
-            base = kernel.page_to_virt(int(address))
+            base = kernel.paging.page_to_virt(int(address))
             slab_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
             slab = head_page.cast(slab_type)
         else:
-            _slab = kernel.virt_to_slab(addr)
-            base = kernel.slab_to_virt(_slab)
+            _slab = kernel.paging.virt_to_slab(addr)
+            base = kernel.paging.slab_to_virt(_slab)
             # mitigations are recent enough that the struct is expected to exist
             slab = pwndbg.aglib.memory.get_typed_pointer_value("struct slab", _slab)
         result = SlabCache(slab["slab_cache"])
@@ -686,7 +686,7 @@ def get_kmem_cache_padding_sz() -> int:
                 if not pwndbg.aglib.memory.is_kernel(addr):
                     continue
                 val = pwndbg.aglib.memory.read_pointer_width(addr)
-                if kernel.slab_virtual() < val and pwndbg.aglib.memory.is_kernel(val):
+                if kernel.paging.slab_virtual < val and pwndbg.aglib.memory.is_kernel(val):
                     off = ptrsize * i
                     break
             if off is not None:

@@ -41,8 +41,8 @@ def print_sgl(sgl, indent):
         if page_link & SG_CHAIN:
             next_sgl = page
             continue
-        virt = pwndbg.aglib.kernel.page_to_virt(page)
-        phys = pwndbg.aglib.kernel.virt_to_phys(virt)
+        virt = pwndbg.aglib.kernel.paging.page_to_virt(page)
+        phys = pwndbg.aglib.kernel.paging.virt_to_phys(virt)
         offset = int(sgl["offset"])
         length = int(sgl["length"])
         desc = "- " + indent.prefix(f"[0x{idx:02x}] {indent.addr_hex(virt)}")

@@ -144,7 +144,7 @@ def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
     def helper(task: int, off: int, pgd: int) -> int | None:
         mm = pwndbg.aglib.memory.read_pointer_width(task + off)
         ptrsize = pwndbg.aglib.arch.ptrsize
-        pgd_virt = pwndbg.aglib.kernel.phys_to_virt(pgd)
+        pgd_virt = pwndbg.aglib.kernel.paging.phys_to_virt(pgd)
         if not pwndbg.aglib.memory.is_kernel(mm):
             return None
         for i in range(0x100):
@@ -152,7 +152,7 @@ def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
             if val == pgd_virt:
                 return i * ptrsize
             # walk the candidate virtual pgd to check if its equal to the expected phys
-            val = pwndbg.aglib.kernel.pagewalk(val).phys
+            val = pwndbg.aglib.kernel.paging.pagewalk(val).phys
             if val and val == pgd:
                 return i * ptrsize
         return None
@@ -168,7 +168,7 @@ def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
             raise NotImplementedError()
     regval = pwndbg.aglib.regs.read_reg(reg)
     assert regval is not None, f"cannot resolve {reg} value"
-    mask = pwndbg.aglib.kernel.PAGE_ENTRY_MASK()
+    mask = pwndbg.aglib.kernel.paging.PAGE_ENTRY_MASK
     pgd = regval & mask
     current_tasks = [
         pwndbg.aglib.kernel.current_task(i) for i in range(pwndbg.aglib.kernel.nproc())
@@ -511,7 +511,7 @@ def get_file_struct(file: int | None) -> str:
     result = ""
     krelease = pwndbg.aglib.kernel.krelease()
     assert krelease, "cannot find kernel version (shouldn't happen)"
-    kbase: int | None = pwndbg.aglib.kernel.kbase()
+    kbase: int | None = pwndbg.aglib.kernel.paging.kbase
     if "CONFIG_SECURITY" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_SECURITY\n"
     result += """

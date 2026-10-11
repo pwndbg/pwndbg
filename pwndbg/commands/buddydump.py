@@ -145,8 +145,8 @@ def traverse_pglist(
     msgs = []
     for e in for_each_entry(freelist, "struct page", "lru"):
         page = int(e)
-        phys_addr = pwndbg.aglib.kernel.page_to_phys(page)
-        virt_addr = pwndbg.aglib.kernel.page_to_virt(page)
+        phys_addr = pwndbg.aglib.kernel.paging.page_to_phys(page)
+        virt_addr = pwndbg.aglib.kernel.paging.page_to_virt(page)
         if check_find(counter, virt_addr, pba, cbp):
             results.append(
                 (

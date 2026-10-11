@@ -39,7 +39,7 @@ class Kallsyms:
 
     def __init__(self):
         self.kallsyms: list[tuple[str, str, int]] = []
-        self.kbase = pwndbg.aglib.kernel.kbase()
+        self.kbase = pwndbg.aglib.kernel.paging.kbase
         if self.kbase is None:
             print(message.warn("could not find kbase, kernel has not finished initialization?"))
             return

@@ -272,7 +272,7 @@ def test_command_buddydump() -> None:
         # asserting `bud -f` behaviour -- should be able to find the corresponding entry to an address
         # even if the address is not aligned
         assert len(_matches) == 1 and _matches[i][0] == vaddr
-        assert page == pwndbg.aglib.kernel.virt_to_page(vaddr)
+        assert page == pwndbg.aglib.kernel.paging.virt_to_page(vaddr)
 
     # nonexistent node index should not contain any entries
     no_output = gdb.execute("buddydump -n 10", to_string=True)
@@ -310,7 +310,7 @@ def check_0x100_bytes(address, physmap_addr):
 
 @KernelTest
 def test_command_pagewalk() -> None:
-    address = pwndbg.aglib.kernel.kbase()
+    address = pwndbg.aglib.kernel.paging.kbase
     if address is None:
         pages = pwndbg.aglib.vmmap.get()
         address = pages[0].start
@@ -352,10 +352,10 @@ def test_command_paging() -> None:
         assert pagetype in out
         page = int(out.splitlines()[2].split()[2], 16)
         physmap_addr = int(out.splitlines()[1].split()[-1], 16)
-        physmap_addr = pwndbg.aglib.kernel.phys_to_virt(physmap_addr)
+        physmap_addr = pwndbg.aglib.kernel.paging.phys_to_virt(physmap_addr)
         # the first 0x100 bytes of the resolved address should match the original
         check_0x100_bytes(addr, physmap_addr)
-        phys_addr = pwndbg.aglib.kernel.virt_to_phys(physmap_addr)
+        phys_addr = pwndbg.aglib.kernel.paging.virt_to_phys(physmap_addr)
         out = gdb.execute(f"p2v {phys_addr}", to_string=True)
         # the virtual address should be the physmap address
         assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
@@ -363,10 +363,10 @@ def test_command_paging() -> None:
         # the virtual address should be the physmap address
         assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
 
-    pi = pwndbg.aglib.kernel.arch_paginginfo()
+    pi = pwndbg.aglib.kernel.paging
     assert pi is not None
     # kbase, slab, buddy, vmemmap
-    kbase = pwndbg.aglib.kernel.kbase()
+    kbase = pi.kbase
     test_command_paging_helper("initialized", kbase)
     vmemmap = pi.vmemmap
     if pwndbg.aglib.arch.name == "aarch64":

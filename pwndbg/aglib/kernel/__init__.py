@@ -12,7 +12,7 @@ from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib
-import .arch.paging as _paging
+import pwndbg.aglib.kernel.arch.paging as _paging
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.search
@@ -26,11 +26,9 @@ import pwndbg.lib.memory
 from pwndbg.lib import Status
 from pwndbg.lib import TypeNotFoundError
 from pwndbg.lib import TypeNotRecoveredError
-from pwndbg.lib.regs import BitFlags
 
 if TYPE_CHECKING:
     import pwndbg.aglib.kernel.kconfig_mod
-    import pwndbg.aglib.kernel.paging
     import pwndbg.aglib.kernel.slab
     import pwndbg.aglib.kernel.symbol
     import pwndbg.aglib.kernel.vmmap
@@ -132,7 +130,7 @@ def typeinfo_recovery(
                 recover_common_types_func()
             if requires_kversion and kversion() is None:
                 raise TypeNotRecoveredError(name, "kernel version is unavailable")
-            if requires_kbase and kbase() is None:
+            if requires_kbase and paging.kbase is None:
                 raise TypeNotRecoveredError(name, "kernel base not found")
 
             try:
@@ -164,7 +162,7 @@ def nproc() -> int:
 @pwndbg.lib.cache.cache_until("stop")
 def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
     """Returns the first kernel mapping which contains the linux_banner"""
-    base = kbase()
+    base = paging.kbase
     if base is None:
         return None
 
@@ -354,190 +352,6 @@ def arch_symbols() -> pwndbg.aglib.kernel.symbol.ArchSymbols | None:
     if pwndbg.aglib.arch.name == "x86-64":
         return pwndbg.aglib.kernel.symbol.x86_64Symbols()
     return None
-
-
-
-
-def virt_to_phys(virt: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.virt_to_phys(virt)
-    raise NotImplementedError()
-
-
-def phys_to_virt(phys: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.phys_to_virt(phys)
-    raise NotImplementedError()
-
-
-def phys_to_pfn(phys: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.phys_to_pfn(phys)
-    raise NotImplementedError()
-
-
-def pfn_to_phys(pfn: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.pfn_to_phys(pfn)
-    raise NotImplementedError()
-
-
-def pfn_to_page(pfn: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.pfn_to_page(pfn)
-    raise NotImplementedError()
-
-
-def page_to_pfn(page: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.page_to_pfn(page)
-    raise NotImplementedError()
-
-
-def phys_to_page(phys: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.phys_to_page(phys)
-    raise NotImplementedError()
-
-
-def page_to_phys(page: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.page_to_phys(page)
-    raise NotImplementedError()
-
-
-def virt_to_page(virt: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.virt_to_page(virt)
-    raise NotImplementedError()
-
-
-def page_to_virt(page: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.page_to_virt(page)
-    raise NotImplementedError()
-
-
-def pfn_to_virt(pfn: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.pfn_to_virt(pfn)
-    raise NotImplementedError()
-
-
-def virt_to_pfn(virt: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.virt_to_pfn(virt)
-    raise NotImplementedError()
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def kbase() -> int | None:
-    ops = arch_ops()
-    if ops:
-        return ops.kbase
-    raise NotImplementedError()
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def page_shift() -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.page_shift
-    raise NotImplementedError()
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def pagewalk(
-    addr, entry: int | None = None, virt: bool = True
-) -> pwndbg.aglib.kernel.paging.PagewalkResult:
-    """
-    assumes entry is a valid physaddr (+ flags)
-    the strategy is to walk any virtual pgd first
-    """
-    pi = arch_paginginfo()
-    if pi:
-        return pi.pagewalk(addr, entry, virt)
-    raise NotImplementedError()
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def pagescan(entry=None) -> tuple[pwndbg.lib.memory.Page, ...]:
-    pi = arch_paginginfo()
-    if pi:
-        return tuple(pi.pagescan(entry))
-    raise NotImplementedError()
-
-
-def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
-    pi = arch_paginginfo()
-    if pi:
-        return pi.bitflags(level)
-    raise NotImplementedError()
-
-
-def PAGE_ENTRY_MASK() -> int:
-    pi = arch_paginginfo()
-    if pi:
-        return pi.PAGE_ENTRY_MASK
-    raise NotImplementedError()
-
-
-def STRUCT_PAGE_SIZE() -> int:
-    pi = arch_paginginfo()
-    if pi:
-        return pi.STRUCT_PAGE_SIZE
-    raise NotImplementedError()
-
-
-def slab_to_virt(slab: int) -> int:
-    pi = arch_paginginfo()
-    if pi:
-        return pi.slab_to_virt(slab)
-    raise NotImplementedError()
-
-
-def virt_to_slab(slab: int) -> int:
-    pi = arch_paginginfo()
-    if pi:
-        return pi.virt_to_slab(slab)
-    raise NotImplementedError()
-
-
-def slab_virtual() -> int:
-    pi = arch_paginginfo()
-    if pi:
-        return pi.slab_virtual
-    raise NotImplementedError()
-
-
-def paging_enabled() -> bool:
-    arch_name = pwndbg.aglib.arch.name
-    if arch_name == "i386":
-        return i386Ops.paging_enabled()
-    if arch_name == "x86-64":
-        return x86_64Ops.paging_enabled()
-    if arch_name == "aarch64":
-        return Aarch64Ops.paging_enabled()
-    if arch_name == "rv64":
-        # https://starfivetech.com/uploads/u74_core_complex_manual_21G1.pdf
-        # page 41, satp.MODE, bits: 60,61,62,63
-        # "When satp.MODE=0x0, supervisor virtual addresses are equal to supervisor physical addresses"
-        return (
-            int(pwndbg.aglib.regs.read_reg("satp")) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
-        )
-    raise NotImplementedError()
 
 
 @requires_debug_symbols("node_states", default=1)
