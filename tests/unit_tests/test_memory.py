@@ -53,5 +53,5 @@ def test_many_rounding():
         ("/tmp/a.out (deleted)", False),
     ],
 )
-def test_is_memory_mapped_file(objfile, expected):
+def test_is_memory_mapped_file(objfile: str, expected: bool) -> None:
     assert Page(0x1000, 0x1000, 4, 0, 8, objfile).is_memory_mapped_file == expected
