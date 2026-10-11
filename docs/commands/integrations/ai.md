@@ -9,7 +9,7 @@ usage: ai [-h] [-M MODEL] [-t TEMPERATURE] [-m MAX_TOKENS] [-v] [-L]
 
 ```
 
-Ask GPT-3 a question about the current debugging context.
+Ask an LLM a question about the current debugging context.
 ### Positional arguments
 
 |Positional Argument|Help|
