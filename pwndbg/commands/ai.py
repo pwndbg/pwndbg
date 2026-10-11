@@ -1,7 +1,7 @@
 """
-This command sends information on the current debugging context to OpenAI's
-GPT-3 large language model and asks it a question supplied by the user. It then
-displays GPT-3's response to that question to the user.
+This command sends information on the current debugging context to a large
+language model (OpenAI, Anthropic, or Ollama) and asks it a question supplied
+by the user. It then displays the model's response to that question to the user.
 """
 
 from __future__ import annotations
@@ -276,7 +276,7 @@ def build_command_prompt_body(command):
     return pwndbg.lib.strings.strip_colors(prompt)
 
 
-def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature=0.0):
+def query_openai_chat(prompt, model="gpt-4o-mini", max_tokens=100, temperature=0.0):
     if verbosity > 0:
         print(
             message.notice(
@@ -314,66 +314,24 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
     return reply
 
 
-def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
-    if verbosity > 0:
-        print(
-            message.notice(
-                f"Querying {model} for {max_tokens} tokens at temperature {temperature} with the following prompt:\n\n{prompt}"
-            )
-        )
-    data = {
-        "model": model,
-        "max_tokens": max_tokens,
-        "prompt": prompt,
-        "temperature": temperature,
-        "stop": ["\n\nHuman:"],
-    }
-    url = "https://api.openai.com/v1/completions"
-    r = _requests().post(
-        url,
-        data=json.dumps(data),
-        headers={"Content-Type": "application/json"},
-        auth=("Bearer", pwndbg.config.ai_openai_api_key),
-    )
-    res = r.json()
-    if verbosity > 0:
-        print(message.warn(pprint.pformat(res)))
-    if "choices" not in res:
-        if "error" in res:
-            error_message = f"{res['error']['message']}: {res['error']['type']}"
-            raise Exception(error_message)
-        raise Exception(res)
-    reply = res["choices"][0]["text"]
-    if pwndbg.config.ai_show_usage:
-        print(
-            message.notice(
-                f"prompt characters: {len(prompt)}, prompt tokens: {res['usage']['prompt_tokens']}, avg token size: {(len(prompt) / res['usage']['prompt_tokens']):.2f}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
-            )
-        )
-    return reply
-
-
-def query(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
+def query(prompt, model="gpt-4o-mini", max_tokens=100, temperature=0.0):
     if dummy:
         return f"""This is a dummy response for unit testing purposes.\nmodel = {model}, max_tokens = {max_tokens}, temperature = {temperature}\n\nPrompt:\n\n{prompt}"""
     if pwndbg.config.ai_ollama_endpoint:
         if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)
         return query_ollama(prompt, model, max_tokens, temperature)
-    if "turbo" in model or model.startswith("gpt-4"):
-        if isinstance(prompt, str):
-            prompt = [{"role": "user", "content": prompt}]
-        return query_openai_chat(prompt, model, max_tokens, temperature)
     if model.startswith("claude"):
         if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)
         return query_anthropic(prompt, model, max_tokens, temperature)
-    if isinstance(prompt, list):
-        prompt = flatten_prompt(prompt)
-    return query_openai_completions(prompt, model, max_tokens, temperature)
+    # Default to OpenAI chat completions API for all other models
+    if isinstance(prompt, str):
+        prompt = [{"role": "user", "content": prompt}]
+    return query_openai_chat(prompt, model, max_tokens, temperature)
 
 
-def query_anthropic(prompt, model="claude-v1", max_tokens=100, temperature=0.0):
+def query_anthropic(prompt, model="claude-3-5-sonnet-20241022", max_tokens=100, temperature=0.0):
     data = {
         "messages": [{"role": "user", "content": prompt}],
         "model": model,
@@ -428,10 +386,10 @@ def get_openai_models():
 
 
 parser = argparse.ArgumentParser(
-    description="Ask GPT-3 a question about the current debugging context."
+    description="Ask an LLM a question about the current debugging context."
 )
 parser.add_argument("question", nargs="*", type=str, help="The question to ask.")
-parser.add_argument("-M", "--model", default=None, type=str, help="The OpenAI model to use.")
+parser.add_argument("-M", "--model", default=None, type=str, help="The model to use.")
 parser.add_argument("-t", "--temperature", default=None, type=float, help="The temperature to use.")
 parser.add_argument(
     "-m",
@@ -499,7 +457,7 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
     try:
         res = query(prompt, model=model, max_tokens=max_tokens, temperature=temperature).strip()
     except Exception as e:
-        print(message.error(f"Error querying OpenAI: {e}"))
+        print(message.error(f"Error querying AI model: {e}"))
         return
     last_question.append(question)
     last_answer.append(res)
