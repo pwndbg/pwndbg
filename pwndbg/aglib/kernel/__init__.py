@@ -14,6 +14,7 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
+import pwndbg.aglib.qemu
 import pwndbg.aglib.search
 import pwndbg.aglib.symbol
 import pwndbg.dbg_mod
@@ -237,6 +238,8 @@ symbol: pwndbg.aglib.kernel.arch.ArchSymbols
 
 @pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.START)
 def set_paging_and_symbol_on_start():
+    if not pwndbg.aglib.qemu.is_qemu_kernel():
+        return
     global paging, symbol
     paging = pwndbg.aglib.kernel.arch.select_paging()
     symbol = pwndbg.aglib.kernel.arch.select_symbol()
