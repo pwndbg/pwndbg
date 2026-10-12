@@ -1,4 +1,4 @@
-# Configuration GDB with .gdbinit
+# Configuring GDB with .gdbinit
 
 GDB automatically reads a configuration file on startup, which is [normally found at `~/.gdbinit`](https://sourceware.org/gdb/current/onlinedocs/gdb.html/Initialization-Files.html). This file is simply a list of GDB commands, the same as the ones you would type during a GDB session.
 
