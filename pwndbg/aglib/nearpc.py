@@ -487,11 +487,15 @@ def nearpc(
     end_address: int | None = None,
     max_backwards_linear_count: int | None = None,
     instruction_flow_cache: pwndbg.aglib.disasm.disassembly.InstructionFlowCache | None = None,
+    all_opcode_bytes: bool = False,
 ) -> list[str]:
     """
     Disassemble near a specified address.
 
     The `linear` argument specifies if we should disassemble linearly in memory, or take jumps into account
+
+    The `all_opcode_bytes` argument shows every opcode byte of each instruction instead of the
+    number set by `nearpc-num-opcode-bytes`
     """
     assert address_to_highlight is None or linear, (
         "Only pc can be highlighted if linear=False"  # because we need pc_index to display emulated loops correctly
@@ -609,6 +613,11 @@ def nearpc(
     current_insn_breakpoint_prefix = current_breakpoint_sign.ljust(len(prefix_sign) + 1)
     current_insn_breakpoint_prefix = c.breakpoint(c.prefix(current_insn_breakpoint_prefix))
 
+    num_opcode_bytes = int(show_opcode_bytes)
+    if all_opcode_bytes:
+        # Make room for the longest instruction shown, so that no instruction is truncated
+        num_opcode_bytes = max((len(instruction.bytes) for instruction in instructions), default=0)
+
     # Print out each instruction
     for i, (address_str, symbol, instruction, asm) in enumerate(
         zip(addresses, symbols, instructions, assembly_strings)
@@ -655,16 +664,16 @@ def nearpc(
             symbol = ctx_color.highlight(symbol)
 
         opcodes = ""
-        if show_opcode_bytes > 0:
+        if num_opcode_bytes > 0:
             opcodes = (opcode_separator_bytes * " ").join(
-                f"{c:02x}" for c in instruction.bytes[: int(show_opcode_bytes)]
+                f"{c:02x}" for c in instruction.bytes[:num_opcode_bytes]
             )
             # Must add +3 at minimum, due to truncated instructions adding "..."
-            align = show_opcode_bytes * 2 + 3
+            align = num_opcode_bytes * 2 + 3
             if opcode_separator_bytes > 0:
                 # add the length of the maximum number of separators to the alignment
-                align += (show_opcode_bytes - 1) * opcode_separator_bytes  # type: ignore[operator]
-            if len(instruction.bytes) > show_opcode_bytes:
+                align += (num_opcode_bytes - 1) * opcode_separator_bytes  # type: ignore[operator]
+            if len(instruction.bytes) > num_opcode_bytes:
                 opcodes += pwndbg.color.gray("...")
                 # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))

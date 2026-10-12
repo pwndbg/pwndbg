@@ -57,6 +57,12 @@ parser.add_argument(
     help="Disable showing branch visualizations.",
 )
 
+parser.add_argument(
+    "--opcode",
+    action="store_true",
+    help="Show all opcode bytes of each instruction, regardless of the nearpc-num-opcode-bytes setting.",
+)
+
 
 # sentinel value used when `--function` option is given without an argument
 class CurrentFunction:
@@ -90,6 +96,7 @@ def nearpc(
     no_branch: bool = False,
     function: int | None = None,
     max_backwards_linear_count: int | None = None,
+    opcode: bool = False,
 ) -> None:
     """
     Disassemble near a specified address.
@@ -172,6 +179,7 @@ def nearpc(
                 address_to_highlight=address_to_highlight,
                 end_address=end_address,
                 max_backwards_linear_count=max_backwards_linear_count,
+                all_opcode_bytes=opcode,
             )
         )
     )
