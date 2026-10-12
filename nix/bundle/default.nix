@@ -10,13 +10,13 @@ paths:
 #  3) a path to an executable.
 let
   deps =
-    if pkgs.stdenv.isDarwin then
+    if pkgs.stdenv.hostPlatform.isDarwin then
       [
         pkgs.darwin.cctools
         pkgs.darwin.binutils
         pkgs.darwin.sigtool
       ]
-    else if pkgs.stdenv.isLinux then
+    else if pkgs.stdenv.hostPlatform.isLinux then
       [
         pkgs.patchelf
       ]
