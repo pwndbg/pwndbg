@@ -494,7 +494,7 @@ def nearpc(
 
     The `linear` argument specifies if we should disassemble linearly in memory, or take jumps into account
 
-    The `all_opcode_bytes` argument shows every opcode byte of each instruction instead of the
+    The `all_opcode_bytes` argument shows opcode bytes of each instruction instead of the
     number set by `nearpc-num-opcode-bytes`
     """
     assert address_to_highlight is None or linear, (

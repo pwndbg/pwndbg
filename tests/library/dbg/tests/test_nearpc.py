@@ -10,7 +10,6 @@ from . import pwndbg_test
 
 SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
 BRANCH_VISUALIZATION_BINARY = get_binary("branch_visualization.x86-64.out")
-MEMORY_INDIRECT_JMP_BINARY = get_binary("memory_indirect_jmp_unmapped_memory_address.x86-64.out")
 
 OPCODE_BYTES_TESTS_EXPECTED_OUTPUT = {
     1: [
@@ -181,40 +180,71 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
 
 @pwndbg_test
 async def test_nearpc_opcode_flag(ctrl: Controller) -> None:
+    import pwndbg.aglib.memory
+
     await ctrl.launch(SYSCALLS_BINARY)
     await ctrl.execute("nextsyscall")
 
-    without_opcodes = await ctrl.execute_and_capture("nearpc")
-    with_flag = await ctrl.execute_and_capture("nearpc --opcode")
+    # The longest instruction shown is 5 bytes long
+    expected = (
+        "   0x400080 b8 00 00 00 00    <_start>       mov    eax, 0                 EAX => 0\n"
+        "   0x400085 bf 37 13 00 00    <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        "   0x40008a be ef be ad de    <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f b9 10 00 00 00    <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        " ► 0x400094 0f 05             <_start+20>    syscall <SYS_read>\n"
+        "   0x400096 b8 0a 00 00 00    <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b cd 80             <_start+27>    int    0x80 <SYS_unlink>\n"
+        "   0x40009d 00 00                            add    byte ptr [rax], al\n"
+        "   0x40009f 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a1 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a3 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a5 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a7 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a9 00 00                            add    byte ptr [rax], al\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc --opcode") == expected
+    assert await ctrl.execute_and_capture("nearpc -o") == expected
 
-    # The flag only applies to the invocation that uses it
-    assert await ctrl.execute_and_capture("nearpc") == without_opcodes
+    # The flag does not change the nearpc-num-opcode-bytes setting
+    expected = (
+        "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        " ► 0x400094 <_start+20>    syscall <SYS_read>\n"
+        "   0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+        "   0x4000a5                add    byte ptr [rax], al\n"
+        "   0x4000a7                add    byte ptr [rax], al\n"
+        "   0x4000a9                add    byte ptr [rax], al\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc") == expected
 
-    # The longest instruction shown is 5 bytes long, so --opcode must match the setting at 5:
-    # every byte of every instruction, and the shorter ones padded to the same width
-    await ctrl.execute("set nearpc-num-opcode-bytes 5")
-    assert with_flag == await ctrl.execute_and_capture("nearpc")
-    assert " be ef be ad de " in with_flag
-    assert " 0f 05 " in with_flag
-    assert "..." not in with_flag
-
-    # A smaller setting does not cut what the flag shows, and the flag does not change it
+    # mov rax, 0xffffffffdeadbeef is 7 bytes long, so the column gets wider, and a smaller
+    # setting does not cut it
+    pwndbg.aglib.memory.write(0x40009D, bytes.fromhex("48c7c0efbeadde"))
     await ctrl.execute("set nearpc-num-opcode-bytes 2")
-    with_two_bytes = await ctrl.execute_and_capture("nearpc")
-    assert await ctrl.execute_and_capture("nearpc --opcode") == with_flag
-    assert await ctrl.execute_and_capture("nearpc") == with_two_bytes
-
-
-@pwndbg_test
-async def test_nearpc_opcode_flag_follows_longest_instruction(ctrl: Controller) -> None:
-    await ctrl.launch(MEMORY_INDIRECT_JMP_BINARY)
-
-    # mov rax, 0xffffffffdeadbeef takes 7 bytes, so the column is wider than in the test above
-    dis = await ctrl.execute_and_capture("nearpc --opcode")
-    assert " 48 c7 c0 ef be ad de " in dis
-    assert "..." not in dis
-    await ctrl.execute("set nearpc-num-opcode-bytes 7")
-    assert dis == await ctrl.execute_and_capture("nearpc")
+    expected = (
+        "   0x400080 b8 00 00 00 00          <_start>       mov    eax, 0                      EAX => 0\n"
+        "   0x400085 bf 37 13 00 00          <_start+5>     mov    edi, 0x1337                 EDI => 0x1337\n"
+        "   0x40008a be ef be ad de          <_start+10>    mov    esi, 0xdeadbeef             ESI => 0xdeadbeef\n"
+        "   0x40008f b9 10 00 00 00          <_start+15>    mov    ecx, 0x10                   ECX => 0x10\n"
+        " ► 0x400094 0f 05                   <_start+20>    syscall <SYS_read>\n"
+        "   0x400096 b8 0a 00 00 00          <_start+22>    mov    eax, 0xa                    EAX => 0xa\n"
+        "   0x40009b cd 80                   <_start+27>    int    0x80 <SYS_unlink>\n"
+        "   0x40009d 48 c7 c0 ef be ad de                   mov    rax, 0xffffffffdeadbeef     RAX => 0xffffffffdeadbeef\n"
+        "   0x4000a4 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000a6 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000a8 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000aa 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000ac 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000ae 00 00                                  add    byte ptr [rax], al\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc -o") == expected
 
 
 @pwndbg_test

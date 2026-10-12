@@ -58,9 +58,10 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "-o",
     "--opcode",
     action="store_true",
-    help="Show all opcode bytes of each instruction, regardless of the nearpc-num-opcode-bytes setting.",
+    help="Show opcode bytes of each instruction, regardless of the nearpc-num-opcode-bytes setting.",
 )
 
 
