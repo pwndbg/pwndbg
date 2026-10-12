@@ -131,6 +131,30 @@ class RegisterManager:
             return None
         return self.read_reg_in_frame(reg, frame, *aliases)
 
+    @pwndbg.lib.cache.cache_until("stop")
+    def read_reg_abstract_value_in_frame(
+        self, reg: str, frame: pwndbg.dbg_mod.Frame
+    ) -> pwndbg.dbg_mod.Value | None:
+        """
+        Read a register and return a Value (instead of converting it into an integer)
+        """
+        try:
+            return self.get_register(reg.lstrip("$"), frame)
+        except (ValueError, pwndbg.dbg_mod.DebuggerError):
+            return None
+
+    def read_reg_abstract_value(self, reg: str) -> pwndbg.dbg_mod.Value | None:
+        """
+        Read a register and return a Value (instead of converting it into an integer)
+
+        Use this for registers that are not represented as an integer in the debugger API
+        For example, vector registers (xmm0 in x86) are a passed as a struct
+        """
+        frame = pwndbg.dbg.selected_frame()
+        if frame is None:
+            return None
+        return self.read_reg_abstract_value_in_frame(reg, frame)
+
     def write_reg(self, reg: str, value: int) -> None:
         if not pwndbg.dbg.selected_frame().reg_write(reg, value):
             raise RuntimeError(f"Attempted to write to a non-existent register '{reg}'")

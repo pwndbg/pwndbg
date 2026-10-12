@@ -7,7 +7,7 @@ import pwndbg.aglib
 from ..symbol import ArchSymbols
 
 
-class Aarch64Symbols(ArchSymbols):
+class aarch64Symbols(ArchSymbols):
     # adrp x?, <kernel address>
     # add x?, x?, #0x...
     def qword_adrp_add_const(self, disass: str, nth: int = 0) -> int | None:

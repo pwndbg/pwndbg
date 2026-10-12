@@ -5,7 +5,7 @@ import pwndbg.aglib
 import pwndbg.aglib.kernel.arch
 
 from .aarch64.paging import aarch64Paging
-from .aarch64.symbol import Aarch64Symbols
+from .aarch64.symbol import aarch64Symbols
 from .i386.paging import i386Paging
 from .paging import Paging
 from .rv64.paging import rv64Paging
@@ -31,7 +31,7 @@ def select_paging() -> Paging:
 def select_symbol() -> ArchSymbols:
     match pwndbg.aglib.arch.name:
         case "aarch64":
-            return Aarch64Symbols()
+            return aarch64Symbols()
         case "x86-64":
             return x86_64Symbols()
         case _:

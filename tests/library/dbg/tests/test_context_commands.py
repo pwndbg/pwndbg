@@ -780,3 +780,38 @@ async def test_cli_fixup_resolves_sp_pc_aliases(ctrl: Controller) -> None:
     assert pc_name in regs_pc_output
     assert real_pc_value is not None
     assert hex(real_pc_value) in regs_pc_output
+
+
+@pwndbg_test
+async def test_regs_flags_register_pretty_printed(ctrl: Controller) -> None:
+    """
+    Make sure that you can do `regs flags_register`, and it pretty-prints it
+    """
+    import pwndbg.aglib
+
+    await ctrl.launch(SYSCALLS_BINARY)
+
+    pwndbg.aglib.regs.write_reg("eflags", 0x246)
+    out = await ctrl.execute_and_capture("regs eflags")
+
+    # Remove either * (changed) or space from front, since we don't know if it has been mutated or not
+    assert out.lstrip("* ") == "EFLAGS 0x246 [ cf PF af ZF sf IF df of iopl:00 ac ]\n"
+
+
+@pwndbg_test
+async def test_regs_vector_register(ctrl: Controller) -> None:
+    """
+    Test for `regs xmm0`
+    """
+    await ctrl.launch(SYSCALLS_BINARY)
+
+    xmm = await ctrl.execute_and_capture("regs xmm0")
+    ymm = await ctrl.execute_and_capture("regs YMM0")
+
+    xmm_match = re.fullmatch(r"XMM0 0x([0-9a-f]{32})\n", xmm.lstrip("* "))
+    ymm_match = re.fullmatch(r"YMM0 0x([0-9a-f]{64})\n", ymm.lstrip("* "))
+    assert xmm_match is not None
+    assert ymm_match is not None
+
+    # xmm0 is the lower half of ymm0
+    assert ymm_match.group(1).endswith(xmm_match.group(1))
