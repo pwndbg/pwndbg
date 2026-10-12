@@ -1887,6 +1887,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         self._load_gdbinit()
 
+        # show_hint must be called after loading ~/.gdbinit, this order allows disabling show_hint
         prompt.show_hint()
 
         # Check if the user has ubuntu in their debuginfod urls, and warn them about
