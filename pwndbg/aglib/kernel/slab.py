@@ -4,6 +4,7 @@ from collections.abc import Generator
 
 import pwndbg
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.kconfig_mod
 import pwndbg.aglib.kernel.typing
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
@@ -182,7 +183,7 @@ class SlabCache:
     def random(self) -> int:
         return (
             int(self._slab_cache["random"])
-            if "SLAB_FREELIST_HARDENED" in kernel.kconfig_mod.kconfig()
+            if "SLAB_FREELIST_HARDENED" in pwndbg.aglib.kernel.kconfig_mod.kconfig()
             else 0
         )
 
@@ -309,7 +310,7 @@ class SlabCache:
     def oo_objects(self) -> int:
         return oo_objects(self.__oo_x)
 
-    def find_containing_slab(self, address) -> Slab | None:
+    def find_containing_slab(self, address: int) -> Slab | None:
         for cpu_cache in self.cpu_caches:
             slab = cpu_cache.active_slab
             if slab is not None and address in slab:
@@ -545,7 +546,7 @@ class Slab:
                 result.add(obj)
         return result
 
-    def __contains__(self, addr: int):
+    def __contains__(self, addr: int) -> bool:
         return self.virt_address <= addr < self.virt_address + self.slab_cache.slab_size
 
 
@@ -597,7 +598,7 @@ def kmem_cache_node_pad_sz(val: int) -> int | None:
     return None
 
 
-def get_kmem_cache():
+def get_kmem_cache() -> int:
     slab_caches = get_slab_caches()
     assert slab_caches, "can't find slab_caches"
     return int(slab_caches["prev"]) & ~0xFF

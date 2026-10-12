@@ -12,6 +12,8 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
+import pwndbg.aglib.kernel.slab
+import pwndbg.aglib.kernel.kconfig_mod
 import pwndbg.dbg_mod
 import pwndbg.lib
 import pwndbg.lib.cache

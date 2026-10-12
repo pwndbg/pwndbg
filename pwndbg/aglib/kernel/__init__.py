@@ -20,18 +20,21 @@ import pwndbg.aglib.symbol
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
+from pwndbg.lib.err import SymbolNotRecoveredError
 
 if TYPE_CHECKING:
     import pwndbg.aglib.kernel.arch
     import pwndbg.aglib.kernel.kconfig_mod
     import pwndbg.aglib.kernel.vmmap
+    from pwndbg.aglib.kernel.arch import ArchSymbols
+    from pwndbg.aglib.kernel.arch import Paging
 
 P = ParamSpec("P")
 D = TypeVar("D")
 T = TypeVar("T")
 
 
-def BIT(shift: int):
+def BIT(shift: int) -> int:
     assert 0 <= shift < 64
     return 1 << shift
 
@@ -54,7 +57,7 @@ def has_debug_info() -> bool:
 
 
 def requires_debug_symbols(
-    *required: str, checkall=False, default: D = None
+    *required: str, checkall: bool = False, default: D = None
 ) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
     def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
         @functools.wraps(f)
@@ -232,12 +235,12 @@ def num_numa_nodes() -> int:
     return val
 
 
-paging: pwndbg.aglib.kernel.arch.Paging
-symbol: pwndbg.aglib.kernel.arch.ArchSymbols
+paging: Paging
+symbol: ArchSymbols
 
 
 @pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.START)
-def set_paging_and_symbol_on_start():
+def set_paging_and_symbol_on_start() -> None:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return
     global paging, symbol
@@ -252,7 +255,7 @@ def current_task(cpu: int | None = None) -> int | None:
         return None
     if pwndbg.aglib.arch.name == "aarch64":
         # TODO: how to get the kcurrent for different cpus
-        return result
+        return int(result)
     ptr = int(per_cpu(result, cpu=cpu))
     return pwndbg.aglib.memory.read_pointer_width(ptr)
 
@@ -314,6 +317,7 @@ def try_usymbol(name: str, size: int | None = None) -> int | None:
 @requires_debug_symbols("zone_names", default=4)
 def nzones() -> int:
     _zone_names = pwndbg.aglib.symbol.lookup_symbol_addr("zone_names")
+    assert _zone_names
     for i in range(len(POSSIBLE_ZONE_NAMES) + 1):
         char_ptr = pwndbg.aglib.memory.u64(_zone_names + i * 8)
         if pwndbg.aglib.memory.string(char_ptr).decode() not in POSSIBLE_ZONE_NAMES:
@@ -325,10 +329,10 @@ def nmtypes() -> int:
     return len(migratetype_names())
 
 
-def node_data_pointer() -> pwndbg.dbg_mod.Value | None:
+def node_data_pointer() -> pwndbg.dbg_mod.Value:
     addr = symbol.node_data
     if addr is None:
-        return None
+        raise SymbolNotRecoveredError("node_data", "Could not recover node_data")
     node_data = pwndbg.aglib.memory.get_typed_pointer("struct pglist_data", addr)
     if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         return node_data.cast(node_data.type.pointer())

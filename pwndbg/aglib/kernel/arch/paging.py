@@ -9,6 +9,7 @@ import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
+import pwndbg.aglib.qemu
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 from pwndbg.lib.memory import Page

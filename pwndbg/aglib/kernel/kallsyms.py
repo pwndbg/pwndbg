@@ -37,7 +37,7 @@ class Kallsyms:
     - kallsyms_relative_base >= 6.4
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.kallsyms: list[tuple[str, str, int]] = []
         self.kbase = pwndbg.aglib.kernel.paging.kbase
         if self.kbase is None:
@@ -427,7 +427,7 @@ class Kallsyms:
 
         return tokens
 
-    def find_names_uncompressed(self):
+    def find_names_uncompressed(self) -> bool:
         # Find the length byte-separated symbol names
         ksymtab_match = search(
             rb"(?:[\x05-\x23][TWtbBrRAdD][a-z0-9_.]{4,34}){14}", self.kernel_ro_mem
@@ -435,7 +435,7 @@ class Kallsyms:
 
         if not ksymtab_match:
             print(message.error("Failed to find kallsyms"))
-            return None
+            return False
 
         kallsyms_names__offset = ksymtab_match.start(0)
 
@@ -462,7 +462,7 @@ class Kallsyms:
 
         if num_syms < 100:
             print(message.error("Failed to find kallsyms"))
-            return None
+            return False
 
         self.end_of_kallsyms_names_uncompressed = position
         return True

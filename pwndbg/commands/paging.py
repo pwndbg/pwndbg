@@ -16,8 +16,8 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Performs pagewalk.")
-parser.add_argument("vaddr", type=str, help="virtual address to walk")
-parser.add_argument("--pgd", dest="entry", type=str, default=None, help="")
+parser.add_argument("vaddr", type=int, help="virtual address to walk")
+parser.add_argument("--pgd", dest="entry", type=int, default=None, help="")
 
 PAGETYPES = (
     "buddy",
@@ -31,7 +31,7 @@ PAGETYPES = (
 )
 
 
-def page_type(page) -> str:
+def page_type(page: int) -> str:
     names = PAGETYPES
     page_type_val = pwndbg.aglib.memory.s32(page + 0x30)
     if page_type_val == -1:
@@ -66,16 +66,13 @@ def page_type(page) -> str:
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
-def pagewalk(vaddr, entry=None) -> None:
-    if entry is not None:
-        entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
-    elif (kcurrent := pwndbg.aglib.kernel.ktask.get_kcurrent()) is not None:
+def pagewalk(vaddr: int, entry: int | None) -> None:
+    if entry is None and (kcurrent := pwndbg.aglib.kernel.ktask.get_kcurrent()) is not None:
         # did the user set pgd with kcurrent?
         # safe because pagewalk fallbacks to control regs when entry==None
         entry = kcurrent.pgd
     if pwndbg.aglib.memory.is_kernel(entry):
         entry = pwndbg.aglib.kernel.paging.pagewalk(entry, virt=False).phys
-    vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     result = pwndbg.aglib.kernel.paging.pagewalk(vaddr, entry)
     for level in result.levels[::-1]:
         name, entry, vaddr, idx = level.name, level.entry, level.virt, level.idx
@@ -93,10 +90,10 @@ def pagewalk(vaddr, entry=None) -> None:
         if entry is not None:
             flags = f"[{idx:0{idxlen}}] {arrow_right} {name + 'e'}: {ctx_color.format_flags(entry, pageflags, entry)}"
         print(f"{color.blue(name)} @ {color.yellow(hex(vaddr))}{flags}")
-    vaddr = result.virt
-    if vaddr is None:
+    if result.virt is None:
         print(message.warn("address is not mapped"))
         return
+    vaddr = result.virt
     phys = result.phys
     if phys:
         phys = color.yellow(hex(phys))
@@ -119,7 +116,7 @@ def print_pageinfo(va: int, pa: int, page: int) -> None:
 p2v_parser = argparse.ArgumentParser(
     description="Translate physical address to its corresponding virtual address."
 )
-p2v_parser.add_argument("paddr", type=str, help="")
+p2v_parser.add_argument("paddr", type=int, help="")
 
 
 @pwndbg.commands.Command(p2v_parser, category=CommandCategory.KERNEL)
@@ -127,8 +124,7 @@ p2v_parser.add_argument("paddr", type=str, help="")
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
-def p2v(paddr) -> None:
-    paddr = int(pwndbg.dbg.selected_frame().evaluate_expression(paddr))
+def p2v(paddr: int) -> None:
     try:
         vaddr = pwndbg.aglib.kernel.paging.phys_to_virt(paddr)
         page = pwndbg.aglib.kernel.paging.phys_to_page(paddr)
@@ -140,7 +136,7 @@ def p2v(paddr) -> None:
 v2p_parser = argparse.ArgumentParser(
     description="Translate virtual address to its corresponding physmap address."
 )
-v2p_parser.add_argument("vaddr", type=str, help="")
+v2p_parser.add_argument("vaddr", type=int, help="")
 
 
 @pwndbg.commands.Command(v2p_parser, category=CommandCategory.KERNEL)
@@ -148,8 +144,7 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
-def v2p(vaddr) -> None:
-    vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
+def v2p(vaddr: int) -> None:
     result = pwndbg.aglib.kernel.paging.pagewalk(vaddr)  # more accurate
     entry, paddr = result.entry, result.phys
     if not entry or paddr is None:
@@ -163,7 +158,7 @@ def v2p(vaddr) -> None:
 page_parser = argparse.ArgumentParser(
     description="Convert a pointer to a `struct page` to its corresponding virtual address."
 )
-page_parser.add_argument("page", type=str, help="")
+page_parser.add_argument("page", type=int, help="")
 
 
 @pwndbg.commands.Command(page_parser, category=CommandCategory.KERNEL)
@@ -171,8 +166,7 @@ page_parser.add_argument("page", type=str, help="")
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
-def pageinfo(page) -> None:
-    page = int(pwndbg.dbg.selected_frame().evaluate_expression(page))
+def pageinfo(page: int) -> None:
     try:
         vaddr = pwndbg.aglib.kernel.paging.page_to_virt(page)
         paddr = pwndbg.aglib.kernel.paging.page_to_phys(page)

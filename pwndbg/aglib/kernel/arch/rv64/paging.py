@@ -9,7 +9,7 @@ from ..paging import Paging
 
 class rv64Paging(Paging):
     @property
-    def enabled(self):
+    def enabled(self) -> bool:
         return (
             int(pwndbg.aglib.regs.read_reg("satp")) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
         )

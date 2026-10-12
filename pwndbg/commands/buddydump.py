@@ -52,7 +52,7 @@ class CurrentBuddyParams:
     found: bool
 
 
-def cpu_limitcheck(cpu: str | None):
+def cpu_limitcheck(cpu: str | None) -> int | None:
     if cpu is None:
         return None
     nr_cpus = pwndbg.aglib.kernel.nproc()
@@ -123,7 +123,9 @@ def static_str_arr(name: str) -> list[str]:
     return [arr[i].string() for i in range(arr.type.array_len)]
 
 
-def check_find(counter: int, physmap_addr: int, pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
+def check_find(
+    counter: int, physmap_addr: int, pba: ParsedBuddyArgs, cbp: CurrentBuddyParams
+) -> bool:
     if pba.find is None:
         if counter < MAX_PG_FREE_LIST_STR_RESULT_CNT:
             return True
@@ -175,7 +177,7 @@ def traverse_pglist(
     return results, counter, msgs
 
 
-def print_section(section: tuple[str | None, str | None], indent: IndentContextManager):
+def print_section(section: tuple[str | None, str | None], indent: IndentContextManager) -> None:
     prefix, desc = section
     if prefix is not None:
         title = indent.prefix(prefix)
@@ -184,7 +186,7 @@ def print_section(section: tuple[str | None, str | None], indent: IndentContextM
         indent.print(title)
 
 
-def print_pglist(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
+def print_pglist(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams) -> None:
     sections, indent = cbp.sections, cbp.indent
     if len(sections) != 3:
         log.warning(f"The number ({len(sections)}) of sections is not 2!")
@@ -212,7 +214,7 @@ def print_pglist(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
                     indent.print()
 
 
-def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
+def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams) -> None:
     freelists, nr_types = cbp.freelists, cbp.nr_types
     mtypes = pwndbg.aglib.kernel.migratetype_names()
     if nr_types is None:
@@ -226,7 +228,7 @@ def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
             print_pglist(pba, cbp)
 
 
-def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
+def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams) -> None:
     assert cbp.zone
     pcp = None
     pcp_lists = None
@@ -265,7 +267,7 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
         print_mtypes(pba, cbp)
 
 
-def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
+def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams) -> None:
     assert cbp.zone
     free_area = cbp.zone["free_area"]
     cbp.sections[1] = ("free_area", None)
@@ -283,7 +285,9 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
         print_mtypes(pba, cbp)
 
 
-def print_zones(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams, zones, pcp_only):
+def print_zones(
+    pba: ParsedBuddyArgs, cbp: CurrentBuddyParams, zones: pwndbg.dbg_mod.Value, pcp_only: bool
+) -> None:
     target_cpu = pba.cpu
     for i in range(pwndbg.aglib.kernel.nzones()):
         cbp.zone = zones[i]
