@@ -19,7 +19,7 @@ let
         echo -n $(basename $(patchelf --print-interpreter "${python3}/bin/python3")) > $out
       ''
   );
-  ldLoader = if pkgs.stdenv.isLinux then "\"$dir/lib/${ldName}\"" else "";
+  ldLoader = if pkgs.stdenv.hostPlatform.isLinux then "\"$dir/lib/${ldName}\"" else "";
 
   riskEnvsCheck = ''
     quiet=0
@@ -63,10 +63,10 @@ let
     fi
   '';
   commonEnvs =
-    lib.optionalString (pkgs.stdenv.isLinux && isLLDB) ''
+    lib.optionalString (pkgs.stdenv.hostPlatform.isLinux && isLLDB) ''
       export LLDB_DEBUGSERVER_PATH="$dir/bin/lldb-server"
     ''
-    + lib.optionalString pkgs.stdenv.isLinux ''
+    + lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
       export TERMINFO_DIRS=${
         lib.concatStringsSep ":" [
           # Fix issue Linux https://github.com/pwndbg/pwndbg/issues/2531
@@ -78,7 +78,7 @@ let
         ]
       }
     ''
-    + lib.optionalString pkgs.stdenv.isDarwin ''
+    + lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
       export TERMINFO_DIRS=${
         lib.concatStringsSep ":" [
           # Fix issue Darwin https://github.com/pwndbg/pwndbg/issues/2531
@@ -94,7 +94,7 @@ let
       export PATH="$dir/bin/:$PATH"
     '';
 
-  macosQuarantine = lib.optionalString pkgs.stdenv.isDarwin ''
+  macosQuarantine = lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
     libpython="libpython${python3.pythonVersion}.dylib"
 
     if command -v xattr >/dev/null 2>&1 && command -v grep >/dev/null 2>&1; then

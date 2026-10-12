@@ -69,7 +69,7 @@
 
       overlayDarwin =
         final: prev:
-        nixpkgs.lib.optionalAttrs prev.stdenv.isDarwin {
+        nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isDarwin {
           # Internally, apple-libffi uses dlopen() to load "/nix/store/<libffi-name>/lib/libffi-trampoline.dylib".
           # However, to ensure a "portable" build, we want to avoid hardcoded /nix/store paths in binaries.
           #
@@ -108,7 +108,7 @@
         };
       portableDrvs =
         system:
-        nixpkgs.lib.optionalAttrs pkgsBySystem.${system}.stdenv.isLinux (
+        nixpkgs.lib.optionalAttrs pkgsBySystem.${system}.stdenv.hostPlatform.isLinux (
           mapKeysWithName (name: "pwndbg-gdb-portable-${name}") (
             forPortables (
               packager:
@@ -186,7 +186,7 @@
         });
       crossDrvs =
         system:
-        nixpkgs.lib.optionalAttrs pkgsBySystem.${system}.stdenv.isLinux (
+        nixpkgs.lib.optionalAttrs pkgsBySystem.${system}.stdenv.hostPlatform.isLinux (
           (nixpkgs.lib.attrsets.mapAttrs' (cross: value: {
             name = "pwndbg-gdb-cross-${cross}-tarball";
             value = tarballCrossDrv system cross { groups = [ "gdb" ]; };
