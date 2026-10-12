@@ -47,13 +47,9 @@ class aarch64Paging(Paging):
         return pfn << self.page_shift
 
     def pfn_to_page(self, pfn: int) -> int:
-        # assumption: SPARSEMEM_VMEMMAP memory model used
-        # FLATMEM or SPARSEMEM not (yet) implemented
         return (pfn << self.STRUCT_PAGE_SHIFT) + self.vmemmap
 
     def page_to_pfn(self, page: int) -> int:
-        # assumption: SPARSEMEM_VMEMMAP memory model used
-        # FLATMEM or SPARSEMEM not (yet) implemented
         return (page - self.vmemmap) >> self.STRUCT_PAGE_SHIFT
 
     @property

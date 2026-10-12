@@ -228,7 +228,7 @@ def num_numa_nodes() -> int:
     if max_nodes == 1:
         return 1
 
-    val = pwndbg.aglib.kernel.try_usymbol("nr_online_nodes", 32)
+    val = try_usymbol("nr_online_nodes", 32)
     if val is None:
         return 1
 
@@ -288,10 +288,10 @@ def migratetype_names() -> tuple[str, ...]:
 
 # try getting value of a symbol as an unsigned integer
 def try_usymbol(name: str, size: int | None = None) -> int | None:
-    if not pwndbg.aglib.kernel.has_debug_symbols():
+    if not has_debug_symbols():
         return None
     try:
-        if pwndbg.aglib.kernel.has_debug_info():
+        if has_debug_info():
             return pwndbg.aglib.symbol.lookup_symbol_value(name)
 
         symbol = pwndbg.aglib.symbol.lookup_symbol_addr(name)
@@ -341,7 +341,7 @@ def node_data_pointer() -> pwndbg.dbg_mod.Value:
 
 def npcplist() -> int:
     """returns NR_PCP_LISTS (https://elixir.bootlin.com/linux/v6.13/source/include/linux/mmzone.h#L671)"""
-    if not pwndbg.aglib.kernel.has_debug_info():
+    if not has_debug_info():
         if (kversion := krelease()) and kversion >= (5, 14):
             return 12
         return 3
@@ -363,7 +363,7 @@ def npcplist() -> int:
 
 def kversion_cint(kversion: tuple[int, ...] | None = None) -> int | None:
     if kversion is None:
-        kversion = pwndbg.aglib.kernel.krelease()
+        kversion = krelease()
     if kversion is None or len(kversion) != 3:
         return None
     x, y, z = kversion
