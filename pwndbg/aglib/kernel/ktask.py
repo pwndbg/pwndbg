@@ -7,13 +7,13 @@ from collections.abc import Generator
 import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.bpf
+import pwndbg.aglib.kernel.kconfig_mod
+import pwndbg.aglib.kernel.slab
 import pwndbg.aglib.kernel.typing
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
-import pwndbg.aglib.kernel.slab
-import pwndbg.aglib.kernel.kconfig_mod
 import pwndbg.dbg_mod
 import pwndbg.lib
 import pwndbg.lib.cache
