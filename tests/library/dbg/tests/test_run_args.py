@@ -11,10 +11,12 @@ def inferior_args() -> list[str]:
     import pwndbg.aglib.argv
     import pwndbg.aglib.memory
 
-    return [
-        pwndbg.aglib.memory.string(int(pwndbg.aglib.argv.argv(i))).decode()
-        for i in range(1, pwndbg.aglib.argv.argc())
-    ]
+    args = []
+    for i in range(1, pwndbg.aglib.argv.argc()):
+        arg = pwndbg.aglib.argv.argv(i)
+        assert arg is not None
+        args.append(pwndbg.aglib.memory.string(int(arg)).decode())
+    return args
 
 
 @pwndbg_test
