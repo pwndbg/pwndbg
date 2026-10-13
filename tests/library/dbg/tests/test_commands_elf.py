@@ -12,6 +12,7 @@ NO_SECTS_BINARY = get_binary("gosample.i386.out")
 PIE_BINARY_WITH_PLT = "reference_bin_pie.native.out"
 NOPIE_BINARY_WITH_PLT = "reference_bin_nopie.native.out"
 NOPIE_I386_BINARY_WITH_PLT = "reference_bin_nopie.i386.out"
+STATIC_BINARY_WITH_IFUNC = get_binary("static_ifunc.native.out")
 
 
 @pwndbg_test
@@ -102,3 +103,31 @@ async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> 
                 r"^\s*0x[\da-fA-F]+\s+0x[\da-fA-F]+\s+(?:[RWX-]{3})\s+0x[\da-fA-F]+\s+\.([^\s]+)$",
                 section,
             )
+
+
+@pwndbg_test
+async def test_command_got_for_static_binary(ctrl: Controller) -> None:
+    import pwndbg.aglib
+    import pwndbg.aglib.elf
+    import pwndbg.aglib.symbol
+
+    await ctrl.launch(STATIC_BINARY_WITH_IFUNC)
+
+    if pwndbg.aglib.arch.name != "x86-64":
+        # pyelftools does not name IRELATIVE relocations correctly on aarch64, arm and riscv
+        pytest.skip("TODO multiarch")
+
+    # The slot of the ifunc is the only one in .got.plt. Its IRELATIVE relocation has no
+    # symbol, so the entry is named after its addend: the address of the resolver
+    got_plt = pwndbg.aglib.elf.section_by_name(str(STATIC_BINARY_WITH_IFUNC), ".got.plt")
+    assert got_plt is not None
+    resolver = pwndbg.aglib.symbol.lookup_symbol_addr("resolve_one")
+
+    out = (await ctrl.execute_and_capture("got")).splitlines()
+    assert out == [
+        "Filtering out read-only entries (display them with -r or --show-readonly)",
+        "",
+        f"State of the GOT of {STATIC_BINARY_WITH_IFUNC}:",
+        "GOT protection: Partial RELRO | Found 1 GOT entries passing the filter",
+        f"[{got_plt[0]:#x}] *ABS*+{resolver:#x} -> 0",
+    ]
