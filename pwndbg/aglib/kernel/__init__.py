@@ -166,7 +166,7 @@ def get_idt_entries() -> Iterator[pwndbg.lib.kernel.structs.IDTEntry]:
 
 
 def current_cpu() -> int:
-    return pwndbg.dbg.selected_thread().index() - 1
+    return pwndbg.aglib.proc.thread_id() - 1
 
 
 def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -> list[int] | None:
@@ -200,6 +200,7 @@ def per_cpu(addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.
         cpu = current_cpu()
 
     per_cpu_offset = symbol.per_cpu_offset
+    assert per_cpu_offset
     offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
     per_cpu_addr = pwndbg.aglib.arch.unsigned(int(addr) + offset)
     if isinstance(addr, pwndbg.dbg_mod.Value):
@@ -342,9 +343,9 @@ def node_data_pointer() -> pwndbg.dbg_mod.Value:
 def npcplist() -> int:
     """returns NR_PCP_LISTS (https://elixir.bootlin.com/linux/v6.13/source/include/linux/mmzone.h#L671)"""
     if not has_debug_info():
-        if (kversion := krelease()) and kversion >= (5, 14):
-            return 12
-        return 3
+        if (kversion := krelease()) and kversion < (5, 14):
+            return 3
+        return 12
     node_data = node_data_pointer()
     if not node_data or "CONFIG_NUMA" not in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         node_data0 = node_data

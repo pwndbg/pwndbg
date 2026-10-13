@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.kernel.arch
 
 from .aarch64.paging import aarch64Paging
 from .aarch64.symbol import aarch64Symbols
@@ -24,8 +23,7 @@ def select_paging() -> Paging:
             return i386Paging()
         case "rv64":
             return rv64Paging()
-        case _:
-            raise NotImplementedError(f"{pwndbg.aglib.arch.name} is not supported")
+    return Paging()
 
 
 def select_symbol() -> ArchSymbols:
@@ -34,5 +32,4 @@ def select_symbol() -> ArchSymbols:
             return aarch64Symbols()
         case "x86-64":
             return x86_64Symbols()
-        case _:
-            raise NotImplementedError()
+    return ArchSymbols()
