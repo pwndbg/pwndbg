@@ -21,24 +21,25 @@ if ! $_isvoid($pwndbg_plugin_enabled)
     # Run `config` and `theme` to get a full list of pwndbg settings
 
     # Here are some examples
-    set context-disasm-lines 15
     set show-flags on
-
-    # Enable full stacktraces on errors
     set exception-verbose on
     set exception-debugger on
 end
 
 # Put non-pwndbg specific GDB settings outside of that block.
 # For example:
+set history save on
 set history size unlimited
+set confirm off
+set verbose off
+set pagination off
 set print nibbles on
 set print asm-demangle on
 ```
 
 The [GDB docs](https://www.sourceware.org/gdb/documentation/) contains the extensive list of all GDB settings available.
 
-Note that on startup, `pwndbg` sets a handful of GDB settings to more sane defaults, such as registering some signal handlers and disabling unnecessary GDB prompts.
+Note that on startup, `pwndbg` sets a handful of GDB settings to more sane defaults, such as enabling command history, registering some signal handlers, and disabling unnecessary GDB prompts.
 
 ## Custom GDB command hooks
 
