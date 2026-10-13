@@ -1008,6 +1008,7 @@ def load_commands() -> None:
     import pwndbg.commands.rop
     import pwndbg.commands.saved_register_frames
     import pwndbg.commands.search
+    import pwndbg.commands.setrlimit
     import pwndbg.commands.sigreturn
     import pwndbg.commands.slab
     import pwndbg.commands.spray
