@@ -121,3 +121,21 @@ async def test_nextret_loop(ctrl: Controller) -> None:
     current_instruction = pwndbg.aglib.disasm.disassembly.one()
 
     assert current_instruction.id == X86_INS_RET
+
+
+@pwndbg_test
+async def test_nextret_does_not_call_context(ctrl: Controller) -> None:
+    """
+    Test that _nextret does not print context when stopping at ret.
+    """
+    from unittest import mock
+
+    from pwndbg.commands.next import _nextret
+
+    with (
+        mock.patch("pwndbg.aglib.next.break_next_ret", new_callable=mock.AsyncMock) as mock_break,
+        mock.patch("pwndbg.commands.context.context") as mock_context,
+    ):
+        mock_break.return_value = True
+        await _nextret(mock.AsyncMock())
+        mock_context.assert_not_called()

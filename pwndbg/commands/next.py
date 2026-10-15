@@ -64,8 +64,7 @@ async def _nextret(ec: pwndbg.dbg_mod.ExecutionController):
     """
     Execution controller for the `nextret` command.
     """
-    if await pwndbg.aglib.next.break_next_ret(ec):
-        pwndbg.commands.context.context()
+    await pwndbg.aglib.next.break_next_ret(ec)
 
 
 @pwndbg.commands.Command("Breaks at next return-like instruction.", category=CommandCategory.NEXT)
