@@ -189,7 +189,7 @@ arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]]
 ) = (0, 1, 2, 4, 8, 16, 32, 64, 128)
 
 DEBUG = NO_DEBUG
-DEBUG = -1  # ALL
+# DEBUG = -1  # ALL
 # DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
 
 if DEBUG != NO_DEBUG:
