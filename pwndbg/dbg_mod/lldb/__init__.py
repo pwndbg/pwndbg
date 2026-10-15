@@ -38,7 +38,6 @@ from pwndbg.dbg_mod import selection
 from pwndbg.lib import TypeNotFoundError
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
-from pwndbg.lib.regs import reg_sets
 from pwndbg.lib.siginfo import SigInfo
 from pwndbg.lib.siginfo import SigInfoKill
 from pwndbg.lib.siginfo import SigInfoRt
@@ -180,7 +179,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         if name not in pwndbg.aglib.regs:
             return False
 
-        current_reg_set = reg_sets[pwndbg.aglib.arch.name]
+        current_reg_set = pwndbg.aglib.arch.reg_set
 
         full_reg_name = name
         if reg_info := current_reg_set.full_register_lookup.get(name):
