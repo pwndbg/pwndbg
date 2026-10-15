@@ -1155,19 +1155,23 @@ class DisassemblyAssistant:
         """
         if len(instruction.operands) == 2:
             if not flipped_operands:
-                left, right = instruction.operands
+                destination, source = instruction.operands
             else:
-                right, left = instruction.operands
+                source, destination = instruction.operands
 
             # If we already used emulation, use the result, otherwise take the source operand before_value
-            result = left.after_value if left.after_value is not None else right.before_value
+            result = (
+                destination.after_value
+                if destination.after_value is not None
+                else source.before_value
+            )
 
             if result is not None:
                 # It may be a negative number if it was an immediate
                 result &= pwndbg.aglib.arch.ptrmask
 
                 # We have determined the value written to this register - propagate this to future instructions.
-                instruction.register_writes[left.reg] = result
+                instruction.register_writes[destination.reg] = result
 
                 TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
@@ -1181,7 +1185,8 @@ class DisassemblyAssistant:
                     return
 
                 instruction.annotation = register_assign(
-                    left.str, self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)
+                    destination.str,
+                    self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu),
                 )
 
     def _common_binary_op_annotator(

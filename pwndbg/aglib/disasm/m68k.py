@@ -16,20 +16,20 @@ from pwndbg.emu.emulator import Emulator
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 
-def C_BIT(eflags: int) -> bool:
-    return bool(eflags & (1 << 0))
+def C_BIT(flags: int) -> bool:
+    return bool(flags & (1 << 0))
 
 
-def V_BIT(eflags: int) -> bool:
-    return bool(eflags & (1 << 1))
+def V_BIT(flags: int) -> bool:
+    return bool(flags & (1 << 1))
 
 
-def Z_BIT(eflags: int) -> bool:
-    return bool(eflags & (1 << 2))
+def Z_BIT(flags: int) -> bool:
+    return bool(flags & (1 << 2))
 
 
-def N_BIT(eflags: int) -> bool:
-    return bool(eflags & (1 << 3))
+def N_BIT(flags: int) -> bool:
+    return bool(flags & (1 << 3))
 
 
 CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
@@ -281,7 +281,12 @@ class M68kDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
         if condition_resolver is None:
             return InstructionCondition.UNCONDITIONAL
 
-        flags = self._read_register_name(instruction, "ps", emu)
+        # Do not allow reading "ps" from emulator.
+        # There is a bug: https://github.com/unicorn-engine/unicorn/issues/2380
+        # Reading it will destroy the state.
+        # This is fine: if we are emulating, we know the branch direction already since
+        # the emulator stepped through it
+        flags = self._read_register_name(instruction, "ps", None)
 
         if flags is None:
             # We can't reason about the value of flags register
@@ -307,7 +312,7 @@ class M68kDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
             return super()._resolve_target(instruction, emu)
 
         # Get value from top of stack
-        # TODO: deduplicate from x86? does that assume emulation too much?
+        # TODO: deduplicate from x86?
         address = pwndbg.aglib.regs.sp
 
         if pwndbg.aglib.memory.peek(address):
@@ -320,7 +325,7 @@ class M68kDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
         return None
 
     def handle_mov(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        # m68k move is a very complicated instruction, even more so than x86's mov
+        # m68k move is a pretty complicated instruction, even more so than x86's mov
         # The instructions can have a suffix, like
         # .b -> 1 byte
         # .w -> 2 bytes
@@ -390,7 +395,6 @@ class M68kDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
             instruction.annotation = f"{print_right} - {print_left}"
 
     def handle_lea(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
-        # Example: lea    rdx, [rax*8]
         source, destination = instruction.operands
 
         TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
