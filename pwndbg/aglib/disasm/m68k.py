@@ -14,10 +14,6 @@ from pwndbg.aglib.disasm.instruction import MemoryDereferenceInfo
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
 
-# M68K_INS_BCC
-
-# BSR = branch to subroutine
-
 
 def C_BIT(eflags: int) -> bool:
     return bool(eflags & (1 << 0))
@@ -36,7 +32,6 @@ def N_BIT(eflags: int) -> bool:
 
 
 CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
-    # branch always
     M68K_INS_BHI: lambda flags: not C_BIT(flags) and not Z_BIT(flags),
     M68K_INS_BLS: lambda flags: C_BIT(flags) or Z_BIT(flags),
     M68K_INS_BCC: lambda flags: not C_BIT(flags),
@@ -47,7 +42,7 @@ CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
     M68K_INS_BVS: lambda flags: V_BIT(flags),
     M68K_INS_BPL: lambda flags: not N_BIT(flags),
     M68K_INS_BMI: lambda flags: N_BIT(flags),
-    # signed comparison
+    # signed comparisons
     M68K_INS_BGE: lambda flags: N_BIT(flags) == V_BIT(flags),
     M68K_INS_BLT: lambda flags: N_BIT(flags) != V_BIT(flags),
     M68K_INS_BGT: lambda flags: not Z_BIT(flags) and (N_BIT(flags) == V_BIT(flags)),
@@ -67,7 +62,6 @@ class M68kDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
             M68K_INS_MOVE: self.handle_mov,
             # TODO: need to handle sign extension and stuff here
             # M68K_INS_MOVEA: self.handle_mov,
-            #
             M68K_INS_TST: self.handle_tst,
             M68K_INS_CMP: self.handle_cmp,
             M68K_INS_CMPI: self.handle_cmp,
