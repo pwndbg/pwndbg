@@ -1022,7 +1022,7 @@ class DisassemblyAssistant:
         `dest_str`: a string representing the destination register ('rax')
         `source_str`: a string representing the source address ('[0x7fffffffe138]')
 
-        partial_overwrite is tuple if [true/false, target_reg_id]
+        partial_overwrite is tuple of [true/false, target_reg_id]
         """
 
         if address is None:
