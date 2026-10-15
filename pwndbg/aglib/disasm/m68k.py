@@ -273,9 +273,6 @@ class M68kDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
         self, instruction: PwndbgInstruction, emu: Emulator | None
     ) -> InstructionCondition:
 
-        if instruction.id == M68K_INS_BRA:
-            return InstructionCondition.UNCONDITIONAL
-
         condition_resolver = CONDITION_RESOLVERS.get(instruction.id)
 
         if condition_resolver is None:
