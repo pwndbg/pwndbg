@@ -91,6 +91,7 @@ arch_to_UC: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, int] = {
     "rv32": U.UC_ARCH_RISCV,
     "rv64": U.UC_ARCH_RISCV,
     "s390x": U.UC_ARCH_S390X,
+    "m68k": U.UC_ARCH_M68K,
 }
 
 # Architecture specific maps: Map<"UC_*_REG_*",constant>
@@ -106,6 +107,7 @@ arch_to_UC_consts: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]] = {
     "rv32": parse_consts(U.riscv_const),
     "rv64": parse_consts(U.riscv_const),
     "s390x": parse_consts(U.s390x_const),
+    "m68k": parse_consts(U.m68k_const),
 }
 
 # Architecture specific maps: Map<reg_name, Unicorn constant>
@@ -162,6 +164,14 @@ arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]]
     "rv32": create_reg_to_const_map(arch_to_UC_consts["rv32"]),
     "rv64": create_reg_to_const_map(arch_to_UC_consts["rv64"]),
     "s390x": create_reg_to_const_map(arch_to_UC_consts["s390x"]),
+    "m68k": create_reg_to_const_map(
+        arch_to_UC_consts["m68k"],
+        {
+            "FP": U.m68k_const.UC_M68K_REG_A6,
+            "SP": unicorn.m68k_const.UC_M68K_REG_A7,
+            "PS": U.m68k_const.UC_M68K_REG_SR,
+        },
+    ),
 }
 
 
@@ -179,7 +189,7 @@ arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]]
 ) = (0, 1, 2, 4, 8, 16, 32, 64, 128)
 
 DEBUG = NO_DEBUG
-# DEBUG = -1  # ALL
+DEBUG = -1  # ALL
 # DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
 
 if DEBUG != NO_DEBUG:
@@ -238,6 +248,8 @@ BANNED_INSTRUCTIONS = {
     "armcm": ARM_BANNED_INSTRUCTIONS,
     "aarch64": {C.aarch64.AARCH64_INS_MRS},
 }
+
+CPU_MODELS: dict[str, int] = {"m68k": U.m68k_const.UC_CPU_M68K_M68020}
 
 # https://github.com/unicorn-engine/unicorn/issues/550
 blacklisted_regs = ["ip", "cs", "ds", "es", "fs", "gs", "ss"]
@@ -311,6 +323,10 @@ class Emulator:
         debug(DEBUG_INIT, "# Instantiating Unicorn for %s", self.arch)
         debug(DEBUG_INIT, "uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
         self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
+
+        if (cpu_model := CPU_MODELS.get(self.arch)) is not None:
+            debug(DEBUG_INIT, "# Setting CPU model to %x", (cpu_model,))
+            self.uc.ctl_set_cpu_model(cpu_model)
 
         debug(DEBUG_INIT, "# Setting TLB mode to virtual")
         self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
@@ -688,6 +704,8 @@ class Emulator:
         elif arch == "sparc":
             mode |= {4: U.UC_MODE_SPARC32, 8: U.UC_MODE_SPARC64}[pwndbg.aglib.arch.ptrsize]
         elif arch == "s390x":
+            pass  # fails with invalid mode error otherwise
+        elif arch == "m68k":
             pass  # fails with invalid mode error otherwise
         else:
             mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.aglib.arch.ptrsize]

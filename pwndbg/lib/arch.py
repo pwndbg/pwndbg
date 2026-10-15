@@ -42,6 +42,7 @@ PWNDBG_SUPPORTED_ARCHITECTURES_TYPE = Literal[
     "loongarch64",
     "s390x",
     "hexagon",
+    "m68k",
 ]
 
 PWNDBG_SUPPORTED_ARCHITECTURES: list[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE] = list(

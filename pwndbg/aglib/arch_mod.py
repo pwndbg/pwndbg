@@ -8,6 +8,7 @@ import pwnlib.context
 from capstone6pwndbg import CS_ARCH_AARCH64
 from capstone6pwndbg import CS_ARCH_ARM
 from capstone6pwndbg import CS_ARCH_LOONGARCH
+from capstone6pwndbg import CS_ARCH_M68K
 from capstone6pwndbg import CS_ARCH_MIPS
 from capstone6pwndbg import CS_ARCH_PPC
 from capstone6pwndbg import CS_ARCH_RISCV
@@ -21,6 +22,7 @@ from capstone6pwndbg import CS_MODE_ARM
 from capstone6pwndbg import CS_MODE_BIG_ENDIAN
 from capstone6pwndbg import CS_MODE_LITTLE_ENDIAN
 from capstone6pwndbg import CS_MODE_LOONGARCH64
+from capstone6pwndbg import CS_MODE_M68K_060
 from capstone6pwndbg import CS_MODE_MCLASS
 from capstone6pwndbg import CS_MODE_MIPS32
 from capstone6pwndbg import CS_MODE_MIPS64
@@ -415,6 +417,20 @@ class HexagonArch(PwndbgArchitecture):
         return None
 
 
+class M68kArch(PwndbgArchitecture):
+    max_instruction_size = 22
+    instruction_alignment = 1
+
+    def __init__(self) -> None:
+        super().__init__("m68k")
+
+    @override
+    def get_capstone_constants(self, address: int) -> tuple[int, int] | None:
+        # Capstone lets us pick between a huge array of M68k variants
+        # This is the newest arch release
+        return CS_ARCH_M68K, CS_MODE_BIG_ENDIAN | CS_MODE_M68K_060
+
+
 # Register the architecture classes
 all_arches = [
     AMD64Arch(),
@@ -431,6 +447,7 @@ all_arches = [
     Loongarch64Arch(),
     S390xArch(),
     HexagonArch(),
+    M68kArch(),
 ]
 
 for arch in all_arches:

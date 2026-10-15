@@ -70,6 +70,7 @@ gdb_architecture_name_fixup_list = (
     "riscv",
     "loongarch64",
     "s390:64-bit",
+    "m68k",
 )
 
 # `show architecture` returns a string like "mips:isa32r5"
