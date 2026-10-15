@@ -409,7 +409,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
         return super()._condition(instruction, emu)
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if not bool(instruction.groups & ALL_JUMP_GROUPS):
             return None
 

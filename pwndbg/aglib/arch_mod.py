@@ -62,7 +62,7 @@ FMT_BIG_ENDIAN = {1: "B", 2: ">H", 4: ">I", 8: ">Q"}
 registered_architectures: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, PwndbgArchitecture] = {}
 
 
-def register_arch(arch: PwndbgArchitecture):
+def register_arch(arch: PwndbgArchitecture) -> None:
     registered_architectures[arch.name] = arch
 
 

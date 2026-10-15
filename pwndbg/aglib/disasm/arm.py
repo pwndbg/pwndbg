@@ -311,7 +311,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         return InstructionCondition.TRUE if cc else InstructionCondition.FALSE
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
 
         target: int | None = None
         if instruction.jump_like and instruction.id == ARM_INS_LDR:

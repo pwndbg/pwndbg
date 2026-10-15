@@ -258,7 +258,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssista
         return InstructionCondition.TRUE if condition else InstructionCondition.FALSE
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         """Return the address of the jump / conditional jump,
         None if the next address is not dependent on instruction.
         """

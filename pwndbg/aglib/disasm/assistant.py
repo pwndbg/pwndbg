@@ -91,7 +91,7 @@ pwndbg.config.add_param(
 )
 
 
-def syntax_highlight(ins: str):
+def syntax_highlight(ins: str) -> str:
     return H.syntax_highlight(ins, filename=".asm")
 
 
@@ -813,7 +813,7 @@ class DisassemblyAssistant:
 
     # This is the default implementation.
     # Subclasses should override this for more accurate behavior/to catch more cases. See x86.py as example
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         """
         Architecture-specific hook point for _enhance_next.
 
@@ -897,7 +897,7 @@ class DisassemblyAssistant:
     def _immediate_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand) -> str:
         return pwndbg.lib.pretty_print.int_to_string(operand.before_value)
 
-    def _register_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
+    def _register_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand) -> str:
         """
         Return colorized register string
         """
@@ -966,7 +966,7 @@ class DisassemblyAssistant:
         """
         FLAG_REG_NAME_DISPLAY = flags_register_name.upper()
 
-        def handler(instruction: PwndbgInstruction, emu: Emulator):
+        def handler(instruction: PwndbgInstruction, emu: Emulator) -> None:
             # If there are just two operands, we can assume we are comparing them directly, and can display the values.
             # Some architectures have variants with more operands.
             if len(instruction.operands) == 2:
@@ -1147,7 +1147,7 @@ class DisassemblyAssistant:
 
     def _common_move_annotator(
         self, instruction: PwndbgInstruction, emu: Emulator, flipped_operands: bool = False
-    ):
+    ) -> None:
         """
         This function handles annotating `MOV` type instructions - where the value of one register is placed into another.
         """

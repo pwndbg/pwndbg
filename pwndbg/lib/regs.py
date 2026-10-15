@@ -64,16 +64,16 @@ class BitFlags(VisitableRegister):
     def __setitem__(self, key: str, value: int) -> None:
         self.flags[key] = value
 
-    def __delitem__(self, key: str):
+    def __delitem__(self, key: str) -> None:
         del self.flags[key]
 
     def __iter__(self):
         return iter(self.flags)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.flags)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"BitFlags({self.flags})"
 
     @override

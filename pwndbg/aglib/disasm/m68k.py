@@ -13,6 +13,7 @@ from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import MemoryDereferenceInfo
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 
 def C_BIT(eflags: int) -> bool:
@@ -51,7 +52,7 @@ CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
 
 
 class M68kDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
-    def __init__(self, architecture) -> None:
+    def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         super().__init__(architecture)
 
         self.resolve_op_value_handlers[M68K_OP_BR_DISP] = self._parse_br_disp
@@ -297,7 +298,7 @@ class M68kDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
             instruction.groups.remove(CS_GRP_JUMP)
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
 
         if instruction.id != M68K_INS_RTS:
             return super()._resolve_target(instruction, emu)
@@ -316,6 +317,7 @@ class M68kDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
 
         # The RSP does not point to readable memory!
         instruction.target_memory_operand = MemoryDereferenceInfo(address, None, None)
+        return None
 
     def handle_mov(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # m68k move is a very complicated instruction, even more so than x86's mov
