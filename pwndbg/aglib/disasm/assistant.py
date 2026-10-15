@@ -887,7 +887,7 @@ class DisassemblyAssistant:
 
         return int(addr)
 
-    def dump(self, instruction: PwndbgInstruction):
+    def dump(self, instruction: PwndbgInstruction) -> str:
         """
         Debug-only method.
         """
@@ -913,7 +913,9 @@ class DisassemblyAssistant:
             return name
         return ctx_color.register_changed(name)
 
-    def _memory_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
+    def _memory_string(
+        self, instruction: PwndbgInstruction, operand: EnhancedOperand
+    ) -> str | None:
         """
         Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
         """
