@@ -929,7 +929,6 @@ def load_commands() -> None:
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.killthreads
         import pwndbg.commands.peda
-        import pwndbg.commands.reload
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
         import pwndbg.commands.updown
