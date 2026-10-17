@@ -753,9 +753,15 @@ def parse_command_argument_to_int(arg: str) -> int:
     except pwndbg.dbg_mod.DebuggerError as dbge:
         raise argparse.ArgumentTypeError(f"debugger couldn't resolve argument '{arg}': {dbge}")
 
-    # for some reason, int(gdb.Value) for a function and array does not return its address
-    # so we check for this in order to support stuff like `malloc` or `buf`
-    if fixed.type.code in (pwndbg.dbg_mod.TypeCode.FUNC, pwndbg.dbg_mod.TypeCode.ARRAY):
+    # for some reason, int(gdb.Value) for a function and array does not return its address,
+    # and a struct or union has no int value at all, so we check for this in order to support
+    # stuff like `malloc`, `buf` or `main_arena`
+    if fixed.type.strip_typedefs().code in (
+        pwndbg.dbg_mod.TypeCode.FUNC,
+        pwndbg.dbg_mod.TypeCode.ARRAY,
+        pwndbg.dbg_mod.TypeCode.STRUCT,
+        pwndbg.dbg_mod.TypeCode.UNION,
+    ):
         addr = fixed.address
         if addr is None:
             raise argparse.ArgumentTypeError(
