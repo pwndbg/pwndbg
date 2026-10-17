@@ -25,6 +25,7 @@ COMPILATION_TARGETS_TYPE = Literal[
     "aarch64",
     "aarch64_be",
     "arm",
+    "armeb",
     "riscv32",
     "riscv64",
     "loongarch64",
@@ -47,6 +48,7 @@ COMPILE_AND_RUN_INFO: dict[COMPILATION_TARGETS_TYPE, tuple[str, tuple[str, ...],
     "aarch64": ("aarch64-freestanding", (), "aarch64"),
     "aarch64_be": ("aarch64_be-freestanding", (), "aarch64_be"),
     "arm": ("arm-freestanding", (), "arm"),
+    "armeb": ("armeb-freestanding", (), "armeb"),
     "riscv32": ("riscv32-freestanding", (), "riscv32"),
     "riscv64": ("riscv64-freestanding", (), "riscv64"),
     "mips32": ("mips-freestanding", (), "mips"),
@@ -131,7 +133,9 @@ def qemu_assembly_run():
 
     qemu: subprocess.Popen[Any] | None = None
 
-    def _start_binary(asm: str, arch: COMPILATION_TARGETS_TYPE):
+    def _start_binary(
+        asm: str, arch: COMPILATION_TARGETS_TYPE, extra_zig_flags: tuple[str, ...] = ()
+    ):
         nonlocal qemu
 
         if arch not in COMPILATION_TARGETS or arch not in COMPILE_AND_RUN_INFO:
@@ -157,6 +161,7 @@ def qemu_assembly_run():
                 zig_executable,
                 "cc",
                 *extra_cli_args,
+                *extra_zig_flags,
                 f"--target={zig_target}",
                 str(asm_file),
                 "-o",
@@ -168,7 +173,11 @@ def qemu_assembly_run():
         )
 
         if compile_process.returncode != 0:
-            raise Exception("Compilation error", compile_process.stdout, compile_process.stderr)
+            raise Exception(f"""Compilation error
+{compile_process.stdout}
+
+{compile_process.stderr}
+""")
 
         qemu = subprocess.Popen(
             [
