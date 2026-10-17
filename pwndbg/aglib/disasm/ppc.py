@@ -115,7 +115,7 @@ class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
         return InstructionCondition.UNCONDITIONAL
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if instruction.id in POWERPC_RETURN_INSTRUCTION:
             return self._read_register_name(instruction, "lr", emu)
 

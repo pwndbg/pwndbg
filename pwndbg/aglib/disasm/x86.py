@@ -392,7 +392,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         return seg_base + mem_base + op.mem.disp + scale
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
 
         if X86_INS_LJMP == instruction.id:
             target_cs = instruction.operands[0].before_value
@@ -439,6 +439,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
             )
         # The RSP does not point to readable memory!
         instruction.target_memory_operand = MemoryDereferenceInfo(address, None, None)
+        return None
 
     @override
     def _condition(

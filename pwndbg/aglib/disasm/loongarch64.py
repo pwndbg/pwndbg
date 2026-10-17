@@ -77,7 +77,7 @@ class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if instruction.id == LOONGARCH_INS_ALIAS_RET:
             return self._read_register_name(instruction, "ra", emu)
 

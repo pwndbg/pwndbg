@@ -18,6 +18,7 @@ import pwndbg.aglib.disasm.aarch64
 import pwndbg.aglib.disasm.arm
 import pwndbg.aglib.disasm.assistant
 import pwndbg.aglib.disasm.loongarch64
+import pwndbg.aglib.disasm.m68k
 import pwndbg.aglib.disasm.mips
 import pwndbg.aglib.disasm.ppc
 import pwndbg.aglib.disasm.riscv
@@ -553,6 +554,11 @@ def get_one_instruction(
     md = get_disassembler(cs_info)
     data = pwndbg.aglib.memory.read(address, pwndbg.aglib.arch.max_instruction_size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
+        # Some architectures m68k) may return an invalid instruction, which has id 0,
+        # if the instruction cannot be disassembled
+        if ins.is_invalid_insn():
+            return None
+
         pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins, padding)
 
         if enhance:
@@ -670,7 +676,7 @@ def enhance_instruction(
             assistant.enhance(instruction, current_cpu_instruction=current_cpu_instruction, emu=emu)
 
         case DisassemblySource.DEBUGGER:
-            pwndbg.aglib.disasm.assistant.basic_enhance(instr)
+            pwndbg.aglib.disasm.assistant.basic_enhance(instruction)
         case _:
             raise NotImplementedError("Unknown disassembly source")
 
@@ -1064,6 +1070,7 @@ ALL_DISASSEMBLY_ASSISTANTS: dict[
     ),
     "powerpc": lambda: pwndbg.aglib.disasm.ppc.PowerPCDisassemblyAssistant("powerpc"),
     "sparc": lambda: pwndbg.aglib.disasm.sparc.SparcDisassemblyAssistant("sparc"),
+    "m68k": lambda: pwndbg.aglib.disasm.m68k.M68kDisassemblyAssistant("m68k"),
 }
 
 

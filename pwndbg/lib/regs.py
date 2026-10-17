@@ -64,16 +64,16 @@ class BitFlags(VisitableRegister):
     def __setitem__(self, key: str, value: int) -> None:
         self.flags[key] = value
 
-    def __delitem__(self, key: str):
+    def __delitem__(self, key: str) -> None:
         del self.flags[key]
 
     def __iter__(self):
         return iter(self.flags)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.flags)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"BitFlags({self.flags})"
 
     @override
@@ -1364,6 +1364,38 @@ hexagon = RegisterSet(
     ),
 )
 
+m68k_flags_registers = BitFlags(
+    [
+        ("C", 0),
+        ("V", 1),
+        ("Z", 2),
+        ("N", 3),
+    ]
+)
+
+m68k = RegisterSet(
+    pc=Reg("pc"),
+    stack=Reg("sp"),  # alias for a7
+    frame=Reg("fp"),
+    flags={"ps": m68k_flags_registers},
+    gpr=(
+        Reg("d0"),
+        Reg("d1"),
+        Reg("d2"),
+        Reg("d3"),
+        Reg("d4"),
+        Reg("d5"),
+        Reg("d6"),
+        Reg("d7"),
+        Reg("a0"),
+        Reg("a1"),
+        Reg("a2"),
+        Reg("a3"),
+        Reg("a4"),
+        Reg("a5"),
+        # Reg("a6"), fp register
+    ),
+)
 
 reg_sets: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "i386": i386,
@@ -1380,4 +1412,5 @@ reg_sets: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "loongarch64": loongarch64,
     "s390x": s390x,
     "hexagon": hexagon,
+    "m68k": m68k,
 }

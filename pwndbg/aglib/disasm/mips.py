@@ -275,7 +275,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if bool(instruction.groups & FORWARD_JUMP_GROUP) and not bool(
             instruction.groups & BRANCH_WITHOUT_DELAY_SLOT_INSTRUCTIONS
         ):
