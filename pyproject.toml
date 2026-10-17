@@ -262,7 +262,6 @@ module = [
     "pwndbg.commands.cymbol",
     "pwndbg.commands.hexdump",
     "pwndbg.commands.procinfo",
-    "pwndbg.commands.reload",
     "pwndbg.commands.version",
     "pwndbg.exception",
     "pwndbg.aglib.dynamic",

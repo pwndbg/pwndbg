@@ -39,8 +39,6 @@
 -  [log-level](developer/log-level.md) - Set the log level.
 -  [memoize](developer/memoize.md) - Toggles memoization (caching).
 -  [profiler](developer/profiler.md) - Utilities for profiling Pwndbg.
--  [reinit-pwndbg](developer/reinit-pwndbg.md) - Makes Pwndbg reinitialize all state.
--  [reload](developer/reload.md) - Reload Pwndbg.
 
 ## Disassemble
 
