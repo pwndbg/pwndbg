@@ -488,6 +488,7 @@ def nearpc(
     max_backwards_linear_count: int | None = None,
     instruction_flow_cache: pwndbg.aglib.disasm.disassembly.InstructionFlowCache | None = None,
     all_opcode_bytes: bool = False,
+    opcode_bytes: int | None = None,
 ) -> list[str]:
     """
     Disassemble near a specified address.
@@ -495,7 +496,7 @@ def nearpc(
     The `linear` argument specifies if we should disassemble linearly in memory, or take jumps into account
 
     The `all_opcode_bytes` argument shows opcode bytes of each instruction instead of the
-    number set by `nearpc-num-opcode-bytes`
+    number set by `nearpc-num-opcode-bytes`, and `opcode_bytes` replaces that number
     """
     assert address_to_highlight is None or linear, (
         "Only pc can be highlighted if linear=False"  # because we need pc_index to display emulated loops correctly
@@ -613,7 +614,7 @@ def nearpc(
     current_insn_breakpoint_prefix = current_breakpoint_sign.ljust(len(prefix_sign) + 1)
     current_insn_breakpoint_prefix = c.breakpoint(c.prefix(current_insn_breakpoint_prefix))
 
-    num_opcode_bytes = int(show_opcode_bytes)
+    num_opcode_bytes = int(show_opcode_bytes) if opcode_bytes is None else opcode_bytes
     if all_opcode_bytes:
         # Make room for the longest instruction shown, so that no instruction is truncated
         num_opcode_bytes = max((len(instruction.bytes) for instruction in instructions), default=0)

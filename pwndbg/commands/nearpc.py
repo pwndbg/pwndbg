@@ -57,11 +57,24 @@ parser.add_argument(
     help="Disable showing branch visualizations.",
 )
 
+
+# sentinel value used when `--opcode` option is given without an argument
+class AllOpcodeBytes:
+    pass
+
+
+ALL_OPCODE_BYTES = AllOpcodeBytes()
+
+
 parser.add_argument(
     "-o",
     "--opcode",
-    action="store_true",
-    help="Show opcode bytes of each instruction, regardless of the nearpc-num-opcode-bytes setting.",
+    type=int,
+    nargs="?",
+    default=None,
+    const=ALL_OPCODE_BYTES,
+    metavar="BYTES",
+    help="Show opcode bytes of each instruction. Takes the number of bytes to show, defaulting to the length of the longest instruction shown. A value of 0x100 or more is interpreted as the address instead.",
 )
 
 
@@ -97,11 +110,19 @@ def nearpc(
     no_branch: bool = False,
     function: int | None = None,
     max_backwards_linear_count: int | None = None,
-    opcode: bool = False,
+    opcode: int | AllOpcodeBytes | None = None,
 ) -> None:
     """
     Disassemble near a specified address.
     """
+    # Handle `nearpc -o ADDRESS`: a value given to -o that is too large to be
+    # a number of bytes is the address, like with the first argument below
+    if isinstance(opcode, int) and opcode >= 0x100:
+        if lines is not None:
+            print("Error: too many arguments")
+            return
+        pc, lines, opcode = opcode, pc, ALL_OPCODE_BYTES
+
     # nearpc is flexible in the first argument (it can be an address or the number of lines to disassemble).
     # Save the first argument, which depending on the context might be the explicitly requested number of lines to disassemble.
     # None if not provided
@@ -180,7 +201,8 @@ def nearpc(
                 address_to_highlight=address_to_highlight,
                 end_address=end_address,
                 max_backwards_linear_count=max_backwards_linear_count,
-                all_opcode_bytes=opcode,
+                all_opcode_bytes=opcode is ALL_OPCODE_BYTES,
+                opcode_bytes=opcode if isinstance(opcode, int) else None,
             )
         )
     )
