@@ -151,7 +151,7 @@ arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]]
         arch_to_UC_consts["m68k"],
         {
             "FP": U.m68k_const.UC_M68K_REG_A6,
-            "SP": unicorn.m68k_const.UC_M68K_REG_A7,
+            "SP": U.m68k_const.UC_M68K_REG_A7,
             "PS": U.m68k_const.UC_M68K_REG_SR,
         },
     ),
@@ -191,7 +191,7 @@ INTERCEPT_REG_WRITE_HANDLERS: dict[
 ) = (0, 1, 2, 4, 8, 16, 32, 64, 128)
 
 DEBUG = NO_DEBUG
-# DEBUG = -1  # ALL
+DEBUG = -1  # ALL
 # DEBUG = DEBUG_EXECUTING | DEBUG_MEM_MAP | DEBUG_MEM_READ
 
 if DEBUG != NO_DEBUG:
@@ -320,15 +320,14 @@ class Emulator:
             if unicorn_init_info is None:
                 raise NotImplementedError(f"Cannot emulate code for {self.arch}")
 
-        uc_arch, mode = unicorn_init_info
-        self.uc_mode = mode
+        uc_arch, uc_mode = unicorn_init_info
 
         # Mapping of Pwndbg register name to Unicorn constant for the register
         self.const_regs = arch_to_reg_const_map[self.arch]
 
         debug(DEBUG_INIT, "# Instantiating Unicorn for %s", self.arch)
-        debug(DEBUG_INIT, "uc = U.Uc(%r, %#x)", (uc_arch, self.uc_mode))
-        self.uc = U.Uc(uc_arch, self.uc_mode)
+        debug(DEBUG_INIT, "uc = U.Uc(%r, %#x)", (uc_arch, uc_mode))
+        self.uc = U.Uc(uc_arch, uc_mode)
 
         if (cpu_model := CPU_MODELS.get(self.arch)) is not None:
             debug(DEBUG_INIT, "# Setting CPU model to %x", (cpu_model,))
