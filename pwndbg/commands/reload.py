@@ -9,7 +9,7 @@ import pwndbg.gdblib.events
 import pwndbg.lib.cache
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import DebuggerType
-from pwndbginit.gdbinit import set_reloading_status
+from pwndbginit import set_reloading_status
 
 
 def rreload() -> None:

@@ -29,6 +29,7 @@ import pwndbg.exception
 from pwndbg.color import message
 from pwndbg.lib import CompilerNotFoundError
 from pwndbg.lib import TypeNotRecoveredError
+from pwndbginit import is_reloading
 
 log = logging.getLogger(__name__)
 
@@ -176,16 +177,11 @@ class CommandObj:
 
         assert "_" not in self.command_name and "Use '-' instead of '_' in command names."
         assert self.command_name not in command_names and "Command already exists."
-        reloading = False
-        if pwndbg.dbg.is_gdblib_available():
-            from pwndbginit.gdbinit import is_reloading
-
-            reloading = is_reloading()
         assert (
             not (
                 self.command_name in GDB_BUILTIN_COMMANDS
                 and self.command_name not in CommandObj.builtin_override_whitelist
-                and not reloading
+                and not (pwndbg.dbg.is_gdblib_available() and is_reloading())
             )
             and "Cannot override non-whitelisted built-in command."
         )

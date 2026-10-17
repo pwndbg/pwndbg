@@ -1871,7 +1871,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         config_mod.init_params()
 
-        from pwndbginit.gdbinit import is_reloading
+        from pwndbginit import is_reloading
 
         if is_reloading():
             return
