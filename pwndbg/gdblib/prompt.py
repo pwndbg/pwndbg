@@ -19,6 +19,8 @@ from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
+from pwndbginit.gdbinit import is_reloading
+from pwndbginit.gdbinit import set_reloading_status
 
 # noinspection PyPackageRequirements
 show_tip = pwndbg.config.add_param(
@@ -29,7 +31,7 @@ cur: tuple[gdb.Inferior, gdb.InferiorThread] | None = None
 
 
 def initial_hook(*a: Any) -> None:
-    if show_tip and not pwndbg.decorators.first_prompt:
+    if show_tip and not pwndbg.decorators.first_prompt and not is_reloading():
         colored_tip = color_tip(get_tip_of_the_day(pwndbg.dbg_mod.DebuggerType.GDB.value))
         print(
             message.prompt("------- tip of the day")
@@ -79,6 +81,8 @@ def thread_is_stopped() -> bool:
 
 
 def prompt_hook(*a: Any) -> None:
+    if is_reloading():
+        return
     global cur, context_shown, last_alive_state
 
     new = (gdb.selected_inferior(), gdb.selected_thread())
@@ -101,7 +105,12 @@ def prompt_hook(*a: Any) -> None:
 @pwndbg.dbg.event_handler(EventType.CONTINUE)
 def reset_context_shown(*a: Any) -> None:
     global context_shown
-    context_shown = False
+    if not is_reloading():
+        context_shown = False
+    else:
+        # reloading triggers a CONTINUE event which we do not want the context shown
+        # next CONTINUE event behaves normally
+        set_reloading_status(False)
 
 
 @pwndbg.config.trigger(message.config_prompt_color, disable_colors)

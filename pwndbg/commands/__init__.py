@@ -64,15 +64,6 @@ class CommandCategory(str, Enum):
 
 GDB_BUILTIN_COMMANDS = pwndbg.dbg.commands()
 
-# Set in `reload` command so that we can skip double checking for registration
-# of an already existing command when re-registering GDB CLI commands
-# (there is no way to unregister a command in GDB 12.x)
-pwndbg_is_reloading = False
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
-
-    pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
-
 
 class InvalidDebuggerError(Exception):
     """
@@ -185,11 +176,16 @@ class CommandObj:
 
         assert "_" not in self.command_name and "Use '-' instead of '_' in command names."
         assert self.command_name not in command_names and "Command already exists."
+        reloading = False
+        if pwndbg.dbg.is_gdblib_available():
+            from pwndbginit.gdbinit import is_reloading
+
+            reloading = is_reloading()
         assert (
             not (
                 self.command_name in GDB_BUILTIN_COMMANDS
                 and self.command_name not in CommandObj.builtin_override_whitelist
-                and not pwndbg_is_reloading
+                and not reloading
             )
             and "Cannot override non-whitelisted built-in command."
         )

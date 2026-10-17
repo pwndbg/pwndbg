@@ -13,6 +13,16 @@ from pwndbginit.common import pre_debugger_init
 from pwndbginit.common import setup_load_profiler
 from pwndbginit.common import verify_venv
 
+RELOADING = "reloading"
+
+
+def is_reloading() -> bool:
+    return getattr(gdb, RELOADING, False)
+
+
+def set_reloading_status(status: bool) -> None:
+    setattr(gdb, RELOADING, status)
+
 
 def check_doubleload() -> None:
     if "pwndbg" in sys.modules:
@@ -60,6 +70,8 @@ def main() -> None:
 def main_try():
     # We wrap everything in try/except so that we can exit GDB with an error code
     # This is used by tests to check if gdbinit.py failed
+    if getattr(gdb, RELOADING, None) is None:
+        set_reloading_status(False)
     try:
         main()
     except Exception:
