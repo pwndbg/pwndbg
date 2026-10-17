@@ -564,7 +564,7 @@ name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0b/9f/a65090624ecf468cdca03533906e7c69ed7588582240cfe7cc9e770b50eb/exceptiongroup-1.3.0.tar.gz", hash = "sha256:b241f5885f560bc56a59ee63ca4c6a8bfa46ae4ad651af316d4e81817bb9fd88", size = 29749, upload-time = "2025-05-10T17:42:51.123Z" }
 wheels = [
@@ -874,17 +874,17 @@ resolution-markers = [
     "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
-    { name = "decorator" },
-    { name = "exceptiongroup", marker = "python_full_version != '3.11'" },
-    { name = "jedi" },
-    { name = "matplotlib-inline" },
-    { name = "pexpect", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
-    { name = "prompt-toolkit" },
-    { name = "pygments" },
-    { name = "stack-data" },
-    { name = "traitlets" },
-    { name = "typing-extensions" },
+    { name = "colorama", marker = "python_full_version < '3.12' and sys_platform == 'win32'" },
+    { name = "decorator", marker = "python_full_version < '3.12'" },
+    { name = "exceptiongroup", marker = "python_full_version < '3.11'" },
+    { name = "jedi", marker = "python_full_version < '3.12'" },
+    { name = "matplotlib-inline", marker = "python_full_version < '3.12'" },
+    { name = "pexpect", marker = "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "prompt-toolkit", marker = "python_full_version < '3.12'" },
+    { name = "pygments", marker = "python_full_version < '3.12'" },
+    { name = "stack-data", marker = "python_full_version < '3.12'" },
+    { name = "traitlets", marker = "python_full_version < '3.12'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/40/18/f8598d287006885e7136451fdea0755af4ebcbfe342836f24deefaed1164/ipython-8.39.0.tar.gz", hash = "sha256:4110ae96012c379b8b6db898a07e186c40a2a1ef5d57a7fa83166047d9da7624", size = 5513971, upload-time = "2026-03-27T10:02:13.94Z" }
 wheels = [
@@ -906,17 +906,17 @@ resolution-markers = [
     "(python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform != 'linux')",
 ]
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
-    { name = "decorator" },
-    { name = "ipython-pygments-lexers" },
-    { name = "jedi" },
-    { name = "matplotlib-inline" },
-    { name = "pexpect", marker = "sys_platform != 'emscripten' and sys_platform != 'win32'" },
-    { name = "prompt-toolkit" },
-    { name = "psutil", marker = "sys_platform != 'cygwin' and sys_platform != 'emscripten'" },
-    { name = "pygments" },
-    { name = "stack-data" },
-    { name = "traitlets" },
+    { name = "colorama", marker = "python_full_version >= '3.12' and sys_platform == 'win32'" },
+    { name = "decorator", marker = "python_full_version >= '3.12'" },
+    { name = "ipython-pygments-lexers", marker = "python_full_version >= '3.12'" },
+    { name = "jedi", marker = "python_full_version >= '3.12'" },
+    { name = "matplotlib-inline", marker = "python_full_version >= '3.12'" },
+    { name = "pexpect", marker = "python_full_version >= '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'" },
+    { name = "prompt-toolkit", marker = "python_full_version >= '3.12'" },
+    { name = "psutil", marker = "python_full_version >= '3.12' and sys_platform != 'cygwin' and sys_platform != 'emscripten'" },
+    { name = "pygments", marker = "python_full_version >= '3.12'" },
+    { name = "stack-data", marker = "python_full_version >= '3.12'" },
+    { name = "traitlets", marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/53/59/165d3b4d75cc34add3122c4417ecb229085140ac573103c223cd01dde96f/ipython-9.15.0.tar.gz", hash = "sha256:da2819ce2aa83135257df830660b1176d986c3d2876db24df01974fa955b2756", size = 4442580, upload-time = "2026-06-26T11:03:35.913Z" }
 wheels = [
@@ -928,7 +928,7 @@ name = "ipython-pygments-lexers"
 version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pygments" },
+    { name = "pygments", marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ef/4c/5dd1d8af08107f88c7f741ead7a40854b8ac24ddf9ae850afbcf698aa552/ipython_pygments_lexers-1.1.1.tar.gz", hash = "sha256:09c0138009e56b6854f9535736f4171d855c8c08a563a0dcd8022f78355c7e81", size = 8393, upload-time = "2025-01-17T11:24:34.505Z" }
 wheels = [
@@ -985,7 +985,7 @@ resolution-markers = [
     "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
-    { name = "packaging" },
+    { name = "packaging", marker = "platform_machine != 'arm64' and platform_machine != 'x86_64'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/34/49/6090a131d84b22c6aae13b1853092028b060fd17da1af87c0e42ad69d50f/jpype1-1.6.0.tar.gz", hash = "sha256:2d46b2a14f8f0e6f17d8aa22b4fc3a64b2790851ebf1409ad79a37c698fd6e9a", size = 1057888, upload-time = "2025-07-07T14:04:11.244Z" }
 wheels = [
@@ -1025,7 +1025,7 @@ resolution-markers = [
     "(python_full_version < '3.11' and platform_machine == 'arm64') or (python_full_version < '3.11' and platform_machine == 'x86_64')",
 ]
 dependencies = [
-    { name = "packaging" },
+    { name = "packaging", marker = "platform_machine == 'arm64' or platform_machine == 'x86_64'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/48/a2/5d27e81d24eef64668bf702bfe0e091cc48388b4666f36e025243eb9d827/jpype1-1.7.1.tar.gz", hash = "sha256:3cd88838dc3d2d546f7eaeadaaff864e590010c15f2b6a44b6f37e60796a14b2", size = 783791, upload-time = "2026-05-06T23:55:10.664Z" }
 wheels = [
@@ -1971,7 +1971,7 @@ requires-dist = [
     { name = "unicorn", specifier = ">=2.1.4,<3" },
     { name = "uv", marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'", specifier = ">=0.12.0" },
     { name = "uv", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'", specifier = ">=0.12.0", index = "https://mirrors.loong64.com/pypi/simple" },
-    { name = "ziglang", marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'", specifier = "==0.15.2" },
+    { name = "ziglang", marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'", specifier = "==0.17.0" },
 ]
 provides-extras = ["lldb", "gdb"]
 
@@ -2903,21 +2903,15 @@ wheels = [
 
 [[package]]
 name = "ziglang"
-version = "0.15.2"
+version = "0.17.0"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/2e/42c49a5b539a595ff5f2293de0bd339636875e44b4c69f51470bdf1d599d/ziglang-0.15.2-py3-none-macosx_12_0_arm64.whl", hash = "sha256:acae2a9ce67ed249ad68d42c21bc73b5f9d51a33ba5ea42f609f78683e8d9bb7", size = 92993702, upload-time = "2025-11-10T06:23:24.805Z" },
-    { url = "https://files.pythonhosted.org/packages/c4/c7/151df628321266a38da133d481c5e929bd36d9d0424e8c2b7a9c4964c172/ziglang-0.15.2-py3-none-macosx_12_0_x86_64.whl", hash = "sha256:47af4f85e3e59bd672126cc026d3a01b516cad24b9a9ea075abfe8532f4c6bc1", size = 97049112, upload-time = "2026-01-29T09:44:04.612Z" },
-    { url = "https://files.pythonhosted.org/packages/0a/13/006c26f2dc7510385dc549eb44983402e4539519d48567d9a6b0ae71adc7/ziglang-0.15.2-py3-none-manylinux_2_12_i686.manylinux2010_i686.musllinux_1_1_i686.whl", hash = "sha256:04eb9c4135ef431487b920c73312cd3a5e754019839024eeed3521772d1585a2", size = 97299386, upload-time = "2026-01-29T09:44:21.973Z" },
-    { url = "https://files.pythonhosted.org/packages/db/81/f9f5c7fd68d80b8edff2a641a1c95ac4125356387d298374227040b8e1e8/ziglang-0.15.2-py3-none-manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:806316453d1ede7174ed3fefb8e5348154629089c3bb5fe812dfd0e172fac130", size = 93508126, upload-time = "2026-01-29T09:44:41.936Z" },
-    { url = "https://files.pythonhosted.org/packages/53/7d/8c277208250ffa72f12a10f52dfc1d45850f08244093065b40c5f4628260/ziglang-0.15.2-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:edc0aa60ec964a4cf462d40f68d7de242ddf37fd9a80f2afaee6397059463230", size = 90542084, upload-time = "2026-01-29T09:45:00.806Z" },
-    { url = "https://files.pythonhosted.org/packages/cf/ba/b85879ff883f152e2278852d3f8af37924badefaabb38d89e62a5d066b40/ziglang-0.15.2-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.musllinux_1_1_armv7l.whl", hash = "sha256:ad43a4692311512ab55cc918596c814ff44fb811b1299fa9a57cc4e2bf315c6b", size = 91550707, upload-time = "2026-01-29T09:45:22.725Z" },
-    { url = "https://files.pythonhosted.org/packages/57/ef/09d2baf722521d3878b8e17d3ee6271f02c7ef7ec398bbd059fa6466a5e6/ziglang-0.15.2-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.musllinux_1_1_ppc64le.whl", hash = "sha256:85faefbd4cfe420de92aaa8f8300bec2b9afe8d1f1d8c5abf71bf92754682536", size = 99943068, upload-time = "2026-01-29T09:45:42.651Z" },
-    { url = "https://files.pythonhosted.org/packages/7b/5d/5690870969ed52501deaa4c722c476279a00d2c034ef7f82cf778507c3fd/ziglang-0.15.2-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.musllinux_1_1_s390x.whl", hash = "sha256:978ebcc3c6c9624cbc999dd8dcb65427e7474650d9709a889aace8e325705ce2", size = 99561757, upload-time = "2026-01-29T09:46:03.149Z" },
-    { url = "https://files.pythonhosted.org/packages/b5/da/2e6655300a3174bd6299c06da577b0cb14685058d9b00b61042cf9d9e38b/ziglang-0.15.2-py3-none-manylinux_2_31_riscv64.musllinux_1_1_riscv64.whl", hash = "sha256:d3fe40825e18238e986b305cbf3a4d93a50461b893339e31c81b0d6c73f33937", size = 94112157, upload-time = "2026-01-29T09:46:24.268Z" },
-    { url = "https://files.pythonhosted.org/packages/57/04/e54964be82dce7b9a5708a8a5f345d373bc78c558c0712e6e356593292ec/ziglang-0.15.2-py3-none-win32.whl", hash = "sha256:b174f7ebb9d1f2210d32d1420333120f6117ebee3de8b3e221e6ebb0c3beec4b", size = 96136271, upload-time = "2026-01-29T09:46:47.975Z" },
-    { url = "https://files.pythonhosted.org/packages/b9/6b/8ab0853a312108b4089747486366b824b5da89773cb56f661f9994de17db/ziglang-0.15.2-py3-none-win_amd64.whl", hash = "sha256:ca80dc9c70dbdfdd9ee51d000de3501a95d33d9782ab9ab9b56f700484ebcd83", size = 94052409, upload-time = "2026-01-29T09:47:02.419Z" },
-    { url = "https://files.pythonhosted.org/packages/1e/b4/dec7e1b867ce3640f9bba9204f8ea658f6ca5161350e92b76bf17aeffb9b/ziglang-0.15.2-py3-none-win_arm64.whl", hash = "sha256:a81ebfc61e1b7aa43a33add23f93b98954d757434f894eb21bd40b176b6688aa", size = 89688080, upload-time = "2026-01-29T09:47:20.903Z" },
+    { url = "https://files.pythonhosted.org/packages/37/fa/54dd03b21fa790a85e1de39eeda9703386fe519490598abdb38894a1c3b3/ziglang-0.17.0-py3-none-macosx_13_0_arm64.whl", hash = "sha256:87274af689c4128051b26c80f6f676757e0a81c2fdc137fd8b5679e928e4bc4f", size = 100425967, upload-time = "2026-10-08T01:00:16.989Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/52/4f8a8f157d994482e501bb37e01f4883990b9848b9d8b809fe95e97aac6d/ziglang-0.17.0-py3-none-macosx_13_0_x86_64.whl", hash = "sha256:4d910f0e363ddb60a6b8ddb55235617797a8ccbcb6c5c7132a949d9f833eea42", size = 104418550, upload-time = "2026-10-08T01:00:25.486Z" },
+    { url = "https://files.pythonhosted.org/packages/78/e6/130dd7c78d7556a7d2a8975cf9e50417a31c1e789428d3f8571ef71aa636/ziglang-0.17.0-py3-none-manylinux_2_12_i686.manylinux2010_i686.musllinux_1_1_i686.whl", hash = "sha256:81e3057db80fb459d1ab13c3db13dbcb1e99e91c36281661831d1916eba924de", size = 104572026, upload-time = "2026-10-08T01:00:33.633Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/6f/e1c380fe61db36cb464d5d4d18c557338812500986885373e2550d4ebf6b/ziglang-0.17.0-py3-none-manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:97079827064a7492cce5541ceb438ae8003ce1e54e399676da2d62fb7a5dc08b", size = 101011302, upload-time = "2026-10-08T01:00:41.179Z" },
+    { url = "https://files.pythonhosted.org/packages/02/21/abee2f0524f54fe3e8783748b9df79bb07d4b955e6b465677d1cfbda335c/ziglang-0.17.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:d2804f94f54f7fcf8169f4b212a619ad688a4e2e6592e976f0cf2e58e2cd8af3", size = 97992724, upload-time = "2026-10-08T01:00:48.517Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/75/de0d1cbe3b6fc6c878f55c42039e8e5a0f7bca1055d6d584c71be1469bd5/ziglang-0.17.0-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.musllinux_1_1_armv7l.whl", hash = "sha256:2f1506fbd4080ae55c7f3c5abe99cce226e563827f50e8f143e36decc615310f", size = 99031647, upload-time = "2026-10-08T01:00:55.786Z" },
 ]
 
 [[package]]
