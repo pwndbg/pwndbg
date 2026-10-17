@@ -12,7 +12,6 @@ from capstone6pwndbg import CS_GRP_RET
 import pwndbg.aglib.next
 import pwndbg.aglib.proc
 import pwndbg.commands
-import pwndbg.commands.context
 import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.syscall import syscall_name_to_number
@@ -24,8 +23,7 @@ async def _nextjmp(ec: pwndbg.dbg_mod.ExecutionController):
     Execution controller for the `nextjmp` command.
     """
 
-    if await pwndbg.aglib.next.break_next_branch(ec):
-        pwndbg.commands.context.context()
+    await pwndbg.aglib.next.break_next_branch(ec)
 
 
 @pwndbg.commands.Command(
@@ -54,8 +52,7 @@ def nextcall(symbol_regex=None) -> None:
     """Breaks at the next call instruction"""
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
-        if await pwndbg.aglib.next.break_next_call(ec, symbol_regex):
-            pwndbg.commands.context.context()
+        await pwndbg.aglib.next.break_next_call(ec, symbol_regex)
 
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
 
@@ -64,8 +61,7 @@ async def _nextret(ec: pwndbg.dbg_mod.ExecutionController):
     """
     Execution controller for the `nextret` command.
     """
-    if await pwndbg.aglib.next.break_next_ret(ec):
-        pwndbg.commands.context.context()
+    await pwndbg.aglib.next.break_next_ret(ec)
 
 
 @pwndbg.commands.Command("Breaks at next return-like instruction.", category=CommandCategory.NEXT)
