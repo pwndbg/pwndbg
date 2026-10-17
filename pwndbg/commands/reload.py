@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-import importlib
 import sys
 
 import gdb
 
+import gdbinit
 import pwndbg
 import pwndbg.commands
 import pwndbg.gdblib.events
 import pwndbg.lib.cache
 from pwndbg.commands import CommandCategory
+from pwndbg.dbg_mod import DebuggerType
 
 
-def rreload(module, _exclude_mods=None) -> None:
+def rreload() -> None:
     """Recursively reload modules.
     Impl based on https://stackoverflow.com/a/66661311/1508881"""
     for module in list(sys.modules.keys()):
@@ -22,13 +23,16 @@ def rreload(module, _exclude_mods=None) -> None:
     # Mark that we are reloading; this is used to prevent the Command decorator from
     # erroring out on re-registering the same commands we had registered before
     gdb.pwndbg_is_reloading = True
-    importlib.import_module("pwndbg")
+    gdbinit.main()
+    gdb.pwndbg_is_reloading = False
 
 
-@pwndbg.commands.Command("Reload Pwndbg.", category=CommandCategory.DEV)
-def reload(*a) -> None:
+@pwndbg.commands.Command(
+    "Reload Pwndbg.", category=CommandCategory.DEV, only_debuggers={DebuggerType.GDB}
+)
+def reload() -> None:
     pwndbg.gdblib.events.on_reload()
-    rreload(pwndbg)
+    rreload()
     pwndbg.gdblib.events.after_reload()
 
 
