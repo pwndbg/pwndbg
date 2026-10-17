@@ -340,7 +340,9 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
         )
 
     @override
-    def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator | None):
+    def _read_register(
+        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator | None
+    ) -> int | None:
         # operand_id is the ID internal to Capstone
 
         if operand_id == X86_REG_RIP:
@@ -352,7 +354,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
     @override
     def _parse_memory(
         self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
-    ):
+    ) -> int | None:
         # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
         if op.mem.segment != 0:
             if op.mem.segment == X86_REG_FS:

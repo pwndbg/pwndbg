@@ -619,7 +619,7 @@ class DisassemblyAssistant:
         return address_list
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
-    def _telescope_format_list(self, addresses: list[int], limit: int, emu: Emulator) -> str:
+    def _telescope_format_list(self, addresses: list[int], limit: int, emu: Emulator | None) -> str:
         # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
         #  will return values accurate to the program state at the time of instruction executing.
 
@@ -924,7 +924,7 @@ class DisassemblyAssistant:
         return None
 
     def _common_generic_register_destination(
-        self, instruction: PwndbgInstruction, emu: Emulator
+        self, instruction: PwndbgInstruction, emu: Emulator | None
     ) -> None:
         """
         This function can be used to annotate instructions that have a register destination.
@@ -957,7 +957,7 @@ class DisassemblyAssistant:
 
     def _common_cmp_annotator_builder(
         self, flags_register_name: str, char_to_separate_operands: str = "-"
-    ) -> Callable[[PwndbgInstruction, Emulator], None]:
+    ) -> Callable[[PwndbgInstruction, Emulator | None], None]:
         """
         Many architectures implement near-identical `CMP`-like instructions.
 
@@ -968,7 +968,7 @@ class DisassemblyAssistant:
         """
         FLAG_REG_NAME_DISPLAY = flags_register_name.upper()
 
-        def handler(instruction: PwndbgInstruction, emu: Emulator) -> None:
+        def handler(instruction: PwndbgInstruction, emu: Emulator | None) -> None:
             # If there are just two operands, we can assume we are comparing them directly, and can display the values.
             # Some architectures have variants with more operands.
             if len(instruction.operands) == 2:
@@ -1005,7 +1005,7 @@ class DisassemblyAssistant:
     def _common_load_annotator(
         self,
         instruction: PwndbgInstruction,
-        emu: Emulator,
+        emu: Emulator | None,
         address: int | None,
         read_size: int,
         signed: bool,
@@ -1105,7 +1105,7 @@ class DisassemblyAssistant:
     def _common_store_annotator(
         self,
         instruction: PwndbgInstruction,
-        emu: Emulator,
+        emu: Emulator | None,
         address: int | None,
         value: int | None,
         write_size: int | None,
@@ -1148,7 +1148,7 @@ class DisassemblyAssistant:
             )
 
     def _common_move_annotator(
-        self, instruction: PwndbgInstruction, emu: Emulator, flipped_operands: bool = False
+        self, instruction: PwndbgInstruction, emu: Emulator | None, flipped_operands: bool = False
     ) -> None:
         """
         This function handles annotating `MOV` type instructions - where the value of one register is placed into another.
@@ -1192,7 +1192,7 @@ class DisassemblyAssistant:
     def _common_binary_op_annotator(
         self,
         instruction: PwndbgInstruction,
-        emu: Emulator,
+        emu: Emulator | None,
         target_operand: EnhancedOperand,
         op_one: int | None,
         op_two: int | None,

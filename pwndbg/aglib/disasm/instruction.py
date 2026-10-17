@@ -231,7 +231,7 @@ class MemoryDereferenceInfo:
 
     address: int
 
-    address_string: str
+    address_string: str | None
     """
     Colorized, possibly a symbol name, string that represents the address
     """
@@ -245,7 +245,7 @@ class MemoryDereferenceInfo:
 
 # These are purely for debugging disassembly with capstone
 def dump(s: object) -> object:
-    return {f: dump(v) if hasattr(v := getattr(s, f), "_fields_") else v for f, *_ in s._fields_}
+    return {f: dump(v) if hasattr(v := getattr(s, f), "_fields_") else v for f, *_ in s._fields_}  # type: ignore[attr-defined]
 
 
 def debug_dump_capstone_instruction(i: CsInsn) -> str:

@@ -1396,10 +1396,7 @@ m68k = RegisterSet(
         # Reg("a6"), fp register
     ),
 )
-default_reg_set = RegisterSet(
-    pc=Reg("pc"),
-    stack=Reg("sp")
-)
+default_reg_set = RegisterSet(pc=Reg("pc"), stack=Reg("sp"))
 
 
 all_reg_sets: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
