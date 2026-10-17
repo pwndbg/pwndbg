@@ -1134,11 +1134,6 @@ def process_launch(
         return
     args, raw = result
 
-    launch_args = getattr(args, "run-args", []) + raw
-    if args.shell_expand_args:
-        # Perform shell expansion.
-        launch_args = [os.path.expanduser(os.path.expandvars(arg)) for arg in launch_args]
-
     targets = dbg.debugger.GetNumTargets()
     assert targets < 2
     if targets == 0:
@@ -1157,6 +1152,23 @@ def process_launch(
             return
 
     target: lldb.SBTarget = dbg.debugger.GetTargetAtIndex(0)
+
+    # Same as `process launch` in LLDB: with no arguments on the command line,
+    # use the ones from `target.run-args`. Otherwise, save the given arguments
+    # there for subsequent runs.
+    launch_args = getattr(args, "run-args", []) + raw
+    launch_info = target.GetLaunchInfo()
+    if launch_args:
+        launch_info.SetArguments(launch_args, False)
+        target.SetLaunchInfo(launch_info)
+    else:
+        launch_args = [
+            launch_info.GetArgumentAtIndex(i) for i in range(launch_info.GetNumArguments())
+        ]
+
+    if args.shell_expand_args:
+        # Perform shell expansion.
+        launch_args = [os.path.expanduser(os.path.expandvars(arg)) for arg in launch_args]
 
     # Make sure LLDB knows the correct remote or local status of this launch.
     dbg._current_process_is_gdb_remote = driver.has_connection()
