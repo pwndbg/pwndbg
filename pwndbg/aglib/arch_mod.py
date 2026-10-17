@@ -39,6 +39,7 @@ from capstone6pwndbg import CS_MODE_V9
 from typing_extensions import override
 from unicorn import UC_ARCH_ARM
 from unicorn import UC_ARCH_ARM64
+from unicorn import UC_ARCH_M68K
 from unicorn import UC_ARCH_MIPS
 from unicorn import UC_ARCH_PPC
 from unicorn import UC_ARCH_RISCV
@@ -654,6 +655,10 @@ class M68kArch(PwndbgArchitecture):
         # Capstone lets us pick between a huge array of M68k variants
         # This is the newest arch release
         return CS_ARCH_M68K, CS_MODE_BIG_ENDIAN | CS_MODE_M68K_060
+
+    @override
+    def get_unicorn_constants(self) -> tuple[int, int] | None:
+        return UC_ARCH_M68K, UC_MODE_BIG_ENDIAN
 
 
 # Register the architecture classes
