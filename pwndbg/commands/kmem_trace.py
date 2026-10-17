@@ -115,7 +115,7 @@ class KmemTracepointsData:
         name = f"order-{order}"
         result = self._format_kmem_tracepoint_output(prefix, name, "page", page)
         if page is not None:
-            physmap = pwndbg.aglib.kernel.page_to_virt(page)
+            physmap = pwndbg.aglib.kernel.paging.page_to_virt(page)
             result += f" (physmap: {color.red(hex(physmap))})"
         self.add_result(result)
 

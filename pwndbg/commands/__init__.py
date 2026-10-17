@@ -549,7 +549,7 @@ class CommandObj:
         except TypeNotRecoveredError as e:
             print(message.error(f"recovering {e.name} failed with error:"))
             print(e)
-            if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
+            if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
                 print(
                     message.warn(
                         "please note that some structs may not be recoverable when CONFIG_RANDSTRUCT=y"
@@ -881,7 +881,7 @@ def OnlyWithKernelSymbols(function: Callable[P, T]) -> Callable[P, T | None]:
 def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWhenPagingEnabled(*a: P.args, **kw: P.kwargs) -> T | None:
-        if pwndbg.aglib.kernel.paging_enabled():
+        if pwndbg.aglib.kernel.paging.enabled:
             return function(*a, **kw)
         log.error(f"{func_name(function)}: This command may only be run when paging is enabled.")
         return None
@@ -894,7 +894,7 @@ def WarnOnKernelConfigRandstruct(function: Callable[P, T]) -> Callable[P, T | No
     def _WarnOnKernelConfigRandstruct(*a: P.args, **kw: P.kwargs) -> T | None:
         if (
             not pwndbg.aglib.kernel.has_debug_info()
-            and "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig()
+            and "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig_mod.kconfig()
         ):
             log.warning("command output may be inaccurate because CONFIG_RANDSTRUCT=y")
         return function(*a, **kw)

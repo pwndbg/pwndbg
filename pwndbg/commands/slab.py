@@ -112,7 +112,7 @@ def slab(
             slab_sheaf(addr)
 
 
-def emphasize(s):
+def emphasize(s) -> str:
     return pwndbg.color.underline(pwndbg.color.bold(pwndbg.color.red(s)))
 
 
@@ -366,7 +366,7 @@ def slab_info(
             print_node_cache(node_cache, verbose)
 
 
-def slab_list(filter_) -> None:
+def slab_list(filter_: str | None) -> None:
     results = [
         [
             slab_cache.name,

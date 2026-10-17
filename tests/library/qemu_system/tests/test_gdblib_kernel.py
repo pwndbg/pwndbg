@@ -25,14 +25,14 @@ def test_gdblib_kernel_archops_address_translation():
 
     kernel = pwndbg.aglib.kernel
     for pfn in pfns:
-        assert kernel.virt_to_pfn(kernel.pfn_to_virt(pfn)) == pfn
-        assert kernel.phys_to_pfn(kernel.pfn_to_phys(pfn)) == pfn
-        assert kernel.page_to_pfn(kernel.pfn_to_page(pfn)) == pfn
-        virt = kernel.pfn_to_virt(pfn)
-        assert kernel.phys_to_virt(kernel.virt_to_phys(virt)) == virt
-        assert kernel.page_to_virt(kernel.virt_to_page(virt)) == virt
-        phys = kernel.pfn_to_phys(pfn)
-        assert kernel.page_to_phys(kernel.phys_to_page(phys)) == phys
+        assert kernel.paging.virt_to_pfn(kernel.paging.pfn_to_virt(pfn)) == pfn
+        assert kernel.paging.phys_to_pfn(kernel.paging.pfn_to_phys(pfn)) == pfn
+        assert kernel.paging.page_to_pfn(kernel.paging.pfn_to_page(pfn)) == pfn
+        virt = kernel.paging.pfn_to_virt(pfn)
+        assert kernel.paging.phys_to_virt(kernel.paging.virt_to_phys(virt)) == virt
+        assert kernel.paging.page_to_virt(kernel.paging.virt_to_page(virt)) == virt
+        phys = kernel.paging.pfn_to_phys(pfn)
+        assert kernel.paging.page_to_phys(kernel.paging.phys_to_page(phys)) == phys
 
 
 @pytest.mark.skipif(
@@ -60,7 +60,7 @@ def test_gdblib_kernel_nproc():
 def test_gdblib_kernel_kbase():
     # newer arm/arm64 kernels reserve (_stext, _end] and other kernels reserve [_text, _end)
     # https://elixir.bootlin.com/linux/v6.8.4/source/arch/arm64/mm/init.c#L306
-    base = pwndbg.aglib.kernel.kbase()
+    base = pwndbg.aglib.kernel.paging.kbase
     assert base == pwndbg.aglib.symbol.lookup_symbol_addr(
         "_text"
     ) or base == pwndbg.aglib.symbol.lookup_symbol_addr("_stext")
