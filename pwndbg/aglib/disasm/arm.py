@@ -18,6 +18,7 @@ import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 if TYPE_CHECKING:
     from pwndbg.emu.emulator import Emulator
@@ -182,12 +183,16 @@ def itstate_from_cpsr(cpsr_value: int) -> int:
 
 # This class enhances both ARM A-profile and ARM M-profile (Cortex-M)
 class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
-    def __init__(self, architecture, flags_reg: Literal["cpsr", "xpsr"]) -> None:
+    def __init__(
+        self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, flags_reg: Literal["cpsr", "xpsr"]
+    ) -> None:
         super().__init__(architecture)
 
         self.flags_reg = flags_reg
 
-        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[
+            int, Callable[[PwndbgInstruction, Emulator | None], None]
+        ] = {
             # MOV
             ARM_INS_MOV: self._common_move_annotator,
             ARM_INS_MOVW: self._common_move_annotator,
@@ -340,11 +345,11 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
         return target
 
-    def read_thumb_bit(self, instruction: PwndbgInstruction, emu: Emulator) -> int | None:
+    def read_thumb_bit(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         return 1 if instruction.cs_insn._cs._mode & CS_MODE_THUMB else 0
 
     @override
-    def _immediate_string(self, instruction, operand):
+    def _immediate_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand) -> str:
         return "#" + super()._immediate_string(instruction, operand)
 
     @override
@@ -413,7 +418,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
 
     @override
     def _parse_register(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         """
         Register operands can have optional shifts in Arm

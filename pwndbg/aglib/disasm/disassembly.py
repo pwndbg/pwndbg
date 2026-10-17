@@ -324,6 +324,13 @@ def get_previous_linear_address_with_heuristic(current_address: int) -> int | No
     if not heuristic_backwards_linear_disassembly_enabled:
         return None
 
+    cs_info = pwndbg.aglib.arch.get_capstone_constants(current_address)
+    if cs_info is None:
+        # This means capstone disassembler is not supported
+        return None
+
+    md = get_disassembler(cs_info)
+
     max_instruction_size = pwndbg.aglib.arch.max_instruction_size
 
     # Start disassembling 20 instructions worth of byte behind the PC, assuming the worst case that all instructions are max width.
@@ -363,13 +370,6 @@ def get_previous_linear_address_with_heuristic(current_address: int) -> int | No
     # Unable to read bytes
     if byte_sequence is None:
         return None
-
-    cs_info = pwndbg.aglib.arch.get_capstone_constants(current_address)
-    if cs_info is None:
-        # This means capstone disassembler is not supported
-        return None
-
-    md = get_disassembler(cs_info)
 
     # In most cases, this loop will run at most `max_instruction_size` times.
     # However, in case the bytes have inline data that cause disassembly failure, this will

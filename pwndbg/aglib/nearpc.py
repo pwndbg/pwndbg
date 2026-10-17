@@ -3,8 +3,6 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Callable
 
-from capstone6pwndbg import *  # noqa: F403
-
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly

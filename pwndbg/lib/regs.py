@@ -1396,8 +1396,10 @@ m68k = RegisterSet(
         # Reg("a6"), fp register
     ),
 )
+default_reg_set = RegisterSet(pc=Reg("pc"), stack=Reg("sp"))
 
-reg_sets: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
+
+all_reg_sets: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "i386": i386,
     "i8086": i386,
     "x86-64": amd64,

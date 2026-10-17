@@ -26,7 +26,7 @@ def _get_syscall_return_value():
     just returned.
     """
 
-    register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
+    register_set = pwndbg.aglib.arch.reg_set
     return pwndbg.aglib.regs.read_reg(register_set.retval)
 
 
@@ -78,7 +78,7 @@ def exec_shellcode(blob, restore_context=True, capture=None, disable_breakpoints
     or currupt the memory in the inferior.
     """
 
-    register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
+    register_set = pwndbg.aglib.arch.reg_set
     preserve_set = register_set.gpr + register_set.args + (register_set.pc, register_set.stack)
 
     registers = {reg: pwndbg.aglib.regs.read_reg(reg) for reg in preserve_set}

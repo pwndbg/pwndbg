@@ -16,6 +16,7 @@ from pwndbg.aglib.disasm.assistant import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -140,7 +141,7 @@ CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
 
 
 class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
-    def __init__(self, architecture) -> None:
+    def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         super().__init__(architecture)
         self.architecture = architecture
 

@@ -288,11 +288,11 @@ module = [
     "pwndbg.aglib.nearpc",
     "pwndbg.aglib.typeinfo",
 ]
-disable_error_code = ["name-defined", "attr-defined"]
+disable_error_code = ["attr-defined"]
 
 [[tool.mypy.overrides]]
-module = ["pwndbg.aglib.disasm.*"]
-disable_error_code = ["index", "name-defined", "attr-defined"]
+module = ["capstone6pwndbg", "capstone6pwndbg.*"]
+follow_untyped_imports = true
 
 # ===========================
 
