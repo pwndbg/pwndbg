@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sys
 
-import gdbinit
 import pwndbg
 import pwndbg.commands
 import pwndbg.gdblib.events
@@ -10,6 +9,7 @@ import pwndbg.lib.cache
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import DebuggerType
 from pwndbginit import set_reloading_status
+from pwndbginit.gdbinit import main_try
 
 
 def rreload() -> None:
@@ -22,7 +22,7 @@ def rreload() -> None:
     # Mark that we are reloading; this is used to prevent the Command decorator from
     # erroring out on re-registering the same commands we had registered before
     set_reloading_status(True)
-    gdbinit.main()
+    main_try()
 
 
 @pwndbg.commands.Command(
