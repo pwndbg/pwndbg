@@ -16,6 +16,7 @@ import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.proc
 import pwndbg.aglib.vmmap
+import pwndbg.color
 import pwndbg.dbg_mod
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import message
@@ -216,7 +217,7 @@ async def break_next_call(ec: pwndbg.dbg_mod.ExecutionController, symbol_regex=N
         if (
             not symbol_regex
             or (ins.target_const and symbol_regex.match(hex(ins.target)))
-            or (ins.target_string and symbol_regex.match(ins.target_string))
+            or (ins.target_string and symbol_regex.match(pwndbg.color.strip(ins.target_string)))
         ):
             return ins
 
