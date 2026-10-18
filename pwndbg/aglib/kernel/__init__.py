@@ -28,6 +28,8 @@ if TYPE_CHECKING:
     import pwndbg.aglib.kernel.vmmap
     from pwndbg.aglib.kernel.arch import ArchSymbols
     from pwndbg.aglib.kernel.arch import Paging
+    from pwndbg.aglib.kernel.arch import kthread_stack as kthread_stack
+    from pwndbg.aglib.kernel.arch import pt_regs as pt_regs
 
 P = ParamSpec("P")
 D = TypeVar("D")

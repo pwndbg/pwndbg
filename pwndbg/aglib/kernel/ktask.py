@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ctypes
 import os
 from collections.abc import Generator
 
@@ -1047,73 +1046,6 @@ def seccomp(task: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
     return pwndbg.aglib.memory.get_typed_pointer("struct seccomp", seccomp)
 
 
-class pt_regs_x86_64(ctypes.Structure):
-    _fields_ = (
-        ("r15", ctypes.c_ulong),
-        ("r14", ctypes.c_ulong),
-        ("r13", ctypes.c_ulong),
-        ("r12", ctypes.c_ulong),
-        ("rbp", ctypes.c_ulong),
-        ("rbx", ctypes.c_ulong),
-        ("r11", ctypes.c_ulong),
-        ("r10", ctypes.c_ulong),
-        ("r9", ctypes.c_ulong),
-        ("r8", ctypes.c_ulong),
-        ("rax", ctypes.c_ulong),
-        ("rcx", ctypes.c_ulong),
-        ("rdx", ctypes.c_ulong),
-        ("rsi", ctypes.c_ulong),
-        ("rdi", ctypes.c_ulong),
-        ("orig_ax", ctypes.c_ulong),
-        ("rip", ctypes.c_ulong),
-        ("cs", ctypes.c_uint64),
-        ("flags", ctypes.c_ulong),
-        ("rsp", ctypes.c_ulong),
-        ("ss", ctypes.c_uint64),
-    )
-
-
-class pt_regs_aarch64(ctypes.Structure):
-    _fields_ = (
-        ("x0", ctypes.c_uint64),
-        ("x1", ctypes.c_uint64),
-        ("x2", ctypes.c_uint64),
-        ("x3", ctypes.c_uint64),
-        ("x4", ctypes.c_uint64),
-        ("x5", ctypes.c_uint64),
-        ("x6", ctypes.c_uint64),
-        ("x7", ctypes.c_uint64),
-        ("x8", ctypes.c_uint64),
-        ("x9", ctypes.c_uint64),
-        ("x10", ctypes.c_uint64),
-        ("x11", ctypes.c_uint64),
-        ("x12", ctypes.c_uint64),
-        ("x13", ctypes.c_uint64),
-        ("x14", ctypes.c_uint64),
-        ("x15", ctypes.c_uint64),
-        ("x16", ctypes.c_uint64),
-        ("x17", ctypes.c_uint64),
-        ("x18", ctypes.c_uint64),
-        ("x19", ctypes.c_uint64),
-        ("x20", ctypes.c_uint64),
-        ("x21", ctypes.c_uint64),
-        ("x22", ctypes.c_uint64),
-        ("x23", ctypes.c_uint64),
-        ("x24", ctypes.c_uint64),
-        ("x25", ctypes.c_uint64),
-        ("x26", ctypes.c_uint64),
-        ("x27", ctypes.c_uint64),
-        ("x28", ctypes.c_uint64),
-        ("x29", ctypes.c_uint64),
-        ("x30", ctypes.c_uint64),
-        ("sp", ctypes.c_uint64),
-        ("pc", ctypes.c_uint64),
-        ("pstate", ctypes.c_uint64),
-        ("orig_x0", ctypes.c_uint64),
-        ("syscallno", ctypes.c_int32),  # ends at offset 0x11c but the struct is 0x120 bytes
-    )
-
-
 class Kthread:
     def __init__(self, thread: pwndbg.dbg_mod.Value | int) -> None:
         self.thread = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", thread)
@@ -1150,18 +1082,7 @@ class Kthread:
 
     @property
     def stack(self) -> int | None:
-        if self.thread.dereference().type.has_field("thread"):
-            a = self.thread["thread"]
-            match pwndbg.aglib.arch.name:
-                case "x86-64":
-                    pass
-                case "aarch64":
-                    a = self.thread["thread"]["cpu_context"]
-            return int(a["sp"])
-        if self.thread.dereference().type.has_field("stack"):
-            return int(self.thread["stack"])
-        # the offset of stack was not recovered
-        return None
+        return pwndbg.aglib.kernel.kthread_stack(self.thread)
 
     @property
     def canary(self) -> int | None:
@@ -1216,26 +1137,7 @@ class Kthread:
         if not self.stack or not self.user_task or not page:
             # pt_regs may not be saved at the end of the stack if otherwise
             return None, None
-        pt_regs = syscall_reg = None
-        match pwndbg.aglib.arch.name:
-            case "x86-64":
-                pt_regs = pt_regs_x86_64
-                sz = ctypes.sizeof(pt_regs)
-                # the name is differnet than the canonical name
-                syscall_reg = "orig_ax"
-            case "aarch64":
-                pt_regs = pt_regs_aarch64
-                sz = ctypes.sizeof(pt_regs) + 0x20
-                kversion = pwndbg.aglib.kernel.krelease()
-                if kversion and (5, 10) <= kversion < (6, 18):
-                    sz += 0x10
-                syscall_reg = "syscallno"
-            case _:
-                raise NotImplementedError()
-        start = page.end - sz
-        regs = pt_regs.from_buffer_copy(pwndbg.aglib.memory.read(start, sz))
-        regs = [(name, int(getattr(regs, name))) for name, *_ in regs._fields_]
-        return regs, syscall_reg
+        return pwndbg.aglib.kernel.pt_regs(page)
 
     @property
     def user_stack(self) -> int | None:
