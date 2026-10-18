@@ -762,7 +762,7 @@ def parse_command_argument_to_int(arg: str) -> int:
     except pwndbg.dbg_mod.DebuggerError as e:
         coercion_error = e
 
-    # Try symbol address (necessary functions, arrays, structs and unions (e.g. malloc,
+    # Try symbol address (necessary for functions, arrays, structs and unions (e.g. malloc,
     # main_arena))
     addr = fixed.address
     if addr is None:
