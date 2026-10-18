@@ -10,6 +10,7 @@ import pwndbg.aglib.disasm.assistant
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 POWERPC_CONDITIONAL_BRANCHES = {
     PPC_INS_BC,
@@ -76,7 +77,7 @@ def is_branch_taken(cr: int, ctr: int, bi: int, bo: int) -> bool | None:
 class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     saved_ctr: int | None = None
 
-    def __init__(self, architecture) -> None:
+    def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         super().__init__(architecture)
 
         self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {}
@@ -115,7 +116,7 @@ class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
         return InstructionCondition.UNCONDITIONAL
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if instruction.id in POWERPC_RETURN_INSTRUCTION:
             return self._read_register_name(instruction, "lr", emu)
 

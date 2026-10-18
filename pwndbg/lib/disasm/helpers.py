@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-def to_signed(unsigned: int, bit_width: int):
+def to_signed(unsigned: int, bit_width: int) -> int:
     """
     Returns the signed number associated with the two's-complement binary representation of `unsigned`
     """
@@ -10,11 +10,11 @@ def to_signed(unsigned: int, bit_width: int):
     return unsigned - ((unsigned & extract_bit) << 1)
 
 
-def logical_shift_left(n: int, shift_amt: int, bit_width: int):
+def logical_shift_left(n: int, shift_amt: int, bit_width: int) -> int:
     return (n << shift_amt) & ((1 << bit_width) - 1)
 
 
-def logical_shift_right(n: int, shift_amt: int, bit_width: int):
+def logical_shift_right(n: int, shift_amt: int, bit_width: int) -> int:
     """
     `n` is truncated to the width of `bit_width` before the operation takes place.
     """
@@ -22,7 +22,7 @@ def logical_shift_right(n: int, shift_amt: int, bit_width: int):
     return n >> shift_amt
 
 
-def rotate_right(n: int, shift_amt: int, bit_width: int):
+def rotate_right(n: int, shift_amt: int, bit_width: int) -> int:
     """
     `n` is truncated to the width of `bit_width` before the operation takes place.
     """
@@ -30,7 +30,7 @@ def rotate_right(n: int, shift_amt: int, bit_width: int):
     return ((n >> shift_amt) | (n << (bit_width - shift_amt))) & ((1 << bit_width) - 1)
 
 
-def arithmetic_shift_right(n: int, shift_amt: int, bit_width: int):
+def arithmetic_shift_right(n: int, shift_amt: int, bit_width: int) -> int:
     """
     This returns the value represented by the two's-complement binary representation of the final result.
     This means the result could be negative (if the top bit of the input is negative)

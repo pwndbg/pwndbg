@@ -29,6 +29,7 @@ import pwndbg.exception
 from pwndbg.color import message
 from pwndbg.lib import CompilerNotFoundError
 from pwndbg.lib import TypeNotRecoveredError
+from pwndbginit import is_reloading
 
 log = logging.getLogger(__name__)
 
@@ -60,18 +61,6 @@ class CommandCategory(str, Enum):
     PWNDBG = "Pwndbg"
     SHELL = "Shell"
     DEV = "Developer"
-
-
-GDB_BUILTIN_COMMANDS = pwndbg.dbg.commands()
-
-# Set in `reload` command so that we can skip double checking for registration
-# of an already existing command when re-registering GDB CLI commands
-# (there is no way to unregister a command in GDB 12.x)
-pwndbg_is_reloading = False
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
-
-    pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 
 
 class InvalidDebuggerError(Exception):
@@ -186,13 +175,10 @@ class CommandObj:
         assert "_" not in self.command_name and "Use '-' instead of '_' in command names."
         assert self.command_name not in command_names and "Command already exists."
         assert (
-            not (
-                self.command_name in GDB_BUILTIN_COMMANDS
-                and self.command_name not in CommandObj.builtin_override_whitelist
-                and not pwndbg_is_reloading
-            )
-            and "Cannot override non-whitelisted built-in command."
-        )
+            self.command_name not in pwndbg.dbg.commands()
+            or self.command_name in CommandObj.builtin_override_whitelist
+            or is_reloading()
+        ), "Cannot override non-whitelisted built-in command."
 
         assert category
         self.category: CommandCategory = category
