@@ -51,7 +51,7 @@ def main():
         "-q",
         "-nx",
         "-iex",
-        "py import pwndbginit.gdbinit; pwndbginit.gdbinit.main_try()",
+        "py import pwndbginit.gdbinit; pwndbginit.gdbinit.main_try(portable=True)",
         *sys.argv[1:],
     ]
     sys.argv = gdb_argv

@@ -1745,6 +1745,11 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         import psutil
 
+        if not pwndbg._is_portable:
+            # Pwndbg was loaded with `source /path/to/gdbinit.py` (from ~/.gdbinit or a `-x` file),
+            # so GDB has already loaded the .gdbinit files it should, honoring `--nx` and `--nh`.
+            return True, True
+
         disable_home_gdbinit = 0
         disable_any_gdbinit = 0
         proc = psutil.Process(os.getpid())
@@ -1756,11 +1761,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
             elif arg in ("-nx", "--nx", "-n", "--n"):
                 disable_any_gdbinit += 1
 
-        if disable_any_gdbinit == 0:
-            # The `--nx` option is added only in pwndbg-portable mode.
-            # This check allows using OLD syntax, eg: `source /path/to/pwndbg/gdbinit.py`, from ~/.gdbinit
-            return True, True
-
+        # The `pwndbg` launcher passes `-nx` once itself, so a second one comes from the user.
         return disable_any_gdbinit >= 2, disable_home_gdbinit >= 1
 
     def _load_gdbinit(self):
