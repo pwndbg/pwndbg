@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 
 import pwndbg
@@ -9,14 +10,15 @@ import pwndbg.lib.cache
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import DebuggerType
 from pwndbginit.gdbinit import main_try
-from status import set_reloading_status
+from pwndbgstatus import set_reloading_status
 
 
 def rreload() -> None:
     """Recursively reload modules.
     Impl based on https://stackoverflow.com/a/66661311/1508881"""
+    pattern = re.compile(r"^((pwndbg)|(pwndbginit))(\..+)?$")
     for module in list(sys.modules.keys()):
-        if "pwndbg" in module:
+        if pattern.match(module):
             del sys.modules[module]
 
     # Mark that we are reloading; this is used to prevent the Command decorator from

@@ -29,7 +29,7 @@ import pwndbg.exception
 from pwndbg.color import message
 from pwndbg.lib import CompilerNotFoundError
 from pwndbg.lib import TypeNotRecoveredError
-from status import is_reloading
+from pwndbgstatus import is_reloading
 
 log = logging.getLogger(__name__)
 
