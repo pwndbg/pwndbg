@@ -6,7 +6,6 @@ import sys
 import pwndbg
 import pwndbg.commands
 import pwndbg.gdblib.events
-import pwndbg.lib.cache
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import DebuggerType
 from pwndbginit import set_reloading_status
@@ -33,13 +32,4 @@ def rreload() -> None:
 def reload() -> None:
     pwndbg.gdblib.events.on_reload()
     rreload()
-    pwndbg.gdblib.events.after_reload()
-
-
-@pwndbg.commands.Command("Makes Pwndbg reinitialize all state.", category=CommandCategory.DEV)
-def reinit_pwndbg() -> None:
-    """
-    Makes pwndbg reinitialize all state.
-    """
-    pwndbg.lib.cache.clear_caches()
     pwndbg.gdblib.events.after_reload()
