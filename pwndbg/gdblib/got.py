@@ -256,13 +256,7 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
             objfile = pwndbg.aglib.proc.exe()
         self.tracker.obj_display_name = display_name(objfile, basename=True)
 
-        self.tracker.sym_display_name = display_name(
-            self.tracker.dynamic_section.string(
-                self.tracker.dynamic_section.symtab_read(
-                    self.tracker.relocation_fn(self.tracker.relocation_index, "r_sym"), "st_name"
-                )
-            )
-        )
+        self.tracker.sym_display_name = tracked_symbol_name(self.tracker)
 
     def should_stop(self) -> bool:
         # Read the new branch target, and update the redirection target of the
@@ -308,6 +302,7 @@ class Tracker(pwndbg.gdblib.bpoint.Breakpoint):
     target = 0
     dynamic_section = None
     relocation_fn = None
+    relocation_has_addend = False
     relocation_index = 0
     link_map_entry = None
 
@@ -342,6 +337,26 @@ class Tracker(pwndbg.gdblib.bpoint.Breakpoint):
         return False
 
 
+def tracked_symbol_name(tracker) -> str:
+    """
+    Return the display name of the symbol the given tracker's relocation refers
+    to.
+
+    IRELATIVE relocations have no symbol associated with them, so, like
+    objdump and the `got` command, we name them after their resolver address,
+    which is stored in the addend.
+    """
+    r_type = tracker.relocation_fn(tracker.relocation_index, "r_type")
+    if r_type in IRELATIVE_SLOTS[pwndbg.aglib.arch.name]:
+        if not tracker.relocation_has_addend:
+            return "*ABS*"
+        return f"*ABS*+0x{tracker.relocation_fn(tracker.relocation_index, 'r_addend'):x}"
+
+    dynamic = tracker.dynamic_section
+    sym_index = tracker.relocation_fn(tracker.relocation_index, "r_sym")
+    return display_name(dynamic.string(dynamic.symtab_read(sym_index, "st_name")))
+
+
 def _update_watchpoints() -> None:
     """
     Internal function responsible for updating the watchpoints that track the
@@ -357,7 +372,9 @@ def _update_watchpoints() -> None:
         tracker.delete()
     INSTALLED_WATCHPOINTS.clear()
 
-    # Install new watchpoints to cover all of the jump slots in all GOTs
+    # Install new watchpoints to cover all of the jump slots and the irelative
+    # slots in all GOTs. The latter have no symbol, but they are still called
+    # through, e.g. by libc for its ifunc-resolved string and memory functions.
     for obj in pwndbg.aglib.dynamic.link_map():
         name = obj.name()
         if name == b"":
@@ -370,9 +387,10 @@ def _update_watchpoints() -> None:
             continue
 
         jump_slots = JUMP_SLOTS[pwndbg.aglib.arch.name]
+        tracked_slots = jump_slots | IRELATIVE_SLOTS[pwndbg.aglib.arch.name]
         if dynamic.has_rel:
             for i in range(dynamic.rel_entry_count()):
-                if dynamic.rel_read(i, "r_type") not in jump_slots:
+                if dynamic.rel_read(i, "r_type") not in tracked_slots:
                     continue
                 target = dynamic.load_bias + dynamic.rel_read(i, "r_offset")
 
@@ -381,35 +399,40 @@ def _update_watchpoints() -> None:
                 tracker.link_map_entry = obj
                 tracker.relocation_index = i
                 tracker.relocation_fn = dynamic.rel_read
+                tracker.relocation_has_addend = False
                 patcher = Patcher(target, tracker)
                 patcher.should_stop()
 
                 INSTALLED_WATCHPOINTS[target] = (tracker, patcher)
         if dynamic.has_rela:
             for i in range(dynamic.rela_entry_count()):
-                if dynamic.rela_read(i, "r_type") not in jump_slots:
+                r_type = dynamic.rela_read(i, "r_type")
+                if r_type not in tracked_slots:
                     continue
-                target = (
-                    dynamic.load_bias
-                    + dynamic.rela_read(i, "r_offset")
-                    + dynamic.rela_read(i, "r_addend")
-                )
+                target = dynamic.load_bias + dynamic.rela_read(i, "r_offset")
+                # The addend of an irelative slot is the address of its
+                # resolver, not an adjustment to the address of the slot.
+                if r_type in jump_slots:
+                    target += dynamic.rela_read(i, "r_addend")
 
                 tracker = Tracker()
                 tracker.dynamic_section = dynamic
                 tracker.link_map_entry = obj
                 tracker.relocation_index = i
                 tracker.relocation_fn = dynamic.rela_read
+                tracker.relocation_has_addend = True
                 patcher = Patcher(target, tracker)
                 patcher.should_stop()
 
                 INSTALLED_WATCHPOINTS[target] = (tracker, patcher)
         if dynamic.has_jmprel:
+            has_addend = dynamic.jmprel_elem.has_field("r_addend")
             for i in range(dynamic.jmprel_entry_count()):
-                if dynamic.jmprel_read(i, "r_type") not in jump_slots:
+                r_type = dynamic.jmprel_read(i, "r_type")
+                if r_type not in tracked_slots:
                     continue
                 target = dynamic.load_bias + dynamic.jmprel_read(i, "r_offset")
-                if dynamic.jmprel_elem.has_field("r_addend"):
+                if has_addend and r_type in jump_slots:
                     target += dynamic.jmprel_read(i, "r_addend")
 
                 tracker = Tracker()
@@ -417,6 +440,7 @@ def _update_watchpoints() -> None:
                 tracker.link_map_entry = obj
                 tracker.relocation_index = i
                 tracker.relocation_fn = dynamic.jmprel_read
+                tracker.relocation_has_addend = has_addend
                 patcher = Patcher(target, tracker)
                 patcher.should_stop()
 
