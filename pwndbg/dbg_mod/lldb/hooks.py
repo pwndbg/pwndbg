@@ -7,7 +7,6 @@ from __future__ import annotations
 import pwndbg
 import pwndbg.aglib.arch_mod
 import pwndbg.aglib.file
-import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
@@ -26,11 +25,6 @@ def update_arch_and_typeinfo() -> None:
     # Updating typeinfo first for consistency with GDB where it's required.
     pwndbg.aglib.typeinfo.update()
     pwndbg.aglib.arch_mod.update()
-
-
-@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
-def reset_config() -> None:
-    pwndbg.aglib.kernel._kconfig = None
 
 
 @pwndbg.dbg.event_handler(EventType.START)

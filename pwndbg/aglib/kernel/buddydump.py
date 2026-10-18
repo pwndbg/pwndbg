@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pwndbg
-import pwndbg.aglib.kernel.symbol
+import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 
 #########################################
@@ -13,9 +13,9 @@ MAX_ORDER = 11
 
 def find_zone_offsets() -> tuple[int, int, int, int, int]:
     pcp_off, name_off, freelist_off, pcp_pad, zone_sz = None, None, None, None, None
-    node_data0 = pwndbg.aglib.kernel.node_data()
+    node_data0 = pwndbg.aglib.kernel.symbol.node_data
     assert node_data0, "cannot find node_data"
-    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
+    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         node_data0 = pwndbg.aglib.memory.read_pointer_width(node_data0)
     ptr = node_data0
     for i in range(20):  # the pcp offset should exist in those range
@@ -42,7 +42,7 @@ def find_zone_offsets() -> tuple[int, int, int, int, int]:
                 name_str = pwndbg.aglib.memory.string(char_ptr).decode()
             except Exception:
                 continue
-            if name_str is not None and name_str in pwndbg.aglib.kernel.symbol.POSSIBLE_ZONE_NAMES:
+            if name_str is not None and name_str in pwndbg.aglib.kernel.POSSIBLE_ZONE_NAMES:
                 name_off = i * 8 + pcp_off
                 break
     assert name_off, "can't find name offset"
@@ -57,7 +57,7 @@ def find_zone_offsets() -> tuple[int, int, int, int, int]:
         prev = cur
     assert freelist_off, "can't find freelist offset"
     ptr += (
-        MAX_ORDER * (pwndbg.aglib.kernel.symbol.nmtypes() * 0x10 + 8)
+        MAX_ORDER * (pwndbg.aglib.kernel.nmtypes() * 0x10 + 8)
     ) + 0x10  # guessed MAX_ORDER * sizeof(struct list_head) + some other fields
     # find the next `zone_pgdat`
     for _ in range(100):  # the pcp offset should exist in those range
@@ -73,16 +73,16 @@ def find_zone_offsets() -> tuple[int, int, int, int, int]:
     return pcp_off, name_off, freelist_off, pcp_pad, zone_sz
 
 
-@pwndbg.aglib.kernel.typeinfo_recovery("struct pglist_data", requires_kversion=True)
+@pwndbg.aglib.kernel.typing.typeinfo_recovery("struct pglist_data", requires_kversion=True)
 def recover_buddydump_typeinfo() -> str:
-    nmtypes = pwndbg.aglib.kernel.symbol.nmtypes()
-    nzones = pwndbg.aglib.kernel.symbol.nzones()
-    npcplist = pwndbg.aglib.kernel.symbol.npcplist()
+    nmtypes = pwndbg.aglib.kernel.nmtypes()
+    nzones = pwndbg.aglib.kernel.nzones()
+    npcplist = pwndbg.aglib.kernel.npcplist()
 
-    result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
-    result += pwndbg.aglib.kernel.symbol.COMMON_TYPES
+    result = f"#define KVERSION {pwndbg.aglib.kernel.kversion_cint()}\n"
+    result += pwndbg.aglib.kernel.typing.COMMON_TYPES
     pcp_off, name_off, freearea_off, pcp_pad, zone_sz = find_zone_offsets()
-    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
+    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         result += "#define CONFIG_NUMA\n"
     result += f"""
     struct free_area {{

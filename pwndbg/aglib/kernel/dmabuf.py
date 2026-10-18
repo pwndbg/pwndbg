@@ -54,11 +54,11 @@ def find_dmabuf_offsets(dmabuf) -> tuple[int, int, int]:
     return sg_table_off, exp_name_off, list_node_off
 
 
-@pwndbg.aglib.kernel.typeinfo_recovery("struct dma_buf")
+@pwndbg.aglib.kernel.typing.typeinfo_recovery("struct dma_buf")
 def recover_dmabuf_typeinfo(first_dmabuf: int) -> str:
     # reaching here means priv exists
     sg_table_off, exp_name_off, list_node_off = find_dmabuf_offsets(first_dmabuf)
-    result = pwndbg.aglib.kernel.symbol.COMMON_TYPES
+    result = pwndbg.aglib.kernel.typing.COMMON_TYPES
     result += f"""
     typedef unsigned long dma_addr_t;
     struct scatterlist {{

@@ -11,13 +11,16 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.ktask
-import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
+import pwndbg.aglib.search
+import pwndbg.aglib.symbol
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
+import pwndbg.lib.config
 import pwndbg.lib.err
 import pwndbg.lib.memory
+from pwndbg.aglib.kernel.arch.paging import Paging
 from pwndbg.color import message
 from pwndbg.lib.memory import Page
 
@@ -38,7 +41,7 @@ def _get_name(
 
 
 def _apply_address_markers(pages: tuple[Page, ...]) -> None:
-    pi = pwndbg.aglib.kernel.arch_paginginfo()
+    pi = pwndbg.aglib.kernel.paging
     if pi and pages:
         sections = pi.markers()
         # this is needed for context annotations
@@ -52,8 +55,8 @@ def _apply_address_markers(pages: tuple[Page, ...]) -> None:
 def _handle_page_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
     # only handle_offsets when invoked through vmmap command
     kernelrw = (
-        pwndbg.aglib.kernel.paging.ArchPagingInfo.KERNELRO,
-        pwndbg.aglib.kernel.paging.ArchPagingInfo.KERNELBSS,
+        Paging.KERNELRO,
+        Paging.KERNELBSS,
     )
     prev_objfile, base = "", 0
     for page in pages.ranges():
@@ -68,7 +71,7 @@ def _handle_page_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
 
 def _get_kernel_stacks() -> list[tuple[int, int, str]]:
     stacks = []
-    for task in pwndbg.commands.ktask.get_ktasks():
+    for task in pwndbg.aglib.kernel.ktask.get_ktasks():
         for thread in task.threads:
             if thread.stack:
                 stacks.append((thread.stack, thread.pid, thread.name))
@@ -76,10 +79,10 @@ def _get_kernel_stacks() -> list[tuple[int, int, str]]:
 
 
 def _handle_user_stack_and_filepaths(pages: pwndbg.dbg_mod.MemoryMap) -> None:
-    task = pwndbg.aglib.kernel.current_task()
-    if task is None:
+    _task = pwndbg.aglib.kernel.current_task()
+    if _task is None:
         return
-    task = pwndbg.commands.ktask.Kthread(task)
+    task = pwndbg.aglib.kernel.ktask.Kthread(_task)
     user_stack = task.user_stack
     for page in pages.ranges():
         if pwndbg.aglib.memory.is_kernel(page.start):
@@ -142,7 +145,7 @@ def kernel_vmmap_via_page_tables() -> tuple[Page, ...]:
         return ()
 
     # If paging is not enabled, we shouldn't attempt to parse page tables
-    if not pwndbg.aglib.kernel.paging_enabled():
+    if not pwndbg.aglib.kernel.paging.enabled:
         return ()
 
     p = PageTableDump(machine_backend, arch_backend)
@@ -329,11 +332,11 @@ def kernel_vmmap_pages() -> tuple[Page, ...]:
             # has the user set the pgd with kcurrent?
             # None if not which gets properly handled
             entry = None
-            if (kcurrent := pwndbg.commands.kcurrent.get_kcurrent()) is not None:
+            if (kcurrent := pwndbg.aglib.kernel.ktask.get_kcurrent()) is not None:
                 entry = kcurrent.pgd
             if pwndbg.aglib.memory.is_kernel(entry):
-                entry = pwndbg.aglib.kernel.pagewalk(entry, virt=False).phys
-            return pwndbg.aglib.kernel.pagescan(entry)
+                entry = pwndbg.aglib.kernel.paging.pagewalk(entry, virt=False).phys
+            return pwndbg.aglib.kernel.paging.pagescan(entry)
         case "pt-dump":
             return kernel_vmmap_via_page_tables()
         case "monitor":
@@ -360,10 +363,46 @@ def kernel_vmmap() -> tuple[pwndbg.lib.memory.Page, ...]:
         # TODO: check version here when QEMU displays the x bit for x64
         # see: https://github.com/pwndbg/pwndbg/pull/3020#issuecomment-2914573242
         for page in pages:
-            if page.objfile == pwndbg.aglib.kernel.paging.ArchPagingInfo.ESPSTACK:
+            if page.objfile == Paging.ESPSTACK:
                 continue
-            entry = pwndbg.aglib.kernel.pagewalk(page.start).entry
+            entry = pwndbg.aglib.kernel.paging.pagewalk(page.start).entry
             if entry and entry >> 63 == 0:
                 page.flags |= 1
 
     return tuple(pages)
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
+    """Returns the first kernel mapping which contains the linux_banner"""
+    base = pwndbg.aglib.kernel.paging.kbase
+    if base is None:
+        return None
+
+    banner = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
+    fallback_mappings = []
+    for mapping in kernel_vmmap_pages():
+        if mapping.vaddr < base:
+            continue
+        if banner is not None and banner in mapping:
+            return mapping
+        if not mapping.read or mapping.write or mapping.execute:
+            fallback_mappings.append(mapping)
+            continue
+
+        result = next(pwndbg.aglib.search.search(b"Linux version", mappings=[mapping]), None)
+
+        if result:
+            return mapping
+    # optimization: observe that the first Linux kernel region is the kernel text so search it last
+    # it now finds the first ro page almost instantly even for kernels that are partially initialized
+    # should find it within the first few page chunks if debugging linux kernel (reason for [:10])
+    for mapping in fallback_mappings[1:10] + [fallback_mappings[0]]:
+        # this loop handles when the kernel has not finished initialization
+        # and the permission of the first ro page has not been properly set
+        result = next(pwndbg.aglib.search.search(b"Linux version", mappings=[mapping]), None)
+
+        if result:
+            return mapping
+
+    return None

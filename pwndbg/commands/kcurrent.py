@@ -6,17 +6,15 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.ktask
-import pwndbg.aglib.memory
 import pwndbg.aglib.signal
 import pwndbg.chain
 import pwndbg.color.context as ctx_color
 import pwndbg.commands
 import pwndbg.commands.kbpf
-import pwndbg.commands.ktask
 import pwndbg.commands.parse_seccomp
 from pwndbg import color
+from pwndbg.aglib.kernel.ktask import select_kthread_from_pid
 from pwndbg.color import message
-from pwndbg.commands.ktask import Kthread
 from pwndbg.lib.exception import IndentContextManager
 from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.syscall import syscall_number_to_name
@@ -24,43 +22,6 @@ from pwndbg.lib.syscall import syscall_number_to_name
 indent = IndentContextManager()
 
 fmode_flags = BitFlags([("R", 0), ("W", 1), ("X", 5)])
-_KCURRENT = None
-
-
-def get_kcurrent() -> Kthread | None:
-    global _KCURRENT
-    if _KCURRENT is None:
-        return None
-    for task in pwndbg.commands.ktask.get_ktasks():
-        for _kthread in task.threads:
-            if int(_kthread.thread) == int(_KCURRENT.thread):
-                return _KCURRENT
-    _KCURRENT = None  # the previously set KCURRENT doesn't exist anymore
-    return None
-
-
-def select_kthread_from_pid(pid: int | None) -> Kthread | None:
-    pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo()
-    kthread = None
-    if pid is None:
-        if (kthread := get_kcurrent()) is not None:
-            return kthread
-        t = pwndbg.aglib.kernel.current_task()
-        if pwndbg.aglib.memory.is_kernel(t):
-            kthread = Kthread(t)
-        if not kthread:
-            print(message.warn("current task not found"))
-    else:
-        for task in pwndbg.commands.ktask.get_ktasks():
-            for _kthread in task.threads:
-                if _kthread.pid == pid:
-                    kthread = _kthread
-                    break
-            if kthread:
-                break
-        else:
-            print(message.warn(f"ktask with pid {pid} not found"))
-    return kthread
 
 
 parser = argparse.ArgumentParser(description="Displays information about the stack of a task.")
@@ -250,5 +211,4 @@ def kcurrent(pid: int | None = None, set_pid: bool = False) -> None:
         return
     indent.print(kthread)
     if set_pid:
-        global _KCURRENT
-        _KCURRENT = kthread
+        pwndbg.aglib.kernel.ktask._KCURRENT = kthread

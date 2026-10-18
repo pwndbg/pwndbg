@@ -41,8 +41,8 @@ def print_sgl(sgl, indent):
         if page_link & SG_CHAIN:
             next_sgl = page
             continue
-        virt = pwndbg.aglib.kernel.page_to_virt(page)
-        phys = pwndbg.aglib.kernel.virt_to_phys(virt)
+        virt = pwndbg.aglib.kernel.paging.page_to_virt(page)
+        phys = pwndbg.aglib.kernel.paging.virt_to_phys(virt)
         offset = int(sgl["offset"])
         length = int(sgl["length"])
         desc = "- " + indent.prefix(f"[0x{idx:02x}] {indent.addr_hex(virt)}")
@@ -69,9 +69,9 @@ def kdmabuf() -> None:
     db_name = "db_list"
     if pwndbg.aglib.kernel.krelease() >= (6, 10):
         db_name = "debugfs_list"
-        if "CONFIG_DEBUG_FS" not in pwndbg.aglib.kernel.kconfig():
+        if "CONFIG_DEBUG_FS" not in pwndbg.aglib.kernel.kconfig_mod.kconfig():
             print(message.warn("dma_buf->priv does not exist"))
-    db_list = pwndbg.aglib.kernel.db_list()
+    db_list = pwndbg.aglib.kernel.symbol.db_list
     if db_list is None:
         print(message.warn(f"{db_name} not found"))
         return
