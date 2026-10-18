@@ -1100,6 +1100,9 @@ class Value:
     def __int__(self) -> int:
         """
         Converts this value to an integer, if possible.
+
+        Raises:
+            DebuggerError: When the Value is not coerceable to an int.
         """
         raise NotImplementedError()
 

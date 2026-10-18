@@ -767,7 +767,7 @@ def parse_command_argument_to_int(arg: str) -> int:
     addr = fixed.address
     if addr is None:
         raise argparse.ArgumentTypeError(
-            f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: not coercable to int ({coercion_error}) nor addressable."
+            f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: not coerceable to int ({coercion_error}) nor addressable."
         )
     return int(addr)
 
