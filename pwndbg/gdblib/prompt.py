@@ -19,8 +19,8 @@ from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
-from reload import is_reloading
-from reload import set_reloading_status
+from status import is_reloading
+from status import set_reloading_status
 
 # noinspection PyPackageRequirements
 show_tip = pwndbg.config.add_param(
