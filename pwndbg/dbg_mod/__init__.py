@@ -212,7 +212,7 @@ class Frame:
           to SymbolLookupType.ANY.
 
         Returns:
-        - pwndbg.dbg_mod.Value | None: The value of the symbol if found, or None if not found.
+        - pwndbg.dbg_mod.Value | None: The address of the symbol if found, or None if not found.
 
         Raises:
         - pwndbg.dbg_mod.DebuggerError: If symbol name contains invalid characters

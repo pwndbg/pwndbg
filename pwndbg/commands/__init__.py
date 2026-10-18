@@ -649,13 +649,16 @@ def parse_command_argument(
 
     Arguments:
         arg: Original string representation (e.g. '0', '$rax', '$rax+44')
-        sloppy: If ``arg`` cannot be evaluated, return ``arg``. (default: False)
+        sloppy: If `arg` cannot be evaluated, return `arg`. (default: False)
         quiet: If an error occurs, suppress it. (default: True)
         reraise: If an error occurs, raise the exception. (default: False)
 
     Returns:
-        Ideally a ``Value`` object.  May return a ``str`` if ``sloppy==True``.
-        May return ``None`` if ``sloppy == False and reraise == False``.
+        Ideally a `Value` object.  May return a `str` if `sloppy==True`.
+        May return `None` if `sloppy == False and reraise == False`.
+
+        If `arg` is a symbol, this may return the value of the symbol or
+        the address of the symbol. Don't rely on one behaviour or the other.
     """
     if isinstance(arg, pwndbg.dbg_mod.Value):
         return arg
@@ -669,15 +672,15 @@ def parse_command_argument(
         raise AssertionError("Reached command expression evaluation with no frame or inferior")
 
     # Try to evaluate the expression in the local, or, failing that, global
-    # context.
+    # context. If a symbol is in the expression, returns the Value of the symbol.
     try:
         return target.evaluate_expression(arg)
     except pwndbg.dbg_mod.DebuggerError:
         pass
 
     # Check if this is a quoted symbol.
-    # .evaluate_expression() should be able to catch this case, but
-    # https://github.com/pwndbg/pwndbg/issues/4189
+    # .evaluate_expression() should be able to catch this case, but #4189.
+    # Returns the address of the symbol.
     try:
         found_symbol = target.lookup_symbol(arg)
         if found_symbol is not None:
@@ -739,22 +742,34 @@ def parse_command_argument_to_int(arg: str) -> int:
     except pwndbg.dbg_mod.DebuggerError as dbge:
         raise argparse.ArgumentTypeError(f"debugger couldn't resolve argument '{arg}': {dbge}")
 
-    # for some reason, int(gdb.Value) for a function and array does not return its address
-    # so we check for this in order to support stuff like `malloc` or `buf`
-    if fixed.type.code in (pwndbg.dbg_mod.TypeCode.FUNC, pwndbg.dbg_mod.TypeCode.ARRAY):
-        addr = fixed.address
-        if addr is None:
-            raise argparse.ArgumentTypeError(
-                f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Value is not addressable."
-            )
-        return int(addr)
+    # parse_command_argument() may return a Value that represents the value of a
+    # symbol, or a Value that represents the address of the symbol, depending on
+    # whether evaluate_expression() or lookup_symbol() succeed.
+    # This is kind of inherently tricky, because you may pass in `my_stack_local_int`
+    # and expect to get the value back, or pass in `main_arena` and expect to get
+    # the address of the struct back.
+    # Hopefully the behaviour of "if the symbol value is coearcable to an int, return
+    # an int, otherwise return the symbol's address" is intuitive to users.
+    # If they want an address even for a local, they can use `&'my_stack_local_int'`.
+    # FIXME: i think this will be inconsistent because #4189 i.e. because lookup_symbol
+    # is made to be an escape hatch, so maybe a C++ multi-word symbol that has whitespace
+    # in the name, but is an integer variable will have its address returned instead of
+    # its value.
 
+    # Try symbol value (which might actually be address if we reached lookup_symbol())
     try:
         return int(fixed)
     except pwndbg.dbg_mod.DebuggerError as e:
+        coercion_error = e
+
+    # Try symbol address (necessary functions, arrays, structs and unions (e.g. malloc,
+    # main_arena))
+    addr = fixed.address
+    if addr is None:
         raise argparse.ArgumentTypeError(
-            f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: {e}"
+            f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: not coercable to int ({coercion_error}) nor addressable."
         )
+    return int(addr)
 
 
 def parse_command_argument_to_int_or_str(arg: str) -> int | str:
