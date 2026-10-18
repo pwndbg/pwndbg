@@ -1262,7 +1262,7 @@ class RegisterContext(RegisterContextProtocol):
         desc = hex(value)
         if pwndbg.aglib.kernel.has_debug_symbols():
             try:
-                virtual = pwndbg.aglib.kernel.phys_to_virt(value)
+                virtual = pwndbg.aglib.kernel.paging.phys_to_virt(value)
                 desc += f" [virtual: {pwndbg.chain.format(virtual)}]"
             except Exception:
                 pass

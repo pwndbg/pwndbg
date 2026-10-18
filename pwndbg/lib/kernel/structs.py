@@ -12,7 +12,7 @@ class IDTEntry:
     https://wiki.osdev.org/Interrupt_Descriptor_Table
     """
 
-    def __init__(self, entry):
+    def __init__(self, entry) -> None:
         self.offset = None
         self.segment = None
         self.dpl = None
@@ -25,7 +25,7 @@ class IDTEntry:
         elif len(entry) == 16:
             self._parse_entry64(entry)
 
-    def _parse_entry32(self, entry):
+    def _parse_entry32(self, entry) -> None:
         """
         Parse a 32-bit IDT entry.
 
@@ -53,7 +53,7 @@ class IDTEntry:
         self.dpl = (entry >> 45) & 0x3
         self.present = (entry >> 47) & 0x1
 
-    def _parse_entry64(self, entry):
+    def _parse_entry64(self, entry) -> None:
         """Parse a 64-bit IDT entry."""
         entry = int.from_bytes(entry, byteorder="little")
 

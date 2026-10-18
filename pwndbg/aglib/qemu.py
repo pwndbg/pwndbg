@@ -246,7 +246,7 @@ class QemuMachine(Machine):
         with contextlib.suppress(Exception):
             phys = int(res.split(" ")[-1], 16)
         if phys is None:
-            phys = pwndbg.aglib.kernel.pagewalk(address).phys
+            phys = pwndbg.aglib.kernel.paging.pagewalk(address).phys
         if phys is None:
             raise OSError(f"Virtual address {address} cannot be resolved")
         return bytearray(self.read_physical_memory(phys, length))

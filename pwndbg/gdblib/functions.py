@@ -349,13 +349,13 @@ def v2p(vaddr: gdb.Value) -> int:
         raise gdb.GdbError(
             "This function may only be run when debugging a Linux kernel with symbols."
         )
-    if not pwndbg.aglib.kernel.paging_enabled():
+    if not pwndbg.aglib.kernel.paging.enabled:
         raise gdb.GdbError("This command may only be run when paging is enabled.")
     if pwndbg.aglib.arch.name not in ("x86-64", "aarch64"):
         raise gdb.GdbError("This function is only valid on x86-64 and aarch64.")
 
     vaddr_int: int = int(vaddr)
-    result = pwndbg.aglib.kernel.pagewalk(vaddr_int)
+    result = pwndbg.aglib.kernel.paging.pagewalk(vaddr_int)
     entry, paddr = result.entry, result.phys
     if not entry or paddr is None:
         raise gdb.GdbError("Virtual to physical address failed, unmapped virtual address?")
@@ -394,13 +394,13 @@ def p2v(paddr: gdb.Value) -> int:
         raise gdb.GdbError(
             "This function may only be run when debugging a Linux kernel with symbols."
         )
-    if not pwndbg.aglib.kernel.paging_enabled():
+    if not pwndbg.aglib.kernel.paging.enabled:
         raise gdb.GdbError("This command may only be run when paging is enabled.")
     if pwndbg.aglib.arch.name not in ("x86-64", "aarch64"):
         raise gdb.GdbError("This function is only valid on x86-64 and aarch64.")
 
     paddr_int: int = int(paddr)
-    vaddr = pwndbg.aglib.kernel.phys_to_virt(paddr_int)
+    vaddr = pwndbg.aglib.kernel.paging.phys_to_virt(paddr_int)
     if vaddr is None:
         raise gdb.GdbError("Physical to virtual address failed, invalid physical address?")
 

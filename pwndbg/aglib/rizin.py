@@ -43,7 +43,7 @@ def rzpipe() -> rzpipe_mod.open | Status:
 
     if pwndbg.aglib.qemu.is_qemu_kernel():
         flags = ["-e", "bin.cache=true", "-e", "bin.relocs.apply=true"]
-        if (kbase := pwndbg.aglib.kernel.kbase()) and filename == pwndbg.aglib.proc.exe():
+        if (kbase := pwndbg.aglib.kernel.paging.kbase) and filename == pwndbg.aglib.proc.exe():
             urand = pwndbg.aglib.elf.get_vmlinux_unrand_base(filename)
             if urand is not None:
                 flags.extend(
