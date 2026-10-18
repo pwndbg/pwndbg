@@ -5,6 +5,7 @@ from collections.abc import Generator
 
 import pwndbg
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.arch
 import pwndbg.aglib.kernel.bpf
 import pwndbg.aglib.kernel.kconfig_mod
 import pwndbg.aglib.kernel.slab
@@ -1082,7 +1083,7 @@ class Kthread:
 
     @property
     def stack(self) -> int | None:
-        return pwndbg.aglib.kernel.kthread_stack(self.thread)
+        return pwndbg.aglib.kernel.arch.kthread_stack(self.thread)
 
     @property
     def canary(self) -> int | None:
@@ -1137,7 +1138,7 @@ class Kthread:
         if not self.stack or not self.user_task or not page:
             # pt_regs may not be saved at the end of the stack if otherwise
             return None, None
-        return pwndbg.aglib.kernel.pt_regs(page)
+        return pwndbg.aglib.kernel.arch.pt_regs(page)
 
     @property
     def user_stack(self) -> int | None:

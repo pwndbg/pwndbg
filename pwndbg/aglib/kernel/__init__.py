@@ -28,8 +28,6 @@ if TYPE_CHECKING:
     import pwndbg.aglib.kernel.vmmap
     from pwndbg.aglib.kernel.arch import ArchSymbols
     from pwndbg.aglib.kernel.arch import Paging
-    from pwndbg.aglib.kernel.arch import kthread_stack as kthread_stack
-    from pwndbg.aglib.kernel.arch import pt_regs as pt_regs
 
 P = ParamSpec("P")
 D = TypeVar("D")
@@ -238,19 +236,6 @@ def num_numa_nodes() -> int:
     return val
 
 
-paging: Paging
-symbol: ArchSymbols
-
-
-@pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.START)
-def set_paging_and_symbol_on_start() -> None:
-    if not pwndbg.aglib.qemu.is_qemu_kernel():
-        return
-    global paging, symbol
-    paging = pwndbg.aglib.kernel.arch.select_paging()
-    symbol = pwndbg.aglib.kernel.arch.select_symbol()
-
-
 @pwndbg.lib.cache.cache_until("stop")
 def current_task(cpu: int | None = None) -> int | None:
     result = symbol.current_task
@@ -371,3 +356,16 @@ def kversion_cint(kversion: tuple[int, ...] | None = None) -> int | None:
         return None
     x, y, z = kversion
     return ((x) * 65536) + ((y) * 256) + (z)
+
+
+paging: Paging
+symbol: ArchSymbols
+
+
+@pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.START)
+def set_paging_and_symbol_on_start() -> None:
+    if not pwndbg.aglib.qemu.is_qemu_kernel():
+        return
+    global paging, symbol
+    paging = pwndbg.aglib.kernel.arch.select_paging()
+    symbol = pwndbg.aglib.kernel.arch.select_symbol()
