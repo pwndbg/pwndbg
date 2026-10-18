@@ -421,9 +421,6 @@ class TestStats:
                 self.pass_tests += 1
             case TestStatus.SKIPPED:
                 self.skip_tests += 1
-                # skip_reason = " " + (
-                #    process.stdout.split(test_status)[1].split("\n\n\x1b[33m")[0].replace("\n", "")
-                # )
 
         self.total_duration += test_result.duration_ns
 
