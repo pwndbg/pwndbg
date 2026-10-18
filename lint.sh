@@ -131,7 +131,9 @@ fi
 print_info "Using vermin to check that the code is compatible with the lowest supported python version..."
 # We have to use `--backport typing_extensions` because we use `override`, and the modern way to do it is
 # `from typing import override`, but that only became available in 3.12 .
-$UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --backport typing_extensions --violations ${LINT_FILES}
+# We use `python -c '...'` instead of `vermin` because vermin has a bug that prevents Ctrl-C
+# from working properly.
+$UV_RUN_LINT python -c 'import signal, vermin; signal.signal(signal.SIGINT, signal.SIG_DFL); vermin.main()' -vvv --no-tips -t=3.10- --eval-annotations --backport typing_extensions --violations ${LINT_FILES}
 
 # Check our custom rules.
 print_info "Checking custom Pwndbg lint rules..."

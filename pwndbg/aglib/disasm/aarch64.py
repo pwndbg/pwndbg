@@ -16,6 +16,7 @@ from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import boolean_to_instruction_condition
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -240,7 +241,7 @@ def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
 
 
 class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
-    def __init__(self, architecture) -> None:
+    def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         super().__init__(architecture)
 
         self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
@@ -409,7 +410,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
         return super()._condition(instruction, emu)
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if not bool(instruction.groups & ALL_JUMP_GROUPS):
             return None
 
@@ -492,7 +493,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
 
     @override
     def _parse_immediate(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         """
         In AArch64, there can be an optional shift applied to constants, typically only a `LSL #12`
@@ -511,7 +512,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
 
     @override
     def _parse_register(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         """
         Register operands can have optional extend and shift modifiers.

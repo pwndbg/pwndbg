@@ -29,7 +29,7 @@ def _get_syscall_return_value():
     just returned.
     """
 
-    register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
+    register_set = pwndbg.aglib.arch.reg_set
     # FIXME: `retval` is syscall abi? or sysv abi?
     return pwndbg.aglib.regs.read_reg(register_set.retval)
 
@@ -91,7 +91,7 @@ def _ctx_code(starting_address: int, blob) -> Iterator[None]:
 
 @contextlib.contextmanager
 def _ctx_registers() -> Iterator[int]:
-    register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
+    register_set = pwndbg.aglib.arch.reg_set
     preserve_set = register_set.gpr + register_set.args + (register_set.pc, register_set.stack)
 
     uncached_regs = pwndbg.dbg.selected_frame().regs()

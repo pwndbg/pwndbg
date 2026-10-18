@@ -70,6 +70,7 @@ gdb_architecture_name_fixup_list = (
     "riscv",
     "loongarch64",
     "s390:64-bit",
+    "m68k",
 )
 
 # `show architecture` returns a string like "mips:isa32r5"
@@ -1051,7 +1052,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
-
         # While GDB internally has multiple ways of determine function boundaries in the absence
         # of debugging symbols (using symbol sizes if available, then falling back to using the order symbols in memory to determine boundaries)
         # These methods are internally used to determine the these methods are not exposed to the Python API
@@ -1084,19 +1084,15 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         import pwndbg.aglib.typeinfo
 
         ptrsize = pwndbg.aglib.typeinfo.ptrsize
-        not_exactly_arch = False
 
-        endian: Literal["little", "big"] = None
+        endian: Literal["little", "big"] = "big"
         if "little" in gdb.execute("show endian", to_string=True).lower():
             endian = "little"
-        else:
-            endian = "big"
 
         if pwndbg.aglib.proc.alive():
             arch = gdb.newest_frame().architecture().name()
         else:
             arch = gdb.execute("show architecture", to_string=True).strip()
-            not_exactly_arch = True
 
         arch = arch.lower()
 
@@ -1147,9 +1143,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     platform=Platform.LINUX,
                     attributes=arch_attributes,
                 )
-
-        if not_exactly_arch:
-            raise RuntimeError(f"Could not deduce architecture from: {arch}")
 
         return ArchDefinition(
             name=arch,  # type: ignore[arg-type]
@@ -1877,6 +1870,11 @@ class GDB(pwndbg.dbg_mod.Debugger):
         from pwndbg.gdblib import config_mod
 
         config_mod.init_params()
+
+        from pwndbginit import is_reloading
+
+        if is_reloading():
+            return
 
         from pwndbg.dbg_mod.gdb import debug_sym as debug_sym
 

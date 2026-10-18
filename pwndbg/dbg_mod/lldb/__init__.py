@@ -33,12 +33,12 @@ import pwndbg.lib.memory
 import pwndbg.lib.path
 import pwndbg.lib.strings
 from pwndbg.color import message
+from pwndbg.dbg_mod import DebuggerError
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import selection
 from pwndbg.lib import TypeNotFoundError
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
-from pwndbg.lib.regs import reg_sets
 from pwndbg.lib.siginfo import SigInfo
 from pwndbg.lib.siginfo import SigInfoKill
 from pwndbg.lib.siginfo import SigInfoRt
@@ -180,7 +180,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         if name not in pwndbg.aglib.regs:
             return False
 
-        current_reg_set = reg_sets[pwndbg.aglib.arch.name]
+        current_reg_set = pwndbg.aglib.arch.reg_set
 
         full_reg_name = name
         if reg_info := current_reg_set.full_register_lookup.get(name):
@@ -766,17 +766,26 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def __int__(self) -> int:
+        error = lldb.SBError()
+
         # use unsigned in every pointer type
         if self.type.code == pwndbg.dbg_mod.TypeCode.POINTER:
-            return self.inner.GetValueAsUnsigned()
+            value = self.inner.GetValueAsUnsigned(error)
+        else:
+            # Logic is copied from lldb.value(self.inner).__int__()
+            # We deviate in that we raise instead of returning 0 on error
+            is_num, is_sign = lldb.is_numeric_type(
+                self.inner.GetType().GetCanonicalType().GetBasicType()
+            )
+            if is_num and not is_sign:
+                value = self.inner.GetValueAsUnsigned(error)
+            else:
+                value = self.inner.GetValueAsSigned(error)
 
-        # Logic is copied from lldb.value(self.inner).__int__()
-        is_num, is_sign = lldb.is_numeric_type(
-            self.inner.GetType().GetCanonicalType().GetBasicType()
-        )
-        if is_num and not is_sign:
-            return self.inner.GetValueAsUnsigned()
-        return self.inner.GetValueAsSigned()
+        if not error.Success():
+            raise pwndbg.dbg_mod.DebuggerError(f"cannot convert value to int: {error}")
+
+        return value
 
     @override
     def raw_bytes(self) -> bytes:
@@ -1602,12 +1611,16 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             return None
 
         for module_id in range(self.target.GetNumModules() + 1):
-            # This is the same as `tls_base->dtv[module_id].pointer.val + offset`.
-            candidate = int(tls_base_typed["dtv"][module_id]["pointer"]["val"]) + offset
-            if pwndbg.aglib.memory.peek(candidate):
-                # Take a guess that we hit the right TLS block and return what
-                # we got.
-                return candidate
+            try:
+                # This is the same as `tls_base->dtv[module_id].pointer.val + offset`.
+                candidate = int(tls_base_typed["dtv"][module_id]["pointer"]["val"]) + offset
+                if pwndbg.aglib.memory.peek(candidate):
+                    # Take a guess that we hit the right TLS block and return what
+                    # we got.
+                    return candidate
+            except DebuggerError:
+                # May happen on int() conversion
+                pass
 
         print(
             f"warning: symbol '{sym.GetName()}' might be a TLS symbol, but it could not be resolved"

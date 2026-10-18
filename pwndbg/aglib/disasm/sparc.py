@@ -112,7 +112,7 @@ class SparcDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssista
         return InstructionCondition.UNCONDITIONAL
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if bool(instruction.groups & ALL_JUMP_GROUPS):
             instruction.causes_branch_delay = True
 
