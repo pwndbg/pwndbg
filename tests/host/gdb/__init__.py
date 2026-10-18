@@ -45,6 +45,9 @@ class GDBTestHost(TestHost):
             + gdb_args
             + ["--eval-command", "quit"],
             env=env,
+            # don't give gdb our terminal (unless we're using --pdb)
+            # (also makes sure Ctrl-C-ing the tests works)
+            stdin=subprocess.DEVNULL if capture_output else None,
             capture_output=capture_output,
             text=True,
             cwd=self._pwndbg_root,
