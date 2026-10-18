@@ -29,12 +29,17 @@ def get_got_entry(local_path: str) -> dict[RelocationType, list[dict[str, int | 
             if not isinstance(section, RelocationSection):
                 continue
 
+            # A relocation section may have no symbol table (sh_link 0): the .rela.plt of a
+            # static binary only holds IRELATIVE relocations, which need no symbol
+            linked = elf.get_section(section["sh_link"])
+            symbol_table = linked if isinstance(linked, SymbolTableSection) else None
+
             for rel in section.iter_relocations():
-                # Get the symbol table and look up the symbol for this relocation
-                symbol_table = elf.get_section(section["sh_link"])
-                assert isinstance(symbol_table, SymbolTableSection)
-                symbol = symbol_table.get_symbol(rel["r_info_sym"])
-                symbol_name = symbol.name
+                # Look up the symbol for this relocation, if there is a symbol table
+                symbol = None
+                if symbol_table is not None:
+                    symbol = symbol_table.get_symbol(rel["r_info_sym"])
+                symbol_name = symbol.name if symbol is not None else ""
 
                 # Try to get the symbol version (e.g., @GLIBC_2.2.5)
                 symbol_version = ""
@@ -90,7 +95,7 @@ def get_got_entry(local_path: str) -> dict[RelocationType, list[dict[str, int | 
                                 "offset": rel["r_offset"],
                                 "info": rel["r_info"],
                                 "type": reloc_type_name,
-                                "value": symbol["st_value"],
+                                "value": symbol["st_value"] if symbol is not None else 0,
                                 "name": full_symbol_name,
                                 "addend": rel.entry.get("r_addend", 0),
                             }
