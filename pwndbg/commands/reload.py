@@ -9,14 +9,14 @@ import pwndbg.gdblib.events
 import pwndbg.lib.cache
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import DebuggerType
+from pwndbginit import set_reloading_status
 from pwndbginit.gdbinit import main_try
-from pwndbgstatus import set_reloading_status
 
 
 def rreload() -> None:
     """Recursively reload modules.
     Impl based on https://stackoverflow.com/a/66661311/1508881"""
-    pattern = re.compile(r"^((pwndbg)|(pwndbginit))(\..+)?$")
+    pattern = re.compile(r"^pwndbg(\..+)?$")
     for module in list(sys.modules.keys()):
         if pattern.match(module):
             del sys.modules[module]
