@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import functools
 import multiprocessing
 import os
 import re
@@ -121,19 +122,26 @@ def run_tests_and_print_stats(
             stats.handle_test_result(test, result, verbose)
     else:
         print("\nRunning tests in parallel")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+
+        interrupted = False
+
+        def on_done(test: str, future: concurrent.futures.Future[TestResult]) -> None:
+            if not interrupted:
+                stats.handle_test_result(test, future.result(), verbose)
+
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count())
+        try:
             for test in tests_list:
                 executor.submit(host.run, test, coverage_out, pdb).add_done_callback(
-                    # `test=test` forces the variable to bind early. This will
-                    # change the type of the lambda, however, so we have to
-                    # assure MyPy we know what we're doing.
-                    lambda future, test=test: stats.handle_test_result(  # type: ignore[misc]
-                        test, future.result(), verbose
-                    )
+                    functools.partial(on_done, test)
                 )
-
-        # Return SIGINT to the default behavior.
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
+            executor.shutdown(wait=True)
+        except KeyboardInterrupt:
+            # the Ctrl-C already killed the running tests, just need to make sure
+            # future ones are canceled
+            interrupted = True
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
 
     end = time.monotonic_ns()
     duration = end - start
@@ -431,4 +439,10 @@ class TestStats:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        # kill python if a second Ctrl-C is pressed while we are winding down
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        print("\nInterrupted")
+        sys.exit(130)  # this waits for parallel tests to exit by default
