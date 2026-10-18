@@ -121,7 +121,7 @@ sys._pwndbg_unittest_run = True  # type: ignore[attr-defined]
 
 test = os.environ["PWNDBG_LAUNCH_TEST"]
 
-args = [test, "-vvv", "-s", "--showlocals", "--color=yes"]
+args = [test, "-vvv", "-s", "-rs", "--showlocals", "--color=yes"]
 
 if use_pdb:
     args.append("--pdb")

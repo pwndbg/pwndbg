@@ -81,6 +81,14 @@ def _result_from_pytest(result: CompletedProcess[str], duration_ns: int) -> Test
                     # Also a disegreement. Keep the low-granularity status.
                     pass
 
+    if status == TestStatus.SKIPPED:
+        # Verbose progress output can truncate or wrap skip reasons. With -rs,
+        # pytest also prints the full reason in its short test summary.
+        stdout = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+        summary = re.search(r"^SKIPPED \[\d+\] .*?:\d+: (.*)$", stdout, re.MULTILINE)
+        if summary:
+            stdout_context = summary[1]
+
     return TestResult(status, duration_ns, result.stdout, result.stderr, stdout_context)
 
 
