@@ -432,6 +432,10 @@ reference_bin_nopie.i386.out: reference-binary.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} -fno-pie -target x86-linux-gnu -o $@ $?
 
+static_ifunc.native.out: static_ifunc.native.c
+	@echo "[+] Building '$@'"
+	${ZIGCC} -static -no-pie -fno-pie -nostdlib -o $@ $?
+
 symbol_1600_and_752.native.out: symbol_1600_and_752.native.cpp
 	${CXX} -O0 -ggdb -Wno-pmf-conversions -o $@ $?
 
