@@ -63,9 +63,6 @@ class CommandCategory(str, Enum):
     DEV = "Developer"
 
 
-GDB_BUILTIN_COMMANDS = pwndbg.dbg.commands()
-
-
 class InvalidDebuggerError(Exception):
     """
     Raised when a command is called in a debugger for which
@@ -178,7 +175,7 @@ class CommandObj:
         assert "_" not in self.command_name and "Use '-' instead of '_' in command names."
         assert self.command_name not in command_names and "Command already exists."
         assert (
-            self.command_name not in GDB_BUILTIN_COMMANDS
+            self.command_name not in pwndbg.dbg.commands()
             or self.command_name in CommandObj.builtin_override_whitelist
             or is_reloading()
         ), "Cannot override non-whitelisted built-in command."
