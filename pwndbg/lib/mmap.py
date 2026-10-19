@@ -24,10 +24,14 @@ PROT_SHORT_DICT = {
 
 
 def from_string(mapping: dict[str, int], s: str) -> int:
+    # Names are matched exactly: a substring match would read MAP_FIXED_NOREPLACE
+    # as MAP_FIXED and silently drop unknown names like MAP_ANON.
     val = 0
-    for k, v in mapping.items():
-        if k in s:
-            val |= v
+    for name in s.split("|"):
+        name = name.strip()
+        if name not in mapping:
+            raise ValueError(f"Unknown name {name!r}")
+        val |= mapping[name]
     return val
 
 
@@ -53,7 +57,10 @@ def prot_from_string(protstr: str) -> int:
         return from_string(PROT_DICT, protstr)
 
     if all(x in "RWX" for x in protstr):
-        return from_string(PROT_SHORT_DICT, protstr)
+        val = 0
+        for c in protstr:
+            val |= PROT_SHORT_DICT[c]
+        return val
     try:
         return int(protstr, 0)
     except ValueError:

@@ -47,3 +47,17 @@ def test_prot_to_str(prot: int, expected: str) -> None:
 )
 def test_flag_from_string(flagstr: str, expected: int) -> None:
     assert flag_from_string(flagstr) == expected
+
+
+@pytest.mark.parametrize(
+    "flagstr",
+    ["MAP_PRIVATE|MAP_ANON", "MAP_PRIVATE|MAP_FIXED_NOREPLACE", "MAP_PRIVATE|"],
+)
+def test_flag_from_string_rejects_unknown_names(flagstr: str) -> None:
+    with pytest.raises(ValueError):
+        flag_from_string(flagstr)
+
+
+def test_prot_from_string_rejects_unknown_names() -> None:
+    with pytest.raises(ValueError):
+        prot_from_string("PROT_READ|PROT_WRTIE")
