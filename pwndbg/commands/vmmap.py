@@ -250,7 +250,7 @@ def vmmap(
     filtered_pages = []
 
     # Only filter when -A and -B arguments are valid
-    if addr_or_mapping and lines_after >= 0 and lines_before >= 0:
+    if addr_or_mapping is not None and lines_after >= 0 and lines_before >= 0:
         # Always expand shared cache on detailed output.
         expand_shared_cache = True
 
@@ -274,7 +274,7 @@ def vmmap(
             # Include number of pages proceeding the matched page
             for after_index in range(1, lines_after + 1):
                 if (
-                    matched_index + after_index < len(total_pages) - 1
+                    matched_index + after_index < len(total_pages)
                     and total_pages[matched_index + after_index] not in pages_to_display
                 ):
                     pages_to_display.append(total_pages[matched_index + after_index])
