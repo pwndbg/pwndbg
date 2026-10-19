@@ -31,16 +31,6 @@ Length global_typedef = 0x9999;
 int* global_pointer = &global_int;
 bool global_bool = true;
 
-struct A {
-  __attribute__((noinline)) void foo(int, int) {
-    break_here(0);
-  }
-
-  void call_foo() {
-    foo(1, 2);
-  }
-};
-
 namespace {
 int table[4] = {1, 2, 3, 4};
 int anon_int = 0x4444;

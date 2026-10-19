@@ -30,6 +30,8 @@ def lex_debugger_command(commandline: str) -> list[str]:
                                       -> ['cmd', "'apply_twice(int)::'lambda'(int)::operator()(int) const'", 'b']
     FIXME: ^^^ won't work for LLDB because the inner 'lambda' needs to be escaped
 
+    See #4189 for more info on why we do this.
+
     Returns:
         A list of tokens to be given to argparse and parse_command_argument().
     """

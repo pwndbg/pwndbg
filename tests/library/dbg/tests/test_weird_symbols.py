@@ -10,6 +10,8 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
+# In #4189 we document some tricky cases.
+
 WEIRD_SYMBOLS_BINARY = get_binary("weird_symbols.native.out")
 WEIRD_SYMBOLS_NODEBUG_BINARY = get_binary("weird_symbols_nodebug.native.out")
 

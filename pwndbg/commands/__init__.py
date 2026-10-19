@@ -767,6 +767,16 @@ def parse_command_argument_to_int(arg: str) -> int:
     # an int, otherwise return the symbol's address" is intuitive to users.
     # If they want an address even for a local, they can use `&'my_stack_local_int'`.
 
+    # GDB doesn't complain about lacking a function's type, so that always works.
+    # If the symbol is a data variable, and we don't have debug info / type info,
+    # we cannot tell whether we should dereference or not (an int? a struct?). This
+    # case will always be cought by the try-except above.
+
+    # In other words `cmd 'data-symbol-for-which-i-dont-have-type-info'` doesn't work,
+    # you must either prefix with & or cast. NOTE: This might not be desirable, we will
+    # see if users complain. We could fix it by adding a lookup_symbol() (which always
+    # returns the address) as a fallback in parse_command_argument() at the cost of consistency.
+
     # Try symbol value
     try:
         return int(fixed)
