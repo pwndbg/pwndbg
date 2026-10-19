@@ -843,7 +843,7 @@ def test_aarch64_cross_arch_patch(qemu_assembly_run):
 
     assert dis == expected_before
 
-    gdb.execute("patch $pc 'nop; nop; nop'")
+    gdb.execute('patch $pc "nop; nop; nop"')
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)

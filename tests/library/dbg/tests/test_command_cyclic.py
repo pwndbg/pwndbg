@@ -72,7 +72,7 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
     test_offset = 48
     pattern = cyclic(length=80)
     pwndbg.aglib.memory.write(addr, pattern)
-    out = await ctrl.execute_and_capture(f"cyclic -l '*(unsigned long*){hex(addr + test_offset)}'")
+    out = await ctrl.execute_and_capture(f'cyclic -l "*(unsigned long*){hex(addr + test_offset)}"')
 
     assert out == (
         "Finding cyclic pattern of 4 bytes: b'maaa' (hex: 0x6d616161)\nFound at offset 48\n"

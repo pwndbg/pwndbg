@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import functools
 import logging
+import re
 from collections.abc import Callable
 from enum import Enum
 from typing import Any
@@ -656,9 +657,6 @@ def parse_command_argument(
     Returns:
         Ideally a `Value` object.  May return a `str` if `sloppy==True`.
         May return `None` if `sloppy == False and reraise == False`.
-
-        If `arg` is a symbol, this may return the value of the symbol or
-        the address of the symbol. Don't rely on one behaviour or the other.
     """
     if isinstance(arg, pwndbg.dbg_mod.Value):
         return arg
@@ -675,16 +673,6 @@ def parse_command_argument(
     # context. If a symbol is in the expression, returns the Value of the symbol.
     try:
         return target.evaluate_expression(arg)
-    except pwndbg.dbg_mod.DebuggerError:
-        pass
-
-    # Check if this is a quoted symbol.
-    # .evaluate_expression() should be able to catch this case, but #4189.
-    # Returns the address of the symbol.
-    try:
-        found_symbol = target.lookup_symbol(arg)
-        if found_symbol is not None:
-            return found_symbol
     except pwndbg.dbg_mod.DebuggerError:
         pass
 
@@ -740,23 +728,46 @@ def parse_command_argument_to_int(arg: str) -> int:
         fixed = parse_command_argument(arg, sloppy=False, quiet=True, reraise=True)
         assert isinstance(fixed, pwndbg.dbg_mod.Value)
     except pwndbg.dbg_mod.DebuggerError as dbge:
+        unknown_type = re.search(
+            r"'([^\n]*)' has unknown type; cast it to its declared type", str(dbge)
+        )
+        if unknown_type:
+            # GDB gives this error for a data symbol (global variable, i.e. not
+            # a function) and we don't have the debug info for its type (which
+            # is needed because it is trying to resolve the variable's value).
+            # LLDB gives the same error (wild no?), although it also does so for
+            # functions. Provide a better hint to the user on what they should
+            # do.
+
+            # We extract the actual variable name from the error instead of
+            # use `arg`, because for e.g. `a.b+2` we want to say "use &a" and not
+            # "use &a.b+2".
+            varname = unknown_type[1]
+            maybe_quoted = (
+                varname
+                # ~heuristic regex to check if the var name needs quoting
+                if re.fullmatch(r"[A-Za-z_]\w*(::[A-Za-z_]\w*)*", varname)
+                else f"'{varname}'"
+            )
+            raise argparse.ArgumentTypeError(
+                "no debug info (type info) available for "
+                + message.hint(varname)
+                + ". use "
+                + message.hint(f"&{maybe_quoted}")
+                + " for its address, "
+                + message.hint(f"(void*){maybe_quoted}")
+                + " if it's a pointer etc."
+            )
         raise argparse.ArgumentTypeError(f"debugger couldn't resolve argument '{arg}': {dbge}")
 
-    # parse_command_argument() may return a Value that represents the value of a
-    # symbol, or a Value that represents the address of the symbol, depending on
-    # whether evaluate_expression() or lookup_symbol() succeed.
-    # This is kind of inherently tricky, because you may pass in `my_stack_local_int`
-    # and expect to get the value back, or pass in `main_arena` and expect to get
-    # the address of the struct back.
+    # A symbol evaluates to its value. This is kind of inherently tricky, because you
+    # may pass in `my_stack_local_int` and expect to get the value back, or pass in
+    # `main_arena` and expect to get the address of the struct back.
     # Hopefully the behaviour of "if the symbol value is coearcable to an int, return
     # an int, otherwise return the symbol's address" is intuitive to users.
     # If they want an address even for a local, they can use `&'my_stack_local_int'`.
-    # FIXME: i think this will be inconsistent because #4189 i.e. because lookup_symbol
-    # is made to be an escape hatch, so maybe a C++ multi-word symbol that has whitespace
-    # in the name, but is an integer variable will have its address returned instead of
-    # its value.
 
-    # Try symbol value (which might actually be address if we reached lookup_symbol())
+    # Try symbol value
     try:
         return int(fixed)
     except pwndbg.dbg_mod.DebuggerError as e:

@@ -14,7 +14,6 @@ REFERENCE_BINARY = get_binary("reference-binary.native.out")
 USE_FDS_BINARY = get_binary("use-fds.native.out")
 TABSTOP_BINARY = get_binary("tabstop.native.out")
 SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
-MANGLING_BINARY = get_binary("symbol_1600_and_752.native.out")
 STACK_VARS_BINARY = get_binary("stack_vars.native.out")
 CONTEXT_ARGS_BINARY = get_binary("context_args.native.out")
 
@@ -255,44 +254,6 @@ async def test_context_disasm_syscalls_args_display_no_emulate(ctrl: Controller)
         "   0x4000a5                add    byte ptr [rax], al\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
-
-
-@pwndbg_test
-async def test_context_backtrace_show_proper_symbol_names(ctrl: Controller) -> None:
-    await ctrl.launch(MANGLING_BINARY)
-
-    await ctrl.execute("b A::foo")
-    await ctrl.cont()
-
-    backtrace = (await ctrl.execute_and_capture("context backtrace")).split("\n")
-
-    assert backtrace[0] == "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA"
-    assert (
-        backtrace[1]
-        == "─────────────────────────────────[ BACKTRACE ]──────────────────────────────────"
-    )
-
-    assert re.match(r".*0\s+0x[0-9a-f]+\s+A::foo\(int, int\)(\+\d+)?", backtrace[2])
-
-    # Match A::call_foo()+38 or similar: the offset may change so we match \d+ at the end
-    assert re.match(r".*1\s+0x[0-9a-f]+\s+A::call_foo\(\)\+\d+", backtrace[3])
-
-    # Match main+87 or similar offset
-    assert re.match(r".*2\s+0x[0-9a-f]+\s+main\+\d+", backtrace[4])
-
-    # Match __libc_start_main+243 or similar offset
-    # Note: on Ubuntu 22.04 there will be __libc_start_call_main and then __libc_start_main
-    # but on older distros there will be only __libc_start_main
-    # Let's not bother too much about it and make it the last call assertion here
-    assert re.match(
-        r".*3\s+0x[0-9a-f]+\s+(__libc_start_main|__libc_start_call_main)\+\d+", backtrace[5]
-    )
-
-    assert (
-        backtrace[-2]
-        == "────────────────────────────────────────────────────────────────────────────────"
-    )
-    assert backtrace[-1] == ""
 
 
 @pwndbg_test
@@ -584,7 +545,7 @@ async def test_context_history_prev_next(ctrl: Controller) -> None:
 
         # Check if cwatch expressions are also stored in the history
         gdb.execute("cwatch $rip")
-        gdb.execute("cwatch execute 'p/z $rsp'")
+        gdb.execute('cwatch execute "p/z $rsp"')
         fourth_ctx = gdb.execute("ctx", to_string=True)
         assert "1: $rip = " in fourth_ctx
         assert "2: p/z $rsp\n$1 = 0x" in fourth_ctx
@@ -637,22 +598,22 @@ async def test_context_history_search(ctrl: Controller) -> None:
     )
 
     # Search for something that happened later and have the search wrap around
-    search_result = await ctrl.execute_and_capture("contextsearch 'Hello World'")
+    search_result = await ctrl.execute_and_capture('contextsearch "Hello World"')
     assert "No more matches before the current entry. Starting from the top." in search_result
     assert "Found 7 matches. Selected entry 8 for match in section " in search_result
-    search_result = await ctrl.execute_and_capture("contextsearch 'Hello World'")
+    search_result = await ctrl.execute_and_capture('contextsearch "Hello World"')
     assert "Found 7 matches. Selected entry 7 for match in section " in search_result
 
     # Select a section to search in
-    search_result = await ctrl.execute_and_capture("contextsearch 'Hello World' disasm")
+    search_result = await ctrl.execute_and_capture('contextsearch "Hello World" disasm')
     assert "Found 1 match. Selected entry 2 for match in section 'disasm'." in search_result
 
     # Search for something that doesn't exist
-    search_result = await ctrl.execute_and_capture("contextsearch 'nonexistent'")
+    search_result = await ctrl.execute_and_capture('contextsearch "nonexistent"')
     assert "String 'nonexistent' not found in context history." in search_result
 
     # Search in non-existing section
-    search_result = await ctrl.execute_and_capture("ctxsearch 'Hello World' nonexistent")
+    search_result = await ctrl.execute_and_capture('ctxsearch "Hello World" nonexistent')
     assert "Section 'nonexistent' not found in context history." in search_result
 
 

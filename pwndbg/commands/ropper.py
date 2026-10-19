@@ -26,7 +26,7 @@ pwndbg> ropper -- --console
 [LOAD] removing double gadgets... 100%
 (bash/ELF/x86_64)>
 ----
-pwndbg> ropper -- --search 'pop rdi; ret;'
+pwndbg> ropper -- --search "pop rdi; ret;"
 [INFO] Load gadgets from cache
 [LOAD] loading... 100%
 [LOAD] removing double gadgets... 100%

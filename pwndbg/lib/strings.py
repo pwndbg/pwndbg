@@ -4,11 +4,6 @@ import re
 import shlex
 
 
-def strip_colors(text):
-    """Remove all ANSI color codes from the text"""
-    return re.sub(r"\x1b[^m]*m", "", text)
-
-
 def lex_args(command_line: str) -> list[str]:
     """
     Split a command line into arguments, the way a POSIX shell would.

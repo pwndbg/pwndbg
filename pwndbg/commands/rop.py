@@ -250,7 +250,7 @@ parser.add_argument("arguments", nargs="*", type=str, help="Arguments to pass to
     aliases=["ropgadget"],
     category=CommandCategory.INTEGRATIONS,
     examples="""
-pwndbg> rop --grep 'pop rdi' -- --nojop
+pwndbg> rop --grep "pop rdi" -- --nojop
 Gadgets information
 ============================================================
 [...]

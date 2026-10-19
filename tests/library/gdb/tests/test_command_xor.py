@@ -19,7 +19,7 @@ def test_command_xor_with_gdb_execute(start_binary):
 
     before = pwndbg.aglib.regs.sp
     pwndbg.aglib.memory.write(before, b"aaaaaaaa")
-    gdb.execute("xor $rsp ' ' 4")
+    gdb.execute('xor $rsp " " 4')
     after = pwndbg.aglib.memory.read(before, 8)
     assert after == b"AAAAaaaa"
 
@@ -33,7 +33,7 @@ def test_command_xor_with_int(start_binary):
     before = pwndbg.aglib.regs.sp
     assert isinstance(before, int)
     pwndbg.aglib.memory.write(before, b"aaaaaaaa")
-    gdb.execute(f"xor {before} ' ' 4")
+    gdb.execute(f'xor {before} " " 4')
     after = pwndbg.aglib.memory.read(before, 8)
     assert after == b"AAAAaaaa"
 
@@ -48,7 +48,7 @@ def test_command_xor_with_hex(start_binary):
     before_hex = hex(before)
     assert isinstance(before_hex, str)
     pwndbg.aglib.memory.write(before, b"aaaaaaaa")
-    gdb.execute(f"xor {before_hex} ' ' 4")
+    gdb.execute(f'xor {before_hex} " " 4')
     after = pwndbg.aglib.memory.read(before, 8)
     assert after == b"AAAAaaaa"
 
