@@ -386,8 +386,7 @@ def _update_watchpoints() -> None:
             print(message.warn(f"object {name} has invalid DYNAMIC section: {e}"))
             continue
 
-        jump_slots = JUMP_SLOTS[pwndbg.aglib.arch.name]
-        tracked_slots = jump_slots | IRELATIVE_SLOTS[pwndbg.aglib.arch.name]
+        tracked_slots = JUMP_SLOTS[pwndbg.aglib.arch.name] | IRELATIVE_SLOTS[pwndbg.aglib.arch.name]
         if dynamic.has_rel:
             for i in range(dynamic.rel_entry_count()):
                 if dynamic.rel_read(i, "r_type") not in tracked_slots:
@@ -406,14 +405,13 @@ def _update_watchpoints() -> None:
                 INSTALLED_WATCHPOINTS[target] = (tracker, patcher)
         if dynamic.has_rela:
             for i in range(dynamic.rela_entry_count()):
-                r_type = dynamic.rela_read(i, "r_type")
-                if r_type not in tracked_slots:
+                if dynamic.rela_read(i, "r_type") not in tracked_slots:
                     continue
+                # The slot is always at r_offset. The addend is never part of
+                # its address: for irelative slots it is the address of the
+                # resolver, and for jump slots linked with `-z mark-plt` it is
+                # the offset of the PLT entry.
                 target = dynamic.load_bias + dynamic.rela_read(i, "r_offset")
-                # The addend of an irelative slot is the address of its
-                # resolver, not an adjustment to the address of the slot.
-                if r_type in jump_slots:
-                    target += dynamic.rela_read(i, "r_addend")
 
                 tracker = Tracker()
                 tracker.dynamic_section = dynamic
@@ -428,12 +426,9 @@ def _update_watchpoints() -> None:
         if dynamic.has_jmprel:
             has_addend = dynamic.jmprel_elem.has_field("r_addend")
             for i in range(dynamic.jmprel_entry_count()):
-                r_type = dynamic.jmprel_read(i, "r_type")
-                if r_type not in tracked_slots:
+                if dynamic.jmprel_read(i, "r_type") not in tracked_slots:
                     continue
                 target = dynamic.load_bias + dynamic.jmprel_read(i, "r_offset")
-                if has_addend and r_type in jump_slots:
-                    target += dynamic.jmprel_read(i, "r_addend")
 
                 tracker = Tracker()
                 tracker.dynamic_section = dynamic
