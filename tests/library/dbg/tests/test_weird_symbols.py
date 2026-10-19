@@ -144,6 +144,14 @@ def debugger_name(name: str, lldb_name: str | None) -> str:
     return name
 
 
+def xfail_on_lldb(request: pytest.FixtureRequest, reason: str) -> None:
+    import pwndbg
+    from pwndbg.dbg_mod import DebuggerType
+
+    if pwndbg.dbg.name() == DebuggerType.LLDB:
+        request.node.add_marker(pytest.mark.xfail(reason=reason, strict=True))
+
+
 def symbol_address(linkage_name: str) -> int:
     """
     Gets the symbol address without any weird symbol name shenanigens (because
@@ -158,7 +166,9 @@ def symbol_address(linkage_name: str) -> int:
 
 @pytest.mark.parametrize("binary", BINARIES)
 @pwndbg_test
-async def test_quoted_symbol_argument(ctrl: Controller, binary: Path) -> None:
+async def test_quoted_symbol_argument(
+    ctrl: Controller, binary: Path, request: pytest.FixtureRequest
+) -> None:
     """
     We check that every weird symbol concievable can be escaped with single quotes,
     and that we resolve it to the proper address.
@@ -170,6 +180,7 @@ async def test_quoted_symbol_argument(ctrl: Controller, binary: Path) -> None:
     import pwndbg
     from pwndbg.dbg_mod import DebuggerType
 
+    xfail_on_lldb(request, "LLDB strips single quotes, so names like these can't be quoted")
     await launch_to(ctrl, binary, "break_here")
 
     mismatches = []
@@ -200,7 +211,9 @@ async def test_quoted_symbol_argument(ctrl: Controller, binary: Path) -> None:
 
 @pytest.mark.parametrize("binary", BINARIES)
 @pwndbg_test
-async def test_lldb_lambda_symbol_argument(ctrl: Controller, binary: Path) -> None:
+async def test_lldb_lambda_symbol_argument(
+    ctrl: Controller, binary: Path, request: pytest.FixtureRequest
+) -> None:
     """
     We test the LLDB weirdness here.
     """
@@ -210,6 +223,7 @@ async def test_lldb_lambda_symbol_argument(ctrl: Controller, binary: Path) -> No
 
     if pwndbg.dbg.name() != DebuggerType.LLDB:
         pytest.skip("Only LLDB puts single quotes in demangled lambda names")
+    xfail_on_lldb(request, "LLDB strips single quotes, so names like these can't be quoted")
 
     await launch_to(ctrl, binary, "break_here")
 
@@ -222,13 +236,16 @@ async def test_lldb_lambda_symbol_argument(ctrl: Controller, binary: Path) -> No
 
 @pytest.mark.parametrize("binary", BINARIES)
 @pwndbg_test
-async def test_command_argument_parsing(ctrl: Controller, binary: Path) -> None:
+async def test_command_argument_parsing(
+    ctrl: Controller, binary: Path, request: pytest.FixtureRequest
+) -> None:
     """
     Check that command argument parsing works, using funky function names.
 
     Stuff that differs for debug info binaries and no-debug-info binaries is
     in a seperate test.
     """
+    xfail_on_lldb(request, "Checks GDB's error messages and GDB-only expression features")
     await launch_to(ctrl, binary, "break_here")
 
     # = Lexing tests that don't involve a weird symbol
@@ -393,10 +410,13 @@ async def test_command_argument_parsing(ctrl: Controller, binary: Path) -> None:
 
 
 @pwndbg_test
-async def test_command_argument_parsing_w_dinfo(ctrl: Controller) -> None:
+async def test_command_argument_parsing_w_dinfo(
+    ctrl: Controller, request: pytest.FixtureRequest
+) -> None:
     """
     Same as test_command_argument_parsing() but tests stuff that requires debug info.
     """
+    xfail_on_lldb(request, "Checks GDB's error messages and GDB-only expression features")
     await launch_to(ctrl, WEIRD_SYMBOLS_BINARY, "break_here")
 
     # = Calling a function
@@ -467,10 +487,13 @@ async def test_command_argument_parsing_w_dinfo(ctrl: Controller) -> None:
 
 
 @pwndbg_test
-async def test_command_argument_parsing_stripped(ctrl: Controller) -> None:
+async def test_command_argument_parsing_stripped(
+    ctrl: Controller, request: pytest.FixtureRequest
+) -> None:
     """
     Same as test_command_argument_parsing() but tests stuff that requires no debug info.
     """
+    xfail_on_lldb(request, "Checks GDB's error messages and GDB-only expression features")
     await launch_to(ctrl, WEIRD_SYMBOLS_NODEBUG_BINARY, "break_here")
 
     # = Calling a function
@@ -576,10 +599,10 @@ async def test_context_backtrace_show_proper_symbol_names(ctrl: Controller) -> N
     assert re.match(r".*0\s+0x[0-9a-f]+\s+bump\(int\)\+\d+$", backtrace[2])
 
     # Match kitchen::cook(kitchen::Order) [clone .resume]+307 or similar offset
-    assert re.match(
-        r".*1\s+0x[0-9a-f]+\s+kitchen::cook\(kitchen::Order\) \[clone \.resume\]\+\d+$",
-        backtrace[3],
+    clone = debugger_name(
+        "kitchen::cook(kitchen::Order) [clone .resume]", "kitchen::cook(kitchen::Order) (.resume)"
     )
+    assert re.match(rf".*1\s+0x[0-9a-f]+\s+{re.escape(clone)}\+\d+$", backtrace[3])
 
     # libc++ resumes the coroutine, and its name wraps onto a second line
     assert re.match(

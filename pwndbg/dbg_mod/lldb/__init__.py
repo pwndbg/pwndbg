@@ -2352,7 +2352,8 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def lex_args(self, command_line: str) -> list[str]:
-        return pwndbg.lib.lexer.lex_debugger_command(command_line)
+        # Clang reads 'A::foo(int, int)' as a character literal
+        return pwndbg.lib.lexer.lex_debugger_command(command_line, strip_single_quotes=True)
 
     def _any_inferior(self) -> LLDBProcess:
         """

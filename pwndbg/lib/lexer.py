@@ -5,7 +5,7 @@ WHITESPACE = " \t\n\r\f\v"
 # See libiberty/argv.c:buildargv() which backs
 
 
-def lex_debugger_command(commandline: str) -> list[str]:
+def lex_debugger_command(commandline: str, strip_single_quotes: bool = False) -> list[str]:
     """
     Lexes a command line (splits it into tokens (individual arguments)) to be passed to
     further argument parsing.
@@ -28,9 +28,12 @@ def lex_debugger_command(commandline: str) -> list[str]:
                                       -> ['cmd', '\'operator"" _km(unsigned long long)\'']
     + cmd 'apply_twice(int)::'lambda'(int)::operator()(int) const' b
                                       -> ['cmd', "'apply_twice(int)::'lambda'(int)::operator()(int) const'", 'b']
-    FIXME: ^^^ won't work for LLDB because the inner 'lambda' needs to be escaped
 
     See #4189 for more info on why we do this.
+
+    Arguments:
+        strip_single_quotes: Strip single quotes like double quotes. For LLDB which doesn't use
+            them to quote symbol names.
 
     Returns:
         A list of tokens to be given to argparse and parse_command_argument().
@@ -43,7 +46,7 @@ def lex_debugger_command(commandline: str) -> list[str]:
     i = 0
     while i < len(commandline):
         c = commandline[i]
-        if quote == "'":
+        if quote == "'" and not strip_single_quotes:
             # Add single quotes to the token because GDB handles them as
             # symbol names in expressions.
             token.append(c)
@@ -54,12 +57,12 @@ def lex_debugger_command(commandline: str) -> list[str]:
             elif c == "'":
                 # End the quote
                 quote = None
-        elif quote == '"':
+        elif quote is not None:
             if c == "\\" and i + 1 < len(commandline):
                 # If we're in a quote \x means x
                 i += 1
                 token.append(commandline[i])
-            elif c == '"':
+            elif c == quote:
                 # End the quote
                 quote = None
             else:
@@ -79,8 +82,8 @@ def lex_debugger_command(commandline: str) -> list[str]:
             if c in "'\"":
                 # Start quote
                 quote = c
-            if c != '"':
-                # Add to token if not double quote
+            if c != '"' and not (c == "'" and strip_single_quotes):
+                # Add to token if it's not a quote that gets stripped
                 token.append(c)
         i += 1
 

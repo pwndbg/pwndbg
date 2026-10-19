@@ -23,7 +23,6 @@ import pwndbg.color
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
-import pwndbg.lib.strings
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
