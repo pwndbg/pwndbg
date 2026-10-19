@@ -29,6 +29,7 @@ import pwndbg.exception
 from pwndbg.color import message
 from pwndbg.lib import CompilerNotFoundError
 from pwndbg.lib import TypeNotRecoveredError
+from pwndbginit import is_reloading
 
 log = logging.getLogger(__name__)
 
@@ -60,18 +61,6 @@ class CommandCategory(str, Enum):
     PWNDBG = "Pwndbg"
     SHELL = "Shell"
     DEV = "Developer"
-
-
-GDB_BUILTIN_COMMANDS = pwndbg.dbg.commands()
-
-# Set in `reload` command so that we can skip double checking for registration
-# of an already existing command when re-registering GDB CLI commands
-# (there is no way to unregister a command in GDB 12.x)
-pwndbg_is_reloading = False
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
-
-    pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 
 
 class InvalidDebuggerError(Exception):
@@ -186,13 +175,10 @@ class CommandObj:
         assert "_" not in self.command_name and "Use '-' instead of '_' in command names."
         assert self.command_name not in command_names and "Command already exists."
         assert (
-            not (
-                self.command_name in GDB_BUILTIN_COMMANDS
-                and self.command_name not in CommandObj.builtin_override_whitelist
-                and not pwndbg_is_reloading
-            )
-            and "Cannot override non-whitelisted built-in command."
-        )
+            self.command_name not in pwndbg.dbg.commands()
+            or self.command_name in CommandObj.builtin_override_whitelist
+            or is_reloading()
+        ), "Cannot override non-whitelisted built-in command."
 
         assert category
         self.category: CommandCategory = category
@@ -549,7 +535,7 @@ class CommandObj:
         except TypeNotRecoveredError as e:
             print(message.error(f"recovering {e.name} failed with error:"))
             print(e)
-            if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
+            if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
                 print(
                     message.warn(
                         "please note that some structs may not be recoverable when CONFIG_RANDSTRUCT=y"
@@ -663,13 +649,16 @@ def parse_command_argument(
 
     Arguments:
         arg: Original string representation (e.g. '0', '$rax', '$rax+44')
-        sloppy: If ``arg`` cannot be evaluated, return ``arg``. (default: False)
+        sloppy: If `arg` cannot be evaluated, return `arg`. (default: False)
         quiet: If an error occurs, suppress it. (default: True)
         reraise: If an error occurs, raise the exception. (default: False)
 
     Returns:
-        Ideally a ``Value`` object.  May return a ``str`` if ``sloppy==True``.
-        May return ``None`` if ``sloppy == False and reraise == False``.
+        Ideally a `Value` object.  May return a `str` if `sloppy==True`.
+        May return `None` if `sloppy == False and reraise == False`.
+
+        If `arg` is a symbol, this may return the value of the symbol or
+        the address of the symbol. Don't rely on one behaviour or the other.
     """
     if isinstance(arg, pwndbg.dbg_mod.Value):
         return arg
@@ -683,15 +672,15 @@ def parse_command_argument(
         raise AssertionError("Reached command expression evaluation with no frame or inferior")
 
     # Try to evaluate the expression in the local, or, failing that, global
-    # context.
+    # context. If a symbol is in the expression, returns the Value of the symbol.
     try:
         return target.evaluate_expression(arg)
     except pwndbg.dbg_mod.DebuggerError:
         pass
 
     # Check if this is a quoted symbol.
-    # .evaluate_expression() should be able to catch this case, but
-    # https://github.com/pwndbg/pwndbg/issues/4189
+    # .evaluate_expression() should be able to catch this case, but #4189.
+    # Returns the address of the symbol.
     try:
         found_symbol = target.lookup_symbol(arg)
         if found_symbol is not None:
@@ -753,22 +742,34 @@ def parse_command_argument_to_int(arg: str) -> int:
     except pwndbg.dbg_mod.DebuggerError as dbge:
         raise argparse.ArgumentTypeError(f"debugger couldn't resolve argument '{arg}': {dbge}")
 
-    # for some reason, int(gdb.Value) for a function and array does not return its address
-    # so we check for this in order to support stuff like `malloc` or `buf`
-    if fixed.type.code in (pwndbg.dbg_mod.TypeCode.FUNC, pwndbg.dbg_mod.TypeCode.ARRAY):
-        addr = fixed.address
-        if addr is None:
-            raise argparse.ArgumentTypeError(
-                f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Value is not addressable."
-            )
-        return int(addr)
+    # parse_command_argument() may return a Value that represents the value of a
+    # symbol, or a Value that represents the address of the symbol, depending on
+    # whether evaluate_expression() or lookup_symbol() succeed.
+    # This is kind of inherently tricky, because you may pass in `my_stack_local_int`
+    # and expect to get the value back, or pass in `main_arena` and expect to get
+    # the address of the struct back.
+    # Hopefully the behaviour of "if the symbol value is coearcable to an int, return
+    # an int, otherwise return the symbol's address" is intuitive to users.
+    # If they want an address even for a local, they can use `&'my_stack_local_int'`.
+    # FIXME: i think this will be inconsistent because #4189 i.e. because lookup_symbol
+    # is made to be an escape hatch, so maybe a C++ multi-word symbol that has whitespace
+    # in the name, but is an integer variable will have its address returned instead of
+    # its value.
 
+    # Try symbol value (which might actually be address if we reached lookup_symbol())
     try:
         return int(fixed)
     except pwndbg.dbg_mod.DebuggerError as e:
+        coercion_error = e
+
+    # Try symbol address (necessary for functions, arrays, structs and unions (e.g. malloc,
+    # main_arena))
+    addr = fixed.address
+    if addr is None:
         raise argparse.ArgumentTypeError(
-            f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: {e}"
+            f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: not coerceable to int ({coercion_error}) nor addressable."
         )
+    return int(addr)
 
 
 def parse_command_argument_to_int_or_str(arg: str) -> int | str:
@@ -881,7 +882,7 @@ def OnlyWithKernelSymbols(function: Callable[P, T]) -> Callable[P, T | None]:
 def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWhenPagingEnabled(*a: P.args, **kw: P.kwargs) -> T | None:
-        if pwndbg.aglib.kernel.paging_enabled():
+        if pwndbg.aglib.kernel.paging.enabled:
             return function(*a, **kw)
         log.error(f"{func_name(function)}: This command may only be run when paging is enabled.")
         return None
@@ -894,7 +895,7 @@ def WarnOnKernelConfigRandstruct(function: Callable[P, T]) -> Callable[P, T | No
     def _WarnOnKernelConfigRandstruct(*a: P.args, **kw: P.kwargs) -> T | None:
         if (
             not pwndbg.aglib.kernel.has_debug_info()
-            and "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig()
+            and "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig_mod.kconfig()
         ):
             log.warning("command output may be inaccurate because CONFIG_RANDSTRUCT=y")
         return function(*a, **kw)

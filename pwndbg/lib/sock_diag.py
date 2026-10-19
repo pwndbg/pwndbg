@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 import socket
 import struct
+import sys
 
 # Netlink + SOCK_DIAG protocol constants. These are stable kernel ABI values
 # from <linux/netlink.h> and <linux/sock_diag.h> / <linux/unix_diag.h>; we
@@ -61,6 +62,9 @@ def get_unix_peers() -> dict[int, int]:
     while parsing — callers should treat the absence of an entry as "unknown",
     not as "no peer".
     """
+    if sys.platform != "linux":
+        return {}
+
     try:
         sock = socket.socket(socket.AF_NETLINK, socket.SOCK_RAW, _NETLINK_SOCK_DIAG)
     except OSError:

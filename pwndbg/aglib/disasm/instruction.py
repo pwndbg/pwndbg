@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import collections.abc
+import json
 import typing
 from collections import defaultdict
 from dataclasses import dataclass
@@ -27,6 +29,11 @@ from capstone6pwndbg.loongarch import LOONGARCH_INS_B
 from capstone6pwndbg.loongarch import LOONGARCH_INS_BL
 from capstone6pwndbg.loongarch import LOONGARCH_INS_CALL36
 from capstone6pwndbg.loongarch import LOONGARCH_INS_JIRL
+from capstone6pwndbg.m68k import M68K_INS_BRA
+from capstone6pwndbg.m68k import M68K_INS_BSR
+from capstone6pwndbg.m68k import M68K_INS_JMP
+from capstone6pwndbg.m68k import M68K_INS_JSR
+from capstone6pwndbg.m68k import M68K_INS_RTS
 from capstone6pwndbg.mips import MIPS_INS_ALIAS_B
 from capstone6pwndbg.mips import MIPS_INS_ALIAS_BAL
 from capstone6pwndbg.mips import MIPS_INS_B
@@ -75,7 +82,7 @@ import pwndbg
 from pwndbg.dbg_mod import DisassembledInstruction
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally
-UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
+UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, collections.abc.Set[int]] = {
     CS_ARCH_X86: {X86_INS_CALL, X86_INS_RET, X86_INS_JMP, X86_INS_LJMP},
     CS_ARCH_MIPS: {
         MIPS_INS_J,
@@ -137,6 +144,7 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
         LOONGARCH_INS_CALL36,
         LOONGARCH_INS_ALIAS_RET,
     },
+    CS_ARCH_M68K: {M68K_INS_RTS, M68K_INS_BSR, M68K_INS_JSR, M68K_INS_BRA, M68K_INS_JMP},
 }
 
 # See: https://github.com/capstone-engine/capstone/issues/2448
@@ -152,6 +160,7 @@ BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_RISCV] = {
     RISCV_INS_ALIAS_JALR,
     RISCV_INS_C_JALR,
 }
+BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_M68K] = {M68K_INS_BSR, M68K_INS_JSR}
 
 # All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone
 GENERIC_JUMP_GROUPS = {CS_GRP_JUMP, CS_GRP_BRANCH_RELATIVE}
@@ -222,7 +231,7 @@ class MemoryDereferenceInfo:
 
     address: int
 
-    address_string: str
+    address_string: str | None
     """
     Colorized, possibly a symbol name, string that represents the address
     """
@@ -232,6 +241,23 @@ class MemoryDereferenceInfo:
     If this is None, it may indicate we were unable to dereference (unmapped memory).
     The presence/absense of this value is determined by the context in which it is used.
     """
+
+
+# These are purely for debugging disassembly with capstone
+def dump(s: object) -> object:
+    return {f: dump(v) if hasattr(v := getattr(s, f), "_fields_") else v for f, *_ in s._fields_}  # type: ignore[attr-defined]
+
+
+def debug_dump_capstone_instruction(i: CsInsn) -> str:
+    d = {k: getattr(i, k) for k in ("id", "address", "size", "mnemonic", "op_str")}
+    d["bytes"] = i.bytes.hex()
+    if not i.is_invalid_insn():
+        d["groups"] = [i.group_name(g) for g in i.groups]
+        d["regs_read"] = [i.reg_name(r) for r in i.regs_read]
+        d["regs_write"] = [i.reg_name(r) for r in i.regs_write]
+        d["op_size"] = dump(i.op_size)
+        d["operands"] = [dump(o) for o in i.operands]
+    return json.dumps(d, indent=2)
 
 
 # Interface for enhanced instructions - there are two implementations defined in this file
@@ -754,6 +780,12 @@ class EnhancedOperand:
         Colorized symbol name for this operand, if .before_value is set and symbol exists, else None.
         """
 
+        self.should_dereference_memory_to_resolve: bool = self.type == CS_OP_MEM
+        """
+        To "resolve" the concrete value used at runtime associate with this operand, should
+        we read memory?
+        """
+
     @property
     def type(self) -> int:
         """
@@ -785,11 +817,11 @@ class EnhancedOperand:
     # For debugging
     def __repr__(self) -> str:
         info = (
+            f"(type={CS_OP.get(self.type, self.type)}, "
             f"'{self.str}': Symbol: {self.symbol}, "
             f"Before: {hex(self.before_value) if self.before_value is not None else None}: resolved: {hex(self.before_value_resolved) if self.before_value_resolved is not None else None}, "
             f"After: {hex(self.after_value) if self.after_value is not None else None}, resolved: {hex(self.after_value_resolved) if self.after_value_resolved is not None else None}, "
-            f"Is mem with constant addr: {self.is_mem_with_constant_addr}, "
-            f"type={CS_OP.get(self.type, self.type)}"
+            f"Is mem with constant addr: {self.is_mem_with_constant_addr})"
         )
 
         if isinstance(self.cs_op, X86Op):

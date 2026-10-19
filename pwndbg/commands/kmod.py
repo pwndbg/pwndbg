@@ -29,7 +29,7 @@ parser.add_argument("-l", "--load", dest="path", type=str, help="the path of the
 @pwndbg.commands.OnlyWithKernelSymbols
 def kmod(module_name: str | None = None, path: str | None = None) -> None:
     # Look up the address of the `modules` symbol, containing the head of the linked list of kernel modules
-    modules_head = pwndbg.aglib.kernel.modules()
+    modules_head = pwndbg.aglib.kernel.symbol.modules
     if modules_head is None:
         print(
             "The modules symbol was not found. This may indicate that the symbol is not available in the current build."

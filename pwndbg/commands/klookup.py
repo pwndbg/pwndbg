@@ -62,7 +62,7 @@ def klookup(symbol: str, apply: bool) -> None:
             # Until we implement add_symbol_file for LLDB.
             return
 
-        base: int | None = pwndbg.aglib.kernel.kbase()
+        base: int | None = pwndbg.aglib.kernel.paging.kbase
 
         if base is None:
             # I would be suprised if this was actually possible, we managed to find kallsyms but not

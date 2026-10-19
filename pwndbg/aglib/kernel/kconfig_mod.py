@@ -6,10 +6,14 @@ from typing import Any
 
 import pwndbg.aglib
 import pwndbg.aglib.kernel
-import pwndbg.aglib.kernel.symbol
+import pwndbg.aglib.kernel.vmmap
+import pwndbg.aglib.memory
 import pwndbg.aglib.nearpc
+import pwndbg.aglib.search
 import pwndbg.aglib.symbol
+import pwndbg.lib.cache
 from pwndbg.color import message
+from pwndbg.dbg_mod import EventType
 
 
 def parse_config(config_text: bytes) -> dict[str, str]:
@@ -209,7 +213,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
         krelease = pwndbg.aglib.kernel.krelease()
         if krelease is None or krelease < (5, 19):
             return False
-        val = pwndbg.aglib.kernel.symbol.try_usymbol("tainted_mask")
+        val = pwndbg.aglib.kernel.try_usymbol("tainted_mask")
         return val is not None and val != 0
 
     @property
@@ -226,3 +230,43 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
             if len(line) == 0 or line[0] == "#" or len(split) != 2:
                 continue
             self.data[split[0]] = split[1]
+
+
+_kconfig: Kconfig | None = None
+
+
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
+def reset_config() -> None:
+    global _kconfig
+    _kconfig = None
+
+
+@pwndbg.lib.cache.cache_until("objfile")
+def kconfig() -> Kconfig:
+    global _kconfig
+    config_start, config_end = None, None
+    if pwndbg.aglib.kernel.has_debug_symbols():
+        config_start = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data")
+        config_end = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data_end")
+    else:
+        mapping = pwndbg.aglib.kernel.vmmap.first_kernel_ro_page()
+        result = None
+        if mapping is not None:
+            result = next(pwndbg.aglib.search.search(b"IKCFG_ST", mappings=[mapping]), None)
+
+        if result is not None:
+            config_start = result + len("IKCFG_ST")
+            config_end = next(pwndbg.aglib.search.search(b"IKCFG_ED", start=config_start), None)
+    if (
+        not pwndbg.aglib.memory.is_kernel(config_start)
+        or not pwndbg.aglib.memory.is_kernel(config_end)
+        or config_start >= config_end
+    ):
+        _kconfig = Kconfig(None)
+        return _kconfig
+
+    config_size = config_end - config_start
+
+    compressed_config = pwndbg.aglib.memory.read(config_start, config_size)
+    _kconfig = Kconfig(compressed_config)
+    return _kconfig

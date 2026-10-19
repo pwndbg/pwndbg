@@ -199,7 +199,7 @@ def parse_info_proc_mappings_line(
     """
     try:
         # Example line with all fields present: ['0x555555555000', '0x555555556000', '0x1000', '0x1000', 'rw-p', '/home/user/a.out']
-        split_line = line.split()
+        split_line = line.split(maxsplit=5 if perms_available else 4)
 
         start_str = split_line[0]
         _end = split_line[1]

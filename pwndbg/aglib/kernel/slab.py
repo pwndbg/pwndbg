@@ -3,7 +3,9 @@ from __future__ import annotations
 from collections.abc import Generator
 
 import pwndbg
-import pwndbg.aglib.kernel.symbol
+import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.kconfig_mod
+import pwndbg.aglib.kernel.typing
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
@@ -15,9 +17,26 @@ from pwndbg.aglib.kernel.macros import memdesc_flag_or_int
 from pwndbg.aglib.kernel.macros import swab
 
 
+def get_slab_caches() -> pwndbg.dbg_mod.Value | None:
+    addr = pwndbg.aglib.kernel.symbol.slab_caches
+    if addr is None:
+        return None
+    return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", addr)
+
+
+def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
+    # name is a substr of any of the target caches' names
+    _, cache = find_containing_slab_cache(val)
+    if not cache:
+        return False
+    if strict:
+        return name == cache.name
+    return name in cache.name
+
+
 def caches() -> Generator[SlabCache, None, None]:
     recover_slab_typeinfo()
-    slab_caches = pwndbg.aglib.kernel.slab_caches()
+    slab_caches = get_slab_caches()
     if slab_caches is None:
         # Symbol not found
         return
@@ -27,7 +46,7 @@ def caches() -> Generator[SlabCache, None, None]:
 
 
 def get_cache(target_name: str) -> SlabCache | None:
-    slab_caches = pwndbg.aglib.kernel.slab_caches()
+    slab_caches = get_slab_caches()
     if slab_caches is None:
         # Symbol not found
         return None
@@ -163,7 +182,9 @@ class SlabCache:
     @property
     def random(self) -> int:
         return (
-            int(self._slab_cache["random"]) if "SLAB_FREELIST_HARDENED" in kernel.kconfig() else 0
+            int(self._slab_cache["random"])
+            if "SLAB_FREELIST_HARDENED" in pwndbg.aglib.kernel.kconfig_mod.kconfig()
+            else 0
         )
 
     @property
@@ -172,7 +193,7 @@ class SlabCache:
 
     @property
     def slab_size(self) -> int:
-        return kernel.page_size() << self.oo_order
+        return kernel.paging.page_size << self.oo_order
 
     @property
     def object_size(self) -> int:
@@ -225,12 +246,12 @@ class SlabCache:
     @property
     def node_caches(self) -> Generator[NodeCache, None, None]:
         """returns node caches for all NUMA nodes"""
-        if kernel.krelease() >= (7, 1):
-            for node in range(kernel.num_numa_nodes()):
-                yield NodeCache(self._slab_cache["per_node"][node]["node"], self, node)
-        else:
+        if (krelease := kernel.krelease()) and krelease < (7, 1):
             for node in range(kernel.num_numa_nodes()):
                 yield NodeCache(self._slab_cache["node"][node], self, node)
+        else:
+            for node in range(kernel.num_numa_nodes()):
+                yield NodeCache(self._slab_cache["per_node"][node]["node"], self, node)
 
     @property
     def cpu_partial(self) -> int | None:
@@ -289,7 +310,7 @@ class SlabCache:
     def oo_objects(self) -> int:
         return oo_objects(self.__oo_x)
 
-    def find_containing_slab(self, address) -> Slab | None:
+    def find_containing_slab(self, address: int) -> Slab | None:
         for cpu_cache in self.cpu_caches:
             slab = cpu_cache.active_slab
             if slab is not None and address in slab:
@@ -469,9 +490,9 @@ class Slab:
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def virt_address(self) -> int:
-        if "CONFIG_SLAB_VIRTUAL" not in kernel.kconfig():
-            return kernel.page_to_virt(self.slab_address)
-        return kernel.slab_to_virt(self.slab_address)
+        if "CONFIG_SLAB_VIRTUAL" not in kernel.kconfig_mod.kconfig():
+            return kernel.paging.page_to_virt(self.slab_address)
+        return kernel.paging.slab_to_virt(self.slab_address)
 
     @property
     def object_count(self) -> int:
@@ -525,26 +546,26 @@ class Slab:
                 result.add(obj)
         return result
 
-    def __contains__(self, addr: int):
+    def __contains__(self, addr: int) -> bool:
         return self.virt_address <= addr < self.virt_address + self.slab_cache.slab_size
 
 
 def find_containing_slab_cache(addr: int) -> tuple[int | None, SlabCache | None]:
     recover_slab_typeinfo()  # throws a separate exception
     try:
-        if "CONFIG_SLAB_VIRTUAL" not in kernel.kconfig():
+        if "CONFIG_SLAB_VIRTUAL" not in kernel.kconfig_mod.kconfig():
             page = pwndbg.aglib.memory.get_typed_pointer_value(
-                "struct page", kernel.virt_to_page(addr)
+                "struct page", kernel.paging.virt_to_page(addr)
             )
             head_page = compound_head(page)
             address = head_page.address
             assert address
-            base = kernel.page_to_virt(int(address))
+            base = kernel.paging.page_to_virt(int(address))
             slab_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
             slab = head_page.cast(slab_type)
         else:
-            _slab = kernel.virt_to_slab(addr)
-            base = kernel.slab_to_virt(_slab)
+            _slab = kernel.paging.virt_to_slab(addr)
+            base = kernel.paging.slab_to_virt(_slab)
             # mitigations are recent enough that the struct is expected to exist
             slab = pwndbg.aglib.memory.get_typed_pointer_value("struct slab", _slab)
         result = SlabCache(slab["slab_cache"])
@@ -577,8 +598,8 @@ def kmem_cache_node_pad_sz(val: int) -> int | None:
     return None
 
 
-def get_kmem_cache():
-    slab_caches = kernel.slab_caches()
+def get_kmem_cache() -> int:
+    slab_caches = get_slab_caches()
     assert slab_caches, "can't find slab_caches"
     return int(slab_caches["prev"]) & ~0xFF
 
@@ -587,7 +608,7 @@ def kmem_cache_pad_sz() -> tuple[int, int]:
     # find the distance between the first kmem_cache's name and its first node cache
     # the name for the first kmem_cache (most likely) has the name "kmem_cache"
     # and the global var is also named "kmem_cache"
-    kconfig = kernel.kconfig()
+    kconfig = kernel.kconfig_mod.kconfig()
     name = "kmem_cache"
     name_off = None
     ptrsize = pwndbg.aglib.arch.ptrsize
@@ -649,7 +670,11 @@ def kmem_cache_pad_sz() -> tuple[int, int]:
         if config in kconfig:
             distance -= ptrsize
     if kasan_config_name in kconfig and krelease:  # kasan
-        if krelease >= (6, 3) or krelease < (6, 1) or "CONFIG_KASAN_GENERIC" in kernel.kconfig():
+        if (
+            krelease >= (6, 3)
+            or krelease < (6, 1)
+            or "CONFIG_KASAN_GENERIC" in kernel.kconfig_mod.kconfig()
+        ):
             distance -= pwndbg.aglib.typeinfo.uint.sizeof * 2
         if (5, 12) <= krelease < (6, 3):
             distance -= ptrsize
@@ -662,7 +687,7 @@ def kmem_cache_pad_sz() -> tuple[int, int]:
 def get_kmem_cache_padding_sz() -> int:
     ptrsize = pwndbg.aglib.arch.ptrsize
     off = ptrsize  # __page_flags
-    if "CONFIG_SLAB_VIRTUAL" in kernel.kconfig():
+    if "CONFIG_SLAB_VIRTUAL" in kernel.kconfig_mod.kconfig():
         off = None
         # per cpu cache always exists because CONFIG_SLAB_VIRTUAL -> !CONFIG_SLUB_TINY
         kmem_cache_addr = get_kmem_cache()
@@ -675,7 +700,7 @@ def get_kmem_cache_padding_sz() -> int:
             )  # struct slab *slab
             if pwndbg.aglib.memory.is_kernel(ptr):
                 slabs.append(ptr)
-            if "CONFIG_SLUB_CPU_PARTIAL" in kernel.kconfig():
+            if "CONFIG_SLUB_CPU_PARTIAL" in kernel.kconfig_mod.kconfig():
                 ptr = pwndbg.aglib.memory.read_pointer_width(_cache_cpu + ptrsize * 3)  # partial
                 if pwndbg.aglib.memory.is_kernel(ptr):
                     slabs.append(ptr)
@@ -686,7 +711,7 @@ def get_kmem_cache_padding_sz() -> int:
                 if not pwndbg.aglib.memory.is_kernel(addr):
                     continue
                 val = pwndbg.aglib.memory.read_pointer_width(addr)
-                if kernel.slab_virtual() < val and pwndbg.aglib.memory.is_kernel(val):
+                if kernel.paging.slab_virtual < val and pwndbg.aglib.memory.is_kernel(val):
                     off = ptrsize * i
                     break
             if off is not None:
@@ -697,10 +722,10 @@ def get_kmem_cache_padding_sz() -> int:
 
 
 def kmem_cache_structs(node_cache_pad: int) -> str:
-    if pwndbg.aglib.kernel.symbol.kversion_cint() is None:
+    if pwndbg.aglib.kernel.kversion_cint() is None:
         return ""
-    result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
-    if "CONFIG_SLUB_CPU_PARTIAL" in pwndbg.aglib.kernel.kconfig():
+    result = f"#define KVERSION {pwndbg.aglib.kernel.kversion_cint()}\n"
+    if "CONFIG_SLUB_CPU_PARTIAL" in pwndbg.aglib.kernel.kconfig_mod.kconfig():
         result += "#define CONFIG_SLUB_CPU_PARTIAL\n"
     result += f"""
     struct kmem_cache_node {{
@@ -779,7 +804,7 @@ def kmem_cache_structs(node_cache_pad: int) -> str:
         /* irrelevant fields*/
     }};
     """
-    if "CONFIG_SLAB_VIRTUAL" in kernel.kconfig():
+    if "CONFIG_SLAB_VIRTUAL" in kernel.kconfig_mod.kconfig():
         # TODO: the size of freed_slabs_lock is inaccurate but I'm not sure how to handle it
         result += """
         struct kmem_cache_virtual {
@@ -792,9 +817,9 @@ def kmem_cache_structs(node_cache_pad: int) -> str:
     return result
 
 
-@pwndbg.aglib.kernel.typeinfo_recovery("struct kmem_cache", requires_kversion=True)
+@pwndbg.aglib.kernel.typing.typeinfo_recovery("struct kmem_cache", requires_kversion=True)
 def recover_slab_typeinfo() -> str:
-    kconfig = pwndbg.aglib.kernel.kconfig()
+    kconfig = pwndbg.aglib.kernel.kconfig_mod.kconfig()
     defs = []
     configs = (
         "CONFIG_SLUB_TINY",
@@ -812,9 +837,9 @@ def recover_slab_typeinfo() -> str:
         if config in kconfig:
             defs.append(config)
     sz, node_cache_pad = kmem_cache_pad_sz()
-    result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
+    result = f"#define KVERSION {pwndbg.aglib.kernel.kversion_cint()}\n"
     result += "\n".join(f"#define {s}" for s in defs)
-    result += pwndbg.aglib.kernel.symbol.COMMON_TYPES
+    result += pwndbg.aglib.kernel.typing.COMMON_TYPES
     result += kmem_cache_structs(node_cache_pad)
     # this is the kmem_cache SLUB representation for all 5.x and 6.x
     result += f"""

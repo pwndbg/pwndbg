@@ -179,6 +179,102 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
 
 
 @pwndbg_test
+async def test_nearpc_opcode_flag(ctrl: Controller) -> None:
+    import pwndbg.aglib.memory
+
+    await ctrl.launch(SYSCALLS_BINARY)
+    await ctrl.execute("nextsyscall")
+
+    # The longest instruction shown is 5 bytes long
+    expected = (
+        "   0x400080 b8 00 00 00 00    <_start>       mov    eax, 0                 EAX => 0\n"
+        "   0x400085 bf 37 13 00 00    <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        "   0x40008a be ef be ad de    <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f b9 10 00 00 00    <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        " ► 0x400094 0f 05             <_start+20>    syscall <SYS_read>\n"
+        "   0x400096 b8 0a 00 00 00    <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b cd 80             <_start+27>    int    0x80 <SYS_unlink>\n"
+        "   0x40009d 00 00                            add    byte ptr [rax], al\n"
+        "   0x40009f 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a1 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a3 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a5 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a7 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a9 00 00                            add    byte ptr [rax], al\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc --opcode") == expected
+    assert await ctrl.execute_and_capture("nearpc -o") == expected
+
+    # A value of 0x100 or more given to -o is the address
+    assert await ctrl.execute_and_capture("nearpc -o $pc") == expected
+    assert await ctrl.execute_and_capture("nearpc -o $pc 1") == (
+        " ► 0x400094 0f 05    <_start+20>    syscall <SYS_read>\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc -o 0x100") == "Invalid address 0x100\n"
+
+    # The flag does not change the nearpc-num-opcode-bytes setting
+    expected = (
+        "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        " ► 0x400094 <_start+20>    syscall <SYS_read>\n"
+        "   0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+        "   0x4000a5                add    byte ptr [rax], al\n"
+        "   0x4000a7                add    byte ptr [rax], al\n"
+        "   0x4000a9                add    byte ptr [rax], al\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc") == expected
+
+    # mov rax, 0xffffffffdeadbeef is 7 bytes long, so the column gets wider, and a smaller
+    # setting does not cut it
+    pwndbg.aglib.memory.write(0x40009D, bytes.fromhex("48c7c0efbeadde"))
+    await ctrl.execute("set nearpc-num-opcode-bytes 2")
+    expected = (
+        "   0x400080 b8 00 00 00 00          <_start>       mov    eax, 0                      EAX => 0\n"
+        "   0x400085 bf 37 13 00 00          <_start+5>     mov    edi, 0x1337                 EDI => 0x1337\n"
+        "   0x40008a be ef be ad de          <_start+10>    mov    esi, 0xdeadbeef             ESI => 0xdeadbeef\n"
+        "   0x40008f b9 10 00 00 00          <_start+15>    mov    ecx, 0x10                   ECX => 0x10\n"
+        " ► 0x400094 0f 05                   <_start+20>    syscall <SYS_read>\n"
+        "   0x400096 b8 0a 00 00 00          <_start+22>    mov    eax, 0xa                    EAX => 0xa\n"
+        "   0x40009b cd 80                   <_start+27>    int    0x80 <SYS_unlink>\n"
+        "   0x40009d 48 c7 c0 ef be ad de                   mov    rax, 0xffffffffdeadbeef     RAX => 0xffffffffdeadbeef\n"
+        "   0x4000a4 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000a6 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000a8 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000aa 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000ac 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000ae 00 00                                  add    byte ptr [rax], al\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc -o") == expected
+
+    # With a number of bytes, the column has a fixed width and longer instructions are cut,
+    # as with the setting
+    expected = (
+        "   0x400080 b8 00 00 00\x1b[90m...\x1b[0m <_start>       mov    eax, 0                      EAX => 0\n"
+        "   0x400085 bf 37 13 00\x1b[90m...\x1b[0m <_start+5>     mov    edi, 0x1337                 EDI => 0x1337\n"
+        "   0x40008a be ef be ad\x1b[90m...\x1b[0m <_start+10>    mov    esi, 0xdeadbeef             ESI => 0xdeadbeef\n"
+        "   0x40008f b9 10 00 00\x1b[90m...\x1b[0m <_start+15>    mov    ecx, 0x10                   ECX => 0x10\n"
+        " ► 0x400094 0f 05          <_start+20>    syscall <SYS_read>\n"
+        "   0x400096 b8 0a 00 00\x1b[90m...\x1b[0m <_start+22>    mov    eax, 0xa                    EAX => 0xa\n"
+        "   0x40009b cd 80          <_start+27>    int    0x80 <SYS_unlink>\n"
+        "   0x40009d 48 c7 c0 ef\x1b[90m...\x1b[0m                mov    rax, 0xffffffffdeadbeef     RAX => 0xffffffffdeadbeef\n"
+        "   0x4000a4 00 00                         add    byte ptr [rax], al\n"
+        "   0x4000a6 00 00                         add    byte ptr [rax], al\n"
+        "   0x4000a8 00 00                         add    byte ptr [rax], al\n"
+        "   0x4000aa 00 00                         add    byte ptr [rax], al\n"
+        "   0x4000ac 00 00                         add    byte ptr [rax], al\n"
+        "   0x4000ae 00 00                         add    byte ptr [rax], al\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc -o 4") == expected
+
+
+@pwndbg_test
 async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
     from pwndbg.dbg_mod import BreakpointLocation

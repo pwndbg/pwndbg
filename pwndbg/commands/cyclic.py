@@ -35,8 +35,7 @@ def detect_register_patterns(alphabet, length, timeout) -> None:
 
     original_handler = signal.signal(signal.SIGALRM, alarm_handler)
 
-    current_arch_name = pwndbg.aglib.arch.name
-    register_set = pwndbg.lib.regs.reg_sets[current_arch_name]
+    register_set = pwndbg.aglib.arch.reg_set
     all_register_names = register_set.all
 
     for reg_name in all_register_names:

@@ -11,6 +11,7 @@ import pwndbg.aglib.disasm.assistant
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -43,7 +44,7 @@ LOONGARCH_BINARY_OPERATIONS: dict[int, str] = {}
 
 # This class enhances 64-bit Loongarch
 class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
-    def __init__(self, architecture) -> None:
+    def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         super().__init__(architecture)
 
         self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {}
@@ -77,7 +78,7 @@ class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssis
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if instruction.id == LOONGARCH_INS_ALIAS_RET:
             return self._read_register_name(instruction, "ra", emu)
 

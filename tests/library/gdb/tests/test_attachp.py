@@ -251,4 +251,4 @@ def test_attachp_command_no_pids():
         # Assume it works
         return
 
-    assert "Error: ptrace: No such process." in result
+    assert "ptrace: No such process." in result

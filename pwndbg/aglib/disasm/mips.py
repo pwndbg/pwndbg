@@ -16,6 +16,7 @@ from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -181,7 +182,7 @@ MIPS_BINARY_OPERATIONS = {
 
 # This class enhances 32-bit, 64-bit, and micro MIPS
 class MipsDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
-    def __init__(self, architecture) -> None:
+    def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         super().__init__(architecture)
 
         self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
@@ -275,7 +276,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistan
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if bool(instruction.groups & FORWARD_JUMP_GROUP) and not bool(
             instruction.groups & BRANCH_WITHOUT_DELAY_SLOT_INSTRUCTIONS
         ):

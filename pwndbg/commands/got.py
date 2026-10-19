@@ -131,12 +131,12 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     for category, entries in got_entry.items():
         for entry in entries:
             offset = entry["offset"]
-            value = entry["value"]
+            addend = entry["addend"]
             name = entry["name"]
 
             # Type narrowing assertions
             assert isinstance(offset, int)
-            assert isinstance(value, int)
+            assert isinstance(addend, int)
             assert isinstance(name, str)
 
             address = offset + bin_base_offset
@@ -144,13 +144,14 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
             if not accept_readonly and not pwndbg.aglib.vmmap.find(address).write:
                 continue
             if not name and category == RelocationType.IRELATIVE:
-                # I'm not entirely sure why this naming logic exists, but I'm preserving
-                # the behavior from the original implementation (credit to @bata24).
-                # If we figure out the "why" later, we should update this comment!
+                # An IRELATIVE relocation has no symbol. Its addend is the address of the ifunc
+                # resolver, the value readelf -r prints, so the slot is named *ABS*+addend, as
+                # objdump -R does for shared objects (credit to @bata24 for the original logic).
+                # i386 uses REL relocations, which keep the addend in the GOT slot itself.
                 if pwndbg.aglib.arch.name == "i386":
                     name = "*ABS*"
                 else:
-                    name = f"*ABS*+0x{value:x}"
+                    name = f"*ABS*+0x{addend:x}"
             if symbol_filter not in name:
                 continue
             outputs.append(

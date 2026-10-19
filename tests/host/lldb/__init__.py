@@ -53,6 +53,8 @@ class LLDBTestHost(TestHost):
 
         return subprocess.run(
             [interpreter, "-m", "tests.host.lldb.launch_guest"],
+            # don't give lldb our terminal (unless we're using --pdb)
+            stdin=subprocess.DEVNULL if capture else None,
             capture_output=capture,
             text=True,
             env=env,

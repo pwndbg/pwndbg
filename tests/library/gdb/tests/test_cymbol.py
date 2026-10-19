@@ -131,8 +131,8 @@ def test_cymbol_header_file(start_binary) -> None:
     }
 
     # Verify structure definitions
-    for struct_name, expected_output in expected_outputs.items():
-        assert expected_output == pwndbg.aglib.dt.dt(struct_name).strip()
+    for sname, expected_output in expected_outputs.items():
+        assert expected_output == pwndbg.aglib.dt.dt(sname).strip()
 
     # Test whether unload() works properly.
     pwndbg.aglib.structures.unload(struct_name)

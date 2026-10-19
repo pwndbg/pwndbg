@@ -91,7 +91,7 @@ pwndbg.config.add_param(
 )
 
 
-def syntax_highlight(ins: str):
+def syntax_highlight(ins: str) -> str:
     return H.syntax_highlight(ins, filename=".asm")
 
 
@@ -171,7 +171,7 @@ class DisassemblyAssistant:
             pwndbg.aglib.regs.current, pwndbg.aglib.arch.ptrsize
         )
 
-        self.op_handlers: dict[
+        self.resolve_op_value_handlers: dict[
             int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator | None], int | None]
         ] = {
             CS_OP_IMM: self._parse_immediate,  # Return immediate value
@@ -187,6 +187,8 @@ class DisassemblyAssistant:
             CS_OP_REG: self._register_string,
             CS_OP_MEM: self._memory_string,
         }
+
+        self.register_name_aliases: dict[str, str] = {}
 
     def enhance(
         self,
@@ -372,7 +374,9 @@ class DisassemblyAssistant:
         # Set before_value, symbol, and str
         for op in instruction.operands:
             # Retrieve the value, either an immediate, from a register, or from memory
-            op.before_value = self.op_handlers.get(op.type, lambda *a: None)(instruction, op, emu)
+            op.before_value = self.resolve_op_value_handlers.get(op.type, lambda *a: None)(
+                instruction, op, emu
+            )
             if op.before_value is not None:
                 # Don't mask immediates - some computations depend on their signed values
                 if op.type is not CS_OP_IMM:
@@ -409,7 +413,7 @@ class DisassemblyAssistant:
             # after_value
             for op in instruction.operands:
                 # Retrieve the value, either an immediate, from a register, or from memory
-                op.after_value = self.op_handlers.get(op.type, lambda *a: None)(
+                op.after_value = self.resolve_op_value_handlers.get(op.type, lambda *a: None)(
                     instruction, op, emu
                 )
 
@@ -471,6 +475,8 @@ class DisassemblyAssistant:
     def _read_register_name(
         self, instruction: PwndbgInstruction, regname: str, emu: Emulator | None
     ) -> int | None:
+        regname = self.register_name_aliases.get(regname, regname)
+
         if emu:
             # Will read the value of register from the emulator
             # Be concious about calling this before/after stepping the emulator
@@ -536,9 +542,7 @@ class DisassemblyAssistant:
         if value is None:
             return None
 
-        if operand.type in (CS_OP_REG, CS_OP_IMM):
-            return value
-        if operand.type == CS_OP_MEM:
+        if operand.should_dereference_memory_to_resolve:
             # Assume that we are reading ptrsize - subclasses should override this function
             # to provide a more specific value if needed
             return self._read_memory(
@@ -548,8 +552,7 @@ class DisassemblyAssistant:
                 emu,
                 force_allow_process_read=force_allow_process_read,
             )
-
-        return None
+        return value
 
     def _telescope(
         self,
@@ -616,7 +619,7 @@ class DisassemblyAssistant:
         return address_list
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
-    def _telescope_format_list(self, addresses: list[int], limit: int, emu: Emulator) -> str:
+    def _telescope_format_list(self, addresses: list[int], limit: int, emu: Emulator | None) -> str:
         # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
         #  will return values accurate to the program state at the time of instruction executing.
 
@@ -810,7 +813,7 @@ class DisassemblyAssistant:
 
     # This is the default implementation.
     # Subclasses should override this for more accurate behavior/to catch more cases. See x86.py as example
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         """
         Architecture-specific hook point for _enhance_next.
 
@@ -884,7 +887,7 @@ class DisassemblyAssistant:
 
         return int(addr)
 
-    def dump(self, instruction: PwndbgInstruction):
+    def dump(self, instruction: PwndbgInstruction) -> str:
         """
         Debug-only method.
         """
@@ -894,7 +897,7 @@ class DisassemblyAssistant:
     def _immediate_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand) -> str:
         return pwndbg.lib.pretty_print.int_to_string(operand.before_value)
 
-    def _register_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
+    def _register_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand) -> str:
         """
         Return colorized register string
         """
@@ -910,7 +913,9 @@ class DisassemblyAssistant:
             return name
         return ctx_color.register_changed(name)
 
-    def _memory_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
+    def _memory_string(
+        self, instruction: PwndbgInstruction, operand: EnhancedOperand
+    ) -> str | None:
         """
         Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
         """
@@ -919,7 +924,7 @@ class DisassemblyAssistant:
         return None
 
     def _common_generic_register_destination(
-        self, instruction: PwndbgInstruction, emu: Emulator
+        self, instruction: PwndbgInstruction, emu: Emulator | None
     ) -> None:
         """
         This function can be used to annotate instructions that have a register destination.
@@ -952,7 +957,7 @@ class DisassemblyAssistant:
 
     def _common_cmp_annotator_builder(
         self, flags_register_name: str, char_to_separate_operands: str = "-"
-    ) -> Callable[[PwndbgInstruction, Emulator], None]:
+    ) -> Callable[[PwndbgInstruction, Emulator | None], None]:
         """
         Many architectures implement near-identical `CMP`-like instructions.
 
@@ -963,7 +968,7 @@ class DisassemblyAssistant:
         """
         FLAG_REG_NAME_DISPLAY = flags_register_name.upper()
 
-        def handler(instruction: PwndbgInstruction, emu: Emulator):
+        def handler(instruction: PwndbgInstruction, emu: Emulator | None) -> None:
             # If there are just two operands, we can assume we are comparing them directly, and can display the values.
             # Some architectures have variants with more operands.
             if len(instruction.operands) == 2:
@@ -1000,13 +1005,14 @@ class DisassemblyAssistant:
     def _common_load_annotator(
         self,
         instruction: PwndbgInstruction,
-        emu: Emulator,
+        emu: Emulator | None,
         address: int | None,
         read_size: int,
         signed: bool,
         target_size: int,
         dest_str: str,
         source_str: str,
+        partial_overwrite: tuple[bool, int] = (False, 0),
     ) -> None:
         """
         This function annotates load instructions - moving data from memory into a register.
@@ -1017,6 +1023,8 @@ class DisassemblyAssistant:
         `target_size`: the size of the register in bytes - relevent for sign-extension
         `dest_str`: a string representing the destination register ('rax')
         `source_str`: a string representing the source address ('[0x7fffffffe138]')
+
+        partial_overwrite is tuple of [true/false, target_reg_id]
         """
 
         if address is None:
@@ -1033,6 +1041,8 @@ class DisassemblyAssistant:
                 f"<Cannot dereference [{mem_color.get(address)}]>"
             )
         else:
+            do_partial_overwrite, partial_overwrite_reg_id = partial_overwrite
+
             # In this branch, it is assumed that the address IS in a mapped page
             TELESCOPE_DEPTH = max(1, int(pwndbg.config.disasm_telescope_depth))
 
@@ -1062,10 +1072,30 @@ class DisassemblyAssistant:
                 # If it's a signed read that required extension, it will just be a number with no special symbol/color needed
                 telescope_print = hex(final_value)
             else:
-                # Start showing at dereferenced address, hence the [1:]
-                telescope_print = (
-                    f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
-                )
+                addresses_to_display = None
+                if do_partial_overwrite:
+                    original_value = self._read_register(instruction, partial_overwrite_reg_id, emu)
+                    if original_value is not None:
+                        mask = (1 << (read_size * 8)) - 1
+                        original_value_masked = original_value & ~mask
+                        read_value = telescope_addresses[1] & mask
+                        new_value = original_value_masked | read_value
+
+                        addresses_to_display = self._telescope(
+                            new_value,
+                            TELESCOPE_DEPTH,
+                            instruction,
+                            emu,
+                            read_size=read_size,
+                        )
+                else:
+                    addresses_to_display = telescope_addresses[1:]
+
+                if addresses_to_display is not None:
+                    # Start showing at dereferenced address, hence the [1:]
+                    telescope_print = (
+                        f"{self._telescope_format_list(addresses_to_display, TELESCOPE_DEPTH, emu)}"
+                    )
 
             instruction.annotation = f"{dest_str}, {source_str}"
 
@@ -1075,7 +1105,7 @@ class DisassemblyAssistant:
     def _common_store_annotator(
         self,
         instruction: PwndbgInstruction,
-        emu: Emulator,
+        emu: Emulator | None,
         address: int | None,
         value: int | None,
         write_size: int | None,
@@ -1117,21 +1147,31 @@ class DisassemblyAssistant:
                 address_str, self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)
             )
 
-    def _common_move_annotator(self, instruction: PwndbgInstruction, emu: Emulator):
+    def _common_move_annotator(
+        self, instruction: PwndbgInstruction, emu: Emulator | None, flipped_operands: bool = False
+    ) -> None:
         """
         This function handles annotating `MOV` type instructions - where the value of one register is placed into another.
         """
         if len(instruction.operands) == 2:
-            left, right = instruction.operands
+            if not flipped_operands:
+                destination, source = instruction.operands
+            else:
+                source, destination = instruction.operands
+
             # If we already used emulation, use the result, otherwise take the source operand before_value
-            result = left.after_value if left.after_value is not None else right.before_value
+            result = (
+                destination.after_value
+                if destination.after_value is not None
+                else source.before_value
+            )
 
             if result is not None:
                 # It may be a negative number if it was an immediate
                 result &= pwndbg.aglib.arch.ptrmask
 
                 # We have determined the value written to this register - propagate this to future instructions.
-                instruction.register_writes[left.reg] = result
+                instruction.register_writes[destination.reg] = result
 
                 TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
@@ -1145,13 +1185,14 @@ class DisassemblyAssistant:
                     return
 
                 instruction.annotation = register_assign(
-                    left.str, self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu)
+                    destination.str,
+                    self._telescope_format_list(telescope_addresses, TELESCOPE_DEPTH, emu),
                 )
 
     def _common_binary_op_annotator(
         self,
         instruction: PwndbgInstruction,
-        emu: Emulator,
+        emu: Emulator | None,
         target_operand: EnhancedOperand,
         op_one: int | None,
         op_two: int | None,
