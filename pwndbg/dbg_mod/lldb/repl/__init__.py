@@ -40,7 +40,7 @@ import argparse
 import asyncio
 import contextlib
 import os
-import re
+import shlex
 import shutil
 import signal
 import sys
@@ -135,28 +135,6 @@ LLDB_EXCLUSIVE = [
     ("script", lambda cmd: cmd.startswith("sc") and "script".startswith(cmd)),
     ("expression", lambda cmd: cmd.startswith("e") and "expression".startswith(cmd)),
 ]
-
-
-def lex_args(args: str) -> list[str]:
-    """
-    Splits the arguments, respecting quotation marks.
-    """
-    # FIXME: why are we not using pwndbg.lib.strings.lex_args
-    args = args.strip()
-    result = []
-    while len(args) > 0:
-        first = re.match("\\s*(\".*\"|'.*'|\\S+)", args)
-        sl = first[1]
-
-        # Handle single and double quotes, we could do some escaping for the
-        # double quotes case, but we don't, yet.
-        sl = sl.strip('"')
-        sl = sl.strip("'")
-
-        result.append(sl)
-        args = args[first.end() :]
-
-    return result
 
 
 class EventRelay(EventHandler):
@@ -490,9 +468,14 @@ def _exec_repl_command(
     Implementation for exec_repl_command
     """
 
-    bits = lex_args(line)
+    try:
+        bits = shlex.split(line)
+    except ValueError:
+        # E.g. a trailing \ or an unclosed quote (see #4130). Most lines only need their first
+        # word, to pick the command that handles them.
+        bits = line.split()
 
-    if len(line) == 0:
+    if len(bits) == 0:
         return True
 
     # Let the user get an LLDB prompt if they so desire.
