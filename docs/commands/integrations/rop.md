@@ -28,7 +28,7 @@ Dump ROP gadgets with Jon Salwan's ROPgadget tool.
 
 ### Examples
 ```text
-pwndbg> rop --grep 'pop rdi' -- --nojop
+pwndbg> rop --grep "pop rdi" -- --nojop
 Gadgets information
 ============================================================
 [...]

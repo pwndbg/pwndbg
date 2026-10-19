@@ -19,10 +19,10 @@ import gdb
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.nearpc
+import pwndbg.color
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
-import pwndbg.lib.strings
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -263,7 +263,7 @@ def build_context_prompt_body():
 {source}
 ```
 """
-    return pwndbg.lib.strings.strip_colors(prompt)
+    return pwndbg.color.strip(prompt)
 
 
 def build_command_prompt_body(command):
@@ -273,7 +273,7 @@ def build_command_prompt_body(command):
     output = gdb.execute(command, to_string=True)
     print(output)
     prompt += f"""\n```\n{output}\n```\n\n"""
-    return pwndbg.lib.strings.strip_colors(prompt)
+    return pwndbg.color.strip(prompt)
 
 
 def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature=0.0):

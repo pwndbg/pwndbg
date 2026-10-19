@@ -29,9 +29,9 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
+import pwndbg.lib.lexer
 import pwndbg.lib.memory
 import pwndbg.lib.path
-import pwndbg.lib.strings
 from pwndbg.color import message
 from pwndbg.dbg_mod import DebuggerError
 from pwndbg.dbg_mod import EventHandlerPriority
@@ -2352,8 +2352,8 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def lex_args(self, command_line: str) -> list[str]:
-        # copies GDBs behaviour
-        return pwndbg.lib.strings.lex_args(command_line)
+        # Clang reads 'A::foo(int, int)' as a character literal
+        return pwndbg.lib.lexer.lex_debugger_command(command_line, strip_single_quotes=True)
 
     def _any_inferior(self) -> LLDBProcess:
         """

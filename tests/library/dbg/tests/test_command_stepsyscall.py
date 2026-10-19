@@ -97,7 +97,7 @@ async def test_command_stepsyscall_with_condition(ctrl: Controller) -> None:
         await ctrl.step_instruction()
 
     # Stop at write syscall where rdi==2 (stderr)
-    await ctrl.execute("stepsyscall write -c '$rdi==2'")
+    await ctrl.execute('stepsyscall write -c "$rdi==2"')
     address = pwndbg.aglib.symbol.lookup_symbol_addr("syscall_write_stderr_label")
     assert pwndbg.aglib.regs.pc == address
 
@@ -115,6 +115,6 @@ async def test_command_stepsyscall_condition_only(ctrl: Controller) -> None:
         await ctrl.step_instruction()
 
     # Stop at any syscall where rdi==2
-    await ctrl.execute("stepsyscall -c '$rdi==2'")
+    await ctrl.execute('stepsyscall -c "$rdi==2"')
     address = pwndbg.aglib.symbol.lookup_symbol_addr("syscall_write_stderr_label")
     assert pwndbg.aglib.regs.pc == address

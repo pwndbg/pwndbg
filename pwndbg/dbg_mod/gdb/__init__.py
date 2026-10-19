@@ -27,6 +27,7 @@ import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.cache
+import pwndbg.lib.lexer
 import pwndbg.lib.memory
 import pwndbg.lib.path
 from pwndbg.color import message
@@ -1015,7 +1016,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def symbol_name_at_address(self, address: int) -> str | None:
-        from pwndbg.dbg_mod.gdb.symbol import resolve_addr
+        from .symbol import resolve_addr
 
         return resolve_addr(address) or None
 
@@ -2012,7 +2013,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def lex_args(self, command_line: str) -> list[str]:
-        return gdb.string_to_argv(command_line)
+        return pwndbg.lib.lexer.lex_debugger_command(command_line)
 
     @override
     def selected_thread(self) -> pwndbg.dbg_mod.Thread | None:

@@ -24,7 +24,7 @@ parser.add_argument(
     "--save-as",
     type=str,
     default=None,
-    help="Sets the filename for the output of this command [e.g. --save-as='out.txt']",
+    help='Sets the filename for the output of this command [e.g. --save-as="out.txt"]',
 )
 
 
