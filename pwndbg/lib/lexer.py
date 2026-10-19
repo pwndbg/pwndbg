@@ -2,8 +2,6 @@ from __future__ import annotations
 
 WHITESPACE = " \t\n\r\f\v"
 
-# See libiberty/argv.c:buildargv() which backs
-
 
 def lex_debugger_command(commandline: str, strip_single_quotes: bool = False) -> list[str]:
     """
