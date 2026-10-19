@@ -15,6 +15,7 @@ async def test_command_p2p_any(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 
     sp = pwndbg.aglib.regs.sp
+    assert sp is not None
     pwndbg.aglib.memory.write(sp, pwndbg.aglib.arch.pack(sp + 8))
 
     for name in ("any", "*"):
