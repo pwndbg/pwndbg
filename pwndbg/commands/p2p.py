@@ -38,9 +38,9 @@ def address_range_explicit(section: str) -> AddrRange:
         )
 
 
-def address_range(section: str) -> list[AddrRange] | tuple[int, int] | None:
+def address_range(section: str) -> list[AddrRange] | None:
     if section in ("*", "any"):
-        return (0, pwndbg.aglib.arch.ptrmask)
+        return get_addrrange_any_named()
 
     # User can use syntax: "begin:end" to specify explicit address range instead of named page.
     # TODO: handle page names that contains ':'.
