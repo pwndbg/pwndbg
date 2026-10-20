@@ -565,6 +565,10 @@
          <lastmod>2026-10-20</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/commands/misc/setrlimit/</loc>
+         <lastmod>2026-10-20</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/commands/misc/sigreturn/</loc>
          <lastmod>2026-10-20</lastmod>
     </url>
