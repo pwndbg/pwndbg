@@ -8,10 +8,9 @@ from pwnlib import shellcraft
 import pwndbg.aglib
 import pwndbg.aglib.asm
 import pwndbg.aglib.shellcode
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
-import pwndbg.lib.regs
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.commands.hijack_fd import exec_shellcode_with_stack
 from pwndbg.commands.hijack_fd import stack_size_alignment
@@ -79,7 +78,7 @@ def asm_setrlimit(num: int, soft_val: int, hard_val: int) -> tuple[int, bytes]:
 
     stack_size = stack_size_alignment(len(rlimit_data))
 
-    register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
+    register_set = pwndbg.aglib.arch.reg_set
     stack_reg = register_set.stack
 
     asm = "".join(
@@ -121,7 +120,7 @@ def setrlimit(resource: str, soft: str, hard: str | None = None) -> None:
         stack_size, asm_bin = asm_setrlimit(num, soft_val, hard_val)
 
         async with exec_shellcode_with_stack(ec, asm_bin, stack_size):
-            register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
+            register_set = pwndbg.aglib.arch.reg_set
             ret = pwndbg.aglib.regs.read_reg(register_set.retval)
             print(
                 message.success(f"Set {res} limit (return={ret}): soft={soft_str}, hard={hard_str}")
