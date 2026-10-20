@@ -121,3 +121,21 @@ async def test_nextret_loop(ctrl: Controller) -> None:
     current_instruction = pwndbg.aglib.disasm.disassembly.one()
 
     assert current_instruction.id == X86_INS_RET
+
+
+@pwndbg_test
+async def test_command_nextcall_symbol_regex(ctrl: Controller) -> None:
+    import pwndbg.aglib.disasm.disassembly
+    import pwndbg.aglib.symbol
+
+    await launch_to(ctrl, REFERENCE_BINARY, "main")
+
+    # The test runner disables colors, so turn them back on for call targets
+    await ctrl.execute("set disable-colors off")
+    await ctrl.execute("set memory-code-color red")
+
+    await ctrl.execute("nextcall break_here")
+
+    ins = pwndbg.aglib.disasm.disassembly.one()
+    assert ins is not None
+    assert ins.target == pwndbg.aglib.symbol.lookup_symbol_addr("break_here")
