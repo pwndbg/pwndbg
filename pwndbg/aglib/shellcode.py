@@ -176,7 +176,7 @@ def stack_size_alignment(s: int) -> int:
     """Reserve stack space aligned to the target syscall ABI."""
     syscall_abi = pwndbg.aglib.arch.syscall_abi
     if syscall_abi is None:
-        raise RuntimeError("Syscall ABI not defined for current architecture")
+        raise pwndbg.dbg_mod.DebuggerError("Syscall ABI not defined for current architecture")
 
     return s + (syscall_abi.arg_alignment - (s % syscall_abi.arg_alignment))
 
