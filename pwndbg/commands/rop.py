@@ -11,12 +11,12 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.vmmap
 import pwndbg.color.disasm
 import pwndbg.color.memory
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.lib.memory
 from pwndbg.aglib.disasm.disassembly import get_disassembler
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
@@ -223,7 +223,7 @@ def iterate_over_pages(mem_limit: int) -> Iterator[tuple[str, pwndbg.lib.memory.
 
                     mem_data = proc.read_memory(address=start, size=size)
                     fmem.write(mem_data)
-            except pwndbg.dbg_mod.Error as e:
+            except pwndbg.dbg_mod.DebuggerError as e:
                 print(message.error(f"WARNING: failed to read page: {e}"))
                 continue
 
@@ -250,7 +250,7 @@ parser.add_argument("arguments", nargs="*", type=str, help="Arguments to pass to
     aliases=["ropgadget"],
     category=CommandCategory.INTEGRATIONS,
     examples="""
-pwndbg> rop --grep 'pop rdi' -- --nojop
+pwndbg> rop --grep "pop rdi" -- --nojop
 Gadgets information
 ============================================================
 [...]

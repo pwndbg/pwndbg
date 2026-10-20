@@ -24,14 +24,14 @@ Show the state of the Global Offset Table.
 
 ### Examples
 ```text
-> got
+>got
     Print all writable GOT entries in the executable.
-> got -r puts
+>got -r puts
     Print all GOT entries that contain the string "puts".
-> got -p libc
+>got -p libc
     Print all writable GOT entries used by libc. (And any other loaded
     object files that contain the string "libc" in their path).
-> got -ra
+>got -ra
     Print all GOT entries in the address space.
 ```
 

@@ -55,6 +55,13 @@ void configure_heap_layout(void)
     void* unsorted = malloc(0x418);
     malloc(0x18);
 
+    // Populate 0x20 tcachebin (if present) & fastbin.
+    // Free them ahead so tcache_metadata would not impact test.
+    for (int i=0; i<6; i++)
+    {
+        free(chunks[i]);
+    }
+
     // Populate 0x200 smallbin & 0x400 largebin.
     // Use remaindering to avoid tcache (if present).
     free(remainder_me);
@@ -64,12 +71,6 @@ void configure_heap_layout(void)
 
     // Populate the unsortedbin.
     free(unsorted);
-
-    // Populate 0x20 tcachebin (if present) & fastbin.
-    for (int i=0; i<6; i++)
-    {
-        free(chunks[i]);
-    }
 
     free(tcache_);
     free(fast);

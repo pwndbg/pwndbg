@@ -267,6 +267,76 @@ Especially useful for quickly converting pwntools output.
 
 ----------
 
+### **p2v**
+
+
+``` {.python .no-copy}
+p2v(paddr: gdb.Value) -> int
+```
+
+
+Convert a physical address to a virtual (physmap) address.
+
+Only when kernel debugging with QEMU.
+
+#### Example
+```
+# A heap allocated object is already in physmap.
+pwndbg> p $v2p(0xffff8880055eb000)
+$9 = 0x55eb000
+pwndbg> p $p2v($9)
+$10 = 0xffff8880055eb000
+```
+A kernel .text pointer has multiple virtual address mappings, the one in physmap
+is returned.
+```
+pwndbg> p $p2v($v2p(0xffffffff81cfd5b5))
+$11 = 0xffff888001cfd5b5
+pwndbg> vmmap $11
+► 0xffff888001000000 0xffff888002bf4000 r--p  1bf4000 1000000 physmap +0xcfd5b5
+```
+
+----------
+
+### **percpu**
+
+
+``` {.python .no-copy}
+percpu(addr: gdb.Value, cpu: gdb.Value = gdb.Value(-1)) -> gdb.Value
+```
+
+
+Resolve a Linux kernel per-cpu pointer to its absolute virtual address.
+
+The kernel keeps per-cpu data (`DEFINE_PER_CPU` / `alloc_percpu`) so that
+each CPU has its own private copy of a variable, which avoids locking and
+cache-line bouncing. A `__percpu` pointer is therefore not directly
+dereferenceable: it is a base/offset that must be combined with a given
+CPU's per-cpu offset (`__per_cpu_offset[cpu]`) to obtain the real address.
+That is exactly what the kernel's `per_cpu_ptr(ptr, cpu)` / `this_cpu_ptr(ptr)`
+macros do, and what this function reproduces:
+
+    result = addr + __per_cpu_offset[cpu]
+
+If `cpu` is omitted (or -1), the currently running CPU is used.
+
+References (Linux kernel):
+- https://docs.kernel.org/core-api/this_cpu_ops.html
+- include/linux/percpu-defs.h  (per_cpu_ptr, this_cpu_ptr)
+- mm/percpu.c                  (the per-cpu allocator)
+
+Only valid when kernel debugging; requires the `__per_cpu_offset` symbol.
+Tested on x86-64 Linux 7.1.
+
+#### Example
+```
+pwndbg> p $percpu(&some_percpu_var)
+pwndbg> p $percpu(&some_percpu_var, 2)
+pwndbg> p *$percpu(cache->cpu_slab)
+```
+
+----------
+
 ### **rebase**
 
 
@@ -294,6 +364,27 @@ pwndbg> tele $rebase(0xd9020)
 02:0010│  0x55555562d030 ◂— 0x65720021656d616e /* 'name!' */
 03:0018│  0x55555562d038 ◂— 'adline stdin'
 [...]
+```
+
+----------
+
+### **v2p**
+
+
+``` {.python .no-copy}
+v2p(vaddr: gdb.Value) -> int
+```
+
+
+Convert a virtual address to a physical address.
+
+Only when kernel debugging with QEMU.
+
+#### Example
+Get the kmem_cache of a random heap object (`0xffff88800555c000` here) manually (pretty much `slab contains`).
+```
+pwndbg> p ((struct slab*)({$obj=0xffff88800555c000,$tpage=((struct page*)vmemmap_base+($v2p($obj)>>12)),$tpage->compound_head&1?$tpage->compound_head^1:$tpage}[2]))->slab_cache
+$33 = (struct kmem_cache *) 0xffff888006552e00
 ```
 
 ----------

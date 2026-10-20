@@ -56,6 +56,31 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
     assert out == "The pc is already at the binary objfile code. Not stepping.\n"
 
 
+@pwndbg_test
+async def test_command_nextproginstr_at_ret(ctrl: Controller) -> None:
+    """
+    Assuming we are currently at a "ret" instruction, nextproginstruction should still work
+    """
+    import pwndbg.aglib
+    import pwndbg.aglib.proc
+    import pwndbg.aglib.vmmap
+
+    await launch_to(ctrl, REFERENCE_BINARY, "main")
+    main_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc)
+
+    break_at_sym("puts")
+    await ctrl.cont()
+
+    # Sanity check that we are in libc
+    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc).objfile
+
+    await ctrl.execute("nextret")
+
+    # Execute nextproginstr and see if we came back to the same vmmap page
+    await ctrl.execute("nextproginstr")
+    assert pwndbg.aglib.regs.pc in main_page
+
+
 @pytest.mark.parametrize("command", NEXT_COMMANDS)
 @pwndbg_test
 async def test_next_command_doesnt_freeze_crashed_binary(ctrl: Controller, command: str) -> None:
@@ -70,3 +95,29 @@ async def test_next_command_doesnt_freeze_crashed_binary(ctrl: Controller, comma
 
     # This should not halt/freeze the program
     await ctrl.execute(command)
+
+
+LOOP_BINARY = get_binary("loop_instruction_ending_in_ret.x86-64.out")
+
+
+@pwndbg_test
+async def test_nextret_loop(ctrl: Controller) -> None:
+    """
+    Test nextret on a program that will encounter an loop
+    """
+
+    from capstone6pwndbg.x86 import X86_INS_RET
+
+    import pwndbg.aglib.disasm.disassembly
+
+    await ctrl.launch(LOOP_BINARY)
+
+    # WORKAROUND FOR LLDB BUG: https://github.com/pwndbg/pwndbg/issues/4097
+    # Need to step once so that nextret works
+    await ctrl.step_instruction()
+
+    await ctrl.execute("nextret")
+
+    current_instruction = pwndbg.aglib.disasm.disassembly.one()
+
+    assert current_instruction.id == X86_INS_RET

@@ -28,12 +28,24 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             self.pc = pc
 
         async def launch(
-            self, binary: Path, args: list[str] = [], env: dict[str, str] = {}
+            self, binary: Path, args: list[str] = None, env: dict[str, str] = None
         ) -> None:
+            if env is None:
+                env = {}
+            if args is None:
+                args = []
             if not os.path.exists(binary):
                 pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
 
             await self.pc.execute("set context-reserve-lines never")
+            await self.pc.execute("set heuristic-backwards-disasm off")
+            await self.pc.execute("set context-disasm-back-linear-lines 0")
+            # Disable debuginfod globally for LLDB tests: a partial/laggy
+            # download triggers `LLVM ERROR: CachedFileStream was not committed`
+            # which aborts the whole process and makes CI flaky (commonly seen
+            # on the fedora43 image, which ships LLDB 21 + system-wide
+            # debuginfod URLs). See https://github.com/llvm/llvm-project/issues/184728
+            await self.pc.execute("settings clear plugin.symbol-locator.debuginfod.server-urls")
             await self.pc.execute(f"target create {binary}")
             env_args = " ".join((f"-E{k}={v}" for k, v in env.items()))
             await self.pc.execute(
@@ -139,9 +151,8 @@ if __name__ == "__main__":
             # is careful.
             assert test_name
 
-            # pytest_args = [test_name, "-vvv", "-s", "--showlocals", "--color=yes"]
             color = "no" if os.environ.get("NO_COLOR") == "1" else "yes"
-            pytest_args = [test_name, "-vvv", "-s", "--showlocals", f"--color={color}"]
+            pytest_args = [test_name, "-vvv", "-s", "-rs", "--showlocals", f"--color={color}"]
             if os.environ["TEST_PDB_ON_FAIL"] == "1":
                 pytest_args.append("--pdb")
 

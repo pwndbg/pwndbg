@@ -12,12 +12,13 @@ from pwnlib.util.misc import align_down
 from typing_extensions import override
 
 import pwndbg.aglib
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 import pwndbg.aglib.saved_register_frames
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 if TYPE_CHECKING:
     from pwndbg.emu.emulator import Emulator
@@ -122,6 +123,40 @@ ARM_CAN_WRITE_TO_PC_INSTRUCTIONS = {
 }
 
 
+def N_BIT(flags: int) -> bool:
+    return bool((flags >> 31) & 1)
+
+
+def Z_BIT(flags: int) -> bool:
+    return bool((flags >> 30) & 1)
+
+
+def C_BIT(flags: int) -> bool:
+    return bool((flags >> 29) & 1)
+
+
+def V_BIT(flags: int) -> bool:
+    return bool((flags >> 28) & 1)
+
+
+CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
+    ARM_CC_EQ: lambda flags: Z_BIT(flags),
+    ARM_CC_NE: lambda flags: not Z_BIT(flags),
+    ARM_CC_HS: lambda flags: C_BIT(flags),
+    ARM_CC_LO: lambda flags: not C_BIT(flags),
+    ARM_CC_MI: lambda flags: N_BIT(flags),
+    ARM_CC_PL: lambda flags: not N_BIT(flags),
+    ARM_CC_VS: lambda flags: V_BIT(flags),
+    ARM_CC_VC: lambda flags: not V_BIT(flags),
+    ARM_CC_HI: lambda flags: C_BIT(flags) and not Z_BIT(flags),
+    ARM_CC_LS: lambda flags: Z_BIT(flags) or not C_BIT(flags),
+    ARM_CC_GE: lambda flags: N_BIT(flags) == V_BIT(flags),
+    ARM_CC_LT: lambda flags: N_BIT(flags) != V_BIT(flags),
+    ARM_CC_GT: lambda flags: not Z_BIT(flags) and (N_BIT(flags) == V_BIT(flags)),
+    ARM_CC_LE: lambda flags: Z_BIT(flags) or (N_BIT(flags) != V_BIT(flags)),
+}
+
+
 def itstate_from_cpsr(cpsr_value: int) -> int:
     """
     ITSTATE == If-Then execution state bits for the Thumb IT instruction
@@ -147,13 +182,17 @@ def itstate_from_cpsr(cpsr_value: int) -> int:
 
 
 # This class enhances both ARM A-profile and ARM M-profile (Cortex-M)
-class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
-    def __init__(self, architecture, flags_reg: Literal["cpsr", "xpsr"]) -> None:
+class ArmDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
+    def __init__(
+        self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, flags_reg: Literal["cpsr", "xpsr"]
+    ) -> None:
         super().__init__(architecture)
 
         self.flags_reg = flags_reg
 
-        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[
+            int, Callable[[PwndbgInstruction, Emulator | None], None]
+        ] = {
             # MOV
             ARM_INS_MOV: self._common_move_annotator,
             ARM_INS_MOVW: self._common_move_annotator,
@@ -172,7 +211,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         }
 
     @override
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         if instruction.id in ARM_SINGLE_LOAD_INSTRUCTIONS:
             read_size = ARM_SINGLE_LOAD_INSTRUCTIONS[instruction.id]
             self._common_load_annotator(
@@ -233,9 +272,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     @override
-    def _prepare(
-        self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator
-    ) -> None:
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
             instruction.groups.remove(CS_GRP_CALL)
@@ -248,55 +285,50 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             emu.valid = False
 
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         if ARM_GRP_JUMP in instruction.groups:
             if instruction.id in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
                 # Since Capstone V6, instructions that write to the PC are given the jump group.
                 # However, in Pwndbg code, unless stated otherwise, jumps are assumed to be conditional, so we set this attribute
                 # to indicate that this is an unconditional branch.
                 instruction.declare_is_unconditional_jump = True
+                return InstructionCondition.UNCONDITIONAL
 
         # These condition codes indicate unconditionally/condition is not relevant
         if instruction.cs_insn.cc in (ARM_CC_AL, ARMCC_UNDEF):
             if instruction.id in (ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ):
                 instruction.declare_is_unconditional_jump = True
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNCONDITIONAL
+
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.cs_insn.cc)
+        if condition_resolver is None:
+            return InstructionCondition.UNCONDITIONAL
 
         value = self._read_register_name(instruction, self.flags_reg, emu)
         if value is None:
             # We can't reason about the value of flags register
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNDETERMINED_CONDITIONAL
 
-        N = (value >> 31) & 1
-        Z = (value >> 30) & 1
-        C = (value >> 29) & 1
-        V = (value >> 28) & 1
+        cc = condition_resolver(value)
 
-        cc = {
-            ARM_CC_EQ: Z,
-            ARM_CC_NE: not Z,
-            ARM_CC_HS: C,
-            ARM_CC_LO: not C,
-            ARM_CC_MI: N,
-            ARM_CC_PL: not N,
-            ARM_CC_VS: V,
-            ARM_CC_VC: not V,
-            ARM_CC_HI: C and not Z,
-            ARM_CC_LS: Z or not C,
-            ARM_CC_GE: N == V,
-            ARM_CC_LT: N != V,
-            ARM_CC_GT: not Z and (N == V),
-            ARM_CC_LE: Z or (N != V),
-        }.get(instruction.cs_insn.cc, None)
-
-        if cc is None:
-            return InstructionCondition.UNDETERMINED
-
-        return InstructionCondition.TRUE if bool(cc) else InstructionCondition.FALSE
+        return InstructionCondition.TRUE if cc else InstructionCondition.FALSE
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
-        target = super()._resolve_target(instruction, emu)
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
+
+        target: int | None = None
+        if instruction.jump_like and instruction.id == ARM_INS_LDR:
+            # This is one we could potentially handle manually while stepped on it
+            if len(instruction.operands) == 2 and (
+                (branch_target := instruction.operands[1].before_value_resolved) is not None
+            ):
+                target = branch_target
+        elif instruction.id not in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
+            # For the instructions in the list guarding this branch, the default resolver cannot determine the branch target
+            target = super()._resolve_target(instruction, emu)
+
         if target is not None:
             # On interworking branches - branches that can enable Thumb mode - the target of a jump
             # has the least significant bit set to 1. This is not actually written to the PC
@@ -313,33 +345,16 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         return target
 
-    # Currently not used
-    def _memory_string_old(self, instruction: PwndbgInstruction, op: EnhancedOperand) -> str:
-        parts = []
-
-        if op.mem.base != 0:
-            parts.append(instruction.cs_insn.reg_name(op.mem.base))
-
-        if op.mem.disp != 0:
-            parts.append(f"{op.mem.disp:#x}")
-
-        if op.mem.index != 0:
-            index = pwndbg.aglib.regs.read_reg(instruction.cs_insn.reg_name(op.mem.index))
-            scale = op.mem.scale
-            parts.append(f"{index}*{scale:#x}")
-
-        return f"[{(', '.join(parts))}]"
-
-    def read_thumb_bit(self, instruction: PwndbgInstruction, emu: Emulator) -> int | None:
+    def read_thumb_bit(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         return 1 if instruction.cs_insn._cs._mode & CS_MODE_THUMB else 0
 
     @override
-    def _immediate_string(self, instruction, operand):
+    def _immediate_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand) -> str:
         return "#" + super()._immediate_string(instruction, operand)
 
     @override
     def _read_register(
-        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
+        self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator | None
     ) -> int | None:
         # When `pc` is referenced in an operand (typically in a memory operand), the value it takes on
         # is `pc_at_instruction + 8`. In Thumb mode, you only add 4 to the instruction address.
@@ -350,7 +365,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _parse_memory(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         """
         Parse the `ArmOpMem` Capstone object to determine the concrete memory address used.
@@ -403,7 +418,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _parse_register(
-        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
+        self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator | None
     ) -> int | None:
         """
         Register operands can have optional shifts in Arm

@@ -334,13 +334,13 @@ def event_handler_factory(
 
 def log_objfiles(ofile: gdb.NewObjFileEvent | None = None) -> None:
     if not (pwndbg.config.dev_debug_events and ofile):
-        return None
+        return
 
     name = ofile.new_objfile.filename
 
     print(f"objfile: {name!r}")
     gdb.execute("info sharedlibrary")
-    return None
+    return
 
 
 gdb.events.new_objfile.connect(log_objfiles)

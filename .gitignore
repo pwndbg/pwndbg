@@ -81,6 +81,12 @@ tests/binaries/**/div_zero_binary/core
 tests/binaries/**/div_zero_binary/binary
 !tests/binaries/**/*.go
 
+# libc artifacts from glibc and musl builds
+/tests/binaries/host/glibcs/*
+!/tests/binaries/host/glibcs/2.33/
+/tests/binaries/host/glibcs-nodebug/
+/tests/binaries/host/musls/
+
 # QEMU test images
 tests/library/qemu_system/kimages
 

@@ -9,16 +9,14 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from contextlib import suppress
 
 import gdb
 
-import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.auxv
 import pwndbg.gdblib.info
 import pwndbg.lib.cache
 import pwndbg.lib.memory
@@ -142,19 +140,15 @@ def enhance_known_pages_info(pages: list[pwndbg.lib.memory.Page]) -> None:
     stack_addr = None
     vdso_addr = None
 
-    # TODO/FIXME: Can we uxe `pwndbg.auxv.get()` for this somehow?
+    # TODO/FIXME: Can we uxe `pwndbg.aglib.auxv.get()` for this somehow?
     auxv = pwndbg.gdblib.info.auxv().splitlines()
     for line in auxv:
         if "AT_EXECFN" in line:
-            try:
+            with suppress(Exception):
                 stack_addr = int(line.split()[-2], 16)
-            except Exception:
-                pass
         if "AT_SYSINFO_EHDR" in line:
-            try:
+            with suppress(Exception):
                 vdso_addr = int(line.split()[-1], 16)
-            except Exception:
-                pass
 
     for page in pages:
         if stack_addr and stack_addr in page:
@@ -205,7 +199,7 @@ def parse_info_proc_mappings_line(
     """
     try:
         # Example line with all fields present: ['0x555555555000', '0x555555556000', '0x1000', '0x1000', 'rw-p', '/home/user/a.out']
-        split_line = line.split()
+        split_line = line.split(maxsplit=5 if perms_available else 4)
 
         start_str = split_line[0]
         _end = split_line[1]

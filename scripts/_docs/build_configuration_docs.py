@@ -84,7 +84,7 @@ def convert_to_markdown(scope: str, debugger_to_params: dict[str, list[Extracted
 
 def check_index(num_scopes: int):
     assert (
-        num_scopes == 3
+        num_scopes == 2
         and "It seems a new scope has been added, "
         f"please update the index file ({INDEX_PATH}) and bump this number accordingly."
     )
@@ -98,7 +98,7 @@ def convert_all_to_markdown(
     # Enumerate all scopes we can see.
     all_scopes: set[str] = set()
     for _, data in extracted:
-        for scope in data.keys():
+        for scope in data:
             all_scopes.add(scope)
 
     # Check if the index is up to date while

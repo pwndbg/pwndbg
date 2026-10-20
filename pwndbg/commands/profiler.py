@@ -19,8 +19,15 @@ Use `./profiling/print_stats.py` to generate a report from a `.pstats` file.
 """
 )
 subparsers = parser.add_subparsers(dest="command")
-parser_start = subparsers.add_parser("start", description="Starts the profiler.")
-parser_stop = subparsers.add_parser("stop", description="Stop the profiler and save the results.")
+subparsers.required = True
+parser_start = subparsers.add_parser(
+    "start", description="Starts the profiler.", help="Start the profiler."
+)
+parser_stop = subparsers.add_parser(
+    "stop",
+    description="Stop the profiler and save the results.",
+    help="Stop the profiler and save the results.",
+)
 parser_stop.add_argument(
     "--file", type=str, default="pwndbg.pstats", help="Output file for profile data."
 )

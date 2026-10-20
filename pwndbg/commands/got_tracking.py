@@ -7,9 +7,9 @@ from typing import Any
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.got
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
@@ -26,8 +26,7 @@ def columns(rows, colors=None) -> None:
         if len(rows[i]) == 0:
             continue
         for j in range(len(col_max)):
-            if len(rows[i][j]) > col_max[j]:
-                col_max[j] = len(rows[i][j])
+            col_max[j] = max(col_max[j], len(rows[i][j]))
 
     for i in range(len(rows)):
         if len(rows[i]) == 0:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from contextlib import suppress
 
 
 def test_readline_import_error():
@@ -13,8 +14,6 @@ def test_readline_import_error():
 
     For more info see https://github.com/pwndbg/pwndbg/issues/2232
     """
-    try:
+    with suppress(ImportError):
         import readline  # noqa: F401
-    except ImportError:
-        pass
     assert "readline" not in sys.modules

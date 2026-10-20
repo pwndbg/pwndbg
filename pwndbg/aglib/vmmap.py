@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import bisect
 import os
+import sys
 from pathlib import Path
 
 import pwndbg
@@ -11,6 +12,8 @@ import pwndbg.aglib.vmmap_custom
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+from pwndbg.dbg_mod import DebuggerType
+from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import MemoryMap
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.config import PARAM_BOOLEAN
@@ -20,6 +23,28 @@ pwndbg.config.add_param(
     "vmmap-prefer-relpaths",
     True,
     "show relative paths by default in vmmap",
+    param_class=PARAM_BOOLEAN,
+)
+
+# Default the persistent cache on only where it's actually useful: LLDB on a
+# Darwin host. The param is exposed everywhere so users with unusual setups
+# (e.g. remote-debugging a macOS target from Linux) can still flip it on.
+_vmmap_cache_default = sys.platform == "darwin" and pwndbg.dbg.name() == DebuggerType.LLDB
+
+vmmap_cache_param = pwndbg.config.add_param(
+    "vmmap-cache",
+    _vmmap_cache_default,
+    "cache the memory map for the whole run on slow targets (macOS)",
+    help_docstring=(
+        "On macOS, fetching the process memory map via LLDB is slow (every "
+        "region requires a Mach IPC round-trip). When this is on, the memory "
+        "map is fetched once per launch/attach and reused across stops until "
+        "the program exits, you re-launch/attach, or you run `vmmap --refresh`. "
+        "Defaults to on when running pwndbg-lldb on a macOS host, off everywhere "
+        "else; the option is still exposed on every (host, debugger) combo so "
+        "you can flip it on for unusual setups (e.g. remote-debugging a macOS "
+        "target from Linux)."
+    ),
     param_class=PARAM_BOOLEAN,
 )
 
@@ -103,8 +128,57 @@ def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
     return type(pages)(final_pages)
 
 
-@pwndbg.lib.cache.cache_until("start", "stop")
+_persistent_memory_map: MemoryMap | None = None
+_stops_since_fetch = 0
+
+
+def clear_persistent_cache() -> None:
+    """Drop the persistent memory map cache (next read will re-fetch)."""
+    global _persistent_memory_map, _stops_since_fetch
+    _persistent_memory_map = None
+    _stops_since_fetch = 0
+
+
+def cache_status_text() -> str | None:
+    """
+    Short status string describing the persistent cache state, or None when
+    there's no cache to talk about. Used by the `vmmap` command and the
+    context legend to surface that the displayed map may be stale.
+
+    Callers should wrap the returned text in brackets and apply
+    `pwndbg.color.message.hint(...)` so it visually stands out from
+    surrounding text.
+    """
+    if _persistent_memory_map is None:
+        return None
+    plural = "" if _stops_since_fetch == 1 else "s"
+    return f"vmmap cached since {_stops_since_fetch} stop{plural} | see help set vmmap-cache"
+
+
+@pwndbg.dbg.event_handler(EventType.START)
+@pwndbg.dbg.event_handler(EventType.EXIT)
+def _clear_persistent_cache_on_lifecycle() -> None:
+    clear_persistent_cache()
+
+
+@pwndbg.dbg.event_handler(EventType.STOP)
+def _bump_stops_since_fetch() -> None:
+    if _persistent_memory_map is not None:
+        global _stops_since_fetch
+        _stops_since_fetch += 1
+
+
 def get_memory_map() -> MemoryMap:
+    if bool(vmmap_cache_param):
+        global _persistent_memory_map
+        if _persistent_memory_map is None:
+            _persistent_memory_map = _refine_memory_map(pwndbg.dbg.selected_inferior().vmmap())
+        return _persistent_memory_map
+    return _stop_cached_memory_map()
+
+
+@pwndbg.lib.cache.cache_until("start", "stop")
+def _stop_cached_memory_map() -> MemoryMap:
     return _refine_memory_map(pwndbg.dbg.selected_inferior().vmmap())
 
 

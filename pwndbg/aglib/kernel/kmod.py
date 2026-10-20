@@ -6,11 +6,11 @@ import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib
 import pwndbg.lib.cache
 from pwndbg.aglib.kernel.macros import for_each_entry
+from pwndbg.color import message
 
 
 class mod_mem_type(Enum):
@@ -29,7 +29,7 @@ class mod_mem_type(Enum):
 # TODO: handle potential negative offsets when CONFIG_RANDSTRUCT=y
 @pwndbg.lib.cache.cache_until("stop")
 def module_name_offset() -> int | None:
-    modules = pwndbg.aglib.kernel.modules()
+    modules = pwndbg.aglib.kernel.symbol.modules
     if modules is None:
         print(message.warn("Could not find modules"))
         return None
@@ -49,7 +49,7 @@ def module_name_offset() -> int | None:
 
 @pwndbg.lib.cache.cache_until("stop")
 def module_mem_offset() -> tuple[int | None, int | None, int | None]:
-    modules = pwndbg.aglib.kernel.modules()
+    modules = pwndbg.aglib.kernel.symbol.modules
     if modules is None:
         print(message.warn("Could not find modules"))
         return None, None, None
@@ -94,7 +94,7 @@ def module_mem_offset() -> tuple[int | None, int | None, int | None]:
 
 @pwndbg.lib.cache.cache_until("stop")
 def module_layout_offset() -> tuple[int | None, int | None]:
-    modules = pwndbg.aglib.kernel.modules()
+    modules = pwndbg.aglib.kernel.symbol.modules
     if modules is None:
         print(message.warn("Could not find modules"))
         return None, None
@@ -121,7 +121,7 @@ def module_layout_offset() -> tuple[int | None, int | None]:
 
 @pwndbg.lib.cache.cache_until("stop")
 def module_kallsyms_offset() -> int | None:
-    modules = pwndbg.aglib.kernel.modules()
+    modules = pwndbg.aglib.kernel.symbol.modules
     if modules is None:
         print(message.warn("Could not find modules"))
         return None
@@ -157,7 +157,7 @@ def module_kallsyms_offset() -> int | None:
 
 @pwndbg.lib.cache.cache_until("stop")
 def module_list_with_typeinfo() -> tuple[pwndbg.dbg_mod.Value, ...]:
-    modules = pwndbg.aglib.kernel.modules()
+    modules = pwndbg.aglib.kernel.symbol.modules
     if modules is None:
         print(message.warn("Could not find modules"))
         return ()
@@ -171,7 +171,7 @@ def module_list_with_typeinfo() -> tuple[pwndbg.dbg_mod.Value, ...]:
 
 @pwndbg.lib.cache.cache_until("stop")
 def module_list() -> tuple[int, ...]:
-    modules = pwndbg.aglib.kernel.modules()
+    modules = pwndbg.aglib.kernel.symbol.modules
     if modules is None:
         print(message.warn("Could not find modules"))
         return ()
@@ -219,7 +219,7 @@ def all_modules_kallsyms() -> list[tuple[str, int, str]]:
     result = []
     if pwndbg.aglib.typeinfo.load("struct module") is not None:
         for module in module_list_with_typeinfo():
-            if module.type.has_field("kallsyms"):
+            if module.dereference().type.has_field("kallsyms"):
                 kallsyms = int(module["kallsyms"])
                 result += parse_module_kallsyms(kallsyms)
         return result

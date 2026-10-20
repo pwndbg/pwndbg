@@ -20,6 +20,7 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     """
     import pwndbg
     import pwndbg.aglib
+    from pwndbg.dbg_mod import DebuggerType
 
     await ctrl.launch(MEMORY_BINARY)
 
@@ -32,10 +33,12 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     for cmd_prefix in ("dq", "dd", "dw", "db"):
         # With a non-existent symbol
         cmd = cmd_prefix + " nonexistentsymbol"
-        assert (await ctrl.execute_and_capture(cmd)) == (
-            "usage: XX [-h] address [count]\n"
-            "XX: error: argument address: Incorrect address (or GDB expression): nonexistentsymbol\n"
-        ).replace("XX", cmd_prefix)
+        assert (await ctrl.execute_and_capture(cmd)).startswith(
+            (
+                "usage: XX [-h] address [count]\n"
+                "XX: error: argument address: debugger couldn't resolve argument 'nonexistentsymbol': "
+            ).replace("XX", cmd_prefix)
+        )
 
         # With an invalid/unmapped address
         cmd = cmd_prefix + " 0"
@@ -222,6 +225,35 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
         "Perhaps try: db <address> <count> or hexdump <address>\n"
     )
 
+    #################################################
+    #### dds / dps / dqs / kd command tests
+    #################################################
+    for cmd in ("dds", "dps", "dqs", "kd"):
+        # Without count argument (uses default)
+        out_default = (await ctrl.execute_and_capture(f"{cmd} &data")).strip().splitlines()
+        # With count argument
+        out_3 = (await ctrl.execute_and_capture(f"{cmd} &data 3")).strip().splitlines()
+        assert len(out_3) == 3
+        # Ensure the first lines of both are identical
+        assert out_default[:3] == out_3
+
+    # Test repeat/Enter behavior by mocking check_repeated to return True (only on GDB)
+    is_gdb = pwndbg.dbg.name() == DebuggerType.GDB
+    if is_gdb:
+        out_normal = (await ctrl.execute_and_capture("dds &data 2")).strip().splitlines()
+        await ctrl.execute("pi pwndbg.commands.windbg.dds.check_repeated = lambda *a, **kw: True")
+        try:
+            out_repeated = (await ctrl.execute_and_capture("dds &data 2")).strip().splitlines()
+            # Verify it has different addresses
+            assert out_normal != out_repeated
+            # Verify it dumped consecutive memory regions (e.g. out_repeated starts after out_normal ends)
+            ptrsize = pwndbg.aglib.typeinfo.ptrsize
+            addr_normal_start = int(out_normal[0].split()[1], 16)
+            addr_repeated_start = int(out_repeated[0].split()[1], 16)
+            assert addr_repeated_start == addr_normal_start + 2 * ptrsize
+        finally:
+            await ctrl.execute("pi del pwndbg.commands.windbg.dds.check_repeated")
+
 
 @pwndbg_test
 async def test_windbg_eX_commands(ctrl: Controller) -> None:
@@ -230,6 +262,9 @@ async def test_windbg_eX_commands(ctrl: Controller) -> None:
     like eq, ed, ew, eb etc.
     """
     import pwndbg
+    import pwndbg.aglib
+    import pwndbg.aglib.memory
+    import pwndbg.aglib.vmmap
 
     await ctrl.launch(MEMORY_BINARY)
 
@@ -238,22 +273,13 @@ async def test_windbg_eX_commands(ctrl: Controller) -> None:
         # With a non-existent symbol
         cmd = cmd_prefix + " nonexistentsymbol"
 
-        # Seems there is some mismatch between Python 3.x argparse output
-        expected_in = (
-            # This version occurred locally when tested on Python 3.9.5
-            (
-                "usage: XX [-h] address [data ...]\n"
-                "XX: error: argument address: Incorrect address (or GDB expression): nonexistentsymbol\n"
-            ).replace("XX", cmd_prefix),
-            # This version occurs on CI on Python 3.8.10
-            (
-                "usage: XX [-h] address [data [data ...]]\n"
-                "XX: error: argument address: Incorrect address (or GDB expression): nonexistentsymbol\n"
-            ).replace("XX", cmd_prefix),
-        )
+        expected_prefix = (
+            "usage: XX [-h] address [data ...]\n"
+            "XX: error: argument address: debugger couldn't resolve argument 'nonexistentsymbol': "
+        ).replace("XX", cmd_prefix)
 
-        assert (await ctrl.execute_and_capture(cmd)) in expected_in
-        assert (await ctrl.execute_and_capture(cmd)) in expected_in
+        assert (await ctrl.execute_and_capture(cmd)).startswith(expected_prefix)
+        assert (await ctrl.execute_and_capture(cmd)).startswith(expected_prefix)
 
         # With no data arguments provided
         cmd = cmd_prefix + " 0"
@@ -314,6 +340,8 @@ async def test_windbg_commands_x86(ctrl: Controller) -> None:
     like dq, dw, db, ds etc.
     """
     import pwndbg
+    import pwndbg.aglib
+    import pwndbg.aglib.memory
     from pwndbg.dbg_mod import DebuggerType
 
     if pwndbg.dbg.name() == DebuggerType.LLDB:

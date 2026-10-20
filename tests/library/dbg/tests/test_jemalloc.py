@@ -11,6 +11,11 @@ from . import pwndbg_test
 
 HEAP_JEMALLOC_EXTENT_INFO = get_binary("heap_jemalloc_extent_info.native.out")
 HEAP_JEMALLOC_HEAP = get_binary("heap_jemalloc_heap.native.out")
+
+pytestmark = pytest.mark.skipif(
+    not (HEAP_JEMALLOC_EXTENT_INFO.exists() and HEAP_JEMALLOC_HEAP.exists()),
+    reason="jemalloc test binaries not built (needs a static jemalloc library)",
+)
 # Relax address regex to accept different virtual address layouts (ASLR / jemalloc mappings).
 # Old pattern assumed addresses starting with 0x7ffff and a limited digit count which fails on some hosts.
 re_match_valid_address = r"0x[0-9a-fA-F]{6,16}"
@@ -19,8 +24,6 @@ re_match_valid_address = r"0x[0-9a-fA-F]{6,16}"
 @pwndbg_test
 async def test_jemalloc_find_extent(ctrl: Controller) -> None:
     import pwndbg.aglib
-
-    pytest.skip("Flaky test, needs fixing. See #3615")
 
     await launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
     if pwndbg.aglib.arch.name != "x86-64":
@@ -54,8 +57,6 @@ async def test_jemalloc_find_extent(ctrl: Controller) -> None:
 @pwndbg_test
 async def test_jemalloc_extent_info(ctrl: Controller) -> None:
     import pwndbg.aglib
-
-    pytest.skip("Flaky test, needs fixing. See #3615")
 
     await launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
     if pwndbg.aglib.arch.name != "x86-64":
@@ -93,8 +94,6 @@ async def test_jemalloc_extent_info(ctrl: Controller) -> None:
 @pwndbg_test
 async def test_jemalloc_heap(ctrl: Controller) -> None:
     import pwndbg.aglib
-
-    pytest.skip("Flaky test, needs fixing. See #3615")
 
     await launch_to(ctrl, HEAP_JEMALLOC_HEAP, "break_here")
     if pwndbg.aglib.arch.name != "x86-64":

@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import contextlib
 import shlex
 import string
 
+import pwndbg.aglib.auxv
 import pwndbg.aglib.file
+import pwndbg.aglib.osdata
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.auxv
+import pwndbg.aglib.remote
 import pwndbg.commands
 import pwndbg.lib.cache
 import pwndbg.lib.net
+import pwndbg.lib.proc_fd
+import pwndbg.lib.sock_diag
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -97,6 +102,117 @@ def netlink(tid: int):
     return pwndbg.lib.net.netlink(data)
 
 
+def _augment_unix_peers(connections: list[pwndbg.lib.net.inode]) -> None:
+    """Attach peer-process info to UnixSocket entries when running locally.
+
+    SOCK_DIAG and /proc/*/fd are kernel-local: for any non-local target the
+    answers would describe the wrong machine, so we silently skip.
+    """
+    unix_socks = [c for c in connections if isinstance(c, pwndbg.lib.net.UnixSocket)]
+    if not unix_socks:
+        return
+    if pwndbg.aglib.remote.is_remote():
+        return
+
+    peers = pwndbg.lib.sock_diag.get_unix_peers()
+    if not peers:
+        return
+
+    peer_inodes: set[int] = set()
+    for u in unix_socks:
+        peer = peers.get(u.inode) if u.inode is not None else None
+        if peer:
+            u.peer_inode = peer
+            peer_inodes.add(peer)
+
+    if not peer_inodes:
+        return
+
+    owners = pwndbg.lib.sock_diag.find_socket_inode_owners(peer_inodes)
+    for u in unix_socks:
+        if u.peer_inode and u.peer_inode in owners:
+            pid, fd, comm = owners[u.peer_inode]
+            u.peer_pid = pid
+            u.peer_fd = fd
+            u.peer_comm = comm or None
+
+
+def _target_file_text(path: str) -> str:
+    """Read a file from wherever the inferior lives (local procfs, or vFile)."""
+    try:
+        return pwndbg.aglib.file.get(path).decode(errors="ignore")
+    except OSError:
+        return ""
+
+
+def _fdinfo_mode(pid: int, fd: int) -> str:
+    return pwndbg.lib.proc_fd.parse_fdinfo_mode(_target_file_text(f"/proc/{pid}/fdinfo/{fd}"))
+
+
+def _pipe_endpoints_system_wide(
+    inodes: set[int],
+) -> dict[int, list[tuple[int, int, str]]] | None:
+    """All FDs on the target system holding one of ``inodes``, or None.
+
+    Locally this walks /proc/*/fd directly. On a remote target vFile can't
+    list directories, so we ask the stub for its "files" osdata table (the
+    same walk, done on the remote side). Returns None when neither is
+    possible (e.g. a stub without qXfer:osdata support, like qemu-user).
+    """
+    if not pwndbg.aglib.remote.is_remote():
+        return pwndbg.lib.proc_fd.find_pipe_endpoints(inodes)
+
+    rows = pwndbg.aglib.osdata.open_files()
+    if rows is None:
+        return None
+    return pwndbg.lib.proc_fd.pipe_endpoints_from_fd_rows(rows, inodes)
+
+
+def _augment_pipes(pipes: list[pwndbg.lib.proc_fd.Pipe], self_pid: int) -> None:
+    """Fill in mode and peer endpoints for each Pipe entry.
+
+    Works for both local and remote targets. When no system-wide FD listing
+    is available (or it turns up nothing for an inode, e.g. for permission
+    reasons), peers fall back to what the debuggee's own FD table proves:
+    other FDs of the debuggee itself on the same pipe.
+    """
+    entries = [(p.inode, p.fd, p) for p in pipes if p.inode is not None and p.fd is not None]
+    if not entries:
+        return
+
+    inodes = {inode for inode, _fd, _pipe in entries}
+    self_comm = _target_file_text(f"/proc/{self_pid}/comm").strip()
+
+    endpoints = _pipe_endpoints_system_wide(inodes) or {}
+
+    # Fall back to the debuggee's own FD table for inodes the system-wide
+    # listing didn't cover.
+    for inode, _fd, _pipe in entries:
+        if not endpoints.get(inode):
+            endpoints[inode] = [
+                (self_pid, other_fd, self_comm)
+                for other_inode, other_fd, _other in entries
+                if other_inode == inode
+            ]
+
+    # Resolve every endpoint's read/write end exactly once, from its fdinfo
+    # text (fetched over vFile when the target is remote).
+    modes = {
+        (ep_pid, ep_fd): _fdinfo_mode(ep_pid, ep_fd)
+        for eps in endpoints.values()
+        for (ep_pid, ep_fd, _comm) in eps
+    }
+
+    for inode, fd, pipe_obj in entries:
+        own = (self_pid, fd)
+        pipe_obj.mode = modes[own] if own in modes else _fdinfo_mode(self_pid, fd)
+        pipe_obj.peers = [
+            (ep_pid, ep_fd, comm, modes[(ep_pid, ep_fd)])
+            for (ep_pid, ep_fd, comm) in endpoints.get(inode, [])
+            if not (ep_pid == self_pid and ep_fd == fd)
+        ]
+
+
 class Process:
     def __init__(self, pid=None, tid=None) -> None:
         if pid is None:
@@ -155,10 +271,8 @@ class Process:
 
             # bit fields
             if set(v) < set(string.hexdigits) and len(v) == 16:
-                try:
+                with contextlib.suppress(AttributeError):
                     v = int(v, 16)
-                except AttributeError:
-                    pass
 
             # vm stats
             elif v.endswith(" kB"):
@@ -223,6 +337,28 @@ class Process:
                         x.fd = fd
                         result.append(x)
 
+        _augment_unix_peers(result)
+        return tuple(result)
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def pipes(self) -> tuple[pwndbg.lib.proc_fd.Pipe, ...]:
+        """Pipe FDs (anonymous pipe(2)) with read/write end + peer info."""
+        result: list[pwndbg.lib.proc_fd.Pipe] = []
+        prefix = "pipe:["
+        for fd, path in self.open_files.items():
+            if not path.startswith(prefix):
+                continue
+            try:
+                inode = int(path[len(prefix) : -1])
+            except ValueError:
+                continue
+            p = pwndbg.lib.proc_fd.Pipe()
+            p.inode = inode
+            p.fd = fd
+            result.append(p)
+
+        _augment_pipes(result, self.pid)
         return tuple(result)
 
 
@@ -248,7 +384,7 @@ def procinfo() -> None:
                 " used directly by the qemu process)"
             )
         )
-    exe = pwndbg.auxv.get().AT_EXECFN
+    exe = pwndbg.aglib.auxv.get().AT_EXECFN
     print(f"{'exe':<10} {exe!r}")
 
     proc = Process()
@@ -264,6 +400,10 @@ def procinfo() -> None:
 
     for c in proc.connections:
         files[c.fd] = str(c)
+
+    for p in proc.pipes:
+        if p.fd is not None:
+            files[p.fd] = str(p)
 
     print(f"{'pid':<10} {proc.pid}")
     print(f"{'tid':<10} {proc.tid}")

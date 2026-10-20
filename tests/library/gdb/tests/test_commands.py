@@ -64,3 +64,33 @@ def test_commands(start_binary, name):
 
         if not ignore:
             raise e
+
+
+def test_only_when_running_checked_before_argparse() -> None:
+    """
+    Regression test for #1462.
+
+    @OnlyWhenRunning commands must short-circuit with the standard
+    "The program is not being run." message before argparse evaluates
+    arguments. Otherwise default args like "$sp"/"$rip" or symbol-style
+    args leak cryptic resolution errors when there's no inferior.
+    """
+    expected = "The program is not being run."
+
+    # `address` defaults to "$sp" - argparse runs string defaults through
+    # type=int, which used to fail with "No registers." here.
+    out = gdb.execute("telescope", to_string=True)
+    assert f"telescope: {expected}" in out, out
+
+    # Explicit register reference - same failure mode.
+    out = gdb.execute("telescope $rip", to_string=True)
+    assert f"telescope: {expected}" in out, out
+
+    # Symbol-style args that fail to resolve without a symbol table.
+    out = gdb.execute("xor a a a", to_string=True)
+    assert f"xor: {expected}" in out, out
+
+    # --help must still work without a running program.
+    out = gdb.execute("telescope --help", to_string=True)
+    assert expected not in out
+    assert "Recursively dereferences pointers" in out

@@ -4,8 +4,8 @@ import argparse
 
 import pwndbg.aglib.dynamic
 import pwndbg.aglib.proc
-import pwndbg.color as color
 import pwndbg.commands
+from pwndbg import color
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -33,8 +33,7 @@ def linkmap() -> None:
     col_max = [0, 0, 0, 0]
     for i in range(len(rows)):
         for j in range(len(col_max)):
-            if len(rows[i][j]) > col_max[j]:
-                col_max[j] = len(rows[i][j])
+            col_max[j] = max(col_max[j], len(rows[i][j]))
 
     colors = [color.light_cyan, color.light_yellow, color.light_red, color.light_purple]
     for i in range(len(rows)):

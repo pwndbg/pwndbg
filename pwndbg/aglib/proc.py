@@ -114,7 +114,7 @@ def get_section_address_by_name(section_name: str) -> int:
     selected = pwndbg.dbg.selected_inferior()
     main = selected.main_module_name()
 
-    for address, size, section, module in selected.module_section_locations():
+    for address, _size, section, module in selected.module_section_locations():
         if module != main:
             continue
         if section == section_name:

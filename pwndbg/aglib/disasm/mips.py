@@ -7,14 +7,16 @@ from capstone6pwndbg import *  # noqa: F403
 from capstone6pwndbg.mips import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 import pwndbg.color.memory as mem_color
 import pwndbg.dintegration
 import pwndbg.lib.disasm.helpers as bit_math
-from pwndbg.aglib.disasm.arch import register_assign
+from pwndbg.aglib.disasm.assistant import register_assign
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
+from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -179,8 +181,8 @@ MIPS_BINARY_OPERATIONS = {
 
 
 # This class enhances 32-bit, 64-bit, and micro MIPS
-class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
-    def __init__(self, architecture) -> None:
+class MipsDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
+    def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         super().__init__(architecture)
 
         self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
@@ -194,7 +196,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         }
 
     @override
-    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         if instruction.id in MIPS_LOAD_INSTRUCTIONS:
             read_size = MIPS_LOAD_INSTRUCTIONS[instruction.id]
 
@@ -246,9 +248,15 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             )
 
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        if len(instruction.operands) == 0:
-            return InstructionCondition.UNDETERMINED
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
+        condition_resolver = CONDITION_RESOLVERS.get(instruction.id)
+
+        if condition_resolver is None:
+            return InstructionCondition.UNCONDITIONAL
+
+        # Otherwise, we assume this is a conditional instruction
 
         # Not using list comprehension because they run in a separate scope in which super() does not exist
         resolved_operands: list[int] = []
@@ -261,17 +269,14 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if any(value is None for value in resolved_operands[:-1]):
             # Note the [:-1]. MIPS jump instructions have the target as the last operand
             # https://www.doc.ic.ac.uk/lab/secondyear/spim/node16.html
-            return InstructionCondition.UNDETERMINED
+            return InstructionCondition.UNDETERMINED_CONDITIONAL
 
-        conditional = CONDITION_RESOLVERS.get(instruction.id, lambda *a: None)(resolved_operands)
-
-        if conditional is None:
-            return InstructionCondition.UNDETERMINED
+        conditional = condition_resolver(resolved_operands)
 
         return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if bool(instruction.groups & FORWARD_JUMP_GROUP) and not bool(
             instruction.groups & BRANCH_WITHOUT_DELAY_SLOT_INSTRUCTIONS
         ):
@@ -283,8 +288,8 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def _parse_memory(
         self,
         instruction: PwndbgInstruction,
-        op: pwndbg.aglib.disasm.arch.EnhancedOperand,
-        emu: Emulator,
+        op: EnhancedOperand,
+        emu: Emulator | None,
     ) -> int | None:
         """
         Parse the `MipsOpMem` Capstone object to determine the concrete memory address used.

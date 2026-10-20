@@ -4,6 +4,8 @@ Dereference and format pointer chains.
 
 from __future__ import annotations
 
+import os
+
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
@@ -14,17 +16,18 @@ import pwndbg.enhance
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
+from pwndbg.lib.memory import Page
 
-LIMIT = pwndbg.config.add_param(
+deref_limit = pwndbg.config.add_param(
     "dereference-limit", 5, "max number of pointers to dereference in a chain"
 )
 
 c = ColorConfig(
     "chain",
     [
-        ColorParamSpec("arrow", "normal", "color of chain formatting (arrow)"),
+        ColorParamSpec("arrow", "none", "color of chain formatting (arrow)"),
         ColorParamSpec(
-            "contiguous-marker", "normal", "color of chain formatting (contiguous marker)"
+            "contiguous-marker", "none", "color of chain formatting (contiguous marker)"
         ),
     ],
 )
@@ -32,7 +35,7 @@ c = ColorConfig(
 
 def get(
     address: int | None,
-    limit: int = LIMIT,
+    limit: int | None = None,
     offset: int = 0,
     hard_stop: int | None = None,
     hard_end: int = 0,
@@ -58,7 +61,8 @@ def get(
         return None
     assert address >= 0, "address must be positive"
 
-    limit = int(limit)
+    if limit is None:
+        limit = int(deref_limit)
 
     result = [address] if include_start else []
 
@@ -86,7 +90,7 @@ def get(
             address = next_address ^ ((address >> 12) if safe_linking else 0)
             address &= pwndbg.aglib.arch.ptrmask
             result.append(address)
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             break
 
     return result
@@ -101,13 +105,14 @@ config_contiguous = theme.add_param(
 
 def format(
     value: int | list[int] | None,
-    limit: int = LIMIT,
+    limit: int | None = None,
     code: bool = True,
     offset: int = 0,
     hard_stop: int | None = None,
     hard_end: int = 0,
     safe_linking: bool = False,
     enhance_string_len: int | None = None,
+    respect_ptrwidth: bool = False,
 ) -> str:
     """
     Recursively dereferences an address into string representation, or convert the list representation
@@ -129,7 +134,8 @@ def format(
     if value is None:
         return "<unavailable>"
 
-    limit = int(limit)
+    if limit is None:
+        limit = int(deref_limit)
 
     # Allow results from get function to be passed to format
     if isinstance(value, list):
@@ -137,15 +143,15 @@ def format(
     else:
         chain = get(value, limit, offset, hard_stop, hard_end, safe_linking=safe_linking) or []
 
-    arrow_left = c.arrow(f" {config_arrow_left} ")
-    arrow_right = c.arrow(f" {config_arrow_right} ")
-
     # Ask the decompiler to resolve stack variables
     stack_vars = pwndbg.dintegration.manager.get_stack_var_dict_all()
 
     # Colorize the chain
     rest = [
-        mem_color.get_address_and_symbol(addr, stack_vars) if addr >= 0 else "" for addr in chain
+        mem_color.get_address_and_symbol(addr, stack_vars, respect_ptrwidth=bool(respect_ptrwidth))
+        if addr >= 0
+        else ""
+        for addr in chain
     ]
 
     # If the dereference limit is zero, skip any enhancements.
@@ -165,26 +171,51 @@ def format(
         # This case only applies to lists of length one, because if the list has more than one value, we already know
         # that the second to last value, chain[-2], can be safely dereferenced - how else would chain[-1] exist?
         # In other case where chain[-1] is not a pointer, the argument has no effect.
-        enhanced = pwndbg.enhance.enhance(
+        return pwndbg.enhance.enhance(
             chain[-1],
             code=code,
             attempt_dereference=False,
             enhance_string_len=enhance_string_len,
+            respect_ptrwidth=bool(respect_ptrwidth),
         )
     # We want to enhance the last pointer value. If an offset was used
     # chain failed at that offset, so display that offset.
-    elif len(chain) < limit + 1:
+    if len(chain) < limit + 1:
+        pointer_to_enhance = chain[-2] + offset
+
+        page = pwndbg.aglib.vmmap.find(pointer_to_enhance)
+
+        # If the pointer is not in the vmmap mappings, we create page permissions for it.
+        # We know it's a valid pointer, because we dereferenced it.
+        if not page:
+            mem_flags = pwndbg.aglib.vmmap_custom.get_memory_flags(pointer_to_enhance)
+            if mem_flags is None:
+                mem_flags = os.R_OK
+            # The page start/end are set because they are used in some edge case checks in the enhance function
+            start = pwndbg.lib.memory.page_align(pointer_to_enhance)
+            end = 1 << pwndbg.aglib.arch.ptrbits
+            page = Page(
+                start, end, mem_flags, pointer_to_enhance - start, pwndbg.aglib.arch.ptrsize
+            )
+
         enhanced = pwndbg.enhance.enhance(
-            chain[-2] + offset,
+            pointer_to_enhance,
             code=code,
             safe_linking=safe_linking,
             enhance_string_len=enhance_string_len,
+            respect_ptrwidth=bool(respect_ptrwidth),
+            page=page,
         )
 
     else:
         enhanced = c.contiguous_marker(f"{config_contiguous}")
 
-    if len(chain) == 1:
-        return enhanced
+    arrow_right = c.arrow(f" {config_arrow_right} ")
 
-    return arrow_right.join(rest) + arrow_left + enhanced
+    # Show left arrow if we finished dereferencing the chain, otherwise, use right arrow
+    if len(chain) <= limit:
+        arrow_last = c.arrow(f" {config_arrow_left} ")
+    else:
+        arrow_last = arrow_right
+
+    return arrow_right.join(rest) + arrow_last + enhanced

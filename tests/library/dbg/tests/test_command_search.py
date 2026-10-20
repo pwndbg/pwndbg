@@ -179,6 +179,24 @@ async def test_command_search_qword_width(ctrl: Controller) -> None:
 
 
 @pwndbg_test
+async def test_command_search_negative_value(ctrl: Controller) -> None:
+    """
+    Negative values should be searched as signed integers of the given width
+    """
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
+
+    # 0xef == -0x11 as a byte, 0xd00dbeef == -0x2ff24111 as a dword
+    for width, positive, negative in (("-1", "0xef", "-0x11"), ("-4", "0xd00dbeef", "-0x2ff24111")):
+        expected = await ctrl.execute_and_capture(f"search {width} -w {positive}")
+        result = await ctrl.execute_and_capture(f"search {width} -w -- {negative}")
+        assert "invalid input" not in result
+        assert result.splitlines()[1:] == expected.splitlines()[1:]
+
+    result = await ctrl.execute_and_capture("search -1 -w -- -0x81")
+    assert "invalid input for type byte" in result
+
+
+@pwndbg_test
 async def test_command_search_rwx(ctrl: Controller) -> None:
     """
     Tests searching for rwx memory only

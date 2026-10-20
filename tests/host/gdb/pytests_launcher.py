@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import sys
 from collections.abc import Callable
@@ -30,13 +31,19 @@ class _GDBController(host.Controller):
         """
         self._gdb_execute("context")
 
-    async def launch(self, binary: Path, args: list[str] = [], env: dict[str, str] = {}) -> None:
+    async def launch(
+        self, binary: Path, args: list[str] = None, env: dict[str, str] = None
+    ) -> None:
         """
         Launch the given binary.
 
         GDB hides the asynchronous heavy lifting from us, so this call is
         synchronous.
         """
+        if env is None:
+            env = {}
+        if args is None:
+            args = []
         if not os.path.exists(binary):
             pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
 
@@ -45,6 +52,8 @@ class _GDBController(host.Controller):
         self._gdb_execute("set exception-verbose on")
         self._gdb_execute("set width 80")
         self._gdb_execute("set context-reserve-lines never")
+        self._gdb_execute("set heuristic-backwards-disasm off")
+        self._gdb_execute("set context-disasm-back-linear-lines 0")
         os.environ["COLUMNS"] = "80"
         for k, v in env.items():
             self._gdb_execute(f"set environment {k}={v}")
@@ -62,12 +71,12 @@ class _GDBController(host.Controller):
         self._show_context()
 
     async def execute(self, command: str) -> None:
-        from pwndbg.dbg_mod import Error
+        from pwndbg.dbg_mod import DebuggerError
 
         try:
             self._gdb_execute(command)
         except gdb.error as e:
-            raise Error(e)
+            raise DebuggerError(e)
 
     async def execute_and_capture(self, command: str) -> str:
         print(f"pwndbg> {command}")
@@ -99,10 +108,8 @@ def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> Non
     # The GDB controller is entirely synchronous, so keep advancing the
     # corountine unconditionally until it ends..
     coroutine = outer(_GDBController())
-    try:
+    with contextlib.suppress(StopIteration):
         coroutine.send(None)
-    except StopIteration:
-        pass
 
 
 host.start = _start
@@ -114,7 +121,7 @@ sys._pwndbg_unittest_run = True  # type: ignore[attr-defined]
 
 test = os.environ["PWNDBG_LAUNCH_TEST"]
 
-args = [test, "-vvv", "-s", "--showlocals", "--color=yes"]
+args = [test, "-vvv", "-s", "-rs", "--showlocals", "--color=yes"]
 
 if use_pdb:
     args.append("--pdb")

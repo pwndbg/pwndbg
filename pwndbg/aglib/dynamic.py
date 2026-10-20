@@ -18,8 +18,8 @@ from typing import Any
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
+from pwndbg.color import message
 from pwndbg.lib.elftypes import constants as elf
 
 
@@ -760,8 +760,7 @@ class CStruct:
                 current_offset += ty.alignof - (current_offset % ty.alignof)
 
             # Save the alignment requirements of the strictest element.
-            if ty.alignof > alignment:
-                alignment = ty.alignof
+            alignment = max(alignment, ty.alignof)
 
             self.offsets[name] = current_offset
             self.types[name] = ty

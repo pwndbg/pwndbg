@@ -17,7 +17,6 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.shellcode
 import pwndbg.commands
 import pwndbg.dbg_mod
-import pwndbg.lib.regs
 from pwndbg.commands import CommandCategory
 
 
@@ -28,10 +27,10 @@ class ShellcodeRegs(NamedTuple):
 
 
 def get_shellcode_regs() -> ShellcodeRegs:
-    register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
+    register_set = pwndbg.aglib.arch.reg_set
     syscall_abi = pwndbg.aglib.arch.syscall_abi
     if syscall_abi is None:
-        raise pwndbg.dbg_mod.Error("Syscall ABI not defined for current architecture")
+        raise pwndbg.dbg_mod.DebuggerError("Syscall ABI not defined for current architecture")
 
     # pickup free register what is not used for syscall abi
     newfd_reg = next(
@@ -50,7 +49,7 @@ def get_shellcode_regs() -> ShellcodeRegs:
 def stack_size_alignment(s: int) -> int:
     syscall_abi = pwndbg.aglib.arch.syscall_abi
     if syscall_abi is None:
-        raise pwndbg.dbg_mod.Error("Syscall ABI not defined for current architecture")
+        raise pwndbg.dbg_mod.DebuggerError("Syscall ABI not defined for current architecture")
 
     return s + (syscall_abi.arg_alignment - (s % syscall_abi.arg_alignment))
 
@@ -237,7 +236,7 @@ PARSED_FILE_ARG = tuple[ParsedSocket | None, str | None]
 
 def parse_file_or_socket(s: str) -> PARSED_FILE_ARG:
     # is file
-    if s.startswith("/") or s.startswith("./"):
+    if s.startswith(("/", "./")):
         return None, s
     return parse_socket(s), None
 

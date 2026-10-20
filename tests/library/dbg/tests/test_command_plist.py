@@ -29,23 +29,23 @@ async def test_command_plist_dereference_limit_change_has_impact_on_plist(ctrl: 
     expected_out = re.compile(
         """\
 0[xX][0-9a-fA-F]+ <node_a>:.*{\\s*
-  value = 0,?\\s*
+  value = (0x)?0,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_b>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_b>:.*{\\s*
-  value = 1,?\\s*
+  value = (0x)?1,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_c>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_c>:.*{\\s*
-  value = 2,?\\s*
+  value = (0x)?2,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_d>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_d>:.*{\\s*
-  value = 3,?\\s*
+  value = (0x)?3,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_e>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_e>:.*{\\s*
-  value = 4,?\\s*
+  value = (0x)?4,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_f>)?,?\\s*
 }\
 """
@@ -59,7 +59,7 @@ async def test_command_plist_dereference_limit_change_has_impact_on_plist(ctrl: 
     expected_out = re.compile(
         """\
 0[xX][0-9a-fA-F]+ <node_a>:.*{\\s*
-  value = 0,?\\s*
+  value = (0x)?0,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_b>)?,?\\s*
 }\
 """
@@ -78,11 +78,11 @@ async def test_command_plist_unreached_sentinel_does_not_cause_null_deference(ct
     await startup(ctrl)
     expected_out = re.compile(
         """\
-0[xX][0-9a-fA-F]+ <node_a>:.* 0\\s*
-0[xX][0-9a-fA-F]+ <node_b>:.* 1\\s*
-0[xX][0-9a-fA-F]+ <node_c>:.* 2\\s*
-0[xX][0-9a-fA-F]+ <node_d>:.* 3\\s*
-0[xX][0-9a-fA-F]+ <node_e>:.* 4\\s*
+0[xX][0-9a-fA-F]+ <node_a>:.* (0x)?0\\s*
+0[xX][0-9a-fA-F]+ <node_b>:.* (0x)?1\\s*
+0[xX][0-9a-fA-F]+ <node_c>:.* (0x)?2\\s*
+0[xX][0-9a-fA-F]+ <node_d>:.* (0x)?3\\s*
+0[xX][0-9a-fA-F]+ <node_e>:.* (0x)?4\\s*
 \
 """
     )
@@ -101,7 +101,7 @@ async def test_command_plist_invalid_address_deference_is_displayed_properly(ctr
     await ctrl.execute("p node_a->next = (node*) 0x1234")
     expected_out = re.compile(
         """\
-0[xX][0-9a-fA-F]+ <node_a>:.* 0\\s*
+0[xX][0-9a-fA-F]+ <node_a>:.* (0x)?0\\s*
 Cannot dereference 0x1234 for list link #2:.*\\s*
 Is the linked list corrupted or is the sentinel value wrong\\?\\s*
 \
@@ -121,15 +121,15 @@ async def test_command_plist_flat_with_offset(ctrl: Controller):
     expected_out = re.compile(
         """\
 0[xX][0-9a-fA-F]+ <node_d>:.*{\\s*
-  value = 3,?\\s*
+  value = (0x)?3,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_e>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_e>:.*{\\s*
-  value = 4,?\\s*
+  value = (0x)?4,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_f>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_f>:.*{\\s*
-  value = 5,?\\s*
+  value = (0x)?5,?\\s*
   next = (0x0|NULL),?\\s*
 }\
 """
@@ -149,15 +149,15 @@ async def test_command_plist_flat_with_count(ctrl: Controller):
     expected_out = re.compile(
         """\
 0[xX][0-9a-fA-F]+ <node_a>:.*{\\s*
-  value = 0,?\\s*
+  value = (0x)?0,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_b>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_b>:.*{\\s*
-  value = 1,?\\s*
+  value = (0x)?1,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_c>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_c>:.*{\\s*
-  value = 2,?\\s*
+  value = (0x)?2,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_d>)?,?\\s*
 }\
 """
@@ -177,23 +177,23 @@ async def test_command_plist_flat_no_flags(ctrl: Controller):
     expected_out = re.compile(
         """\
 0[xX][0-9a-fA-F]+ <node_a>:.*{\\s*
-  value = 0,?\\s*
+  value = (0x)?0,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_b>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_b>:.*{\\s*
-  value = 1,?\\s*
+  value = (0x)?1,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_c>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_c>:.*{\\s*
-  value = 2,?\\s*
+  value = (0x)?2,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_d>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_d>:.*{\\s*
-  value = 3,?\\s*
+  value = (0x)?3,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_e>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_e>:.*{\\s*
-  value = 4,?\\s*
+  value = (0x)?4,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_f>)?,?\\s*
 }\
 """
@@ -212,9 +212,9 @@ async def test_command_plist_flat_field(ctrl: Controller):
 
     expected_out = re.compile(
         """\
-0[xX][0-9a-fA-F]+ <node_a>:.* 0\\s*
-0[xX][0-9a-fA-F]+ <node_b>:.* 1\\s*
-0[xX][0-9a-fA-F]+ <node_c>:.* 2\\s*
+0[xX][0-9a-fA-F]+ <node_a>:.* (0x)?0\\s*
+0[xX][0-9a-fA-F]+ <node_b>:.* (0x)?1\\s*
+0[xX][0-9a-fA-F]+ <node_c>:.* (0x)?2\\s*
 """
     )
 
@@ -233,11 +233,11 @@ async def test_command_plist_flat_sentinel(ctrl: Controller):
     expected_out = re.compile(
         """\
 0[xX][0-9a-fA-F]+ <node_a>:.*{\\s*
-  value = 0,?\\s*
+  value = (0x)?0,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_b>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_b>:.*{\\s*
-  value = 1,?\\s*
+  value = (0x)?1,?\\s*
   next = 0[xX][0-9a-fA-F]+( <node_c>)?,?\\s*
 }"""
     )
@@ -256,19 +256,19 @@ async def test_command_plist_nested_direct(ctrl: Controller):
     expected_out = re.compile(
         """\
 0[xX][0-9a-fA-F]+ <inner_b_node_a>:.*{\\s*
-  value = 0,?\\s*
+  value = (0x)?0,?\\s*
   inner = {\\s*
     next = 0[xX][0-9a-fA-F]+( <inner_b_node_b>)?,?\\s*
   }\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <inner_b_node_b>:.*{\\s*
-  value = 1,?\\s*
+  value = (0x)?1,?\\s*
   inner = {\\s*
     next = 0[xX][0-9a-fA-F]+( <inner_b_node_c>)?,?\\s*
   }\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <inner_b_node_c>:.*{\\s*
-  value = 2,?\\s*
+  value = (0x)?2,?\\s*
   inner = {\\s*
     next = (0x0|NULL),?\\s*
   }\\s*
@@ -289,19 +289,19 @@ async def test_command_plist_nested_indirect(ctrl: Controller):
     expected_out = re.compile(
         """\
 0[xX][0-9a-fA-F]+ <inner_a_node_a>:.*{\\s*
-  value = 0,?\\s*
+  value = (0x)?0,?\\s*
   inner = {\\s*
     next = 0[xX][0-9a-fA-F]+( <inner_a_node_b\\+8>)?,?\\s*
   }\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <inner_a_node_b>:.*{\\s*
-  value = 1,?\\s*
+  value = (0x)?1,?\\s*
   inner = {\\s*
     next = 0[xX][0-9a-fA-F]+( <inner_a_node_c\\+8>)?,?\\s*
   }\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <inner_a_node_c>:.*{\\s*
-  value = 2,?\\s*
+  value = (0x)?2,?\\s*
   inner = {\\s*
     next = (0x0|NULL),?\\s*
   }\\s*
@@ -321,9 +321,9 @@ async def test_command_plist_size_t_field(ctrl: Controller):
 
     expected_out = re.compile(
         """\
-0[xX][0-9a-fA-F]+ <size_t_node_a>:.* 10\\s*
-0[xX][0-9a-fA-F]+ <size_t_node_b>:.* 21\\s*
-0[xX][0-9a-fA-F]+ <size_t_node_c>:.* 42\\s*
+0[xX][0-9a-fA-F]+ <size_t_node_a>:.* (0xa|10)\\s*
+0[xX][0-9a-fA-F]+ <size_t_node_b>:.* (0x15|21)\\s*
+0[xX][0-9a-fA-F]+ <size_t_node_c>:.* (0x2a|42)\\s*
 """
     )
 

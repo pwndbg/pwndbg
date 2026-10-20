@@ -6,10 +6,10 @@ import gdb
 from capstone6pwndbg import CS_GRP_JUMP
 
 import pwndbg.aglib.disasm.disassembly
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.bpoint
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
@@ -28,7 +28,7 @@ class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
         # where previously it was not. The enhancement process will figure out if all the conditions
         # this branch requires in order to be taken have been met.
         assistant = pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
-        assistant.enhance(self.instruction)
+        assistant.enhance(self.instruction, current_cpu_instruction=True)
         condition_met = self.instruction.is_conditional_jump_taken
 
         return condition_met == self.taken

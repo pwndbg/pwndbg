@@ -13,9 +13,9 @@ import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import BreakpointLocation
 from pwndbg.dbg_mod import DebuggerType
@@ -136,22 +136,21 @@ def entry(args=None) -> None:
         # If this is GDB, just start the process ourselves.
         run = "starti " + " ".join(map(quote, args))
         gdb.execute(run, from_tty=False)
-    else:
-        # For now, there is no debugger-agnostic way to start a process from
-        # inside a command, so the best we can do is expect that the back-end
-        # picks up that this command is being called, and starts the process on
-        # our behalf, and error out if it does not.
-        #
-        # `pwndbg-lldb` implements starting as a partial command override in the CLI.
-        #
-        # TODO: In the future, we should handle starts using an in-command mechanism.
-        if not pwndbg.aglib.proc.alive():
-            print(
-                message.error(
-                    "The program is not running. Start the program with `run -s` and then use `entry` to set the breakpoint."
-                )
+    # For now, there is no debugger-agnostic way to start a process from
+    # inside a command, so the best we can do is expect that the back-end
+    # picks up that this command is being called, and starts the process on
+    # our behalf, and error out if it does not.
+    #
+    # `pwndbg-lldb` implements starting as a partial command override in the CLI.
+    #
+    # TODO: In the future, we should handle starts using an in-command mechanism.
+    elif not pwndbg.aglib.proc.alive():
+        print(
+            message.error(
+                "The program is not running. Start the program with `run -s` and then use `entry` to set the breakpoint."
             )
-            return
+        )
+        return
     breakpoint_at_entry()
 
 

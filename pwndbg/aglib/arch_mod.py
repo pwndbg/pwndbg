@@ -8,6 +8,7 @@ import pwnlib.context
 from capstone6pwndbg import CS_ARCH_AARCH64
 from capstone6pwndbg import CS_ARCH_ARM
 from capstone6pwndbg import CS_ARCH_LOONGARCH
+from capstone6pwndbg import CS_ARCH_M68K
 from capstone6pwndbg import CS_ARCH_MIPS
 from capstone6pwndbg import CS_ARCH_PPC
 from capstone6pwndbg import CS_ARCH_RISCV
@@ -21,12 +22,16 @@ from capstone6pwndbg import CS_MODE_ARM
 from capstone6pwndbg import CS_MODE_BIG_ENDIAN
 from capstone6pwndbg import CS_MODE_LITTLE_ENDIAN
 from capstone6pwndbg import CS_MODE_LOONGARCH64
+from capstone6pwndbg import CS_MODE_M68K_060
 from capstone6pwndbg import CS_MODE_MCLASS
 from capstone6pwndbg import CS_MODE_MIPS32
 from capstone6pwndbg import CS_MODE_MIPS64
 from capstone6pwndbg import CS_MODE_RISCV32
 from capstone6pwndbg import CS_MODE_RISCV64
-from capstone6pwndbg import CS_MODE_RISCVC
+from capstone6pwndbg import CS_MODE_RISCV_C
+from capstone6pwndbg import CS_MODE_RISCV_ZBA
+from capstone6pwndbg import CS_MODE_RISCV_ZBB
+from capstone6pwndbg import CS_MODE_RISCV_ZBS
 from capstone6pwndbg import CS_MODE_THUMB
 from capstone6pwndbg import CS_MODE_V9
 from typing_extensions import override
@@ -34,8 +39,9 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.disasm
-import pwndbg.dbg_mod
+import pwndbg.lib.regs
 from pwndbg.aglib import typeinfo
+from pwndbg.color import message
 from pwndbg.lib.abi import ABI
 from pwndbg.lib.abi import DEFAULT_ABIS
 from pwndbg.lib.abi import SIGRETURN_ABIS
@@ -47,6 +53,7 @@ from pwndbg.lib.arch import PWNLIB_PLATFORM_MAPPINGS
 from pwndbg.lib.arch import ArchAttribute
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
+from pwndbg.lib.regs import RegisterSet
 
 EndianType = Literal["little", "big"]
 
@@ -57,7 +64,7 @@ FMT_BIG_ENDIAN = {1: "B", 2: ">H", 4: ">I", 8: ">Q"}
 registered_architectures: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, PwndbgArchitecture] = {}
 
 
-def register_arch(arch: PwndbgArchitecture):
+def register_arch(arch: PwndbgArchitecture) -> None:
     registered_architectures[arch.name] = arch
 
 
@@ -85,6 +92,7 @@ class PwndbgArchitecture(ArchDefinition):
 
     ### All subclasses must provide values for the following attributes
 
+    reg_set: RegisterSet
     max_instruction_size: int
     instruction_alignment: int
     constant_instruction_size: bool = False
@@ -179,7 +187,18 @@ class PwndbgArchitecture(ArchDefinition):
         return (val << shift) & ((1 << self.ptrbits) - 1)
 
 
+class DefaultArchitecture(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.default_reg_set
+    max_instruction_size = 25
+    instruction_alignment = 1
+
+    def __init__(self, arch_name: str) -> None:
+        # arch_name is an arbitrary string
+        super().__init__(arch_name)  # type: ignore[arg-type]
+
+
 class AMD64Arch(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.amd64
     max_instruction_size = 16
     instruction_alignment = 1
 
@@ -196,6 +215,7 @@ class i386Arch(PwndbgArchitecture):
     32-bit mode x86
     """
 
+    reg_set = pwndbg.lib.regs.i386
     max_instruction_size = 16
     instruction_alignment = 1
 
@@ -212,6 +232,7 @@ class i8086Arch(PwndbgArchitecture):
     16-bit mode x86
     """
 
+    reg_set = pwndbg.lib.regs.i386
     max_instruction_size = 16
     instruction_alignment = 1
 
@@ -224,6 +245,7 @@ class i8086Arch(PwndbgArchitecture):
 
 
 class ArmArch(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.arm
     max_instruction_size = 4
     instruction_alignment = 4
 
@@ -255,6 +277,7 @@ class ArmCortexArch(PwndbgArchitecture):
     Only Thumb-2 instructions are supported, and the Thumb bit is always 1.
     """
 
+    reg_set = pwndbg.lib.regs.armcm
     max_instruction_size = 4
     instruction_alignment = 4
 
@@ -276,6 +299,7 @@ class ArmCortexArch(PwndbgArchitecture):
 
 
 class AArch64Arch(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.aarch64
     max_instruction_size = 4
     instruction_alignment = 4
     constant_instruction_size = True
@@ -293,6 +317,7 @@ class AArch64Arch(PwndbgArchitecture):
 
 
 class PowerPCArch(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.powerpc
     max_instruction_size = 4
     instruction_alignment = 4
 
@@ -305,6 +330,7 @@ class PowerPCArch(PwndbgArchitecture):
 
 
 class SparcArch(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.sparc
     max_instruction_size = 4
     instruction_alignment = 4
 
@@ -318,6 +344,7 @@ class SparcArch(PwndbgArchitecture):
 
 
 class RISCV32Arch(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.riscv
     max_instruction_size = 22
     instruction_alignment = 4
 
@@ -326,10 +353,18 @@ class RISCV32Arch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        return (CS_ARCH_RISCV, CS_MODE_RISCV32 | CS_MODE_RISCVC)
+        return (
+            CS_ARCH_RISCV,
+            CS_MODE_RISCV32
+            | CS_MODE_RISCV_C
+            | CS_MODE_RISCV_ZBA
+            | CS_MODE_RISCV_ZBB
+            | CS_MODE_RISCV_ZBS,
+        )
 
 
 class RISCV64Arch(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.riscv
     max_instruction_size = 22
     instruction_alignment = 4
 
@@ -338,10 +373,18 @@ class RISCV64Arch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
-        return (CS_ARCH_RISCV, CS_MODE_RISCV64 | CS_MODE_RISCVC)
+        return (
+            CS_ARCH_RISCV,
+            CS_MODE_RISCV64
+            | CS_MODE_RISCV_C
+            | CS_MODE_RISCV_ZBA
+            | CS_MODE_RISCV_ZBB
+            | CS_MODE_RISCV_ZBS,
+        )
 
 
 class MipsArch(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.mips
     max_instruction_size = 8
     instruction_alignment = 4
 
@@ -362,6 +405,7 @@ class MipsArch(PwndbgArchitecture):
 
 
 class Loongarch64Arch(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.loongarch64
     max_instruction_size = 4
     instruction_alignment = 4
     constant_instruction_size = True
@@ -375,6 +419,7 @@ class Loongarch64Arch(PwndbgArchitecture):
 
 
 class S390xArch(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.s390x
     max_instruction_size = 6
     instruction_alignment = 2
 
@@ -384,6 +429,33 @@ class S390xArch(PwndbgArchitecture):
     @override
     def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_SYSTEMZ, 0)
+
+
+class HexagonArch(PwndbgArchitecture):
+    reg_set = pwndbg.lib.regs.hexagon
+    max_instruction_size = 16
+    instruction_alignment = 4
+
+    def __init__(self) -> None:
+        super().__init__("hexagon")
+
+    @override
+    def get_capstone_constants(self, address: int) -> tuple[int, int] | None:
+        return None
+
+
+class M68kArch(PwndbgArchitecture):
+    max_instruction_size = 22
+    instruction_alignment = 1
+
+    def __init__(self) -> None:
+        super().__init__("m68k")
+
+    @override
+    def get_capstone_constants(self, address: int) -> tuple[int, int] | None:
+        # Capstone lets us pick between a huge array of M68k variants
+        # This is the newest arch release
+        return CS_ARCH_M68K, CS_MODE_BIG_ENDIAN | CS_MODE_M68K_060
 
 
 # Register the architecture classes
@@ -401,6 +473,8 @@ all_arches = [
     MipsArch(),
     Loongarch64Arch(),
     S390xArch(),
+    HexagonArch(),
+    M68kArch(),
 ]
 
 for arch in all_arches:
@@ -423,12 +497,17 @@ def update() -> None:
     # Will be None the first time around.
     if pwndbg.aglib.arch is None or a.name != pwndbg.aglib.arch.name:
         pwndbg_arch = get_pwndbg_architecture(a.name)
+
         if pwndbg_arch is None:
-            raise pwndbg.dbg_mod.Error(
-                f"Unsupported architecture: {a.name}. "
-                f"It may be that Pwndbg is not correctly categorizing the architecture. "
-                f"Please file a bug report. "
+            print(
+                message.warn(
+                    f"Unsupported architecture: {a.name}. "
+                    f"It may be that Pwndbg is not correctly categorizing the architecture. "
+                    f"Or, pwndbg has yet to implement full support for the architecture, and we are falling back to a default behavior. "
+                    f"Please file a bug report. "
+                )
             )
+            pwndbg_arch = DefaultArchitecture(a.name)
         pwndbg.aglib.set_arch(pwndbg_arch)
 
     pwndbg.aglib.arch.update(a)

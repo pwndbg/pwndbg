@@ -14,9 +14,9 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.bpf
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import BreakpointLocation
 from pwndbg.lib.exception import IndentContextManager
@@ -159,7 +159,7 @@ def print_bpf_prog_metadata(
 
 
 def print_bpf_progs(verbose: int, nth: int | None) -> None:
-    prog_idr = pwndbg.aglib.kernel.prog_idr()
+    prog_idr = pwndbg.aglib.kernel.symbol.prog_idr
     if int(prog_idr) == 0:
         print(message.warn("cannot find prog_idr"))
         return
@@ -218,7 +218,7 @@ def print_bpf_progs(verbose: int, nth: int | None) -> None:
 
 
 def print_bpf_maps(verbose: int) -> None:
-    map_idr = pwndbg.aglib.kernel.map_idr()
+    map_idr = pwndbg.aglib.kernel.symbol.map_idr
     if int(map_idr) == 0:
         print(message.warn("cannot find map_idr"))
         return

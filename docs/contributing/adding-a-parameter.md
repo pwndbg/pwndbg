@@ -132,9 +132,8 @@ class Scope(Enum):
     # a command which prints it!
     config = 1
     theme = 2
-    heap = 3
 ```
-The parameters of each scope are printed using a different command. The `config` scope is printed with [`config`](../commands/pwndbg/config.md), the `heap` scope is printed with [`heap-config`](../commands/pwndbg/heap-config.md) and the `theme` scope is printed with [`theme`](../commands/pwndbg/theme.md). The `config` and `theme` scopes also have corresponding [`configfile`](../commands/pwndbg/configfile.md) and [`themefile`](../commands/pwndbg/themefile.md) commands which export the values of all the parameters from those scopes.
+The parameters of each scope are printed using a different command. The `config` scope is printed with [`config`](../commands/pwndbg/config.md),  and the `theme` scope is printed with [`theme`](../commands/pwndbg/theme.md). The `config` and `theme` scopes also have corresponding [`configfile`](../commands/pwndbg/configfile.md) and [`themefile`](../commands/pwndbg/themefile.md) commands which export the values of all the parameters from those scopes.
 ### The `theme` scope
 You should never directly pass this scope to `pwndbg.config.add_param`. Instead use the `pwndbg.color.theme.add_param` and `pwndbg.color.theme.add_color_param` wrapper commands like this:
 ```python

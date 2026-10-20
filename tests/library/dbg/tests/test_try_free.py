@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import tempfile
 from pathlib import Path
@@ -72,10 +73,8 @@ async def setup_heap(ctrl: Controller, bug_no: int) -> dict[str, int]:
     global breakpoints
 
     # for communication python<->HEAP_BINARY
-    try:
+    with contextlib.suppress(FileNotFoundError):
         os.remove(OUTPUT_FILE)
-    except FileNotFoundError:
-        pass
 
     await ctrl.launch(HEAP_BINARY, args=[str(bug_no), f"{OUTPUT_FILE}"])
     await ctrl.execute("b " + str(breakpoints[bug_no][0]))
@@ -168,13 +167,10 @@ async def test_try_free_invalid_fastbin_entry(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_double_free_or_corruption_top(ctrl: Controller) -> None:
-    import pwndbg.aglib
-    import pwndbg.aglib.heap
-    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
+    import pwndbg.aglib.heap.glibc
 
     await setup_heap(ctrl, 9)
-    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
-    allocator = pwndbg.aglib.heap.current
+    allocator = pwndbg.aglib.heap.glibc.get_allocator()
 
     ptr_size = pwndbg.aglib.arch.ptrsize
     arena = allocator.thread_arena or allocator.main_arena

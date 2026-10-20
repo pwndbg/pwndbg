@@ -12,6 +12,9 @@ from . import get_binary
 from . import pwndbg_test
 
 REFERENCE_BINARY_NET = get_binary("reference-binary-net.native.out")
+REFERENCE_BINARY_NETLINK = get_binary("reference-binary-netlink.native.out")
+REFERENCE_BINARY_SOCKETPAIR = get_binary("reference-binary-socketpair.native.out")
+REFERENCE_BINARY_PIPE = get_binary("reference-binary-pipe.native.out")
 
 
 class TCPServerThread(threading.Thread):
@@ -70,3 +73,82 @@ async def test_command_procinfo_net(ctrl: Controller, ip_connect: str) -> None:
 
     # Close tcp server
     server.stop()
+
+
+@pwndbg_test
+async def test_command_procinfo_netlink(ctrl: Controller) -> None:
+    await ctrl.launch(REFERENCE_BINARY_NETLINK)
+
+    break_at_sym("break_here")
+    await ctrl.cont()
+
+    result = await ctrl.execute_and_capture("procinfo")
+
+    # The reference binary opens a NETLINK_ROUTE socket bound to
+    # RTMGRP_LINK | RTMGRP_IPV4_IFADDR. procinfo should decode the
+    # protocol family and the well-known group bits.
+    assert "socket:NETLINK_ROUTE" in result
+    assert "RTMGRP_LINK" in result
+    assert "RTMGRP_IPV4_IFADDR" in result
+    assert "inode=" in result
+    assert "portid=" in result
+
+
+@pwndbg_test
+async def test_command_procinfo_unix_socketpair_peer(ctrl: Controller) -> None:
+    import pwndbg.aglib.proc
+
+    await ctrl.launch(REFERENCE_BINARY_SOCKETPAIR)
+
+    break_at_sym("break_here")
+    await ctrl.cont()
+
+    pid = pwndbg.aglib.proc.pid()
+    result = await ctrl.execute_and_capture("procinfo")
+
+    # The reference binary creates a unix SOCK_STREAM socketpair, so we expect
+    # two anonymous unix sockets in the FD list, each carrying peer info that
+    # points back to the same process. SOCK_DIAG is local-only; this test
+    # exercises the local code path on the test machine's kernel.
+    anon_lines = [
+        line for line in result.splitlines() if "unix '(anonymous)'" in line and "peer" in line
+    ]
+    assert len(anon_lines) == 2, f"expected 2 unix peer lines, got: {anon_lines}"
+
+    for line in anon_lines:
+        assert f"pid={pid}" in line
+        assert "fd=" in line
+        assert "inode=" in line
+
+
+@pwndbg_test
+async def test_command_procinfo_pipe(ctrl: Controller) -> None:
+    import pwndbg.aglib.proc
+
+    await ctrl.launch(REFERENCE_BINARY_PIPE)
+
+    break_at_sym("break_here")
+    await ctrl.cont()
+
+    pid = pwndbg.aglib.proc.pid()
+    result = await ctrl.execute_and_capture("procinfo")
+
+    # The binary calls pipe(2), which gives us one read end and one write
+    # end held by the same process. procinfo should label them as r/w and
+    # show the same-process peer linkage. We can't pin to specific FDs
+    # because the loader may shuffle them, so we look for the pair shape.
+    pipe_lines = [
+        line
+        for line in result.splitlines()
+        if line.lstrip().startswith("fd[") and "pipe:[" in line and "peers:" in line
+    ]
+    # The binary's own pipe(2) plus inherited stdio pipes from the test
+    # harness can produce >2 lines; require at least one read/write pair
+    # whose peer is in this process.
+    own_lines = [line for line in pipe_lines if f"pid={pid}" in line]
+    assert len(own_lines) >= 2, f"expected >=2 self-peering pipe lines, got: {pipe_lines}"
+
+    has_read = any(" (r," in line for line in own_lines)
+    has_write = any(" (w," in line for line in own_lines)
+    assert has_read, f"no read end found: {own_lines}"
+    assert has_write, f"no write end found: {own_lines}"

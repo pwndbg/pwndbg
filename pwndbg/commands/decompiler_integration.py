@@ -10,14 +10,14 @@ from pathlib import Path
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.symbol
-import pwndbg.color as color
 import pwndbg.color.memory as color_mem
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.lib.config
 import pwndbg.lib.tempfile
+from pwndbg import color
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 # ========= Version / Installation code =========
@@ -403,16 +403,14 @@ def connect(also_sync: bool) -> None:
             print(
                 f"of the decompiler plugin there is {message.system(d2d_required_version_str)}!\n"
             )
-        else:
-            # If we are connected to localhost Ghidra, we need to check that the plugin version is fine.
-            if (
-                pwndbg.dintegration.manager.decompiler_id()
-                == pwndbg.dintegration.DecompilerID.GHIDRA
-                and not check_outdated_ghidra_plugin()
-            ):
-                print(message.error("Disconnecting.."))
-                pwndbg.dintegration.manager.disconnect()
-                return
+        # If we are connected to localhost Ghidra, we need to check that the plugin version is fine.
+        elif (
+            pwndbg.dintegration.manager.decompiler_id() == pwndbg.dintegration.DecompilerID.GHIDRA
+            and not check_outdated_ghidra_plugin()
+        ):
+            print(message.error("Disconnecting.."))
+            pwndbg.dintegration.manager.disconnect()
+            return
 
         decomp_name = pwndbg.dintegration.manager.decompiler_name()
         print(message.success("Connected") + f" to {decomp_name}.")
@@ -500,12 +498,11 @@ def sync(fail_quietly: bool) -> None:
 
         # Something else is calling us, lets give the output some space.
         print()
-    else:
-        # Noisy check with a connection attempt.
-        # Don't try to sync because that sync would be quiet, and we want
-        # to complain about errors to the user.
-        if not soft_connection_check(also_sync=False):
-            return
+    # Noisy check with a connection attempt.
+    # Don't try to sync because that sync would be quiet, and we want
+    # to complain about errors to the user.
+    elif not soft_connection_check(also_sync=False):
+        return
 
     if not check_alive(
         "" if fail_quietly else "Can only sync with the debugger while the process is alive."
@@ -601,7 +598,7 @@ def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: int | None = None) -> None:
                     if reg_value_raw is not None
                     else color.gray("???")
                 )
-            except pwndbg.dbg_mod.Error:
+            except pwndbg.dbg_mod.DebuggerError:
                 # int(reg_value_raw) failed. Happens for xmm0 for instance.
                 reg_value = "not an int"
             reg_value_part = color.ljust_colored(f"(value: {reg_value})", 28)

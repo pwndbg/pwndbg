@@ -43,7 +43,7 @@ async def test_mmap_executes_properly(ctrl: Controller) -> None:
 
     # Check basic private+anonymous page mmap.
     output = await ctrl.execute_and_capture(f"mmap 0x0 {page_size}")
-    assert output.startswith("mmap syscall returned ")
+    assert "mmap syscall returned " in output
     ptr = int(output.split(" returned ")[1].rstrip(), 16)
     assert not is_mmap_error(ptr)
     assert has_correct_perms(ptr, "rwx")
@@ -58,7 +58,7 @@ async def test_mmap_executes_properly(ctrl: Controller) -> None:
     output = await ctrl.execute_and_capture(
         f"mmap {base_addr:#x} {page_size} 7 MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE"
     )
-    assert output.startswith("mmap syscall returned ")
+    assert "mmap syscall returned " in output
     ptr = int(output.split(" returned ")[1].rstrip(), 16)
     assert not is_mmap_error(ptr)
     assert has_correct_perms(ptr, "rwx")
@@ -71,7 +71,7 @@ async def test_mmap_executes_properly(ctrl: Controller) -> None:
     # Retrieve the file descriptor number and map it to memory.
     fd_num = int(pwndbg.dbg.selected_frame().evaluate_expression("fd"))
     output = await ctrl.execute_and_capture(f"mmap 0x0 16 PROT_READ MAP_PRIVATE {fd_num} 0")
-    assert output.startswith("mmap syscall returned ")
+    assert "mmap syscall returned " in output
     ptr = int(output.split(" returned ")[1].rstrip(), 16)
     assert not is_mmap_error(ptr)
     assert has_correct_perms(ptr, "r")

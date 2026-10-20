@@ -64,7 +64,7 @@ class CommPageField(NamedTuple):
         try:
             data = pwndbg.aglib.memory.read(addr, size)
             val = struct.unpack(self.fmt, data)[0]
-        except pwndbg.dbg_mod.Error as e:
+        except pwndbg.dbg_mod.DebuggerError as e:
             val = f"<cannot read> ({e})"
         return val
 
@@ -232,13 +232,13 @@ def get_commpage_mappings() -> tuple[pwndbg.lib.memory.Page, ...]:
     if pwndbg.aglib.arch.platform != Platform.DARWIN:
         return ()
 
-    start_rw = _comm_start_page_rw.get(pwndbg.aglib.arch.name, None)
+    start_rw = _comm_start_page_rw.get(pwndbg.aglib.arch.name)
     if start_rw is None or not pwndbg.aglib.memory.peek(start_rw):
         return ()
 
     ptrsize: int = pwndbg.aglib.arch.ptrsize
 
-    start_ro = _comm_start_page_ro.get(pwndbg.aglib.arch.name, None)
+    start_ro = _comm_start_page_ro.get(pwndbg.aglib.arch.name)
     if start_ro is None or not pwndbg.aglib.memory.peek(start_ro):
         return (
             pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, ptrsize, "[commpage]"),

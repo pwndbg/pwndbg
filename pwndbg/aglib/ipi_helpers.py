@@ -9,9 +9,9 @@ from __future__ import annotations
 from typing import Any
 
 import pwndbg.aglib.memory
+import pwndbg.aglib.search
 import pwndbg.aglib.vmmap
 import pwndbg.hexdump
-import pwndbg.search
 from pwndbg.lib.tips import color_tip
 
 mr = pwndbg.aglib.memory.read
@@ -33,7 +33,7 @@ def hd(addr: int, count: int = 0x40) -> None:
         hd(0x400000, 0x100)
     """
     data = pwndbg.aglib.memory.read(addr, count)
-    for line in pwndbg.hexdump.hexdump(bytes(data), address=addr, count=count):
+    for line in pwndbg.hexdump.hexdump(bytes(data), address=addr):
         print(line)
 
 
@@ -60,7 +60,7 @@ def ms(
         ms(b"ELF")
         ms(b"\\x90\\x90", limit=10)
     """
-    results = list(pwndbg.search.search(searchfor=pattern, start=start, end=end, limit=limit))
+    results = list(pwndbg.aglib.search.search(searchfor=pattern, start=start, end=end, limit=limit))
 
     if show:
         for addr in results:
@@ -94,7 +94,7 @@ def vm(show: bool = True) -> tuple[Any, ...]:
             perms += "x" if page.execute else "-"
             size = page.end - page.start
             offset = f"{page.offset:#x}" if page.offset is not None else "-"
-            objfile = page.objfile if page.objfile else ""
+            objfile = page.objfile or ""
             print(
                 f"{page.start:#018x}-{page.end:#018x} {perms}  {size:#010x}  {offset:8}  {objfile}"
             )

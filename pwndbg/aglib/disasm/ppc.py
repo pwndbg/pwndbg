@@ -6,10 +6,11 @@ from capstone6pwndbg import *  # noqa: F403
 from capstone6pwndbg.ppc_const import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.emu.emulator import Emulator
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 POWERPC_CONDITIONAL_BRANCHES = {
     PPC_INS_BC,
@@ -73,16 +74,16 @@ def is_branch_taken(cr: int, ctr: int, bi: int, bo: int) -> bool | None:
     return None
 
 
-class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     saved_ctr: int | None = None
 
-    def __init__(self, architecture) -> None:
+    def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         super().__init__(architecture)
 
         self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {}
 
     @override
-    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         # Prepare is called before emulation.
         # At this point, we want to read the value of the ctr register.
         # This is because branch instructions might mutate ctr within the emulator, which the read_register_name may fetch from
@@ -93,27 +94,29 @@ class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
             self.saved_ctr = self._read_register_name(instruction, "ctr", emu)
 
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        cr = self._read_register_name(instruction, "cr", emu)
-
-        if cr is None or self.saved_ctr is None:
-            # We can't reason about the value of cr register
-            return InstructionCondition.UNDETERMINED
-
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         if instruction.id in POWERPC_CONDITIONAL_BRANCHES:
+            cr = self._read_register_name(instruction, "cr", emu)
+
+            if cr is None or self.saved_ctr is None:
+                # We can't reason about the value of cr register
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
+
             is_taken = is_branch_taken(
                 cr, self.saved_ctr, instruction.cs_insn.bc.bi, instruction.cs_insn.bc.bo
             )
 
             if is_taken is None:
-                return InstructionCondition.UNDETERMINED
+                return InstructionCondition.UNDETERMINED_CONDITIONAL
 
             return InstructionCondition.TRUE if is_taken else InstructionCondition.FALSE
 
-        return InstructionCondition.UNDETERMINED
+        return InstructionCondition.UNCONDITIONAL
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if instruction.id in POWERPC_RETURN_INSTRUCTION:
             return self._read_register_name(instruction, "lr", emu)
 

@@ -4,9 +4,9 @@ import argparse
 
 import gdb
 
+import pwndbg.aglib.auxv
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
-import pwndbg.auxv
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -15,7 +15,7 @@ from pwndbg.commands import CommandCategory
 @pwndbg.commands.Command("Gets the current file.", category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def getfile() -> None:
-    print(repr(pwndbg.auxv.get().AT_EXECFN))
+    print(repr(pwndbg.aglib.auxv.get().AT_EXECFN))
 
 
 parser = argparse.ArgumentParser(description="Continue execution until an address or expression.")

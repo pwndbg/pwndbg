@@ -14,7 +14,6 @@ from typing_extensions import ParamSpec
 import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
-import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.color
@@ -26,8 +25,8 @@ T = TypeVar("T")
 def KernelTest(func: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(func)
     def wrapper(*a: P.args, **kw: P.kwargs) -> T | None:
+        pwndbg.color._disable_colors_trigger()
         # TODO: trigger NEW_OBJFILE event instead
-        pwndbg.aglib.kernel.symbol.load_common_structs_on_load_linux()
         return func(*a, **kw)
 
     return wrapper
@@ -94,17 +93,29 @@ def test_command_ksyscalls() -> None:
 
 @KernelTest
 def test_command_ktask() -> None:
-    if not pwndbg.aglib.kernel.has_debug_info():
-        res = gdb.execute("ktask", to_string=True)
-        assert "may only be run when debugging a Linux kernel with debug" in res
-        return
     res = gdb.execute("ktask", to_string=True)
     assert "task @" in res
-    res = gdb.execute("kcurrent --set 1", to_string=True)
+    p = re.compile(r"\[pid (\d)+\]")
+    userpid = None
+    for line in res.splitlines():
+        match = re.search(p, line)
+        if not match:
+            continue
+        if "user task" in line:
+            userpid = int(match.group(1))
+            break
+    else:
+        userpid = 1
+    res = gdb.execute("kcurrent", to_string=True)
     assert "task @" in res
-    if "not found" not in res:
-        res2 = gdb.execute("kfile", to_string=True)
-        assert res in res2
+    res = gdb.execute("kstack", to_string=True)
+    assert "canary =" in res
+    res = gdb.execute("knamespace", to_string=True)
+    assert "_ns" in res
+    res = gdb.execute(f"kcurrent --set {userpid}", to_string=True)
+    if "not found" not in res and "user task" in res:
+        res = gdb.execute("kfile", to_string=True)
+        assert "[fileno 001]" in res
 
 
 @KernelTest
@@ -182,7 +193,6 @@ def get_slab_object_address() -> tuple[list[Any], str]:
     for cache in caches:
         cache_name = cache.name
         info = gdb.execute(f"slab info -v {cache_name}", to_string=True)
-        info = pwndbg.color.strip(info)
         matches = re.findall(r"- \[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]+)", info)
         if len(matches) > 0:
             return (matches, cache_name)
@@ -247,21 +257,21 @@ def get_buddy_freelist_elements(out) -> list[tuple[int, int]]:
 def test_command_buddydump() -> None:
     res = gdb.execute("buddydump", to_string=True)
     NOFREEPAGE = "No free pages with specified filters found.\n"
-    if res == "WARNING: Symbol 'node_data' not found\n" or NOFREEPAGE == res:
+    if res in ("WARNING: Symbol 'node_data' not found\n", NOFREEPAGE):
         return
     # this indicates the buddy allocator contains at least one entry
     assert "order" in res and "zone" in res and ("per_cpu_pageset" in res or "free_area" in res)
 
     # find the starting addresses of all entries within the freelists
     matches = get_buddy_freelist_elements(res)
-    for i in range(0, len(matches)):
+    for i in range(len(matches)):
         vaddr, page = matches[i]
         res = gdb.execute(f"bud -f {hex(vaddr + random.randint(0, 0x1000 - 1))}", to_string=True)
         _matches = get_buddy_freelist_elements(res)
         # asserting `bud -f` behaviour -- should be able to find the corresponding entry to an address
         # even if the address is not aligned
         assert len(_matches) == 1 and _matches[i][0] == vaddr
-        assert page == pwndbg.aglib.kernel.virt_to_page(vaddr)
+        assert page == pwndbg.aglib.kernel.paging.virt_to_page(vaddr)
 
     # nonexistent node index should not contain any entries
     no_output = gdb.execute("buddydump -n 10", to_string=True)
@@ -299,7 +309,7 @@ def check_0x100_bytes(address, physmap_addr):
 
 @KernelTest
 def test_command_pagewalk() -> None:
-    address = pwndbg.aglib.kernel.kbase()
+    address = pwndbg.aglib.kernel.paging.kbase
     if address is None:
         pages = pwndbg.aglib.vmmap.get()
         address = pages[0].start
@@ -337,32 +347,29 @@ def test_command_pagewalk() -> None:
 def test_command_paging() -> None:
     def test_command_paging_helper(pagetype, addr):
         out = gdb.execute(f"v2p {addr}", to_string=True)
-        out = pwndbg.color.strip(out)
         # pagetype should be correct
         assert pagetype in out
-        page = int(out.splitlines()[1].split()[2], 16)
-        physmap_addr = int(out.splitlines()[0].split()[-1], 16)
-        physmap_addr = pwndbg.aglib.kernel.phys_to_virt(physmap_addr)
+        page = int(out.splitlines()[2].split()[2], 16)
+        physmap_addr = int(out.splitlines()[1].split()[-1], 16)
+        physmap_addr = pwndbg.aglib.kernel.paging.phys_to_virt(physmap_addr)
         # the first 0x100 bytes of the resolved address should match the original
         check_0x100_bytes(addr, physmap_addr)
-        phys_addr = pwndbg.aglib.kernel.virt_to_phys(physmap_addr)
+        phys_addr = pwndbg.aglib.kernel.paging.virt_to_phys(physmap_addr)
         out = gdb.execute(f"p2v {phys_addr}", to_string=True)
-        out = pwndbg.color.strip(out)
         # the virtual address should be the physmap address
         assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
         out = gdb.execute(f"pageinfo {page}", to_string=True)
-        out = pwndbg.color.strip(out)
         # the virtual address should be the physmap address
         assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
 
-    pi = pwndbg.aglib.kernel.arch_paginginfo()
+    pi = pwndbg.aglib.kernel.paging
     assert pi is not None
     # kbase, slab, buddy, vmemmap
-    kbase = pwndbg.aglib.kernel.kbase()
+    kbase = pi.kbase
     test_command_paging_helper("initialized", kbase)
     vmemmap = pi.vmemmap
     if pwndbg.aglib.arch.name == "aarch64":
-        vmemmap += pi.phys_offset >> (pi.page_shift - pi.STRUCT_PAGE_SHIFT)
+        vmemmap += pi.ram_phys_start >> (pi.page_shift - pi.STRUCT_PAGE_SHIFT)
     test_command_paging_helper("initialized", vmemmap)
     res = gdb.execute("buddydump", to_string=True)
     matches = get_buddy_freelist_elements(res)

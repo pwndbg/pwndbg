@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from collections.abc import Sequence
 from contextlib import contextmanager
 from contextlib import nullcontext
+from contextlib import suppress
 from os import environ
 from pathlib import Path
 from random import randint
@@ -21,13 +22,15 @@ import gdb.types
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.color.message as message
+import pwndbg.aglib.remote
 import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.cache
+import pwndbg.lib.lexer
 import pwndbg.lib.memory
 import pwndbg.lib.path
+from pwndbg.color import message
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import selection
@@ -68,6 +71,7 @@ gdb_architecture_name_fixup_list = (
     "riscv",
     "loongarch64",
     "s390:64-bit",
+    "m68k",
 )
 
 # `show architecture` returns a string like "mips:isa32r5"
@@ -123,6 +127,13 @@ def _get_frame_stack_variables(frame: gdb.Frame) -> tuple[tuple[int, int, str], 
 
             try:
                 value = sym.value(frame)
+
+                # If a variable is optimized out, it surely has no memory location
+                # This check also prevents GDB from calling `malloc` within the inferior process
+                # which can cause a crash. See https://github.com/pwndbg/pwndbg/pull/4112
+                if value.is_optimized_out:
+                    continue
+
                 # value.address can be None
                 # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Values-From-Inferior.html#Values-From-Inferior:~:text=Variable%3A%20Value%2Eaddress
                 # https://sourceware.org/bugzilla/show_bug.cgi?id=33860
@@ -149,10 +160,17 @@ class GDBRegisters(pwndbg.dbg_mod.Registers):
     def by_name(self, name: str) -> pwndbg.dbg_mod.Value | None:
         try:
             return GDBValue(self.frame.inner.read_register(name))
-        except (gdb.error, ValueError):
-            # GDB throws an exception if the name is unknown, we just return
-            # None when that is the case.
-            pass
+        except ValueError as e:
+            if "Bad register" in str(e):
+                # GDB throws a ValueError exception if the name is unknown, we just return
+                # None when that is the case.
+                return None
+            # Otherwise some weird shenanigents might be going on, so we print the message
+            # as well.
+            err_str: str = str(e)
+        except gdb.error as e:
+            err_str = str(e)
+        print(message.error(f"gdb register read error: {err_str}"))
         return None
 
 
@@ -181,7 +199,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             if (val := lookup_frame_symbol(name, domain=domain)) is not None:
                 return GDBValue(val)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
         return None
 
     @override
@@ -195,7 +213,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
                 try:
                     value = parse_and_eval(expression, global_context=False)
                 except gdb.error as e:
-                    raise pwndbg.dbg_mod.Error(e)
+                    raise pwndbg.dbg_mod.DebuggerError(e)
 
         return GDBValue(value)
 
@@ -215,7 +233,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
                 gdb.execute(f"set ${name} = {val}")
                 return True
             except gdb.error as e:
-                raise pwndbg.dbg_mod.Error(e)
+                raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def pc(self) -> int:
@@ -256,7 +274,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
                 return GDBFrame(parent)
         except (gdb.error, gdb.MemoryError) as e:
             # We can encounter a `gdb.error: PC not saved` here.
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
         return None
 
@@ -268,7 +286,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
                 return GDBFrame(child)
         except (gdb.error, gdb.MemoryError) as e:
             # We can encounter a `gdb.error: PC not saved` here.
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
         return None
 
@@ -481,7 +499,7 @@ class GDBThread(pwndbg.dbg_mod.Thread):
                 ),
             )
             return siginfo
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             return None
 
 
@@ -596,6 +614,87 @@ class GDBStopPoint(pwndbg.dbg_mod.StopPoint):
             self.inner.delete()
 
 
+# Matches a line like:
+# Address range 0x7ffff7fd13f0 to 0x7ffff7fd1693:
+RANGE_RE = re.compile(r"^Address range (0x[0-9a-f]+) to (0x[0-9a-f]+):", re.MULTILINE)
+
+# Matches lines like:
+# => 0x00007ffff7fd13f0 <+0>:	f3 0f 1e fa        	endbr64
+# or
+#    0x00007ffff7fd13f4 <+4>:	55                 	push   rbp
+INSN_RE = re.compile(r"^\s*(?:=>)?\s*(0x[0-9a-f]+)\s*(?:<[^>]*>)?:\t([0-9a-f ]+?)\t", re.MULTILINE)
+
+
+def run_disassemble_for_function_boundaries(address: int) -> list[tuple[int, int]] | None:
+    """
+    Returns list of tuples representing [start,end) of the addresses that make up this function.
+    """
+
+    try:
+        disass_output: str = gdb.execute(f"disassemble /r {hex(address)}", to_string=True)
+    except gdb.error:
+        # This throws an error if GDB is unable to find the function boundaries
+        return None
+
+    # There two ways the `disassemble /r` commands prints output:
+    #
+    # Note that you must add the `/r` flag, as it includes the hexcodes for the bytes
+    # This allows us to get the length of the last instruction, so we can know the end boundary
+    #
+    # 1. If there are multiple ranges, it includes "Address range" in the output
+    #
+    # > disass /r
+    # Dump of assembler code for function _dl_fixup:
+    # Address range 0x7ffff7fd13f0 to 0x7ffff7fd1693:
+    # => 0x00007ffff7fd13f0 <+0>:	f3 0f 1e fa        	endbr64
+    #    0x00007ffff7fd13f4 <+4>:	55                 	push   rbp
+    #    0x00007ffff7fd13f5 <+5>:	31 d2              	xor    edx,edx
+    #    0x00007ffff7fd13fc <+12>:	41 56              	push   r14
+    #    0x00007ffff7fd168e <+670>:	e9 bc fe ff ff     	jmp    0x7ffff7fd154f <_dl_fixup+351 at dl-runtime.c:133>
+    # Address range 0x7ffff7fbf677 to 0x7ffff7fbf696:
+    #    0x00007ffff7fbf677 <-73081>:	48 8d 0d 02 17 03 00	lea    rcx,[rip+0x31702]        # 0x7ffff7ff0d80 <__PRETTY_FUNCTION__.1>
+    #    0x00007ffff7fbf67e <-73074>:	ba 3f 00 00 00     	mov    edx,0x3f
+    #    0x00007ffff7fbf683 <-73069>:	48 8d 35 56 ec 02 00	lea    rsi,[rip+0x2ec56]        # 0x7ffff7fee2e0
+    #    0x00007ffff7fbf68a <-73062>:	48 8d 3d b7 16 03 00	lea    rdi,[rip+0x316b7]        # 0x7ffff7ff0d48
+    #    0x00007ffff7fbf691 <-73055>:	e8 70 02 00 00     	call   0x7ffff7fbf906 <__GI___assert_fail at dl-minimal.c:182>
+    # End of assembler dump.
+    #
+    # 2. It omits "Address range" if these is only one address range for the function
+    #
+    # > disass /r
+    # pwndbg> disass /r
+    # Dump of assembler code for function time@plt:
+    # => 0x0000000000401080 <+0>:	ff 25 ba 2f 00 00  	jmp    QWORD PTR [rip+0x2fba]        # 0x404040 <time@got[plt]>
+    #    0x0000000000401086 <+6>:	68 05 00 00 00     	push   0x5
+    #    0x000000000040108b <+11>:	e9 90 ff ff ff     	jmp    0x401020
+    # End of assembler dump.
+    #
+    #
+    # Additionally, if you disass at a random address, the output is:
+    # > disass /r
+    # No function contains specified address.
+
+    multiple_ranges = [(int(a, 16), int(b, 16)) for a, b in RANGE_RE.findall(disass_output)]
+    if multiple_ranges:
+        return multiple_ranges
+
+    output_rows: list[tuple[str, str]] = INSN_RE.findall(disass_output)
+    if not output_rows:
+        return None
+
+    # Example:
+    # output_rows == [('0x00007ffff7fdf860', '48 89 e7           '), ('0x00007ffff7fdf863', 'e8 a8 0c 00 00     ')]
+    start = int(output_rows[0][0], 16)
+
+    last_addr, last_bytes = output_rows[-1]
+    end = int(last_addr, 16)
+
+    # Given the number of the hex byte codes, get the length of the final instruction
+    last_instruction_length = len(last_bytes.replace(" ", "")) // 2
+
+    return [(start, end + last_instruction_length)]
+
+
 class GDBProcess(pwndbg.dbg_mod.Process):
     # Operations that change the internal state of GDB are generally not allowed
     # during breakpoint stop handles. Because the Pwndbg Debugger-agnostic API
@@ -634,10 +733,12 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def stopped_with_signal(self) -> bool:
+        # FIXME: `info program` is hacky (#3976)
         return "It stopped with signal " in gdb.execute("info program", to_string=True)
 
     @override
     def stopped_at_breakpoint(self) -> bool:
+        # FIXME: `info program` is hacky (#3976)
         gdb_prog: str = gdb.execute("info program", to_string=True)
         # The first happens when e.g. running start
         # ("It stopped at a breakpoint that has since been deleted.")
@@ -650,7 +751,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         try:
             return GDBValue(parse_and_eval(expression, global_context=True))
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
@@ -708,7 +809,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             return bytearray(result)
         except gdb.error as e:
             if not partial:
-                raise pwndbg.dbg_mod.Error(e)
+                raise pwndbg.dbg_mod.DebuggerError(e)
 
             if not pwndbg.aglib.remote.is_remote():
                 message = str(e)
@@ -728,20 +829,19 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
                 if stop_addr > addr:
                     return self.read_memory(addr, stop_addr - addr)
-            else:
-                # Handle the case of remote debugging, where GDB's remote protocol
-                # returns the start address as the failed read address instead of the stop address.
-                # This is a limitation in how GDB handles the remote protocol, and while it could
-                # be fixed, it currently behaves this way.
-                #
-                # To work around this, we perform a binary search in the `_find_memory_last_readable` method
-                # to find the correct stop address that avoids the failure.
-                #
-                # For local debugging, this issue does not occur, and we proceed with the normal flow.
-                if (stop_addr := self._find_memory_last_readable(addr, count)) > 0:
-                    return self.read_memory(addr, stop_addr - addr + 1)
+            # Handle the case of remote debugging, where GDB's remote protocol
+            # returns the start address as the failed read address instead of the stop address.
+            # This is a limitation in how GDB handles the remote protocol, and while it could
+            # be fixed, it currently behaves this way.
+            #
+            # To work around this, we perform a binary search in the `_find_memory_last_readable` method
+            # to find the correct stop address that avoids the failure.
+            #
+            # For local debugging, this issue does not occur, and we proceed with the normal flow.
+            elif (stop_addr := self._find_memory_last_readable(addr, count)) > 0:
+                return self.read_memory(addr, stop_addr - addr + 1)
 
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def write_memory(self, address: int, data: bytearray, partial: bool = False) -> int:
@@ -752,7 +852,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             if partial:
                 raise NotImplementedError("partial writes are currently not supported under gdb")
 
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
         return len(data)
 
     @override
@@ -799,7 +899,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     )
                     break
                 start = None
-                pass
 
             if start is None:
                 break
@@ -827,11 +926,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
             if step > 0:
                 start = pwndbg.lib.memory.round_down(start, step) + step
+            elif align > 1:
+                start = pwndbg.lib.memory.round_up(start + len(pattern), align)
             else:
-                if align > 1:
-                    start = pwndbg.lib.memory.round_up(start + len(pattern), align)
-                else:
-                    start += len(pattern)
+                start += len(pattern)
 
     @override
     def is_remote(self) -> bool:
@@ -855,14 +953,14 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         try:
             return conn.send_packet(packet) or b""
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def send_monitor(self, cmd: str) -> str:
         try:
             return gdb.execute(f"monitor {cmd}", to_string=True)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def download_remote_file(self, remote_path: str, local_path: str) -> None:
@@ -871,11 +969,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         if pwndbg.aglib.file.is_vfile_qemu_user_bug():
             with open(local_path, "wb") as fp:
                 try:
-                    for data in pwndbg.aglib.file.vfile_readfile(remote_path):
-                        fp.write(data)
+                    fp.writelines(pwndbg.aglib.file.vfile_readfile(remote_path))
                     return
                 except OSError as e:
-                    raise pwndbg.dbg_mod.Error(
+                    raise pwndbg.dbg_mod.DebuggerError(
                         f"Could not download remote file {remote_path!r}:\nError: {str(e)}"
                     )
         try:
@@ -894,7 +991,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     real_error.append(line)
             if len(real_error):
                 error = "\n".join(real_error)
-                raise pwndbg.dbg_mod.Error(
+                raise pwndbg.dbg_mod.DebuggerError(
                     f"Could not download remote file {remote_path!r}:\nError: {error}"
                 )
 
@@ -919,7 +1016,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def symbol_name_at_address(self, address: int) -> str | None:
-        from pwndbg.dbg_mod.gdb.symbol import resolve_addr
+        from .symbol import resolve_addr
 
         return resolve_addr(address) or None
 
@@ -951,19 +1048,23 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             ) is not None:
                 return GDBValue(val)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
         return None
 
     @override
     def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
-        block = gdb.block_for_pc(address)
+        # While GDB internally has multiple ways of determine function boundaries in the absence
+        # of debugging symbols (using symbol sizes if available, then falling back to using the order symbols in memory to determine boundaries)
+        # These methods are internally used to determine the these methods are not exposed to the Python API
+        # So, we use this hacky method to get function boundaries.
+        # See https://github.com/pwndbg/pwndbg/issues/3908 for more details
 
-        if block is not None:
-            # Final the top-level function that this block resides it
-            while block.superblock is not None and block.superblock.function is not None:
-                block = block.superblock
+        ranges = run_disassemble_for_function_boundaries(address)
 
-            return block.start, block.end
+        if ranges is not None:
+            for start_block, end_block in ranges:
+                if start_block <= address < end_block:
+                    return start_block, end_block
 
         return None
 
@@ -984,19 +1085,15 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         import pwndbg.aglib.typeinfo
 
         ptrsize = pwndbg.aglib.typeinfo.ptrsize
-        not_exactly_arch = False
 
-        endian: Literal["little", "big"] = None
+        endian: Literal["little", "big"] = "big"
         if "little" in gdb.execute("show endian", to_string=True).lower():
             endian = "little"
-        else:
-            endian = "big"
 
         if pwndbg.aglib.proc.alive():
             arch = gdb.newest_frame().architecture().name()
         else:
             arch = gdb.execute("show architecture", to_string=True).strip()
-            not_exactly_arch = True
 
         arch = arch.lower()
 
@@ -1033,7 +1130,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 elif match == "riscv":
                     # If GDB doesn't detect the width, it will just say `riscv`.
                     match = "rv64"
-                elif match == "iwmmxt" or match == "iwmmxt2" or match == "xscale":
+                elif match in {"iwmmxt", "iwmmxt2", "xscale"}:
                     match = "arm"
                 elif match == "rs6000":
                     # The RS/6000 architecture is compatible with the PowerPC common
@@ -1047,9 +1144,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     platform=Platform.LINUX,
                     attributes=arch_attributes,
                 )
-
-        if not_exactly_arch:
-            raise RuntimeError(f"Could not deduce architecture from: {arch}")
 
         return ArchDefinition(
             name=arch,  # type: ignore[arg-type]
@@ -1071,7 +1165,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         #
         # [1]: https://sourceware.org/gdb/current/onlinedocs/gdb.html/Breakpoints-In-Python.html#Breakpoints-In-Python
         if self.in_bpwp_stop_handler:
-            raise pwndbg.dbg_mod.Error(
+            raise pwndbg.dbg_mod.DebuggerError(
                 "Creating new Breakpoints/Watchpoints while in a stop handler is not allowed in GDB"
             )
 
@@ -1453,7 +1547,13 @@ class GDBType(pwndbg.dbg_mod.Type):
         # For GDB, we can do a little better than the default implementation, as
         # it has a specific convenience function that checks for this condition
         # exactly.
-        return gdb.types.has_field(self.inner, name)
+        try:
+            return gdb.types.has_field(self.inner, name)
+        except TypeError:
+            # GDB throws an exception for stuff that does not resolve to a struct or union
+            # after typedefs have been stripped.
+            # https://git.sr.ht/~sourceware/binutils-gdb/tree/05c660d1d7ca754a9607084e606c263b1fd74a94/item/gdb/python/lib/gdb/types.py#L61
+            return False
 
     @override
     def array(self, count: int) -> pwndbg.dbg_mod.Type:
@@ -1483,12 +1583,12 @@ class GDBType(pwndbg.dbg_mod.Type):
         value = pwndbg.dbg.selected_inferior().create_value(0, self.pointer())
         try:
             addr = value[field_name].address
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             # error: `There is no member named field_name`
             return None
 
         if addr is None:
-            raise pwndbg.dbg_mod.Error("bug, this should no happen")
+            raise pwndbg.dbg_mod.DebuggerError("bug, this should no happen")
 
         return int(addr)
 
@@ -1521,7 +1621,7 @@ class GDBValue(pwndbg.dbg_mod.Value):
             self.type.code == pwndbg.dbg_mod.TypeCode.POINTER
             and self.type.target().code == pwndbg.dbg_mod.TypeCode.FUNC
         ):
-            raise pwndbg.dbg_mod.Error("Dereference to function type is not allowed")
+            raise pwndbg.dbg_mod.DebuggerError("Dereference to function type is not allowed")
 
         return GDBValue(self.inner.dereference())
 
@@ -1530,14 +1630,14 @@ class GDBValue(pwndbg.dbg_mod.Value):
         try:
             return self.inner.string()
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def value_to_human_readable(self) -> str:
         try:
             return str(self.inner)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def fetch_lazy(self) -> None:
@@ -1548,7 +1648,20 @@ class GDBValue(pwndbg.dbg_mod.Value):
         try:
             return int(self.inner)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
+
+    @override
+    def raw_bytes(self) -> bytes:
+        # gdb.Value.bytes was added in GDB 15.1
+        if not hasattr(self.inner, "bytes"):
+            raise pwndbg.dbg_mod.DebuggerError(
+                "reading raw bytes not support on current GDB version"
+            )
+
+        try:
+            return bytes(self.inner.bytes)
+        except gdb.error as e:
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
@@ -1556,27 +1669,27 @@ class GDBValue(pwndbg.dbg_mod.Value):
         type: GDBType = type
 
         if type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            raise pwndbg.dbg_mod.Error("Cast to function type is not allowed, use pointer")
+            raise pwndbg.dbg_mod.DebuggerError("Cast to function type is not allowed, use pointer")
 
         try:
             return GDBValue(self.inner.cast(type.inner))
         except gdb.error as e:
             # GDB casts can fail.
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def __add__(self, rhs: int) -> pwndbg.dbg_mod.Value:
         try:
             return GDBValue(self.inner + rhs)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def __sub__(self, rhs: int) -> pwndbg.dbg_mod.Value:
         try:
             return GDBValue(self.inner - rhs)
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
     @override
     def __getitem__(self, key: str | int) -> pwndbg.dbg_mod.Value:
@@ -1588,7 +1701,7 @@ class GDBValue(pwndbg.dbg_mod.Value):
         try:
             return GDBValue(self.inner[key])
         except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+            raise pwndbg.dbg_mod.DebuggerError(e)
 
 
 def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]:
@@ -1728,7 +1841,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         set backtrace past-main on
         set step-mode on
         set print pretty on
-        set debuginfod enabled on
+        set output-radix 16
         handle SIGALRM nostop print nopass
         handle SIGBUS  stop   print nopass
         handle SIGPIPE nostop print nopass
@@ -1738,11 +1851,13 @@ class GDB(pwndbg.dbg_mod.Debugger):
         for line in pre_commands.strip().splitlines():
             gdb.execute(line)
 
+        # debuginfod may not be compiled in (e.g. bare-metal cross GDB)
+        with suppress(gdb.error):
+            gdb.execute("set debuginfod enabled on")
+
         # This may throw an exception, see pwndbg/pwndbg#27
-        try:
+        with suppress(gdb.error):
             gdb.execute("set disassembly-flavor intel")
-        except gdb.error:
-            pass
 
         from pwndbg.gdblib.tui import setup as tui_setup
 
@@ -1757,12 +1872,28 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         config_mod.init_params()
 
+        from pwndbginit import is_reloading
+
+        if is_reloading():
+            return
+
         from pwndbg.dbg_mod.gdb import debug_sym as debug_sym
 
         self._load_gdbinit()
 
-        # show_hint must be called after loading ~/.gdbinit, this order allow disabling show_hint
+        # show_hint must be called after loading ~/.gdbinit, this order allows disabling show_hint
         prompt.show_hint()
+
+        # Check if the user has ubuntu in their debuginfod urls, and warn them about
+        # it if so.
+        if "debuginfod.ubuntu.com" in gdb.execute("show debuginfod urls", to_string=True):
+            print(
+                message.warn(
+                    "\nYou have debuginfod.ubuntu.com in your debuginfod urls and will experience stalls"
+                    " because of this.\nWe recommend you remove it until ubuntu fixes their server.\n"
+                    "See https://github.com/pwndbg/pwndbg/pull/4079 for more info.\n"
+                )
+            )
 
     @override
     def add_command(
@@ -1882,7 +2013,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def lex_args(self, command_line: str) -> list[str]:
-        return gdb.string_to_argv(command_line)
+        return pwndbg.lib.lexer.lex_debugger_command(command_line)
 
     @override
     def selected_thread(self) -> pwndbg.dbg_mod.Thread | None:
@@ -1913,11 +2044,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         for line in command_list:
             line = line.strip()
             # Skip non-command entries
-            if (
-                not line
-                or line.startswith("Command class:")
-                or line.startswith("Unclassified commands")
-            ):
+            if not line or line.startswith(("Command class:", "Unclassified commands")):
                 continue
             command = line.split()[0]
             existing_commands.add(command)
@@ -2016,22 +2143,13 @@ class GDB(pwndbg.dbg_mod.Debugger):
             if str(e).find("disassembly-flavor") > -1:
                 flavor = "intel"
             else:
-                raise pwndbg.dbg_mod.Error(e)
+                raise pwndbg.dbg_mod.DebuggerError(e)
 
-        if flavor != "att" and flavor != "intel":
-            raise pwndbg.dbg_mod.Error(f"unrecognized disassembly flavor '{flavor}'")
+        if flavor not in {"att", "intel"}:
+            raise pwndbg.dbg_mod.DebuggerError(f"unrecognized disassembly flavor '{flavor}'")
 
         literal: Literal["att", "intel"] = flavor
         return literal
-
-    @override
-    def string_limit(self) -> int:
-        message = gdb.execute("show print elements", from_tty=False, to_string=True)
-        message = message.split("\n")[0].split()[-1]
-        message = message.strip(".")
-        if message == "unlimited":
-            return 0
-        return int(message)
 
     @override
     def addrsz(self, address: Any) -> str:

@@ -5,9 +5,9 @@ import shutil
 
 import pwndbg.aglib.onegadget
 import pwndbg.aglib.proc
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.libc
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(

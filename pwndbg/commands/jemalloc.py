@@ -3,10 +3,10 @@ from __future__ import annotations
 import argparse
 
 import pwndbg
-import pwndbg.aglib.heap.jemalloc as jemalloc
 import pwndbg.color.context as ctx_color
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg.aglib.heap import jemalloc
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -30,7 +30,7 @@ def jemalloc_find_extent(addr: int) -> None:
         print()
 
         jemalloc_extent_info(extent.extent_address, header=False)
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"ERROR: {e}"))
         return
 
@@ -55,7 +55,7 @@ def jemalloc_extent_info(addr: int, verbose: bool = False, header: bool = True) 
         if verbose:
             for bit, val in extent.bitfields.items():
                 print(bit, val)
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"ERROR: {e}"))
         return False
     return True
@@ -77,7 +77,7 @@ def jemalloc_heap() -> None:
             if not jemalloc_extent_info(extent.extent_address, header=False):
                 return
             print()
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(f"ERROR: {e}"))
         return
 

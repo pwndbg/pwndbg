@@ -3,7 +3,9 @@ from __future__ import annotations
 import pytest
 
 from ....host import Controller
+from . import break_at_sym
 from . import get_binary
+from . import launch_to
 from . import pwndbg_test
 
 SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
@@ -127,7 +129,7 @@ async def test_nearpc_opcode_bytes(ctrl: Controller, opcode_bytes: int) -> None:
     await ctrl.execute("nextsyscall")
 
     await ctrl.execute(f"set nearpc-num-opcode-bytes {opcode_bytes}")
-    dis = await ctrl.execute_and_capture("nearpc -t 11")
+    dis = await ctrl.execute_and_capture("emulate -t 11")
     expected = (
         "   0x400080 {} <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 {} <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -156,7 +158,7 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
     await ctrl.execute("set nearpc-num-opcode-bytes 5")
     await ctrl.execute(f"set nearpc-opcode-separator-bytes {separator_bytes}")
 
-    dis = await ctrl.execute_and_capture("nearpc -t 11")
+    dis = await ctrl.execute_and_capture("emulate -t 11")
     excepted = (
         "   0x400080 {} <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 {} <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -174,6 +176,102 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
         "   0x4000a3 {}                add    byte ptr [rax], al\n"
     ).format(*OPCODE_SEPERATOR_TESTS_EXPECTED_OUTPUT[separator_bytes])
     assert dis == excepted
+
+
+@pwndbg_test
+async def test_nearpc_opcode_flag(ctrl: Controller) -> None:
+    import pwndbg.aglib.memory
+
+    await ctrl.launch(SYSCALLS_BINARY)
+    await ctrl.execute("nextsyscall")
+
+    # The longest instruction shown is 5 bytes long
+    expected = (
+        "   0x400080 b8 00 00 00 00    <_start>       mov    eax, 0                 EAX => 0\n"
+        "   0x400085 bf 37 13 00 00    <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        "   0x40008a be ef be ad de    <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f b9 10 00 00 00    <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        " ► 0x400094 0f 05             <_start+20>    syscall <SYS_read>\n"
+        "   0x400096 b8 0a 00 00 00    <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b cd 80             <_start+27>    int    0x80 <SYS_unlink>\n"
+        "   0x40009d 00 00                            add    byte ptr [rax], al\n"
+        "   0x40009f 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a1 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a3 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a5 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a7 00 00                            add    byte ptr [rax], al\n"
+        "   0x4000a9 00 00                            add    byte ptr [rax], al\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc --opcode") == expected
+    assert await ctrl.execute_and_capture("nearpc -o") == expected
+
+    # A value of 0x100 or more given to -o is the address
+    assert await ctrl.execute_and_capture("nearpc -o $pc") == expected
+    assert await ctrl.execute_and_capture("nearpc -o $pc 1") == (
+        " ► 0x400094 0f 05    <_start+20>    syscall <SYS_read>\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc -o 0x100") == "Invalid address 0x100\n"
+
+    # The flag does not change the nearpc-num-opcode-bytes setting
+    expected = (
+        "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        " ► 0x400094 <_start+20>    syscall <SYS_read>\n"
+        "   0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+        "   0x4000a5                add    byte ptr [rax], al\n"
+        "   0x4000a7                add    byte ptr [rax], al\n"
+        "   0x4000a9                add    byte ptr [rax], al\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc") == expected
+
+    # mov rax, 0xffffffffdeadbeef is 7 bytes long, so the column gets wider, and a smaller
+    # setting does not cut it
+    pwndbg.aglib.memory.write(0x40009D, bytes.fromhex("48c7c0efbeadde"))
+    await ctrl.execute("set nearpc-num-opcode-bytes 2")
+    expected = (
+        "   0x400080 b8 00 00 00 00          <_start>       mov    eax, 0                      EAX => 0\n"
+        "   0x400085 bf 37 13 00 00          <_start+5>     mov    edi, 0x1337                 EDI => 0x1337\n"
+        "   0x40008a be ef be ad de          <_start+10>    mov    esi, 0xdeadbeef             ESI => 0xdeadbeef\n"
+        "   0x40008f b9 10 00 00 00          <_start+15>    mov    ecx, 0x10                   ECX => 0x10\n"
+        " ► 0x400094 0f 05                   <_start+20>    syscall <SYS_read>\n"
+        "   0x400096 b8 0a 00 00 00          <_start+22>    mov    eax, 0xa                    EAX => 0xa\n"
+        "   0x40009b cd 80                   <_start+27>    int    0x80 <SYS_unlink>\n"
+        "   0x40009d 48 c7 c0 ef be ad de                   mov    rax, 0xffffffffdeadbeef     RAX => 0xffffffffdeadbeef\n"
+        "   0x4000a4 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000a6 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000a8 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000aa 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000ac 00 00                                  add    byte ptr [rax], al\n"
+        "   0x4000ae 00 00                                  add    byte ptr [rax], al\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc -o") == expected
+
+    # With a number of bytes, the column has a fixed width and longer instructions are cut,
+    # as with the setting
+    expected = (
+        "   0x400080 b8 00 00 00\x1b[90m...\x1b[0m <_start>       mov    eax, 0                      EAX => 0\n"
+        "   0x400085 bf 37 13 00\x1b[90m...\x1b[0m <_start+5>     mov    edi, 0x1337                 EDI => 0x1337\n"
+        "   0x40008a be ef be ad\x1b[90m...\x1b[0m <_start+10>    mov    esi, 0xdeadbeef             ESI => 0xdeadbeef\n"
+        "   0x40008f b9 10 00 00\x1b[90m...\x1b[0m <_start+15>    mov    ecx, 0x10                   ECX => 0x10\n"
+        " ► 0x400094 0f 05          <_start+20>    syscall <SYS_read>\n"
+        "   0x400096 b8 0a 00 00\x1b[90m...\x1b[0m <_start+22>    mov    eax, 0xa                    EAX => 0xa\n"
+        "   0x40009b cd 80          <_start+27>    int    0x80 <SYS_unlink>\n"
+        "   0x40009d 48 c7 c0 ef\x1b[90m...\x1b[0m                mov    rax, 0xffffffffdeadbeef     RAX => 0xffffffffdeadbeef\n"
+        "   0x4000a4 00 00                         add    byte ptr [rax], al\n"
+        "   0x4000a6 00 00                         add    byte ptr [rax], al\n"
+        "   0x4000a8 00 00                         add    byte ptr [rax], al\n"
+        "   0x4000aa 00 00                         add    byte ptr [rax], al\n"
+        "   0x4000ac 00 00                         add    byte ptr [rax], al\n"
+        "   0x4000ae 00 00                         add    byte ptr [rax], al\n"
+    )
+    assert await ctrl.execute_and_capture("nearpc -o 4") == expected
 
 
 @pwndbg_test
@@ -328,11 +426,234 @@ async def test_nearpc_branch_visualization(ctrl: Controller) -> None:
         "                                          ││ \n"
         "   0x40008f <B>                           │└>   sub    eax, 1\n"
         "   0x400092 <B+3>                         │     cmp    eax, 0\n"
-        "   0x400095 <B+6>                        ┌──<   jne    C                           <C>\n"
-        "                                         ││  \n"
-        "   0x400097 <B+8>                        ││     nop   \n"
-        "   0x400098 <B+9>                        ││     nop   \n"
-        "   0x400099 <C>                          └└─>   ret   \n"
+        "   0x400095 <B+6>                         │┌<   jne    C                           <C>\n"
+        "                                          ││ \n"
+        "   0x400097 <B+8>                         ││    nop   \n"
+        "   0x400098 <B+9>                         ││    nop   \n"
+        "   0x400099 <C>                           └└>   ret   \n"
     )
+
+    assert dis == expected
+
+
+@pwndbg_test
+async def test_nearpc_function(ctrl: Controller) -> None:
+    await launch_to(ctrl, get_binary("initialized_heap.x86-64.out"), "break_here")
+    await ctrl.execute("set disasm-annotations off")
+    await ctrl.step_instruction()
+
+    # disassemble current function
+    dis = await ctrl.execute_and_capture("nearpc --function")
+    expected_break_here = (
+        "b+ 0x10014d0 <break_here>      push   rbp\n"
+        " ► 0x10014d1 <break_here+1>    mov    rbp, rsp\n"
+        "   0x10014d4 <break_here+4>    pop    rbp\n"
+        "   0x10014d5 <break_here+5>    ret   \n"
+    )
+    assert dis == expected_break_here
+
+    # disassemble parent function
+    await ctrl.execute("up")
+    dis = (await ctrl.execute_and_capture("nearpc --function")).splitlines()[-4:]
+    expected = [
+        " ► 0x1001502 <main+34>    xor    eax, eax",
+        "   0x1001504 <main+36>    add    rsp, 0x10",
+        "   0x1001508 <main+40>    pop    rbp",
+        "   0x1001509 <main+41>    ret   ",
+    ]
+    assert dis == expected
+
+    # disassemble break_here again
+    dis = await ctrl.execute_and_capture("nearpc -f (char*)break_here+2")
+    # no "►" prefix this time cause we switched to the parent frame:
+    assert dis == expected_break_here.replace("►", " ")
+
+
+STEPSYSCALL_X64_BINARY = get_binary("stepsyscall.x86-64.out")
+
+
+@pwndbg_test
+async def test_syscall_annotated_on_pc_address(ctrl: Controller) -> None:
+    import pwndbg.aglib
+
+    await ctrl.launch(STEPSYSCALL_X64_BINARY)
+
+    # Enable the heuristic
+    await ctrl.execute_and_capture("set heuristic-backwards-disasm on")
+
+    dis = await ctrl.execute_and_capture("nearpc $rip-3 -n -t 11")
+
+    # Data region location can differ based on the system
+    buf_addr = int(pwndbg.aglib.symbol.lookup_symbol_addr("buf"))
+
+    expected = (
+        "   0x4000b7 <syscall_write_stderr_label+2>    ret   \n"
+        " \n"
+        "   0x4000b8 <do_read>                         mov    eax, 0          EAX => 0\n"
+        "   0x4000bd <do_read+5>                       mov    edi, 0          EDI => 0\n"
+        f"   0x4000c2 <do_read+10>                      movabs rsi, buf        RSI => 0x{buf_addr:x} (buf)\n"
+        "   0x4000cc <do_read+20>                      mov    edx, 1          EDX => 1\n"
+        " ► 0x4000d1 <syscall_read_label>              syscall <SYS_read>\n"
+        "   0x4000d3 <syscall_read_label+2>            ret   \n"
+        " \n"
+        "   0x4000d4 <_start>                          nop   \n"
+        "   0x4000d5 <_start+1>                        jmp    label1                      <label1>\n"
+        " \n"
+        "   0x4000d7 <_start+3>                        nop   \n"
+        "   0x4000d8 <label1>                          call   write_stdout                <write_stdout>\n"
+    )
+
+    assert dis == expected
+
+
+PLT_NO_RELRO_LAZY_BINDING_BINARY = get_binary("reference_bin_plt_pie_no_relro.x86-64.out")
+
+
+@pwndbg_test
+async def test_nearpc_plt_jumps_lazy_binding_x86_64(
+    ctrl: Controller, request: pytest.FixtureRequest
+) -> None:
+    """
+    Checks that we handle `jmp [rip+offset]` where the address is in writable memory
+    """
+    import pwndbg.color
+    from pwndbg.dbg_mod import DebuggerType
+
+    await launch_to(ctrl, PLT_NO_RELRO_LAZY_BINDING_BINARY, "break_here")
+
+    if pwndbg.dbg.name() != DebuggerType.GDB:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="LLDB does not correctly find the symbol names", strict=True)
+        )
+
+    PLT_ADDRESS = 0x555555555670
+    dis_0 = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 -t 15")
+    dis_0 = pwndbg.color.strip(dis_0)
+
+    expected_0 = (
+        " ► 0x555555555670                                ┌┌┌┌─>   push   qword ptr [rip + 0x11b2]\n"
+        "   0x555555555676                                ╎╎╎╎     jmp    qword ptr [rip + 0x11b4]    <[0x555555556830], now=_dl_runtime_resolve_xsavec>\n"
+        "                                                 ╎╎╎╎  \n"
+        "   0x55555555567c                                ╎╎╎╎     nop    dword ptr [rax]\n"
+        "   0x555555555680 <puts@plt>                     ╎╎╎╎┌<   jmp    qword ptr [rip + 0x11b2]    <[puts@got[plt]], now=puts@plt+6>\n"
+        "                                                 ╎╎╎╎│ \n"
+        "   0x555555555686 <puts@plt+6>                   ╎╎╎╎└>   push   0\n"
+        "   0x55555555568b <puts@plt+11>                  ╎╎╎└─<   jmp    0x555555555670              <0x555555555670>\n"
+        "                                                 ╎╎╎   \n"
+        "   0x555555555690 <printf@plt>                   ╎╎╎ ┌<   jmp    qword ptr [rip + 0x11aa]    <[printf@got[plt]], now=printf@plt+6>\n"
+        "                                                 ╎╎╎ │ \n"
+        "   0x555555555696 <printf@plt+6>                 ╎╎╎ └>   push   1\n"
+        "   0x55555555569b <printf@plt+11>                ╎╎└──<   jmp    0x555555555670              <0x555555555670>\n"
+        "                                                 ╎╎    \n"
+        "   0x5555555556a0 <write@plt>                    ╎╎  ┌<   jmp    qword ptr [rip + 0x11a2]    <[write@got[plt]], now=write@plt+6>\n"
+        "                                                 ╎╎  │ \n"
+        "   0x5555555556a6 <write@plt+6>                  ╎╎  └>   push   2\n"
+        "   0x5555555556ab <write@plt+11>                 ╎└───<   jmp    0x555555555670              <0x555555555670>\n"
+        "                                                 ╎     \n"
+        "   0x5555555556b0 <srand@plt>                    ╎   ┌<   jmp    qword ptr [rip + 0x119a]    <[srand@got[plt]], now=srand@plt+6>\n"
+        "                                                 ╎   │ \n"
+        "   0x5555555556b6 <srand@plt+6>                  ╎   └>   push   3\n"
+        "   0x5555555556bb <srand@plt+11>                 └────<   jmp    0x555555555670              <0x555555555670>\n"
+    )
+
+    assert dis_0 == expected_0
+
+    break_at_sym("break_here")
+    await ctrl.cont()
+
+    dis_1 = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 -t 15")
+    dis_1 = pwndbg.color.strip(dis_1)
+
+    # At this point, some of the symbols have been resolved
+    expected_1 = (
+        " ► 0x555555555670                                 ┌┌┌┌>   push   qword ptr [rip + 0x11b2]\n"
+        "   0x555555555676                                 ╎╎╎╎    jmp    qword ptr [rip + 0x11b4]    <[0x555555556830], now=_dl_runtime_resolve_xsavec>\n"
+        "                                                  ╎╎╎╎ \n"
+        "   0x55555555567c                                 ╎╎╎╎    nop    dword ptr [rax]\n"
+        "   0x555555555680 <puts@plt>                      ╎╎╎╎    jmp    qword ptr [rip + 0x11b2]    <[puts@got[plt]], now=puts>\n"
+        "                                                  ╎╎╎╎ \n"
+        "   0x555555555686 <puts@plt+6>                    ╎╎╎╎    push   0\n"
+        "   0x55555555568b <puts@plt+11>                   ╎╎╎└<   jmp    0x555555555670              <0x555555555670>\n"
+        "                                                  ╎╎╎  \n"
+        "   0x555555555690 <printf@plt>                    ╎╎╎     jmp    qword ptr [rip + 0x11aa]    <[printf@got[plt]], now=printf>\n"
+        "                                                  ╎╎╎  \n"
+        "   0x555555555696 <printf@plt+6>                  ╎╎╎     push   1\n"
+        "   0x55555555569b <printf@plt+11>                 ╎╎└─<   jmp    0x555555555670              <0x555555555670>\n"
+        "                                                  ╎╎   \n"
+        "   0x5555555556a0 <write@plt>                     ╎╎ ┌<   jmp    qword ptr [rip + 0x11a2]    <[write@got[plt]], now=write@plt+6>\n"
+        "                                                  ╎╎ │ \n"
+        "   0x5555555556a6 <write@plt+6>                   ╎╎ └>   push   2\n"
+        "   0x5555555556ab <write@plt+11>                  ╎└──<   jmp    0x555555555670              <0x555555555670>\n"
+        "                                                  ╎    \n"
+        "   0x5555555556b0 <srand@plt>                     ╎  ┌<   jmp    qword ptr [rip + 0x119a]    <[srand@got[plt]], now=srand@plt+6>\n"
+        "                                                  ╎  │ \n"
+        "   0x5555555556b6 <srand@plt+6>                   ╎  └>   push   3\n"
+        "   0x5555555556bb <srand@plt+11>                  └───<   jmp    0x555555555670              <0x555555555670>\n"
+    )
+
+    assert dis_1 == expected_1
+
+
+I386_PLT_NO_RELRO_LAZY_BINDING_BINARY = get_binary("reference_bin_plt_no_pie_no_relro.i386.out")
+
+
+@pwndbg_test
+async def test_nearpc_plt_jumps_lazy_binding_i386(
+    ctrl: Controller, request: pytest.FixtureRequest
+) -> None:
+    """
+    Checks that we handle `jmp [literal_address]` where the address is in writable memory
+    """
+    import pwndbg.color
+    from pwndbg.dbg_mod import DebuggerType
+
+    await launch_to(ctrl, I386_PLT_NO_RELRO_LAZY_BINDING_BINARY, "break_here")
+
+    if pwndbg.dbg.name() != DebuggerType.GDB:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="LLDB does not correctly find the symbol names", strict=True)
+        )
+
+    PLT_ADDRESS = 0x11490
+    dis = await ctrl.execute_and_capture(f"nearpc {PLT_ADDRESS} -r 0 -t 21")
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        " ► 0x11490                                           ┌┌┌┌┌>   push   dword ptr [_GLOBAL_OFFSET_TABLE_+4]\n"
+        "   0x11496                                           ╎╎╎╎╎    jmp    dword ptr [_GLOBAL_OFFSET_TABLE_+8] <[_GLOBAL_OFFSET_TABLE_+8], now=_dl_runtime_resolve>\n"
+        "                                                     ╎╎╎╎╎ \n"
+        "   0x1149c                                           ╎╎╎╎╎    nop   \n"
+        "   0x1149d                                           ╎╎╎╎╎    nop   \n"
+        "   0x1149e                                           ╎╎╎╎╎    nop   \n"
+        "   0x1149f                                           ╎╎╎╎╎    nop   \n"
+        "   0x114a0 <__libc_start_main@plt>                   ╎╎╎╎╎    jmp    dword ptr [__libc_start_main@got.plt] <[__libc_start_main@got.plt], now=__libc_start_main>\n"
+        "                                                     ╎╎╎╎╎ \n"
+        "   0x114a6 <__libc_start_main@plt+6>                 ╎╎╎╎╎    push   0\n"
+        "   0x114ab <__libc_start_main@plt+11>                ╎╎╎╎└<   jmp    0x11490                     <0x11490>\n"
+        "                                                     ╎╎╎╎  \n"
+        "   0x114b0 <puts@plt>                                ╎╎╎╎┌<   jmp    dword ptr [puts@got[plt]]   <[puts@got[plt]], now=puts@plt+6>\n"
+        "                                                     ╎╎╎╎│ \n"
+        "   0x114b6 <puts@plt+6>                              ╎╎╎╎└>   push   8\n"
+        "   0x114bb <puts@plt+11>                             ╎╎╎└─<   jmp    0x11490                     <0x11490>\n"
+        "                                                     ╎╎╎   \n"
+        "   0x114c0 <printf@plt>                              ╎╎╎ ┌<   jmp    dword ptr [printf@got[plt]] <[printf@got[plt]], now=printf@plt+6>\n"
+        "                                                     ╎╎╎ │ \n"
+        "   0x114c6 <printf@plt+6>                            ╎╎╎ └>   push   0x10\n"
+        "   0x114cb <printf@plt+11>                           ╎╎└──<   jmp    0x11490                     <0x11490>\n"
+        "                                                     ╎╎    \n"
+        "   0x114d0 <write@plt>                               ╎╎  ┌<   jmp    dword ptr [write@got[plt]]  <[write@got[plt]], now=write@plt+6>\n"
+        "                                                     ╎╎  │ \n"
+        "   0x114d6 <write@plt+6>                             ╎╎  └>   push   0x18\n"
+        "   0x114db <write@plt+11>                            ╎└───<   jmp    0x11490                     <0x11490>\n"
+        "                                                     ╎     \n"
+        "   0x114e0 <srand@plt>                               ╎   ┌<   jmp    dword ptr [srand@got[plt]]  <[srand@got[plt]], now=srand@plt+6>\n"
+        "                                                     ╎   │ \n"
+        "   0x114e6 <srand@plt+6>                             ╎   └>   push   0x20\n"
+        "   0x114eb <srand@plt+11>                            └────<   jmp    0x11490                     <0x11490>\n"
+    )
+
+    # In some platforms (Fedora), it uses the `_impl` symbol instead.
+    # This simplifies the test so can just compare against one expected output
+    dis = dis.replace("__libc_start_main_impl", "__libc_start_main")
 
     assert dis == expected

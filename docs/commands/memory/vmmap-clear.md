@@ -6,7 +6,7 @@ usage: vmmap-clear [-h]
 
 ```
 
-Clear the vmmap cache.
+Clear custom vmmap entries added by vmmap_add and vmmap_explore and reset caches.
 ### Optional arguments
 
 |Short|Long|Help|

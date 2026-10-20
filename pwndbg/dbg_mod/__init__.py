@@ -62,8 +62,16 @@ def selection(target: T, get_current: Callable[[], T], select: Callable[[T], Non
             select(current)
 
 
-class Error(Exception):
-    pass
+class DebuggerError(Exception):
+    """
+    An error that the underlying debugger raised.
+
+    This is an abstraction over gdb.error and lldb.SBError .
+
+    Should only be raised in pwndbg/dbg_mod/ code, and even then, sparingly.
+
+    FIXME: Currently lots of places in the code use this even though they shouldn't.
+    """
 
 
 class NoInferior(Exception):
@@ -204,10 +212,10 @@ class Frame:
           to SymbolLookupType.ANY.
 
         Returns:
-        - pwndbg.dbg_mod.Value | None: The value of the symbol if found, or None if not found.
+        - pwndbg.dbg_mod.Value | None: The address of the symbol if found, or None if not found.
 
         Raises:
-        - pwndbg.dbg_mod.Error: If symbol name contains invalid characters
+        - pwndbg.dbg_mod.DebuggerError: If symbol name contains invalid characters
         """
         raise NotImplementedError()
 
@@ -222,6 +230,9 @@ class Frame:
         is a GDB-only option, and is intended for cases in which the result
         would be incorrect without it enabled, when running in GDB. Other
         debuggers should ignore this parameter.
+
+        Raises:
+            pwndbg.dbg_mod.DebuggerError: When parsing the expression fails.
         """
         raise NotImplementedError()
 
@@ -581,13 +592,15 @@ class Process:
         - pwndbg.dbg_mod.Value | None: The value of the symbol if found, or None if not found.
 
         Raises:
-        - pwndbg.dbg_mod.Error: If no object file matching the `objfile_endswith` pattern is found.
+        - pwndbg.dbg_mod.DebuggerError: If no object file matching the `objfile_endswith` pattern is found.
         """
 
     def get_function_boundaries(self, address: int) -> tuple[int, int] | None:
         """
         Return the function start and end address for a function that
         contains address `addr`.
+
+        Might be slow (for GDB it invokes 'disass'), cache the results.
 
         Returns:
         - tuple[int, int] | None: [start, end) of function block if found (end address is exclusive)
@@ -875,12 +888,16 @@ class Type:
     def fields(self) -> list[TypeField]:
         """
         List of all fields in this type, if it is a structured type.
+
+        Otherwise, return empty list.
         """
         raise NotImplementedError()
 
     def has_field(self, name: str) -> bool:
         """
         Whether this type has a field with the given name.
+
+        Always returns False for non-structured types.
         """
         # This is a sensible default way to check for a field's existence.
         #
@@ -1083,6 +1100,18 @@ class Value:
     def __int__(self) -> int:
         """
         Converts this value to an integer, if possible.
+
+        Raises:
+            DebuggerError: When the Value is not coerceable to an int.
+        """
+        raise NotImplementedError()
+
+    def raw_bytes(self) -> bytes:
+        """
+        The raw bytes of this value
+
+        Raises:
+            DebuggerError: When the raw bytes cannot be read or the debugger does not support it
         """
         raise NotImplementedError()
 
@@ -1150,7 +1179,11 @@ class EventType(Enum):
 
     EXIT = 2
     """This event is fired after the process being debugged has been
-    detached from or has finished executing."""
+    detached from or has finished executing.
+
+    You're not allowed to call `info program` in GDB during this.
+    https://sourceware.org/bugzilla/show_bug.cgi?id=34047
+    """
 
     MEMORY_CHANGED = 3
     """This event is fired when the user interactively makes changes to the memory
@@ -1385,12 +1418,6 @@ class Debugger:
     def is_gdblib_available(self) -> bool:
         """
         Whether gdblib is available under this debugger.
-        """
-        raise NotImplementedError()
-
-    def string_limit(self) -> int:
-        """
-        The maximum size of a string.
         """
         raise NotImplementedError()
 

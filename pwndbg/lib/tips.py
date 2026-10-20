@@ -43,7 +43,6 @@ PWNDBG_TIPS: list[str] = [
     "Use the `spray` command to spray memory with cyclic pattern or specified value",
     "Use `patch <address> '<assembly>'` to patch an address with given assembly code",
     "Want to NOP some instructions? Use `patch <address> 'nop; nop; nop'`",
-    "`heap-config` shows heap related configuration",
     "`break-if-taken` and `break-if-not-taken` commands sets breakpoints after a given jump instruction was taken or not",
     "`stepuntilasm <assembly-instruction [operands]>` steps program forward until matching instruction occures",
     "Use `plist` command to dump elements of linked list",
@@ -53,6 +52,24 @@ PWNDBG_TIPS: list[str] = [
     "Use `hi` to see if a an address belongs to a glibc heap chunk",
     "Use `contextprev` and `contextnext` to display a previous context output again without scrolling",
     "Try splitting the context output into multiple TUI windows using `layout pwndbg` (`tui disable` or `ctrl-x + a` to go back to CLI mode)",
+    "Use `nearpc -f` to disassemble an entire function surrounding the evaluated address",
+    # Decompiler integration
+    "Pwndbg integrates with IDA, Binary Ninja, Ghidra and angr-management decompilers. Use `di install ida|binja|ghidra|angr` to install the plugin and `di connect` to start the integration",
+    "When the decompiler integration is enabled, Pwndbg shows the decompiled code in its context",
+    "Once `di sync` has been run, decompiled symbols are usable in expressions: `print decompiled_func` or `print $decompiled_var`",
+    # Smart navigation / stepping
+    "Use `xuntil <addr|symbol>` to run until a specified address - like a one-shot temporary breakpoint",
+    "Use `nextcall`, `nextret`, `nextjmp` or `nextsyscall` to advance execution to the next call/ret/jump/syscall instruction",
+    "Use `stepret` and `stepsyscall` to step into functions until a `ret` or `syscall` instruction is hit",
+    # Breakpoints / start
+    "Use `breakrva <offset>` to break at a relative offset into the binary - much easier than computing PIE addresses by hand",
+    "Use `attachp <name|pid|args|/dev/...>` to attach to a process by name or args (instead of running `pidof` in another terminal to run `attach <pid|dev>`)",
+    # Memory / analysis
+    "Use `xinfo <addr>` to show what mapping, file and the offset in there an address belongs to",
+    "Use `search` to find bytes/strings/ints/pointers in the process memory. See `search --help` for filters or examples",
+    "Use `p2p <mapping1> <mapping2>` to find pointer chains from one mapping to another (e.g. stack -> heap, libc -> stack)",
+    "Use `cyclic <len>` to generate a De Bruijn pattern and `cyclic -l <value>` to look up an offset - perfect for buffer-overflow offset finding",
+    "Pwndbg's `hexdump` colorizes by byte type and lets you re-run with no args to keep dumping forward",
 ]
 
 # LLDB specific tips

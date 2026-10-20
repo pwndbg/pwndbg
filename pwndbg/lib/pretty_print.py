@@ -31,13 +31,23 @@ this setting at 9 (the default).
 )
 
 
-def int_to_string(num: int) -> str:
+def int_to_string(num: int, adhere_to_ptrwidth: int = -1) -> str:
     """
     Converts an integer value to string.
 
     Decides whether to format it in decimal or
     hex depending on the max-decimal-number config.
+
+    If adhere_to_ptrwidth is not `-1`, it should be the size of a pointer
+    of the current CPU architecture in bits. Will cause the output string
+    to be aligned to the pointer size. E.g. `0x00007ffff7fe36c6` instead
+    of `0x7ffff7fe36c6`. If this is not -1, the int will always be hexified
+    regardless of `max-decimal-number`. See also `chain-full-values`.
     """
+    if adhere_to_ptrwidth != -1:
+        nibble_num = adhere_to_ptrwidth * 2 // 8
+        # assert (adhere_to_ptrwidth * 2) % 8 == 0
+        return f"{num:#0{nibble_num + 2}x}"
     if max_decimal_number == -1:
         return f"{num}"
     if max_decimal_number == 0:

@@ -28,10 +28,12 @@ class GDBTestHost(TestHost):
     def _run_gdb(
         self,
         target: str,
-        gdb_args_before: list[str] = [],
+        gdb_args_before: list[str] = None,
         env=None,
         capture_output=True,
     ) -> CompletedProcess[str]:
+        if gdb_args_before is None:
+            gdb_args_before = []
         env = os.environ if env is None else env
 
         # Prepare the GDB command line.
@@ -43,6 +45,9 @@ class GDBTestHost(TestHost):
             + gdb_args
             + ["--eval-command", "quit"],
             env=env,
+            # don't give gdb our terminal (unless we're using --pdb)
+            # (also makes sure Ctrl-C-ing the tests works)
+            stdin=subprocess.DEVNULL if capture_output else None,
             capture_output=capture_output,
             text=True,
             cwd=self._pwndbg_root,

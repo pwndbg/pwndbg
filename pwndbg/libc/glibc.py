@@ -13,7 +13,6 @@ import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.lib.config
 from pwndbg.color import message
-from pwndbg.lib.config import Scope
 
 from . import util
 from .dispatch import LibcType
@@ -27,7 +26,7 @@ safe_lnk = pwndbg.config.add_param(
 )
 
 glibc_version = pwndbg.config.add_param(
-    "glibc", "", "glibc version for heap heuristics resolution (e.g. 2.31)", scope=Scope.heap
+    "glibc", "", "glibc version for heap heuristics resolution (e.g. 2.31)"
 )
 
 

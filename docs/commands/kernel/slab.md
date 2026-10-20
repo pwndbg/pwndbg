@@ -2,7 +2,7 @@
 # slab
 
 ```text
-usage: slab [-h] {list,info,contains} ...
+usage: slab [-h] {list,info,contains,sheaf} ...
 
 ```
 
@@ -77,6 +77,26 @@ Get the cache for an address.
 |Positional Argument|Help|
 | :--- | :--- |
 |addresses||
+
+#### Optional arguments
+
+|Short|Long|Help|
+| :--- | :--- | :--- |
+|-h|--help|show this help message and exit|
+
+### **slab sheaf**
+
+```text
+usage: slab sheaf [-h] addr [addr ...]
+
+```
+
+Dump a slab sheaf (struct slab_sheaf) at the given address. Requires a kernel with SLUB percpu sheaves (Linux >= 7.0).
+#### Positional arguments
+
+|Positional Argument|Help|
+| :--- | :--- |
+|addresses|address of a struct slab_sheaf|
 
 #### Optional arguments
 

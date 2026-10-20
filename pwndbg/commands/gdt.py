@@ -5,8 +5,8 @@ import argparse
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
-import pwndbg.color as color
 import pwndbg.commands
+from pwndbg import color
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(

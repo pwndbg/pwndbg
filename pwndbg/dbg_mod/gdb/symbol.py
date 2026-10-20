@@ -162,6 +162,14 @@ def _fallback_any_symbol_to_address(name: str, global_only: bool = False) -> gdb
         if gdb_version[0] >= 14:
             return gdb.parse_and_eval(f"&'{sanitized_symbol_name}'", global_context=global_only)  # type: ignore[call-arg]
 
+        # We use single quotes because this is the intended way in GDB to escape symbol names with
+        # spaces and weird characters (e.g. demangled C++ symbol names) (note that double quotes do
+        # not mean the same thing, they represent a string rather than a symbol).
+        # We use & because otherwise we get an error for data symbols with no debug info, e.g.:
+        #   pwndbg> pi gdb.parse_and_eval("'stdout'")
+        #   gdb.error: 'stdout' has unknown type; cast it to its declared type
+        #   pwndbg> pi gdb.parse_and_eval("&'stdout'")
+        #   <gdb.Value object at 0x7f950708e7b0>
         return gdb.parse_and_eval(f"&'{sanitized_symbol_name}'")
     except gdb.error:
         return None

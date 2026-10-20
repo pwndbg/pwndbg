@@ -5,7 +5,7 @@ from collections.abc import Callable
 from capstone6pwndbg.sparc import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.disasm.arch
+import pwndbg.aglib.disasm.assistant
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -62,10 +62,12 @@ CCR_N_MASK = 1 << 3
 ICC_CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
     SPARC_CC_ICC_NE: lambda ccr: not (ccr & CCR_Z_MASK),
     SPARC_CC_ICC_E: lambda ccr: bool(ccr & CCR_Z_MASK),
-    SPARC_CC_ICC_G: lambda ccr: not ((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK))
-    and not (ccr & CCR_Z_MASK),
-    SPARC_CC_ICC_LE: lambda ccr: bool((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK))
-    or bool(ccr & CCR_Z_MASK),
+    SPARC_CC_ICC_G: lambda ccr: (
+        not ((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK)) and not (ccr & CCR_Z_MASK)
+    ),
+    SPARC_CC_ICC_LE: lambda ccr: (
+        bool((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK)) or bool(ccr & CCR_Z_MASK)
+    ),
     SPARC_CC_ICC_GE: lambda ccr: not ((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK)),
     SPARC_CC_ICC_L: lambda ccr: bool((ccr & CCR_N_MASK) ^ (ccr & CCR_V_MASK)),
     SPARC_CC_ICC_GU: lambda ccr: not (ccr & CCR_Z_MASK) and not (ccr & CCR_C_MASK),
@@ -79,9 +81,11 @@ ICC_CONDITION_RESOLVERS: dict[int, Callable[[int], bool]] = {
 }
 
 
-class SparcDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class SparcDisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant):
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+    def _condition(
+        self, instruction: PwndbgInstruction, emu: Emulator | None
+    ) -> InstructionCondition:
         if instruction.id in SPARC_CONDITIONAL_BRANCHES:
             cc_field = instruction.cs_insn.cc_field
 
@@ -91,24 +95,24 @@ class SparcDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 # This indicates it is an unconditional branch
                 if cc == SPARC_CC_ICC_A:
                     instruction.declare_is_unconditional_jump = True
-                    return InstructionCondition.UNDETERMINED
+                    return InstructionCondition.UNCONDITIONAL
 
                 ccr = self._read_register_name(instruction, "ccr", emu)
 
                 if ccr is None:
-                    return InstructionCondition.UNDETERMINED
+                    return InstructionCondition.UNDETERMINED_CONDITIONAL
 
                 conditional = ICC_CONDITION_RESOLVERS.get(cc, lambda *a: None)(ccr)
 
                 if conditional is None:
-                    return InstructionCondition.UNDETERMINED
+                    return InstructionCondition.UNDETERMINED_CONDITIONAL
 
                 return InstructionCondition.TRUE if conditional else InstructionCondition.FALSE
 
-        return InstructionCondition.UNDETERMINED
+        return InstructionCondition.UNCONDITIONAL
 
     @override
-    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+    def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None) -> int | None:
         if bool(instruction.groups & ALL_JUMP_GROUPS):
             instruction.causes_branch_delay = True
 

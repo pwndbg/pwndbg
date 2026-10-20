@@ -6,7 +6,7 @@ import subprocess
 
 def build_id() -> str:
     """
-    Returns pwndbg commit id if git is available.
+    Returns pwndbg commit id and its relative commit date if git is available.
     """
     pwndbg_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     # If we install pwndbg into site-packages, then `.pwndbg_root` is missing.
@@ -15,11 +15,12 @@ def build_id() -> str:
 
     try:
         git_path = os.path.join(pwndbg_dir, ".git")
-        cmd = ["git", "--git-dir", git_path, "rev-parse", "--short", "HEAD"]
+        # %h -> abbreviated commit hash, %cr -> committer date, relative
+        cmd = ["git", "--git-dir", git_path, "log", "-1", "--format=%h (%cr)"]
 
-        commit_id = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        commit_info = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
-        return "build: {}".format(commit_id.decode("utf-8").strip("\n"))
+        return "build: {}".format(commit_info.decode("utf-8").strip("\n"))
 
     except (OSError, subprocess.CalledProcessError):
         # OSError -> no git in $PATH
@@ -27,7 +28,7 @@ def build_id() -> str:
         return ""
 
 
-__version__ = "2026.02.18"
+__version__ = "2026.09.15"
 
 b_id = build_id()
 

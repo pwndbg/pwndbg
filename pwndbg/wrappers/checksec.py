@@ -9,7 +9,7 @@ from pwnlib.elf import ELF
 
 pwnlib.elf.elf.log._logger.disabled = True
 
-import pwndbg.color.message as message
+from pwndbg.color import message
 
 
 @contextlib.contextmanager

@@ -9,12 +9,16 @@ import re
 import sys
 from collections import defaultdict
 from collections.abc import Callable
+from contextlib import AbstractContextManager
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 from typing import TextIO
 from typing import TypeVar
 
 import unicorn as U
+from rich.table import Table
+from rich.text import Text
 from typing_extensions import ParamSpec
 from typing_extensions import override
 
@@ -26,6 +30,7 @@ import pwndbg.aglib.nearpc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.signal
 import pwndbg.aglib.symbol
+import pwndbg.aglib.vmmap
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
@@ -38,7 +43,8 @@ import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.lib.cache
 import pwndbg.lib.config
-import pwndbg.lib.pretty_print as pretty_print
+import pwndbg.lib.tips
+import pwndbg.rich
 import pwndbg.ui
 from pwndbg.aglib.arch_mod import get_thumb_mode_string
 from pwndbg.color import ColorConfig
@@ -48,6 +54,7 @@ from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
+from pwndbg.lib import pretty_print
 from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import RegisterContextProtocol
 from pwndbg.lib.regs import VisitableRegister
@@ -55,7 +62,7 @@ from pwndbg.lib.regs import VisitableRegister
 if pwndbg.dbg.is_gdblib_available():
     import gdb
 
-    import pwndbg.gdblib.ptmalloc2_tracking
+    import pwndbg.gdblib.glibc_malloc_tracking
     import pwndbg.gdblib.symbol
 
 log = logging.getLogger(__name__)
@@ -169,7 +176,7 @@ config_output = pwndbg.config.add_param(
 )
 config_context_sections = pwndbg.config.add_param(
     "context-sections",
-    "last_signal regs disasm code ghidra stack backtrace expressions threads heap_tracker",
+    "regs disasm code ghidra stack backtrace expressions threads heap_tracker last_signal",
     "which context sections are displayed (controls order)",
 )
 config_max_threads_display = pwndbg.config.add_param(
@@ -177,7 +184,7 @@ config_max_threads_display = pwndbg.config.add_param(
     4,
     "maximum number of threads displayed by the context command",
 )
-config_backtrace_format = pwndbg.config.add_param(
+config_backtrace_hex = pwndbg.config.add_param(
     "context-backtrace-hex",
     False,
     "whether to use hex for offsets in the backtrace",
@@ -222,20 +229,15 @@ def validate_context_sections() -> None:
             return
 
 
-class StdOutput:
+@dataclass(frozen=True)
+class StdOutput(AbstractContextManager[TextIO]):
     """A context manager wrapper to give stdout"""
 
     def __enter__(self) -> TextIO:
         return sys.stdout
 
-    def __exit__(self, *args, **kwargs) -> None:
-        pass
-
-    def __hash__(self):
-        return hash(sys.stdout)
-
-    def __eq__(self, other) -> bool:
-        return isinstance(other, StdOutput)
+    def __exit__(self, *exc: object) -> None:
+        return None
 
 
 class FileOutput:
@@ -250,6 +252,7 @@ class FileOutput:
         return self.handle
 
     def __exit__(self, *args, **kwargs) -> None:
+        assert self.handle is not None
         self.handle.close()
 
     def __hash__(self):
@@ -259,23 +262,17 @@ class FileOutput:
         return self.args == other.args
 
 
+@dataclass(frozen=True)
 class CallOutput:
     """A context manager which calls a function on write"""
 
-    def __init__(self, func: Callable[[str], None]) -> None:
-        self.func = func
+    func: Callable[[str], None]
 
-    def __enter__(self):
+    def __enter__(self) -> CallOutput:
         return self
 
     def __exit__(self, *args, **kwargs) -> None:
         pass
-
-    def __hash__(self):
-        return hash(self.func)
-
-    def __eq__(self, other):
-        return self.func == other.func
 
     def write(self, data) -> None:
         self.func(data)
@@ -284,16 +281,13 @@ class CallOutput:
         self.func("".join(lines_iterable))
 
     def flush(self):
-        try:
-            return self.func.flush()
-        except AttributeError:
-            pass
+        if flush := getattr(self.func, "flush", None):
+            return flush()
 
     def isatty(self):
-        try:
-            return self.func.isatty()
-        except AttributeError:
-            return False
+        if isatty := getattr(self.func, "isatty", None):
+            return isatty()
+        return False
 
 
 OutputWrapper = StdOutput | FileOutput | CallOutput
@@ -452,8 +446,8 @@ def history_handle_unchanged_contents() -> None:
     for section_name, history in context_history.items():
         # Duplicate the last entry if it is the same as the previous one
         # and wasn't added when the history was updated
-        if len(history) == longest_history - 1:
-            context_history[section_name].append(history[-1])
+        if len(history) == longest_history - 1 and history:
+            history.append(history[-1])
         # Prepend empty entries to the history to make all sections have the same length
         elif len(history) < longest_history - 1:
             context_history[section_name] = [
@@ -742,7 +736,7 @@ def context(
     # Allow to view history after the program has exited
     if not pwndbg.aglib.proc.alive() and (context_history_size <= 0 or not context_history):
         log.error("context: The program is not being run.")
-        return None
+        return
 
     if subcontext is None:
         subcontext = []
@@ -753,47 +747,56 @@ def context(
     elif len(args) == 0:
         args = config_context_sections.split()
 
+    cache_status = pwndbg.aglib.vmmap.cache_status_text()
+    cache_suffix = message.hint(f" [{cache_status}]") if cache_status is not None else ""
+
     sections: list[tuple[str, Callable[..., list[str]] | None]] = []
     if args:
         if selected_history_index is None:
-            sections.append(("legend", lambda *args, **kwargs: [mem_color.legend()]))
+            sections.append(("legend", lambda *args, **kwargs: [mem_color.legend() + cache_suffix]))
         else:
             longest_history = max(len(h) for h in context_history.values())
             history_status = f" (history {selected_history_index + 1}/{longest_history})"
             sections.append(
-                ("legend", lambda *args, **kwargs: [mem_color.legend() + history_status])
+                (
+                    "legend",
+                    lambda *args, **kwargs: [mem_color.legend() + history_status + cache_suffix],
+                )
             )
 
-    sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
+    sections += [(arg, context_sections.get(arg[0])) for arg in args]
 
     result: defaultdict[OutputWrapper, list[str]] = defaultdict(list)
     result_settings: defaultdict[OutputWrapper, dict[str, Any]] = defaultdict(dict)
     for section, func in sections:
-        if func:
-            target = output(section)
-            # Last section of an output decides about output settings
-            settings = output_settings[section]
-            if enabled is not None:
-                settings["enabled"] = enabled
-            if settings.get("enabled", True):
-                result_settings[target].update(settings)
-                with target as out:
-                    result[target].extend(
-                        func(
-                            target=out,
-                            width=settings.get("width", None),
-                            height=settings.get("height", None),
-                            with_banner=settings.get("banner_top", True),
-                        )
-                    )
+        if not func:
+            continue
+        target = output(section)
+        # Last section of an output decides about output settings
+        settings = output_settings[section]
+        if enabled is not None:
+            settings["enabled"] = enabled
+        if not settings.get("enabled", True):
+            continue
+        result_settings[target].update(settings)
+        with target as out:
+            result[target].extend(
+                func(
+                    target=out,
+                    width=settings.get("width", None),
+                    height=settings.get("height", None),
+                    with_banner=settings.get("banner_top", True),
+                )
+            )
 
     history_handle_unchanged_contents()
 
     for target, res in result.items():
         settings = result_settings[target]
-        if len(res) > 0 and settings.get("banner_bottom", True):
-            with target as out:
-                res.append(pwndbg.ui.banner("", target=out, width=settings.get("width", None)))
+        if not (len(res) and settings.get("banner_bottom", True)):
+            continue
+        with target as out:
+            res.append(pwndbg.ui.banner("", target=out, width=settings.get("width", None)))
 
     cmd_lines = 0
     for target, lines in result.items():
@@ -950,7 +953,7 @@ def compact_regs_normal(
     ↪ R15  0x7ffff7f83e60 (_rl_orig_sigset) ◂— 0
     ↪ RCX  0x7ffff7c90efa (__internal_syscall_cancel+138) ◂— add rsp, 0x18
     ↪ RIP  0x7ffff7c90efa (__internal_syscall_cancel+138) ◂— add rsp, 0x18
-    ↪ EFLAGS 0x202 [ cf pf af zf sf IF df of ac ]
+    ↪ EFLAGS 0x202 [ cf pf af zf sf IF df of iopl:00 ac ]
     """
     result: list[str] = []
 
@@ -1050,7 +1053,7 @@ def compact_regs_very(
      R12  0x7fffffffccb0 ◂— 1
      RIP  0x7ffff7c90efa (__internal_syscall_cancel+138) ◂— add rsp, 0x18
      RSI  0x7fffffffccb0 ◂— 1          R13  0
-     EFLAGS 0x202 [ cf pf af zf sf IF df of ac ]
+     EFLAGS 0x202 [ cf pf af zf sf IF df of iopl:00 ac ]
     """
     result: list[str] = []
 
@@ -1101,6 +1104,13 @@ def compact_regs_very(
     return result
 
 
+COMPACT_REGS_MAP = {
+    CompactRegsOptions.YES.value: compact_regs_normal,
+    CompactRegsOptions.VERY.value: compact_regs_very,
+    CompactRegsOptions.HARDCUT.value: compact_regs_hardcut,
+}
+
+
 def compact_regs(
     regs: list[str], width: int | None = None, target: OutputTarget = sys.stdout
 ) -> list[str]:
@@ -1124,15 +1134,10 @@ def compact_regs(
         # => min_width = (window_width - (columns - 1) * separation) / columns
         min_width = max(min_width, (width - (columns - 1) * separation) // columns)
 
-    match pwndbg.config.show_compact_regs.value:
-        case CompactRegsOptions.YES.value:
-            return compact_regs_normal(regs, width, min_width, columns, separation)
-        case CompactRegsOptions.VERY.value:
-            return compact_regs_very(regs, width, min_width, columns, separation)
-        case CompactRegsOptions.HARDCUT.value:
-            return compact_regs_hardcut(regs, width, min_width, columns, separation)
-        case _:
-            assert False, "Invalid compact regs value."
+    compact_regs_fn = COMPACT_REGS_MAP.get(pwndbg.config.show_compact_regs.value)
+    assert compact_regs_fn is not None, "Invalid compact regs value."
+
+    return compact_regs_fn(regs, width, min_width, columns, separation)
 
 
 @serve_context_history
@@ -1160,16 +1165,16 @@ def context_heap_tracker(
     width: int | None = None,
     height: int | None = None,
 ) -> list[str]:
-    if not pwndbg.gdblib.ptmalloc2_tracking.is_enabled():
+    if not pwndbg.gdblib.glibc_malloc_tracking.is_enabled():
         return []
 
     banner = [pwndbg.ui.banner("heap tracker", target=target, width=width, extra="")]
 
-    if pwndbg.gdblib.ptmalloc2_tracking.last_issue is not None:
+    if pwndbg.gdblib.glibc_malloc_tracking.last_issue is not None:
         info = [
-            f"Detected the following potential issue: {pwndbg.gdblib.ptmalloc2_tracking.last_issue}"
+            f"Detected the following potential issue: {pwndbg.gdblib.glibc_malloc_tracking.last_issue}"
         ]
-        pwndbg.gdblib.ptmalloc2_tracking.last_issue = None
+        pwndbg.gdblib.glibc_malloc_tracking.last_issue = None
     else:
         info = ["Nothing to report."]
 
@@ -1182,7 +1187,7 @@ parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers t
 
 @pwndbg.commands.Command(parser, category=CommandCategory.CONTEXT)
 @pwndbg.commands.OnlyWhenRunning
-def regs(regs: list[str | VisitableRegister | None] | None = None) -> None:
+def regs(regs: list[str] | None = None) -> None:
     """Print out all registers and enhance the information."""
     print("\n".join(get_regs(regs)))
 
@@ -1194,42 +1199,49 @@ pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return addres
 class RegisterContext(RegisterContextProtocol):
     changed: list[str]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.changed = pwndbg.aglib.regs.changed
 
     def get_prefix(self, reg: str) -> str:
         # Make the register stand out and give a color if changed
         regname = ctx_color.register(reg.ljust(4).upper())
-        if reg in self.changed:
+        if reg.lower() in self.changed:
             regname = ctx_color.register_changed(regname)
 
         # Show a marker next to the register if it changed
         change_marker = f"{ctx_color.config_register_changed_marker}"
         m = (
             " " * len(change_marker)
-            if reg not in self.changed
+            if reg.lower() not in self.changed
             else ctx_color.register_changed(change_marker)
         )
         return f"{m}{regname}"
 
     def get_register_value(self, reg: str) -> int | None:
-        val = pwndbg.aglib.regs.read_reg(reg)
+        val = pwndbg.aglib.regs.read_reg(reg, reg.lower())
+        if val is None:
+            print(message.warn(f"Unknown register: {reg!r}"))
+            return None
+        return val
+
+    def get_register_abstract_value(self, reg: str) -> pwndbg.dbg_mod.Value | None:
+        val = pwndbg.aglib.regs.read_reg_abstract_value(reg.lower())
         if val is None:
             print(message.warn(f"Unknown register: {reg!r}"))
             return None
         return val
 
     @override
-    def flag_register_context(self, reg: str, bit_flags: BitFlags) -> str | None:
-        val = self.get_register_value(reg)
-        if val is None:
+    def flag_register_pretty_print(self, reg: str, bit_flags: BitFlags) -> str | None:
+        value = self.get_register_value(reg)
+        if value is None:
             return None
-        desc = ctx_color.format_flags(val, bit_flags, pwndbg.aglib.regs.last.get(reg, 0))
+        desc = ctx_color.format_flags(value, bit_flags, pwndbg.aglib.regs.last.get(reg.lower(), 0))
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
 
     @override
-    def segment_registers_context(self, regs: list[str]) -> str | None:
+    def segment_registers_pretty_print(self, regs: list[str]) -> str | None:
         result = ""
         for reg in regs:
             val = self.get_register_value(reg)
@@ -1240,95 +1252,109 @@ class RegisterContext(RegisterContextProtocol):
         return result
 
     @override
-    def addressing_register_context(self, reg: str, is_virtual: bool) -> str | None:
+    def addressing_register_pretty_print(self, reg: str, is_virtual: bool) -> str | None:
         if is_virtual:
-            return self.register_context_default(reg)
-        val = self.get_register_value(reg)
-        if val is None:
+            return self.default_register_pretty_print(reg)
+        value = self.get_register_value(reg)
+        if value is None:
             return None
         prefix = self.get_prefix(reg)
-        desc = hex(val)
+        desc = hex(value)
         if pwndbg.aglib.kernel.has_debug_symbols():
             try:
-                virtual = pwndbg.aglib.kernel.phys_to_virt(val)
+                virtual = pwndbg.aglib.kernel.paging.phys_to_virt(value)
                 desc += f" [virtual: {pwndbg.chain.format(virtual)}]"
             except Exception:
                 pass
         return f"{prefix} {desc}"
 
-    def register_context_default(self, reg: str) -> str | None:
-        val = self.get_register_value(reg)
+    @override
+    def vector_register_pretty_print(self, reg: str) -> str | None:
+        val = self.get_register_abstract_value(reg)
         if val is None:
             return None
-        desc = ""
-        desc = pwndbg.chain.format(val)
+
+        try:
+            raw = val.raw_bytes()
+        except pwndbg.dbg_mod.DebuggerError as e:
+            print(message.warn(f"Cannot read vector register {reg}: {e}"))
+            return None
+
+        # Show entire contents of registers as hex (including leading 0 bytes)
+        value = int.from_bytes(raw, pwndbg.aglib.arch.endian)
+        desc = f"{value:#0{2 + 2 * len(raw)}x}"
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
 
+    def default_register_pretty_print(self, reg: str) -> str | None:
+        value = self.get_register_value(reg)
+        if value is None:
+            return None
+        desc = pwndbg.chain.format(value)
+        prefix = self.get_prefix(reg)
+        return f"{prefix} {desc}"
 
-def get_regs(in_regs: list[str | VisitableRegister | None] | None = None) -> list[str]:
-    # Python default parameters are instantiated once and shared across calls.
-    # Instead of a default value of [], we need to do this check so we get a fresh list each time
-    if in_regs is None:
-        in_regs = []
-    regs: list[str | VisitableRegister | None] = in_regs
-    result: list[str] = []
+    def render(self, reg: str, printer: VisitableRegister | None = None) -> str | None:
+        # Resolve "sp" and "pc" to the real architectural register names
+        reg = pwndbg.aglib.regs.current.resolve_aliases(reg)
+
+        if printer is None:
+            # Check if we have a registered pretty printer
+            printer = pwndbg.aglib.regs.current.pretty_printers.get(reg.lower())
+
+        if printer is not None:
+            return printer.pretty_print(self, reg)
+
+        return self.default_register_pretty_print(reg)
+
+
+def get_regs(in_regs: list[str] | None = None) -> list[str]:
     rc = RegisterContext()
+    result: list[str | None] = []
 
-    if len(regs) == 0:
-        regs += pwndbg.aglib.regs.gpr
+    if in_regs:
+        result += [rc.render(reg) for reg in in_regs]
+    else:
+        result += [rc.render(reg) for reg in pwndbg.aglib.regs.gpr]
 
-        regs.append(pwndbg.aglib.regs.frame)
-        regs.append(pwndbg.aglib.regs.stack)
+        if pwndbg.aglib.regs.frame is not None:
+            result.append(rc.render(pwndbg.aglib.regs.frame))
+
+        result.append(rc.render(pwndbg.aglib.regs.stack))
 
         if pwndbg.config.show_retaddr_reg:
-            regs += pwndbg.aglib.regs.retaddr
+            result += [rc.render(reg) for reg in pwndbg.aglib.regs.retaddr]
 
-        regs.append(pwndbg.aglib.regs.current.pc)
+        result.append(rc.render(pwndbg.aglib.regs.current.pc))
 
         if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel is not None:
             controls = pwndbg.aglib.regs.kernel.controls
             if controls is not None:
-                for regname, control in controls.items():
-                    control.update(regname)
-                    regs.append(control)
+                result += [rc.render(reg, printer) for reg, printer in controls.items()]
             msrs = pwndbg.aglib.regs.kernel.msrs
             if msrs is not None:
-                for regname, msr in msrs.items():
-                    msr.update(regname)
-                    regs.append(msr)
+                result += [rc.render(reg, printer) for reg, printer in msrs.items()]
+
         if pwndbg.config.show_flags:
             flags = pwndbg.aglib.regs.flags
             if flags is not None:
-                for regname, flag in flags.items():
-                    flag.update(regname)
-                    regs.append(flag)
+                result += [rc.render(reg, printer) for reg, printer in flags.items()]
+
         if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel is not None:
             if pwndbg.aglib.regs.kernel.segments is not None:
-                regs.append(pwndbg.aglib.regs.kernel.segments)
+                result.append(pwndbg.aglib.regs.kernel.segments.pretty_print(rc))
 
-    for reg in regs:
-        if reg is None:
-            continue
-        # If it's a VisitableRegister which has special logic to determine what to print
-        if not isinstance(reg, str):
-            desc = reg.context(rc)
-            if desc is not None:
-                result.append(desc)
-            continue
-
-        # Resolve "sp" and "pc" to the real architectural register names
-        reg = pwndbg.aglib.regs.current.resolve_aliases(reg)
-
-        desc = rc.register_context_default(reg)
-        if desc is not None:
-            result.append(desc)
-
-    return result
+    return [desc for desc in result if desc is not None]
 
 
 disasm_lines = pwndbg.config.add_param(
     "context-disasm-lines", 10, "number of additional lines to print in the disasm context"
+)
+
+disasm_backwards_linear_lines = pwndbg.config.add_param(
+    "context-disasm-back-linear-lines",
+    "auto",
+    "maximum number of lines to disassemble backwards linearly in memory",
 )
 
 
@@ -1346,6 +1372,40 @@ def try_emulate_if_bug_disable(handler: Callable[[], T]) -> T:
         return handler()
 
 
+context_disasm_instruction_flow_cache = pwndbg.aglib.disasm.disassembly.InstructionFlowCache()
+
+
+@pwndbg.dbg.event_handler(EventType.STOP)
+def enhance_cache_listener() -> None:
+    context_disasm_instruction_flow_cache.commit_next_instruction_flow()
+
+    if pwndbg.aglib.regs.pc not in context_disasm_instruction_flow_cache.next_addresses_cache:
+        # Clear the enhanced instruction cache to ensure we don't use stale values
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.clear()
+        context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.clear()
+
+
+@pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED)
+@pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED)
+def clear_on_reg_mem_change() -> None:
+    # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
+    # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
+    pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.pop(
+        pwndbg.aglib.regs.pc, None
+    )
+    context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.pop(
+        pwndbg.aglib.regs.pc, None
+    )
+
+    for addr in context_disasm_instruction_flow_cache.next_addresses_cache:
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.pop(addr, None)
+        context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.pop(
+            addr, None
+        )
+
+    context_disasm_instruction_flow_cache.next_addresses_cache.clear()
+
+
 @serve_context_history
 def context_disasm(
     target: OutputTarget = sys.stdout,
@@ -1357,23 +1417,33 @@ def context_disasm(
     syntax = pwndbg.aglib.disasm.disassembly.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(
-        iter(getattr(pwndbg.aglib.disasm.disassembly.get_disassembler, "cache").values()), None
-    )
+    cs = next(iter(pwndbg.aglib.disasm.disassembly.get_disassembler.cache.values()), None)
 
+    # Clear the caches when user changes disassembly syntax during session.
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
-    if cs is not None and cs.syntax != syntax:
+    if (
+        cs is not None
+        and (cs.syntax & pwndbg.aglib.disasm.disassembly.CAPSTONE_SYNTAX_OPTIONS_MASK) != syntax
+    ):
         pwndbg.lib.cache.clear_caches()
-        pwndbg.aglib.disasm.disassembly.computed_instruction_cache.clear()
+        pwndbg.aglib.disasm.disassembly.global_fallback_computed_instruction_cache.clear()
+        context_disasm_instruction_flow_cache.current_instruction_sequence_linked_list_map.clear()
 
     additional_disasm_lines = max(int(disasm_lines), height or 0)
+
+    if disasm_backwards_linear_lines == "auto":
+        max_backwards_linear_count = min(10, additional_disasm_lines // 3)
+    else:
+        max_backwards_linear_count = int(disasm_backwards_linear_lines)
 
     result = try_emulate_if_bug_disable(
         lambda: pwndbg.aglib.nearpc.nearpc(
             back_lines=additional_disasm_lines // 2,
             total_lines=additional_disasm_lines + 1,
-            emulate=bool(not pwndbg.config.emulate == "off"),
+            emulate=pwndbg.config.emulate != "off",
             use_cache=True,
+            max_backwards_linear_count=max_backwards_linear_count,
+            instruction_flow_cache=context_disasm_instruction_flow_cache,
         )
     )
 
@@ -1540,18 +1610,18 @@ def context_backtrace(
     oldest_frame = this_frame
 
     tui_backtrace_lines = max(int(backtrace_lines), height or 0)
-    for i in range(tui_backtrace_lines - 1):
+    for _ in range(tui_backtrace_lines - 1):
         try:
             candidate = oldest_frame.parent()
         # We catch an error in case of a `gdb.error: PC not saved` case
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             break
 
         if not candidate:
             break
         oldest_frame = candidate
 
-    for i in range(tui_backtrace_lines - 1):
+    for _ in range(tui_backtrace_lines - 1):
         candidate = newest_frame.child()
         if not candidate:
             break
@@ -1559,38 +1629,46 @@ def context_backtrace(
 
     frame = newest_frame
     i = 0
-    bt_prefix = f"{pwndbg.config.backtrace_prefix}"
-    # Use visual width of the prefix (strip color codes) so Unicode chars like ► are measured correctly
-    bt_prefix_visual_len = len(pwndbg.color.strip(bt_prefix))
+    active_prefix = Text(" ")
+    active_prefix.append_text(Text.from_ansi(c.prefix(str(pwndbg.config.backtrace_prefix))))
+    inactive_prefix = Text(" " * active_prefix.cell_len)
 
-    # Pre-compute total number of frames to pad the frame label width consistently
-    total_frames = i
-    tmp = newest_frame
-    while tmp != oldest_frame:
-        total_frames += 1
-        tmp = tmp.parent()
-    frame_label_width = len(f"{backtrace_frame_label}{total_frames}")
+    table = Table.grid(expand=False, padding=(0, 1))
+    table.add_column(no_wrap=True)  # active indicator
+    table.add_column(justify="right")  # frame number
+    table.add_column(justify="right", overflow="ignore", no_wrap=True)  # address
+    table.add_column(overflow="fold")  # symbol
+
+    offset_regex = re.compile(r"^(.+)\+(\d+)$")
 
     while True:
-        prefix = bt_prefix if frame == this_frame else " " * bt_prefix_visual_len
-        prefix = f" {c.prefix(prefix)}"
-        addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
-        symbol = c.symbol(pwndbg.aglib.symbol.resolve_addr(int(frame.pc())))
+        pc = frame.pc()
+        prefix = active_prefix if frame == this_frame else inactive_prefix
+        # let rich handle alignment
+        address = Text.from_ansi(c.address(pwndbg.ui.addrsz(pc).strip()))
+        symbol = pwndbg.aglib.symbol.resolve_addr(int(pc))
+
+        symbol_cell = Text()
         if symbol:
-            if bool(config_backtrace_format):
-                offset_regex = re.compile(r"^(.+)\+(\d+)$")
-                parts = offset_regex.match(symbol)
-                if parts:
+            if bool(config_backtrace_hex):
+                if parts := offset_regex.match(symbol):
                     symbol = f"{parts[1]}+{int(parts[2]):#x}"
-            addrsz = f"{addrsz} {symbol}"
-        frame_label = f"{backtrace_frame_label}{i}".rjust(frame_label_width)
-        result.append(f"{prefix} {c.frame_label(frame_label)} {addrsz}")
+            symbol_cell = Text.from_ansi(c.symbol(symbol))
+
+        table.add_row(
+            prefix,
+            Text.from_ansi(c.frame_label(f"{backtrace_frame_label}{i}")),
+            address,
+            symbol_cell,
+        )
 
         if frame == oldest_frame:
             break
 
         frame = frame.parent()
         i += 1
+
+    result.extend(line.rstrip() for line in pwndbg.rich.rich_to_str(table).splitlines())
     return result
 
 
@@ -1678,10 +1756,8 @@ def context_threads(
 
     for thread in displayed_threads:
         name = thread.name or ""
-        if len(name) > max_name_length:
-            max_name_length = len(name)
-        if len(str(thread.global_num)) > max_global_num_len:
-            max_global_num_len = len(str(thread.global_num))
+        max_name_length = max(max_name_length, len(name))
+        max_global_num_len = max(max_global_num_len, len(str(thread.global_num)))
 
     for thread in filter(lambda t: t.is_valid(), displayed_threads):
         selected = " ►" if thread is original_thread else "  "
@@ -1727,8 +1803,12 @@ def context_threads(
 
 
 @pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.SAVE_SIGNAL)
-@pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.SAVE_SIGNAL)
 def save_signal() -> None:
+    # We can't do this on EventType.CONTINUE because of #3683
+    # We can't do this on EventType.EXIT because of
+    #  https://sourceware.org/bugzilla/show_bug.cgi?id=34047
+    # But we don't really care about those anyway, at least for GDB, because
+    # the signal information only changes on gdb.SignalEvent which is a subclass of gdb.StopEvent .
     global last_signal
     last_signal = result = []
 
@@ -1744,7 +1824,11 @@ def save_signal() -> None:
     if not process:
         return
 
-    if not (process.stopped_with_signal() or process.stopped_at_breakpoint()):
+    # We don't show signal on breakpoints (process.stopped_at_breakpoint()) because
+    # it clutters the context.
+    # process.stopped_with_signal() does return non-breakpoint caused SIGTRAPs
+    # (e.g. a non-debugger-inserted int3 instruction).
+    if not (process.stopped_with_signal()):
         return
 
     signal = pwndbg.aglib.signal.get_last_signal()
@@ -1758,11 +1842,9 @@ def save_signal() -> None:
             msg = f"Program received signal {desc_short}"
             if desc_long:
                 msg += desc_long
-        except pwndbg.dbg_mod.Error:
+        except pwndbg.dbg_mod.DebuggerError:
             pass
-    elif signal == "SIGTRAP":
-        result.append(message.breakpoint(f"Breakpoint hit at {pwndbg.aglib.regs.pc:#x}"))
-        return
+
     result.append(message.signal(msg))
 
 

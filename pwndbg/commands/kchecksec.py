@@ -4,8 +4,8 @@ import argparse
 from typing import NamedTuple
 
 import pwndbg.aglib.kernel
-import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
@@ -107,7 +107,7 @@ parser = argparse.ArgumentParser(description="Checks for kernel hardening config
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kchecksec() -> None:
-    kconfig = pwndbg.aglib.kernel.kconfig()
+    kconfig = pwndbg.aglib.kernel.kconfig_mod.kconfig()
 
     options = _hardening_options + _arch_hardening_options.get(pwndbg.aglib.arch.name, [])
     for opt in options:

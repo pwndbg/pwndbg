@@ -16,6 +16,8 @@ and [CHEATSHEET][CHEATSHEET] (feel free to print it!). If you have any questions
 
 [CHEATSHEET]: https://pwndbg.re/dev/CHEATSHEET.pdf
 
+Want Pwndbg to keep moving fast, or, have us give a talk about it? [Sponsor us!](https://github.com/sponsors/pwndbg)
+
 ## Why?
 
 Vanilla GDB and LLDB are terrible to use for reverse engineering and exploit development.
@@ -76,7 +78,7 @@ Pwndbg ensures a consistent experience across both, so switching between them is
 | pwndbg-gdb  | - Python 3.10+ <br/>- GDB 12.1+ | Battle-tested on Ubuntu 22.04/24.04  |
 | pwndbg-lldb | - Python 3.12+ <br/>- LLDB 19+  | Experimental/early-stage support     |
 | qemu-user   | QEMU 8.1+                       | vFile API is needed for vmmap        |
-| qemu-system | QEMU 6.2+                       | Supported version since ubuntu 22.04 |
+| qemu-system | QEMU 6.2+                       | Supported version since Ubuntu 22.04 |
 
 
 ## Contributing

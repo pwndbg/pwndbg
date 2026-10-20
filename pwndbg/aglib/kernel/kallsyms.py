@@ -9,11 +9,11 @@ from pwnlib.util.packing import u32
 from pwnlib.util.packing import u64
 
 import pwndbg.aglib
-import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.kmod
+import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
-import pwndbg.color.message as message
 import pwndbg.lib.cache
+from pwndbg.color import message
 
 
 @pwndbg.lib.cache.cache_until("start")
@@ -37,14 +37,14 @@ class Kallsyms:
     - kallsyms_relative_base >= 6.4
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.kallsyms: list[tuple[str, str, int]] = []
-        self.kbase = pwndbg.aglib.kernel.kbase()
+        self.kbase = pwndbg.aglib.kernel.paging.kbase
         if self.kbase is None:
             print(message.warn("could not find kbase, kernel has not finished initialization?"))
             return
 
-        mapping = pwndbg.aglib.kernel.first_kernel_ro_page()
+        mapping = pwndbg.aglib.kernel.vmmap.first_kernel_ro_page()
         assert mapping is not None, "kernel memory mappings are missing"
 
         self.r_base = mapping.vaddr
@@ -141,7 +141,7 @@ class Kallsyms:
         current_index = 0x30
 
         position -= 1
-        for tokens_backwards in range(current_index):
+        for _ in range(current_index):
             for chars_in_token in range(50):
                 position -= 1
                 assert position >= 0
@@ -414,7 +414,7 @@ class Kallsyms:
             tokens = []
             position = self.token_table
 
-            for num_token in range(256):
+            for _ in range(256):
                 token = ""
                 while self.kernel_ro_mem[position]:
                     token += chr(self.kernel_ro_mem[position])
@@ -427,7 +427,7 @@ class Kallsyms:
 
         return tokens
 
-    def find_names_uncompressed(self):
+    def find_names_uncompressed(self) -> bool:
         # Find the length byte-separated symbol names
         ksymtab_match = search(
             rb"(?:[\x05-\x23][TWtbBrRAdD][a-z0-9_.]{4,34}){14}", self.kernel_ro_mem
@@ -435,7 +435,7 @@ class Kallsyms:
 
         if not ksymtab_match:
             print(message.error("Failed to find kallsyms"))
-            return None
+            return False
 
         kallsyms_names__offset = ksymtab_match.start(0)
 
@@ -462,7 +462,7 @@ class Kallsyms:
 
         if num_syms < 100:
             print(message.error("Failed to find kallsyms"))
-            return None
+            return False
 
         self.end_of_kallsyms_names_uncompressed = position
         return True
@@ -485,7 +485,7 @@ class Kallsyms:
         while position + 1 < len(self.kernel_ro_mem) and self.kernel_ro_mem[position + 1] == 0:
             position += 1
 
-        for null_separated_bytes_chunks in range(20):
+        for _ in range(20):
             num_non_null_bytes = 1  # we always start at a non-null byte in this loop
             num_null_bytes = (
                 1  # we will at least encounter one null byte before the end of this loop

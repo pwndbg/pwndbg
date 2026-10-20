@@ -38,9 +38,9 @@ def address_range_explicit(section: str) -> AddrRange:
         )
 
 
-def address_range(section: str) -> list[AddrRange] | tuple[int, int] | None:
+def address_range(section: str) -> list[AddrRange] | None:
     if section in ("*", "any"):
-        return (0, pwndbg.aglib.arch.ptrmask)
+        return get_addrrange_any_named()
 
     # User can use syntax: "begin:end" to specify explicit address range instead of named page.
     # TODO: handle page names that contains ':'.
@@ -60,7 +60,12 @@ parser = argparse.ArgumentParser(
 Any chain length greater than 0 is valid. If only one mapping is given it just looks for any pointers in that mapping.""",
 )
 
-parser.add_argument("mapping_names", type=address_range, nargs="+", help="Mapping name ")
+parser.add_argument(
+    "mapping_names",
+    type=address_range,
+    nargs="+",
+    help='Mapping name (as shown in vmmap), an explicit "begin:end" address range, or "any"/"*" for all mappings.',
+)
 
 
 def maybe_points_to_ranges(ptr: int, rs: list[AddrRange]):
@@ -93,7 +98,20 @@ def p2p_walk(addr: int, ranges: list[list[AddrRange]], current_level: int) -> in
     return p2p_walk(maybe_addr, ranges, current_level + 1)
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MEMORY,
+    examples="""
+>p2p stack libc
+    Find pointers on the stack that point into libc.
+>p2p stack any
+    Find pointers on the stack that point into any mapping.
+>p2p libc stack
+    Find pointers in libc that point to the stack.
+>p2p 0x7ffe0000:0x7ffe1000 any
+    Find pointers in an explicit address range that point into any mapping.
+""",
+)
 @pwndbg.commands.OnlyWhenRunning
 def p2p(mapping_names: list[list[AddrRange]] | None = None) -> None:
     if not mapping_names:

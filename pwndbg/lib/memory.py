@@ -139,8 +139,20 @@ class Page:
         return self.objfile.startswith("[stack")
 
     @property
+    def is_heap(self) -> bool:
+        return self.objfile.startswith("[heap")
+
+    @property
     def is_memory_mapped_file(self) -> bool:
-        return len(self.objfile) != 0 and self.objfile[0] != "["
+        """Whether this mapping is backed by a file on disk.
+
+        Pseudo names like ``[vdso]`` and unlinked files (``/memfd:x (deleted)``) are not.
+
+        This only looks at the mapping name. It does not check that the file
+        exists or can be read (it may be on a remote target, or replaced since
+        it was mapped), so callers that open it still have to handle failure.
+        """
+        return self.objfile.startswith("/") and not self.objfile.endswith(" (deleted)")
 
     @property
     def read(self) -> bool:

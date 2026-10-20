@@ -30,21 +30,28 @@ c = ColorConfig(
 )
 
 
-def get_address_and_symbol(address: int, decompiler_stack_variables: dict[int, str]) -> str:
+def get_address_and_symbol(
+    address: int, decompiler_stack_variables: dict[int, str], respect_ptrwidth: bool = False
+) -> str:
     """
     Convert and colorize address 0x7ffff7fcecd0 to string `0x7ffff7fcecd0 (_dl_fini)`
-    If no symbol exists for the address, return colorized address
+    If no symbol exists for the address, return colorized address.
+
+    Args:
+        respect_ptrwidth: Align value to pointer width, i.e. would output
+            `0x00007ffff7fcecd0 (_dl_fini)`.
     """
     symbol = pwndbg.aglib.symbol.resolve_addr(address)
+    ptralignment: int = pwndbg.aglib.arch.ptrbits if respect_ptrwidth else -1
     if symbol:
-        symbol = f"{address:#x} ({symbol})"
+        symbol = pwndbg.lib.pretty_print.int_to_string(address, ptralignment) + f" ({symbol})"
     else:
         var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
         if var is None:
             var = decompiler_stack_variables.get(address)
         if var is not None:
-            symbol = f"{address:#x} {{{var}}}"
-    return get(address, symbol)
+            symbol = pwndbg.lib.pretty_print.int_to_string(address, ptralignment) + f" {{{var}}}"
+    return get(address, symbol, respect_ptrwidth=respect_ptrwidth)
 
 
 def get_address_or_symbol(address: int, decompiler_stack_variables: dict[int, str]) -> str:
@@ -80,6 +87,7 @@ def get(
     text: str | None = None,
     prefix: str | None = None,
     page: pwndbg.lib.memory.Page | None = None,
+    respect_ptrwidth: bool = False,
 ) -> str:
     """
     Returns a colorized string representing the provided address.
@@ -88,6 +96,7 @@ def get(
         address: Address to look up
         text: Optional text to use in place of the address in the return value string.
         prefix: Optional text to set at beginning in the return value string, followed by a space, without modifiying the original text.
+        respect_ptrwidth: Pad value with leading zeroes so that it is pointer-sized.
     """
     address = int(address)
     if page is None:  # if we know the containing page, don't bother to find it as an optimization
@@ -120,7 +129,8 @@ def get(
         color = lambda x: c.wx(old_color(x))
 
     if text is None:
-        text = pwndbg.lib.pretty_print.int_to_string(address)
+        ptralignment: int = pwndbg.aglib.arch.ptrbits if respect_ptrwidth else -1
+        text = pwndbg.lib.pretty_print.int_to_string(address, adhere_to_ptrwidth=ptralignment)
 
     if prefix is not None:
         # Prepend the prefix and a space before the existing text

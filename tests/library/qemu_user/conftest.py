@@ -15,7 +15,7 @@ import gdb
 import pytest
 
 from pwndbg.lib import tempfile
-from pwndbg.lib.zig import get_zig_executable
+from pwndbg.lib.compiler.zig import _get_executable
 
 _start_binary_called = False
 
@@ -151,7 +151,7 @@ def qemu_assembly_run():
         compiled_file: Path = tmpdir / "out.elf"
 
         # Build the binary with Zig
-        zig_executable = get_zig_executable()
+        zig_executable = _get_executable()
         compile_process = subprocess.run(
             [
                 zig_executable,
@@ -184,6 +184,8 @@ def qemu_assembly_run():
         gdb.execute("set exception-verbose on")
         gdb.execute("set context-reserve-lines never")
         gdb.execute("set width 80")
+        gdb.execute("set heuristic-backwards-disasm off")
+        gdb.execute("set context-disasm-back-linear-lines 0")
         gdb.execute(f"target remote :{QEMU_PORT}")
 
         global _start_binary_called

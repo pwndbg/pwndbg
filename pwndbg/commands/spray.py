@@ -6,9 +6,9 @@ from pwnlib.util.cyclic import cyclic
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Spray memory with cyclic() generated values")
@@ -80,5 +80,5 @@ def spray(addr, length, value, only_funcptrs) -> None:
             print(message.notice(f"Overwritten {addresses_written} function pointers"))
         else:
             pwndbg.aglib.memory.write(addr, value_bytes)
-    except pwndbg.dbg_mod.Error as e:
+    except pwndbg.dbg_mod.DebuggerError as e:
         print(message.error(e))

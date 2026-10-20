@@ -843,7 +843,7 @@ def test_aarch64_cross_arch_patch(qemu_assembly_run):
 
     assert dis == expected_before
 
-    gdb.execute("patch $pc 'nop; nop; nop'")
+    gdb.execute('patch $pc "nop; nop; nop"')
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
@@ -879,7 +879,7 @@ def test_aarch64_reference(qemu_start_binary):
 
     # verify call argument are enriched
     gdb.execute("stepuntilasm bl")
-    assembly = gdb.execute("nearpc", to_string=True)
+    assembly = gdb.execute("emulate", to_string=True)
     assert "'Not enough args'" in assembly
 
     gdb.execute("argv", to_string=True)
@@ -916,7 +916,7 @@ def test_memory_read_error_handling(qemu_assembly_run):
     try:
         pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0xFE, 0xFF, partial=False)
         assert False, "Expected Error due to inaccessible memory address."
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         pass
 
     result = pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0xFF, 0xFF, partial=True)
@@ -934,5 +934,5 @@ def test_memory_read_error_handling(qemu_assembly_run):
     try:
         pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0x0, 0xFF, partial=True)
         assert False, "Expected Error due to inaccessible memory address."
-    except pwndbg.dbg_mod.Error:
+    except pwndbg.dbg_mod.DebuggerError:
         pass

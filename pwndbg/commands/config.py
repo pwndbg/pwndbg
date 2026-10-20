@@ -9,7 +9,7 @@ import argparse
 import pwndbg
 import pwndbg.commands
 import pwndbg.lib.config
-from pwndbg.color import generateColorFunction
+from pwndbg.color import generate_color_function
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import hint
@@ -91,8 +91,8 @@ def display_config(
             # Only the theme scope should use ColorParameter
             assert scope == Scope.theme
 
-            value = generateColorFunction(v.value)(v.value)
-            default = generateColorFunction(v.default)(v.default)
+            value = generate_color_function(v.value)(v.value)
+            default = generate_color_function(v.default)(v.default)
         else:
             value = v.pretty()
             default = v.pretty_default()
@@ -171,16 +171,6 @@ parser.add_argument(
     default=None,
     help="Filter to apply to config parameters names/descriptions",
 )
-
-
-@pwndbg.commands.Command(parser, category=CommandCategory.PWNDBG)
-def heap_config(filter_pattern: str) -> None:
-    display_config(filter_pattern, Scope.heap, has_file_command=False)
-    print(
-        hint(
-            "Some parameters (e.g. main-arena) will be used only when resolve-heap-via-heuristic is `auto` or `force`"
-        )
-    )
 
 
 def configfile_print_scope(scope: Scope, show_all: bool = False) -> None:

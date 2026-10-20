@@ -82,7 +82,7 @@ def x86_msr_write(msr: int, write_value: int) -> None:
 def msr_read(msr: int) -> None:
     arch = pwndbg.aglib.arch.name
 
-    if arch == "i386" or arch == "x86-64":
+    if arch in {"i386", "x86-64"}:
         x86_msr_read(msr)
     else:
         print(f"{arch} not supported")
@@ -91,7 +91,7 @@ def msr_read(msr: int) -> None:
 def msr_write(msr: int, write_value: int) -> None:
     arch = pwndbg.aglib.arch.name
 
-    if arch == "i386" or arch == "x86-64":
+    if arch in {"i386", "x86-64"}:
         x86_msr_write(msr, write_value)
     else:
         print(f"{arch} not supported")

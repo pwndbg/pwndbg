@@ -57,7 +57,7 @@ def killthreads(thread_ids: list[int] | None = None, all: bool = False) -> None:
                     return
         for thread_id in thread_ids:
             gdb.execute(f"thread {thread_id}", to_string=True)
-            try:
+            try:  # noqa: SIM105
                 gdb.execute("call (void) pthread_exit(0)", to_string=True)
             except gdb.error:
                 # gdb will throw an error, because the thread dies during the call, which is expected

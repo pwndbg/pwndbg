@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.color.message as message
 import pwndbg.commands
+from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.common import hex2ptr_common
 

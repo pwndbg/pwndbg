@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pwndbg import config
-from pwndbg.color import generateColorFunction
+from pwndbg.color import generate_color_function
 from pwndbg.color import theme
 
 config_normal = theme.add_color_param(
@@ -62,4 +62,4 @@ def separator(x: str) -> str:
 
 
 def highlight_group_lsb(x: str) -> str:
-    return generateColorFunction(config.hexdump_highlight_group_lsb)(x)
+    return generate_color_function(config.hexdump_highlight_group_lsb)(x)

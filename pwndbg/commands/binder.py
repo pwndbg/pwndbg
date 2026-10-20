@@ -6,9 +6,9 @@ from collections.abc import Iterator
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
-import pwndbg.color as color
 import pwndbg.commands
 import pwndbg.dbg_mod
+from pwndbg import color
 from pwndbg.aglib.kernel.macros import container_of
 from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.aglib.kernel.rbtree import for_each_rb_entry
@@ -114,7 +114,7 @@ class BinderVisitor:
             if t.code == pwndbg.dbg_mod.TypeCode.INT:
                 value = int(value)
             elif t.code == pwndbg.dbg_mod.TypeCode.BOOL:
-                value = True if int(value) else False
+                value = bool(int(value))
             elif t.code == pwndbg.dbg_mod.TypeCode.POINTER:
                 typename = t.target().name_identifier
                 if int(value) == 0:
@@ -303,18 +303,16 @@ class BinderVisitor:
             else:
                 res.append(self._format_field("from_parent"))
                 with self.indent:
-                    for transaction in for_each_transaction(
-                        transaction["from_parent"], "from_parent"
-                    ):
-                        res.append(self.format_transaction(transaction))
+                    for tx in for_each_transaction(transaction["from_parent"], "from_parent"):
+                        res.append(self.format_transaction(tx))
 
             if int(transaction["to_parent"]) == 0:
                 res.append(self._format_field("to_parent", "NULL"))
             else:
                 res.append(self._format_field("to_parent"))
                 with self.indent:
-                    for transaction in for_each_transaction(transaction["to_parent"], "to_parent"):
-                        res.append(self.format_transaction(transaction))
+                    for tx in for_each_transaction(transaction["to_parent"], "to_parent"):
+                        res.append(self.format_transaction(tx))
 
         return "\n".join(res)
 

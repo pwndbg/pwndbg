@@ -26,8 +26,8 @@ protection and flag numbers.
 | :--- | :--- |
 |addr|Address hint to be given to mmap.|
 |length|Length of the mapping, in bytes. Needs to be greater than zero.|
-|prot|Prot enum or int as in mmap(2). Eg. "PROT_READ\|PROT_EXEC" or 7 (for RWX). (default: '7')|
-|flags|Flags enum or int as in mmap(2). Eg. "MAP_PRIVATE\|MAP_ANONYMOUS" or 0x22. (default: '0x22')|
+|prot|Prot enum or int as in mmap(2). Eg. "PROT_READ\|PROT_EXEC" or 7 (for RWX). (default: 7)|
+|flags|Flags enum or int as in mmap(2). Eg. "MAP_PRIVATE\|MAP_ANONYMOUS" or 0x22. (default: 34)|
 |fd|File descriptor of the file to be mapped, or -1 if using MAP_ANONYMOUS. (default: -1)|
 |offset|Offset from the start of the file, in bytes, if using file based mapping. (default: 0)|
 

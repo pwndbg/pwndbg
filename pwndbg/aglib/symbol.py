@@ -5,10 +5,15 @@ vice-versa.
 
 from __future__ import annotations
 
+from bisect import bisect_right
+from bisect import insort
+
 import pwndbg.aglib.memory
 import pwndbg.dbg_mod
 import pwndbg.dintegration
 import pwndbg.lib.cache
+from pwndbg.dbg_mod import EventHandlerPriority
+from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import SymbolLookupType
 
 
@@ -117,7 +122,15 @@ def resolve_addr(addr: int) -> str | None:
     return pwndbg.dintegration.manager.symbol_at_address(addr)
 
 
-@pwndbg.lib.cache.cache_until("objfile")
+set_existing_ranges: list[tuple[int, int]] = []
+
+
+@pwndbg.dbg.event_handler(EventType.START, priority=EventHandlerPriority.CACHE_CLEAR)
+@pwndbg.dbg.event_handler(EventType.EXIT, priority=EventHandlerPriority.CACHE_CLEAR)
+def _clear_set_existing_ranges() -> None:
+    set_existing_ranges.clear()
+
+
 def resolve_function_boundaries(addr: int) -> tuple[int, int] | None:
     """
     Return the function start and end address for a function that
@@ -128,4 +141,18 @@ def resolve_function_boundaries(addr: int) -> tuple[int, int] | None:
     """
     assert addr >= 0, "address must be positive"
 
-    return pwndbg.dbg.selected_inferior().get_function_boundaries(addr)
+    # Binary search for the range which has the highest start which is <= addr,
+    # and out of those, we pick the one with the highest end.
+    # Does not find a match for some overlapping ranges (e.g. addr=150, set_existing_ranges=[(100,200), (148,149)])
+    # but this should almost never happen, and getting a cache miss is still fine correctness-wise.
+    i = bisect_right(set_existing_ranges, addr, key=lambda _range: _range[0]) - 1
+    if i >= 0 and addr < set_existing_ranges[i][1]:
+        return set_existing_ranges[i]
+
+    # Invokes GDBs `disass` which might be slow.
+    fn_range = pwndbg.dbg.selected_inferior().get_function_boundaries(addr)
+
+    if fn_range is not None:
+        insort(set_existing_ranges, fn_range)
+
+    return fn_range

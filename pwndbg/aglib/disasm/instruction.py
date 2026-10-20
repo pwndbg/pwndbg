@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import collections.abc
+import json
 import typing
 from collections import defaultdict
+from dataclasses import dataclass
 from enum import Enum
+from enum import auto
 from typing import Protocol
 
 import pwnlib
@@ -12,16 +16,24 @@ from capstone6pwndbg import *  # noqa: F403
 from capstone6pwndbg import CS_AC
 from capstone6pwndbg import CS_GRP
 from capstone6pwndbg import CS_OP
+from capstone6pwndbg.aarch64 import AARCH64_INS_ALIAS_RET
 from capstone6pwndbg.aarch64 import AARCH64_INS_BL
 from capstone6pwndbg.aarch64 import AARCH64_INS_BLR
 from capstone6pwndbg.aarch64 import AARCH64_INS_BR
+from capstone6pwndbg.aarch64 import AARCH64_INS_RET
 from capstone6pwndbg.arm import ARM_INS_TBB
 from capstone6pwndbg.arm import ARM_INS_TBH
 from capstone6pwndbg.loongarch import LOONGARCH_INS_ALIAS_JR
+from capstone6pwndbg.loongarch import LOONGARCH_INS_ALIAS_RET
 from capstone6pwndbg.loongarch import LOONGARCH_INS_B
 from capstone6pwndbg.loongarch import LOONGARCH_INS_BL
 from capstone6pwndbg.loongarch import LOONGARCH_INS_CALL36
 from capstone6pwndbg.loongarch import LOONGARCH_INS_JIRL
+from capstone6pwndbg.m68k import M68K_INS_BRA
+from capstone6pwndbg.m68k import M68K_INS_BSR
+from capstone6pwndbg.m68k import M68K_INS_JMP
+from capstone6pwndbg.m68k import M68K_INS_JSR
+from capstone6pwndbg.m68k import M68K_INS_RTS
 from capstone6pwndbg.mips import MIPS_INS_ALIAS_B
 from capstone6pwndbg.mips import MIPS_INS_ALIAS_BAL
 from capstone6pwndbg.mips import MIPS_INS_B
@@ -36,6 +48,11 @@ from capstone6pwndbg.ppc import PPC_INS_B
 from capstone6pwndbg.ppc import PPC_INS_BA
 from capstone6pwndbg.ppc import PPC_INS_BL
 from capstone6pwndbg.ppc import PPC_INS_BLA
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_J
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_JAL
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_JALR
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_JR
+from capstone6pwndbg.riscv import RISCV_INS_ALIAS_RET
 from capstone6pwndbg.riscv import RISCV_INS_C_J
 from capstone6pwndbg.riscv import RISCV_INS_C_JAL
 from capstone6pwndbg.riscv import RISCV_INS_C_JALR
@@ -56,15 +73,17 @@ from capstone6pwndbg.systemz import SYSTEMZ_INS_J
 from capstone6pwndbg.systemz import SYSTEMZ_INS_JL
 from capstone6pwndbg.x86 import X86_INS_CALL
 from capstone6pwndbg.x86 import X86_INS_JMP
+from capstone6pwndbg.x86 import X86_INS_LJMP
 from capstone6pwndbg.x86 import X86_INS_RET
 from capstone6pwndbg.x86 import X86Op
 from typing_extensions import override
 
+import pwndbg
 from pwndbg.dbg_mod import DisassembledInstruction
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally
-UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
-    CS_ARCH_X86: {X86_INS_CALL, X86_INS_RET, X86_INS_JMP},
+UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, collections.abc.Set[int]] = {
+    CS_ARCH_X86: {X86_INS_CALL, X86_INS_RET, X86_INS_JMP, X86_INS_LJMP},
     CS_ARCH_MIPS: {
         MIPS_INS_J,
         MIPS_INS_JR,
@@ -86,14 +105,25 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
         ARM_INS_TBB,
         ARM_INS_TBH,
     },
-    CS_ARCH_AARCH64: {AARCH64_INS_BL, AARCH64_INS_BLR, AARCH64_INS_BR},
+    CS_ARCH_AARCH64: {
+        AARCH64_INS_BL,
+        AARCH64_INS_BLR,
+        AARCH64_INS_BR,
+        AARCH64_INS_RET,
+        AARCH64_INS_ALIAS_RET,
+    },
     CS_ARCH_RISCV: {
-        RISCV_INS_JAL,
+        RISCV_INS_ALIAS_RET,
         RISCV_INS_JALR,
-        RISCV_INS_C_JAL,
+        RISCV_INS_ALIAS_JALR,
         RISCV_INS_C_JALR,
-        RISCV_INS_C_J,
         RISCV_INS_C_JR,
+        RISCV_INS_ALIAS_JR,
+        RISCV_INS_C_J,
+        RISCV_INS_ALIAS_J,
+        RISCV_INS_JAL,
+        RISCV_INS_ALIAS_JAL,
+        RISCV_INS_C_JAL,
     },
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
     CS_ARCH_SYSTEMZ: {
@@ -112,7 +142,9 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
         LOONGARCH_INS_JIRL,
         LOONGARCH_INS_ALIAS_JR,
         LOONGARCH_INS_CALL36,
+        LOONGARCH_INS_ALIAS_RET,
     },
+    CS_ARCH_M68K: {M68K_INS_RTS, M68K_INS_BSR, M68K_INS_JSR, M68K_INS_BRA, M68K_INS_JMP},
 }
 
 # See: https://github.com/capstone-engine/capstone/issues/2448
@@ -123,6 +155,12 @@ BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
     MIPS_INS_JAL,
     MIPS_INS_JALR,
 }
+BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_RISCV] = {
+    RISCV_INS_JALR,
+    RISCV_INS_ALIAS_JALR,
+    RISCV_INS_C_JALR,
+}
+BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_M68K] = {M68K_INS_BSR, M68K_INS_JSR}
 
 # All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone
 GENERIC_JUMP_GROUPS = {CS_GRP_JUMP, CS_GRP_BRANCH_RELATIVE}
@@ -139,8 +177,10 @@ class InstructionCondition(Enum):
     TRUE = 1
     # Conditional instruction, but action is not taken
     FALSE = 2
-    # Unconditional instructions (most instructions), or we cannot reason about the instruction
-    UNDETERMINED = 3
+    # Conditional instruction, but we cannot reason about if the condition is true or not
+    UNDETERMINED_CONDITIONAL = 3
+    # Unconditional instructions (most instructions). This is the default
+    UNCONDITIONAL = 4
 
 
 def boolean_to_instruction_condition(condition: bool) -> InstructionCondition:
@@ -167,6 +207,59 @@ CAPSTONE_ARCH_MAPPING_STRING = {
 }
 
 
+class DisassemblySource(Enum):
+    CAPSTONE = (auto(),)
+    DEBUGGER = auto()
+
+
+# This is used for debugging issues in the disassembly display when instructions behind
+# the program counter are unexpectedly appearing
+class CacheSource(Enum):
+    LINKED_LIST_DYNAMIC = "L"
+    FALLBACK_DYNAMIC = "F"
+    CACHE_LINEAR = "C"
+
+    NOT_FROM_CACHE = ""
+
+
+@dataclass
+class MemoryDereferenceInfo:
+    """
+    This class is used when we want to manually manage state related to a memory dereference (which may occur as part of an instruction
+    due to a explicit operand, `mov rbx, [rax]`, or due to an implicit memory operand, such as in a pop/ret instruction).
+    """
+
+    address: int
+
+    address_string: str | None
+    """
+    Colorized, possibly a symbol name, string that represents the address
+    """
+
+    value: int | None
+    """
+    If this is None, it may indicate we were unable to dereference (unmapped memory).
+    The presence/absense of this value is determined by the context in which it is used.
+    """
+
+
+# These are purely for debugging disassembly with capstone
+def dump(s: object) -> object:
+    return {f: dump(v) if hasattr(v := getattr(s, f), "_fields_") else v for f, *_ in s._fields_}  # type: ignore[attr-defined]
+
+
+def debug_dump_capstone_instruction(i: CsInsn) -> str:
+    d = {k: getattr(i, k) for k in ("id", "address", "size", "mnemonic", "op_str")}
+    d["bytes"] = i.bytes.hex()
+    if not i.is_invalid_insn():
+        d["groups"] = [i.group_name(g) for g in i.groups]
+        d["regs_read"] = [i.reg_name(r) for r in i.regs_read]
+        d["regs_write"] = [i.reg_name(r) for r in i.regs_write]
+        d["op_size"] = dump(i.op_size)
+        d["operands"] = [dump(o) for o in i.operands]
+    return json.dumps(d, indent=2)
+
+
 # Interface for enhanced instructions - there are two implementations defined in this file
 class PwndbgInstruction(Protocol):
     cs_insn: CsInsn
@@ -182,6 +275,9 @@ class PwndbgInstruction(Protocol):
     target: int
     target_string: str | None
     target_const: bool | None
+
+    target_memory_operand: MemoryDereferenceInfo | None
+
     condition: InstructionCondition
     declare_is_unconditional_jump: bool
     force_unconditional_jump_target: bool
@@ -193,6 +289,11 @@ class PwndbgInstruction(Protocol):
     split: SplitType
     emulated: bool
     register_writes: dict[int, int]
+
+    enhanced: bool
+    disassembly_source: DisassemblySource
+
+    cache_source: CacheSource
 
     @property
     def call_like(self) -> bool: ...
@@ -229,6 +330,9 @@ class PwndbgInstruction(Protocol):
 # The information in this class is backed by metadata from Capstone
 class PwndbgInstructionImpl(PwndbgInstruction):
     def __init__(self, cs_insn: CsInsn, padding: int = 6) -> None:
+        self.disassembly_source = DisassemblySource.CAPSTONE
+        self.enhanced = False
+
         self.cs_insn: CsInsn = cs_insn
         """
         The underlying Capstone instruction object.
@@ -276,7 +380,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         # ***********
         # The following member variables are set during instruction enhancement
-        # in pwndbg.aglib.disasm.arch.py
+        # in pwndbg.aglib.disasm.assistant.py
         # ***********
 
         self.asm_string: str = (
@@ -325,14 +429,27 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Whether the target is a constant expression
         """
 
-        self.condition: InstructionCondition = InstructionCondition.UNDETERMINED
+        self.target_memory_operand = None
+        """
+        This is set to the memory operand that would be dereferenced to get the jump target.
+
+        This is only used if `target` itself cannot be determined safely (memory is writable), and only used in branch instructions.
+
+        This allows us to display the branch target like:
+
+        jmp    qword ptr [rip + 0x2fe2]    <[putchar@got[plt]], now=putchar@plt+6>
+        """
+
+        self.condition: InstructionCondition = InstructionCondition.UNCONDITIONAL
         """
         Does the condition that the instruction checks for pass?
 
         For example, "JNE" jumps if Zero Flag is 0, else it does nothing. "CMOVA" conditionally performs a move depending on a flag.
         See 'condition' function in pwndbg.aglib.disasm.x86 for example on setting this.
 
-        UNDETERMINED if we cannot reason about the condition, or if the instruction always executes unconditionally (most instructions).
+        UNCONDITIONAL if it's an unconditional instruction.
+
+        UNDETERMINED_CONDITIONAL if we cannot reason about the condition.
 
         TRUE if the instruction has a conditional action, and we determine it is taken.
 
@@ -410,6 +527,12 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         """
         Mapping of Capstone register id to integer value. During enhancement, we might manually determine
         that an instruction writes some value to a register, and this is stored here.
+        """
+
+        self.cache_source = CacheSource.NOT_FROM_CACHE
+        """
+        This is purely for debugging.
+        This may change during the lifetime of this instruction, as this value is set during the latest time this instruction was displayed.
         """
 
     @property
@@ -507,7 +630,10 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         """
         return self.has_jump_target and (
             (self.is_unconditional_jump)
-            or (self.is_conditional_jump and self.condition != InstructionCondition.UNDETERMINED)
+            or (
+                self.is_conditional_jump
+                and self.condition != InstructionCondition.UNDETERMINED_CONDITIONAL
+            )
         )
 
     @property
@@ -518,7 +644,10 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         return self.cs_insn.bytes
 
     def op_find(self, op_type: int, position: int) -> EnhancedOperand:
-        """Get the operand at position @position of all operands having the same type @op_type"""
+        """
+        Get the operand at position @position of all operands having the same type @op_type
+        The position is 1-indexed.
+        """
         cs_op = self.cs_insn.op_find(op_type, position)
         # Find the matching EnhancedOperand
         for x in self.operands:
@@ -539,14 +668,16 @@ class PwndbgInstructionImpl(PwndbgInstruction):
             for reg_id, reg_value in self.register_writes.items()
         }
 
-        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch, None)})
+        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch)})
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
+        Is alias: {self.cs_insn.is_alias}
         Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else "None"}
         Raw asm: f"{self.mnemonic:-<6} {self.op_str}"
         New asm: {self.asm_string}
         Next: {self.next:#x}
         Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}
+        Target from memory address: {hex(self.target_memory_operand.address) if self.target_memory_operand is not None else None}, {self.target_memory_operand.address_string if self.target_memory_operand is not None else None}, value: {self.target_memory_operand.value if self.target_memory_operand is not None and self.target_memory_operand.value is not None else None}
         Condition: {self.condition.name}
         Groups: {[CS_GRP.get(group, group) for group in self.groups]}
         Annotation: {self.annotation}
@@ -594,7 +725,7 @@ class EnhancedOperand:
 
         # ***********
         # The following member variables are set during instruction enhancement
-        # in pwndbg.aglib.disasm.arch.py
+        # in pwndbg.aglib.disasm.assistant.py
         # ***********
 
         self.before_value: int | None = None
@@ -630,6 +761,13 @@ class EnhancedOperand:
         The 'resolved' value of the operand after the instruction executes.
         """
 
+        self.is_mem_with_constant_addr: bool = False
+        """
+        True if it's a memory operand, and we determined the address is constant.
+
+        This is set during enhancement.
+        """
+
         self.str: str | None = ""
         """
         String representing the operand
@@ -640,6 +778,12 @@ class EnhancedOperand:
         self.symbol: str | None = None
         """
         Colorized symbol name for this operand, if .before_value is set and symbol exists, else None.
+        """
+
+        self.should_dereference_memory_to_resolve: bool = self.type == CS_OP_MEM
+        """
+        To "resolve" the concrete value used at runtime associate with this operand, should
+        we read memory?
         """
 
     @property
@@ -673,17 +817,18 @@ class EnhancedOperand:
     # For debugging
     def __repr__(self) -> str:
         info = (
+            f"(type={CS_OP.get(self.type, self.type)}, "
             f"'{self.str}': Symbol: {self.symbol}, "
-            f"Before: {hex(self.before_value) if self.before_value is not None else None}, "
-            f"After: {hex(self.after_value) if self.after_value is not None else None}, "
-            f"type={CS_OP.get(self.type, self.type)}"
+            f"Before: {hex(self.before_value) if self.before_value is not None else None}: resolved: {hex(self.before_value_resolved) if self.before_value_resolved is not None else None}, "
+            f"After: {hex(self.after_value) if self.after_value is not None else None}, resolved: {hex(self.after_value_resolved) if self.after_value_resolved is not None else None}, "
+            f"Is mem with constant addr: {self.is_mem_with_constant_addr})"
         )
 
         if isinstance(self.cs_op, X86Op):
-            info += (
-                f", size={self.cs_op.size}, "
-                f"access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
-            )
+            info += f", size={self.cs_op.size}"
+
+        if hasattr(self.cs_op, "access"):
+            info += f", access={CS_AC.get(self.cs_op.access, self.cs_op.access)}]"
 
         return f"[{info}]"
 
@@ -700,6 +845,9 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         Instances of this class do not go through the 'enhancement' process due to lacking important information provided by Capstone.
         As a result of this, some of the methods raise NotImplementedError, because if they are called it indicates a bug elsewhere in the codebase.
         """
+        self.disassembly_source = DisassemblySource.DEBUGGER
+        self.enhanced = False
+
         ins: DisassembledInstruction = pwndbg.dbg.selected_inferior().disasm(address)
         asm = ins["asm"].split(maxsplit=1)
 
@@ -710,7 +858,7 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.address = address
         self.size = ins["length"]
 
-        self.mnemonic = asm[0].strip()
+        self.mnemonic = asm[0].strip() if len(asm) > 0 else ""
         self.op_str = asm[1].strip() if len(asm) > 1 else ""
         self.groups = set()
 
@@ -730,7 +878,9 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.target_string = None
         self.target_const = None
 
-        self.condition = InstructionCondition.UNDETERMINED
+        self.target_memory_operand = None
+
+        self.condition = InstructionCondition.UNCONDITIONAL
 
         self.declare_is_unconditional_jump = False
         self.force_unconditional_jump_target = False
@@ -749,6 +899,8 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.emulated = False
 
         self.register_writes = {}
+
+        self.cache_source = CacheSource.NOT_FROM_CACHE
 
     @property
     def bytes(self) -> bytearray:

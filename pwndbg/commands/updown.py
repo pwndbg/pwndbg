@@ -23,13 +23,13 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
-def up(n=1) -> None:
+def up(n: int = 1) -> None:
     """
     Select and print stack frame that called this one.
     """
     f = gdb.selected_frame()
 
-    for i in range(int(n)):
+    for _ in range(int(n)):
         if f.older():
             f = f.older()
     f.select()
@@ -56,13 +56,13 @@ parser.add_argument(
 # aliases are documented correctly. See issue #2961 for more details.
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC, aliases=["do", "dow"])
 @pwndbg.commands.OnlyWhenRunning
-def down(n=1) -> None:
+def down(n: int = 1) -> None:
     """
     Select and print stack frame called by this one.
     """
     f = gdb.selected_frame()
 
-    for i in range(int(n)):
+    for _ in range(n):
         if f.newer():
             f = f.newer()
     f.select()

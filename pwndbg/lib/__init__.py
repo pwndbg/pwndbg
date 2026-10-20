@@ -4,6 +4,8 @@ Library for non-debugger-dependant functionality.
 
 from __future__ import annotations
 
+from pwndbg.lib.err import CompilerNotFoundError
+from pwndbg.lib.err import DependencyNotFoundError
 from pwndbg.lib.err import ErrorCode
 from pwndbg.lib.err import Status
 from pwndbg.lib.err import SymbolNotRecoveredError
@@ -16,4 +18,6 @@ __all__ = [
     "TypeNotRecoveredError",
     "TypeNotFoundError",
     "SymbolNotRecoveredError",
+    "DependencyNotFoundError",
+    "CompilerNotFoundError",
 ]

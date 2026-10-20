@@ -167,17 +167,16 @@ def main() -> None:
             print("warn: '--wait-for' has no effect when used with '--attach-pid'")
 
         startup.append(f'process attach --pid "{args.attach_pid}"')
-    else:
-        if args.wait_for:
-            # Ideally, we would have `ArgumentParser` do this for us, but
-            # nesting argument groups has been deprecated since Python 3.11, and
-            # the deprecation message suggests it was never even supported in
-            # the first place :/
-            print(
-                "error: '--wait-for' must be used in combination with either '--attach-name' or '--attach-pid'"
-            )
-            parser.print_usage()
-            sys.exit(1)
+    elif args.wait_for:
+        # Ideally, we would have `ArgumentParser` do this for us, but
+        # nesting argument groups has been deprecated since Python 3.11, and
+        # the deprecation message suggests it was never even supported in
+        # the first place :/
+        print(
+            "error: '--wait-for' must be used in combination with either '--attach-name' or '--attach-pid'"
+        )
+        parser.print_usage()
+        sys.exit(1)
 
     if (args.attach_pid is not None or args.attach_name is not None) and args.target:
         print(

@@ -53,7 +53,6 @@ class Scope(Enum):
     # a command which prints it!
     config = 1
     theme = 2
-    heap = 3
 
 
 # @total_ordering allows us to implement `__eq__` and `__lt__` and have all the
@@ -136,11 +135,7 @@ class Parameter:
             if val is None:
                 return "auto"
             return "on" if val else "off"
-        if (
-            self.param_class == PARAM_STRING
-            or self.param_class == PARAM_ENUM
-            or self.param_class == PARAM_OPTIONAL_FILENAME
-        ):
+        if self.param_class in (PARAM_STRING, PARAM_ENUM, PARAM_OPTIONAL_FILENAME):
             return "'" + val + "'"
         return str(val)
 

@@ -20,6 +20,22 @@ parser.add_argument(
 )
 
 
+def _parse_seccomp(filter_addr: int, filter_len: int) -> str:
+    filter_size = filter_len * 8
+    filter_bytes = pwndbg.aglib.memory.read(filter_addr, filter_size, partial=False)
+    if shutil.which("ceccomp"):
+        proc = subprocess.run(
+            ["ceccomp", "disasm", "--color", "always"], input=filter_bytes, capture_output=True
+        )
+        return proc.stdout.decode() or proc.stderr.decode()
+    if shutil.which("seccomp-tools"):
+        proc = subprocess.run(
+            ["seccomp-tools", "disasm", "-"], input=filter_bytes, capture_output=True
+        )
+        return proc.stdout.decode() or proc.stderr.decode()
+    return "install ceccomp or seccomp-tools to parse seccomp"
+
+
 @pwndbg.commands.Command(parser, command_name="parse-seccomp", category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def parse_seccomp(addr: int) -> None:
@@ -32,19 +48,4 @@ def parse_seccomp(addr: int) -> None:
     print(message.success(f"sock_fprog @ {addr:#x}"))
     print(f"  len          = {filter_len}")
     print(f"  filter_addr  = {filter_addr:#x}")
-
-    filter_size = filter_len * 8
-    filter_bytes = pwndbg.aglib.memory.read(filter_addr, filter_size, partial=False)
-
-    if shutil.which("ceccomp"):
-        proc = subprocess.run(
-            ["ceccomp", "disasm", "--color", "always"], input=filter_bytes, capture_output=True
-        )
-        print(proc.stdout.decode())
-    elif shutil.which("seccomp-tools"):
-        proc = subprocess.run(
-            ["seccomp-tools", "disasm", "-"], input=filter_bytes, capture_output=True
-        )
-        print(proc.stdout.decode())
-    else:
-        print("install ceccomp or seccomp-tools to parse seccomp")
+    print(_parse_seccomp(filter_addr, filter_len))
