@@ -217,7 +217,6 @@ def search(
             print(f"search: error: {e}")
             return
 
-        value_int &= pwndbg.aglib.arch.ptrmask
         fmt = {"little": "<", "big": ">"}[pwndbg.aglib.arch.endian] + {
             "byte": "B",
             "short": "H",
@@ -225,6 +224,9 @@ def search(
             "dword": "L",
             "qword": "Q",
         }[type]
+        # Use the signed format so negative values like -1 work for every width
+        if value_int < 0:
+            fmt = fmt.lower()
 
         try:
             value_bytes = struct.pack(fmt, value_int)
