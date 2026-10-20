@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import contextlib
 from asyncio import CancelledError
+from collections.abc import AsyncIterator
 from collections.abc import Iterator
 
 import pwnlib.shellcraft
@@ -169,3 +170,44 @@ async def exec_shellcode(ec: ExecutionController, blob):
                 yield
             finally:
                 pass
+
+
+def stack_size_alignment(s: int) -> int:
+    """Reserve stack space aligned to the target syscall ABI."""
+    syscall_abi = pwndbg.aglib.arch.syscall_abi
+    if syscall_abi is None:
+        raise RuntimeError("Syscall ABI not defined for current architecture")
+
+    return s + (syscall_abi.arg_alignment - (s % syscall_abi.arg_alignment))
+
+
+@contextlib.asynccontextmanager
+async def exec_shellcode_with_stack(
+    ec: ExecutionController, blob: bytes, stack_size: int
+) -> AsyncIterator[None]:
+    """Execute shellcode while preserving the specified area below the stack pointer."""
+    # This function could be improved, for example:
+    # - Run the shellcode inside an emulator like Unicorn
+    # - Calculate the maximum stack size the shellcode would consume dynamically.
+
+    stack_start_diff = pwndbg.aglib.regs.sp
+    if stack_start_diff is None:
+        raise RuntimeError("Stack pointer is unavailable")
+    stack_start = stack_start_diff - stack_size
+    original_stack = pwndbg.aglib.memory.read(stack_start, stack_size)
+
+    try:
+        async with exec_shellcode(ec, blob):
+            stack_end = pwndbg.aglib.regs.sp
+            if stack_end is None:
+                raise RuntimeError("Stack pointer is unavailable after executing shellcode")
+            stack_diff_size = stack_start_diff - stack_end
+
+            # Make sure stack is not corrupted somehow
+            assert not (stack_diff_size > stack_size), (
+                f"stack is probably corrupted size_current={stack_diff_size} size_max_want={stack_size}"
+            )
+
+            yield
+    finally:
+        pwndbg.aglib.memory.write(stack_start, original_stack)

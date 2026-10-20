@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import struct
 
 from pwnlib import shellcraft
 
@@ -12,19 +11,12 @@ import pwndbg.commands
 import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-from pwndbg.commands.hijack_fd import exec_shellcode_with_stack
-from pwndbg.commands.hijack_fd import stack_size_alignment
+from pwndbg.lib.rlimit import LINUX_RLIMITS
+from pwndbg.lib.rlimit import infinity
+from pwndbg.lib.rlimit import resource_id
 
 RLIM_INFINITY = -1
-LIMITS: dict[str, int] = {
-    "core": 4,
-    "cpu": 0,
-    "fsize": 1,
-    "data": 2,
-    "stack": 3,
-    "nofile": 7,
-    "as": 9,
-}
+
 
 parser = argparse.ArgumentParser(
     description="Set a POSIX resource limit in the debugged process.",
@@ -32,7 +24,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "resource",
     type=str.lower,
-    choices=sorted(LIMITS.keys()),
+    choices=sorted(LINUX_RLIMITS),
     help="Which resource to limit",
 )
 parser.add_argument(
@@ -61,22 +53,12 @@ def to_int_limit(val: str) -> int:
 
 
 def asm_setrlimit(num: int, soft_val: int, hard_val: int) -> tuple[int, bytes]:
-    ptrsize = pwndbg.aglib.arch.ptrsize
-
-    if ptrsize == 8:
-        rlimit_data = struct.pack(
-            "<QQ",
-            soft_val & 0xFFFFFFFFFFFFFFFF,
-            hard_val & 0xFFFFFFFFFFFFFFFF,
-        )
-    else:
-        rlimit_data = struct.pack(
-            "<II",
-            soft_val & 0xFFFFFFFF,
-            hard_val & 0xFFFFFFFF,
-        )
-
-    stack_size = stack_size_alignment(len(rlimit_data))
+    arch = pwndbg.aglib.arch
+    rlim_infinity = infinity(arch.name, arch.ptrsize)
+    soft = rlim_infinity if soft_val == RLIM_INFINITY else soft_val
+    hard = rlim_infinity if hard_val == RLIM_INFINITY else hard_val
+    rlimit_data = arch.pack(soft) + arch.pack(hard)
+    stack_size = pwndbg.aglib.shellcode.stack_size_alignment(len(rlimit_data))
 
     register_set = pwndbg.aglib.arch.reg_set
     stack_reg = register_set.stack
@@ -107,7 +89,15 @@ def setrlimit(resource: str, soft: str, hard: str | None = None) -> None:
     except ValueError:
         return
 
-    num = LIMITS[res]
+    retval_reg = pwndbg.aglib.arch.reg_set.retval
+    if retval_reg is None:
+        print(message.error("Return value register not defined for current architecture"))
+        return
+    if pwndbg.aglib.arch.syscall_abi is None:
+        print(message.error("Syscall ABI not defined for current architecture"))
+        return
+
+    num = resource_id(res, pwndbg.aglib.arch.name)
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController) -> None:
         soft_str = "inf" if soft_val == RLIM_INFINITY else str(soft_val)
@@ -119,13 +109,7 @@ def setrlimit(resource: str, soft: str, hard: str | None = None) -> None:
 
         stack_size, asm_bin = asm_setrlimit(num, soft_val, hard_val)
 
-        retval_reg = pwndbg.aglib.arch.reg_set.retval
-        if retval_reg is None:
-            raise pwndbg.dbg_mod.DebuggerError(
-                "Return value register not defined for current architecture"
-            )
-
-        async with exec_shellcode_with_stack(ec, asm_bin, stack_size):
+        async with pwndbg.aglib.shellcode.exec_shellcode_with_stack(ec, asm_bin, stack_size):
             ret = pwndbg.aglib.regs.read_reg(retval_reg)
             print(
                 message.success(f"Set {res} limit (return={ret}): soft={soft_str}, hard={hard_str}")

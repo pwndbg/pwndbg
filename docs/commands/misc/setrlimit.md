@@ -2,7 +2,9 @@
 # setrlimit
 
 ```text
-usage: setrlimit [-h] {as,core,cpu,data,fsize,nofile,stack} soft [hard]
+usage: setrlimit [-h]
+                 {as,core,cpu,data,fsize,locks,memlock,msgqueue,nice,nofile,nproc,rss,rtprio,rttime,sigpending,stack}
+                 soft [hard]
 
 ```
 
