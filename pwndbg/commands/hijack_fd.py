@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import contextlib
 import socket
 from typing import Literal
 from typing import NamedTuple
@@ -13,7 +12,6 @@ from pwnlib import shellcraft
 from pwnlib.util.net import sockaddr
 
 import pwndbg.aglib.asm
-import pwndbg.aglib.memory
 import pwndbg.aglib.shellcode
 import pwndbg.commands
 import pwndbg.dbg_mod
@@ -46,19 +44,11 @@ def get_shellcode_regs() -> ShellcodeRegs:
     return ShellcodeRegs(newfd_reg, register_set.retval, register_set.stack)
 
 
-def stack_size_alignment(s: int) -> int:
-    syscall_abi = pwndbg.aglib.arch.syscall_abi
-    if syscall_abi is None:
-        raise pwndbg.dbg_mod.DebuggerError("Syscall ABI not defined for current architecture")
-
-    return s + (syscall_abi.arg_alignment - (s % syscall_abi.arg_alignment))
-
-
 def asm_replace_file(replace_fd: int, filename: str) -> tuple[int, bytes]:
     filename = filename.encode() + b"\x00"
 
     regs = get_shellcode_regs()
-    stack_size = stack_size_alignment(len(filename))
+    stack_size = pwndbg.aglib.shellcode.stack_size_alignment(len(filename))
 
     open_asm = (
         shellcraft.syscall("SYS_open", regs.stack, "O_CREAT|O_RDWR", 0o666)
@@ -91,7 +81,7 @@ def asm_replace_socket(replace_fd: int, socket_data: ParsedSocket) -> tuple[int,
     family = {"ipv4": "AF_INET", "ipv6": "AF_INET6"}[socket_data.ip_version]
 
     regs = get_shellcode_regs()
-    stack_size = stack_size_alignment(len(sockdata))
+    stack_size = pwndbg.aglib.shellcode.stack_size_alignment(len(sockdata))
 
     dup_asm = (
         shellcraft.syscall("SYS_dup2", regs.newfd, replace_fd)
@@ -111,30 +101,6 @@ def asm_replace_socket(replace_fd: int, socket_data: ParsedSocket) -> tuple[int,
             ]
         )
     )
-
-
-@contextlib.asynccontextmanager
-async def exec_shellcode_with_stack(ec: pwndbg.dbg_mod.ExecutionController, blob, stack_size: int):
-    # This function could be improved, for example:
-    # - Run the shellcode inside an emulator like Unicorn
-    # - Calculate the maximum stack size the shellcode would consume dynamically.
-
-    stack_start_diff = pwndbg.aglib.regs.sp
-    stack_start = stack_start_diff - stack_size
-    original_stack = pwndbg.aglib.memory.read(stack_start, stack_size)
-
-    try:
-        async with pwndbg.aglib.shellcode.exec_shellcode(ec, blob):
-            stack_diff_size = stack_start_diff - pwndbg.aglib.regs.sp
-
-            # Make sure stack is not corrupted somehow
-            assert not (stack_diff_size > stack_size), (
-                f"stack is probably corrupted size_current=f{stack_diff_size} size_max_want={stack_size}"
-            )
-
-            yield
-    finally:
-        pwndbg.aglib.memory.write(stack_start, original_stack)
 
 
 parser = argparse.ArgumentParser(
@@ -280,7 +246,7 @@ def hijack_fd(fdnum: int, newfile: PARSED_FILE_ARG) -> None:
         assert False
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
-        async with exec_shellcode_with_stack(ec, asm_bin, stack_size):
+        async with pwndbg.aglib.shellcode.exec_shellcode_with_stack(ec, asm_bin, stack_size):
             print(
                 "Operation succeeded. Errors are not captured.\n"
                 "You can verify this with `procinfo` if the file descriptor has been replaced."
