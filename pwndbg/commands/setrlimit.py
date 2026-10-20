@@ -119,9 +119,14 @@ def setrlimit(resource: str, soft: str, hard: str | None = None) -> None:
 
         stack_size, asm_bin = asm_setrlimit(num, soft_val, hard_val)
 
+        retval_reg = pwndbg.aglib.arch.reg_set.retval
+        if retval_reg is None:
+            raise pwndbg.dbg_mod.DebuggerError(
+                "Return value register not defined for current architecture"
+            )
+
         async with exec_shellcode_with_stack(ec, asm_bin, stack_size):
-            register_set = pwndbg.aglib.arch.reg_set
-            ret = pwndbg.aglib.regs.read_reg(register_set.retval)
+            ret = pwndbg.aglib.regs.read_reg(retval_reg)
             print(
                 message.success(f"Set {res} limit (return={ret}): soft={soft_str}, hard={hard_str}")
             )
