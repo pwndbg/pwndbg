@@ -9,6 +9,7 @@ from pwnlib.constants import linux
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.remote
+import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
@@ -789,6 +790,7 @@ class DisassemblyAssistant:
             instruction.target_string = mem_color.get_address_or_symbol(
                 instruction.target, pwndbg.dintegration.manager.get_stack_var_dict_all()
             )
+            instruction.target_symbol = pwndbg.aglib.symbol.resolve_addr(instruction.target)
 
         # Now that we have determined the target, if it was a conditional branch,
         # go back and correct the instruction condition to reflect the branch decision of the emulator

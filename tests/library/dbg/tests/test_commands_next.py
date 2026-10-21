@@ -139,3 +139,4 @@ async def test_command_nextcall_symbol_regex(ctrl: Controller) -> None:
     ins = pwndbg.aglib.disasm.disassembly.one()
     assert ins is not None
     assert ins.target == pwndbg.aglib.symbol.lookup_symbol_addr("break_here")
+    assert ins.target_symbol == "break_here"
