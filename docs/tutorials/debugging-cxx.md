@@ -26,9 +26,7 @@ Turn to
 ```
 (if you're lucky). To my knowledge, not much you can do about that [^1].
 
-If the length of the output is really bothering you, you can set `set print asm-demangle off` to reduce it
-significantly at least in the `x/i` GDB output. However, seeing the full demangled name does actually help
-quite a bit with figuring out what the function does, so I would recommend keeping demangling on.
+If you're using `set print asm-demangle off` as I advise in [symbol mangling](./mangling.md), reading `disass` will be a pain, but you should never be using `disass` anyway as pwndbg's `nearpc`/`u` are better.
 
 ## Casting types
 

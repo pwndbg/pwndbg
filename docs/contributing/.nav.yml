@@ -13,4 +13,5 @@ nav:
   - testing-crossarch.md
   - libc-provider.md
   - allocator.md
+  - kernel.md
   - stacked-pr.md
