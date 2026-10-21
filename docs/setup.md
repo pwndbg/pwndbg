@@ -167,21 +167,21 @@ When installing with GDB, you may also download a package file to install throug
 === "RPM" 
     RPM-based Systems (CentOS/Alma/Rocky/RHEL):
     ```{.bash .copy}
-    dnf install ./pwndbg-2026.09.15.x86_64.rpm
+    dnf install ./pwndbg-2026.10.22.x86_64.rpm
     ```
 === "DEB"
     DEB-based Systems (Debian/Ubuntu/Kali):
     ```{.bash .copy}
-    apt install ./pwndbg_2026.09.15_amd64.deb
+    apt install ./pwndbg_2026.10.22_amd64.deb
     ```
 === "Alpine"
     ```{.bash .copy}
-    apk add --allow-untrusted ./pwndbg_2026.09.15_x86_64.apk
+    apk add --allow-untrusted ./pwndbg_2026.10.22_x86_64.apk
     ```
 
 === "Arch Linux"
     ```{.bash .copy}
-    pacman -U ./pwndbg-2026.09.15-1-x86_64.pkg.tar.zst
+    pacman -U ./pwndbg-2026.10.22-1-x86_64.pkg.tar.zst
     ```
 
 ### Distro package repository
