@@ -70,6 +70,7 @@ def test_aarch64_branch_enhancement(qemu_assembly_run):
     assert instruction.call_like
     assert not instruction.is_conditional_jump
     assert instruction.is_unconditional_jump
+    # target_string is normally colored, but colors are disabled in tests
     assert instruction.target_string == "my_function"
     assert instruction.target_symbol == "my_function"
 
