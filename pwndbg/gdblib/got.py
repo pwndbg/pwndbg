@@ -370,6 +370,7 @@ def _update_watchpoints() -> None:
             continue
 
         jump_slots = JUMP_SLOTS[pwndbg.aglib.arch.name]
+        irelative_slots = IRELATIVE_SLOTS[pwndbg.aglib.arch.name]
         if dynamic.has_rel:
             for i in range(dynamic.rel_entry_count()):
                 if dynamic.rel_read(i, "r_type") not in jump_slots:
@@ -406,11 +407,11 @@ def _update_watchpoints() -> None:
                 INSTALLED_WATCHPOINTS[target] = (tracker, patcher)
         if dynamic.has_jmprel:
             for i in range(dynamic.jmprel_entry_count()):
-                if dynamic.jmprel_read(i, "r_type") not in jump_slots:
+                r_type = dynamic.jmprel_read(i, "r_type")
+                if r_type not in jump_slots and r_type not in irelative_slots:
                     continue
+                # The addend is not part of the slot address, for IRELATIVE it is the resolver.
                 target = dynamic.load_bias + dynamic.jmprel_read(i, "r_offset")
-                if dynamic.jmprel_elem.has_field("r_addend"):
-                    target += dynamic.jmprel_read(i, "r_addend")
 
                 tracker = Tracker()
                 tracker.dynamic_section = dynamic
@@ -418,6 +419,11 @@ def _update_watchpoints() -> None:
                 tracker.relocation_index = i
                 tracker.relocation_fn = dynamic.jmprel_read
                 patcher = Patcher(target, tracker)
+                if r_type in irelative_slots:
+                    # IRELATIVE slots have no symbol, name them the same way the `got` command does.
+                    tracker.sym_display_name = "*ABS*"
+                    if dynamic.jmprel_has_addend():
+                        tracker.sym_display_name += f"+{dynamic.jmprel_read(i, 'r_addend'):#x}"
                 patcher.should_stop()
 
                 INSTALLED_WATCHPOINTS[target] = (tracker, patcher)
