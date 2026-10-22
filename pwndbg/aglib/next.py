@@ -15,7 +15,6 @@ from capstone6pwndbg import CS_GRP_RET
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.proc
-import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.dbg_mod
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -214,11 +213,10 @@ async def break_next_call(ec: pwndbg.dbg_mod.ExecutionController, symbol_regex=N
         # 1) don't search for a symbol
         # 2) match target address
         # 3) match symbol name
-        symbol = pwndbg.aglib.symbol.resolve_addr(ins.target) if ins.target_string else None
         if (
             not symbol_regex
             or (ins.target_const and symbol_regex.match(hex(ins.target)))
-            or (symbol and symbol_regex.match(symbol))
+            or (ins.target_symbol and symbol_regex.match(ins.target_symbol))
         ):
             return ins
 
