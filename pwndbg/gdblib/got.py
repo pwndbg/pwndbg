@@ -390,11 +390,7 @@ def _update_watchpoints() -> None:
             for i in range(dynamic.rela_entry_count()):
                 if dynamic.rela_read(i, "r_type") not in jump_slots:
                     continue
-                target = (
-                    dynamic.load_bias
-                    + dynamic.rela_read(i, "r_offset")
-                    + dynamic.rela_read(i, "r_addend")
-                )
+                target = dynamic.load_bias + dynamic.rela_read(i, "r_offset")
 
                 tracker = Tracker()
                 tracker.dynamic_section = dynamic
