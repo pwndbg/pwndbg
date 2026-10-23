@@ -1013,7 +1013,13 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     def stopped_with_signal(self) -> bool:
         # LLDB reports the first stop after a launch or attach as a signal
         # (e.g. SIGSTOP), which the program never received. Like GDB, ignore it.
-        if self.process.GetStopID() == 1 and not self.is_core_file():
+        # A process we connected to may really be stopped on a signal, so this
+        # isn't done for connections.
+        if (
+            self.dbg._current_process_launched_or_attached
+            and self.process.GetStopID() == 1
+            and not self.is_core_file()
+        ):
             return False
 
         return self.process.GetState() == lldb.eStateStopped and any(
@@ -2198,6 +2204,11 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     # protocol. The REPL controls this field.
     _current_process_is_gdb_remote: bool
 
+    # Whether the currently active process was launched or attached to (rather
+    # than connected to), meaning its first stop was caused by the debugger. The
+    # REPL controls this field.
+    _current_process_launched_or_attached: bool
+
     # Queued up process control coroutines from the last Pwndbg command. We
     # should run these in order as soon as the command is over, but before we
     # return control to the user.
@@ -2222,6 +2233,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.event_handlers = {}
         self.controllers = []
         self._current_process_is_gdb_remote = False
+        self._current_process_launched_or_attached = False
         self._exception_relay = None
         self.lldb_python_state_callback = _default_lldb_python_state_callback
         self.should_suspend_ctx = False
