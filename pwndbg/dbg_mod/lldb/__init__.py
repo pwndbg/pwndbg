@@ -1011,6 +1011,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def stopped_with_signal(self) -> bool:
+        # LLDB reports the first stop after a launch or attach as a signal
+        # (e.g. SIGSTOP), which the program never received. Like GDB, ignore it.
+        if self.process.GetStopID() == 1 and not self.is_core_file():
+            return False
+
         return self.process.GetState() == lldb.eStateStopped and any(
             thread.GetStopReason() == lldb.eStopReasonSignal for thread in self.process.threads
         )
