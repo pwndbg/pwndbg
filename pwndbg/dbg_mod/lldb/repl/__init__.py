@@ -1155,6 +1155,7 @@ def process_launch(
 
     # Make sure LLDB knows the correct remote or local status of this launch.
     dbg._current_process_is_gdb_remote = driver.has_connection()
+    dbg._current_process_launched_or_attached = True
 
     if target.GetPlatform().GetName() == "qemu-user":
         # Force qemu-user as remote, pwndbg depends on that, eg: for download procfs files
@@ -1248,6 +1249,7 @@ def _attach_with_info(
 
     # Make sure LLDB knows the correct remote or local status of this attach.
     dbg._current_process_is_gdb_remote = driver.has_connection()
+    dbg._current_process_launched_or_attached = True
 
     result = driver.attach(
         auto.target,
@@ -1357,6 +1359,7 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: list[str], d
 
     # Make sure the LLDB driver knows that this is a remote process.
     dbg._current_process_is_gdb_remote = True
+    dbg._current_process_launched_or_attached = False
 
     auto = AutoTarget(dbg)
     if not auto:
