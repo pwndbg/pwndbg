@@ -118,6 +118,9 @@ def hexdump(
                 skip_lines = -1
                 yield out
                 # Fallthrough (do not continue) so we yield the current line too
+            else:
+                # A single line or the second line of a pair, nothing was skipped
+                skip_lines = -1
 
         increment = i * width
         hexline = [
