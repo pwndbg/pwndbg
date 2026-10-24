@@ -256,13 +256,19 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
             objfile = pwndbg.aglib.proc.exe()
         self.tracker.obj_display_name = display_name(objfile, basename=True)
 
-        self.tracker.sym_display_name = display_name(
-            self.tracker.dynamic_section.string(
-                self.tracker.dynamic_section.symtab_read(
-                    self.tracker.relocation_fn(self.tracker.relocation_index, "r_sym"), "st_name"
-                )
+        dynamic = self.tracker.dynamic_section
+        read = self.tracker.relocation_fn
+        index = self.tracker.relocation_index
+        if read(index, "r_type") in IRELATIVE_SLOTS[pwndbg.aglib.arch.name]:
+            # IRELATIVE slots have no symbol, name them the same way the `got` command does.
+            # Only JMPREL entries are tracked as IRELATIVE; REL ones keep the addend in the slot.
+            self.tracker.sym_display_name = "*ABS*"
+            if dynamic.jmprel_has_addend():
+                self.tracker.sym_display_name += f"+{read(index, 'r_addend'):#x}"
+        else:
+            self.tracker.sym_display_name = display_name(
+                dynamic.string(dynamic.symtab_read(read(index, "r_sym"), "st_name"))
             )
-        )
 
     def should_stop(self) -> bool:
         # Read the new branch target, and update the redirection target of the
@@ -310,6 +316,8 @@ class Tracker(pwndbg.gdblib.bpoint.Breakpoint):
     relocation_fn = None
     relocation_index = 0
     link_map_entry = None
+    sym_display_name = ""
+    obj_display_name = ""
 
     def __init__(self) -> None:
         self.trapped_address = TRAP_ALLOCATOR.alloc()
@@ -415,11 +423,6 @@ def _update_watchpoints() -> None:
                 tracker.relocation_index = i
                 tracker.relocation_fn = dynamic.jmprel_read
                 patcher = Patcher(target, tracker)
-                if r_type in irelative_slots:
-                    # IRELATIVE slots have no symbol, name them the same way the `got` command does.
-                    tracker.sym_display_name = "*ABS*"
-                    if dynamic.jmprel_has_addend():
-                        tracker.sym_display_name += f"+{dynamic.jmprel_read(i, 'r_addend'):#x}"
                 patcher.should_stop()
 
                 INSTALLED_WATCHPOINTS[target] = (tracker, patcher)
