@@ -48,7 +48,7 @@ def setflag(flag: str, value: int) -> None:
                     size = 1
                 else:
                     assert len(bit) == 2
-                    size = bit[1]
+                    size = bit[1] - bit[0] + 1
                     bit = bit[0]
 
                 max_val = (1 << size) - 1
