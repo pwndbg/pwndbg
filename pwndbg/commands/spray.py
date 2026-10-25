@@ -58,10 +58,7 @@ def spray(addr, length, value, only_funcptrs) -> None:
             value_bytes = bytes(value, "utf-8")
 
         value_length = len(value_bytes)
-        value_bytes = value_bytes * (int(length) // value_length)
-
-        if length % value_length != 0:
-            value_bytes += value_bytes[: (length % value_length)]
+        value_bytes = (value_bytes * (length // value_length + 1))[:length]
     else:
         value_bytes = cyclic(length, n=pwndbg.aglib.arch.ptrsize)
 
