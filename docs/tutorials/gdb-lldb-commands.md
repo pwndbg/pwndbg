@@ -5,6 +5,14 @@ For users who are migrating from one debugger to another, here is a table compar
 | **Functionality**                             | **GDB Command**                        | **LLDB Command**                                            |
 |-----------------------------------------------|----------------------------------------|-------------------------------------------------------------|
 | **Start Debugging Program**                   | `gdb ./your-program`                   | `lldb ./your-program`                                       |
+| **Start the Program at the First Instruction**| `starti`                               | `process launch --stop-at-entry`                            |
+| **Set File for Debugging**                    | `file <executable-file>`               | `target create <executable-file>`                           |
+| **Run Program with Arguments**                | `run <arg1> <arg2> ...`                | `process launch -- <arg1> <arg2> ...`                       |
+| **Show Process Information**                  | `info process`                         | `process status`                                            |
+| **Next Instruction**                          | `next`                                 | `thread step-over`                                          |
+| **Step into a Function**                      | `step`                                 | `thread step-in`                                            |
+| **Continue Execution**                        | `continue`                             | `process continue`                                          |
+| **Step out of a Function**                    | `finish`                               | `thread step-out`                                           |
 | **Set a Breakpoint**                          | `break <function-name>`                | `breakpoint set --name <function-name>`                     |
 | **Set Breakpoint on Address**                 | `break *<address>`                     | `breakpoint set --address <address>`                        |
 | **Set Breakpoint at Line**                    | `break <filename>:<line-number>`       | `breakpoint set --file <filename> --line <line-number>`     |
@@ -14,10 +22,6 @@ For users who are migrating from one debugger to another, here is a table compar
 | **Delete Breakpoints**                        | `delete <breakpoint-number>`           | `breakpoint delete <breakpoint-number>`                     |
 | **Set Watchpoint**                            | `watch <variable>`                     | `watchpoint set variable <variable>`                        |
 | **Set Conditional Breakpoint**                | `break <function-name> if <condition>` | `breakpoint set --condition "<condition>"`                  |
-| **Continue Execution**                        | `continue`                             | `process continue`                                          |
-| **Next Instruction**                          | `next`                                 | `thread step-over`                                          |
-| **Step into a Function**                      | `step`                                 | `thread step-in`                                            |
-| **Step out of a Function**                    | `finish`                               | `thread step-out`                                           |
 | **Print Threads**                             | `info threads`                         | `thread list`                                               |
 | **Select Thread**                             | `thread <thread-id>`                   | `thread select <thread-id>`                                 |
 | **Print Register Values**                     | `info registers`                       | `register read -a`                                          |
@@ -32,14 +36,10 @@ For users who are migrating from one debugger to another, here is a table compar
 | **Show Disassembly of Function**              | `disas <function-name>`                | `disassemble <function-name>`                               |
 | **Memory Dump (Hex)**                         | `x/<num>xh <memory-address>`           | `memory read --format x --count <num> <memory-address>`     |
 | **Memory Dump (Bytes)**                       | `x/<num>bx <memory-address>`           | `memory read --format b --count <num> <memory-address>`     |
-| **Show Process Information**                  | `info process`                         | `process status`                                            |
-| **Quit Debugging**                            | `quit`                                 | `quit`                                                      |
-| **Run Program with Arguments**                | `run <arg1> <arg2> ...`                | `process launch -- <arg1> <arg2> ...`                       |
 | **Show Current Function**                     | `info frame`                           | `frame info`                                                |
 | **Set Sysroot**                               | `set sysroot <path-to-sysroot>`        | `settings set target.sysroot <path-to-sysroot>`             |
 | **Set Source Directory**                      | `directory <path-to-source-directory>` | `settings set target.source-map <remote-path> <local-path>` |
 | **Set Architecture**                          | `set architecture <arch>`              | `target create --arch <arch> <executable-file>`             |
 | **Show Settings**                             | `show <setting-name>`                  | `settings show <setting-name>`                              |
-| **Set File for Debugging**                    | `file <executable-file>`               | `target create <executable-file>`                           |
-| **Start the Program at the First Instruction**| `starti`                               | `process launch --stop-at-entry`                            |
 | **Enable ASLR**                               | `set disable-randomization off`        | `settings set target.disable-aslr false`                    |
+| **Quit Debugging**                            | `quit`                                 | `quit`                                                      |
