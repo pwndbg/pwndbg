@@ -99,6 +99,17 @@ async def test_hexdump_collapse_lines(ctrl: Controller) -> None:
     await hexdump_lines(4)
     await hexdump_lines(10)
 
+    # Two identical lines are both shown, and the next run still starts with its first line
+    pwndbg.aglib.memory.write(sp, b"A" * 32 + b"B" * 48)
+    out = await ctrl.execute_and_capture("hexdump $sp 80")
+    assert out == (
+        f"+0000 0x{sp:x}  41 41 41 41 41 41 41 41  41 41 41 41 41 41 41 41  │AAAAAAAA│AAAAAAAA│\n"
+        f"+0010 0x{sp + 0x10:x}  41 41 41 41 41 41 41 41  41 41 41 41 41 41 41 41  │AAAAAAAA│AAAAAAAA│\n"
+        f"+0020 0x{sp + 0x20:x}  42 42 42 42 42 42 42 42  42 42 42 42 42 42 42 42  │BBBBBBBB│BBBBBBBB│\n"
+        "... ↓            skipped 1 identical lines (16 bytes)\n"
+        f"+0040 0x{sp + 0x40:x}  42 42 42 42 42 42 42 42  42 42 42 42 42 42 42 42  │BBBBBBBB│BBBBBBBB│\n"
+    )
+
 
 @pwndbg_test
 async def test_hexdump_saved_address_and_offset(ctrl: Controller) -> None:
