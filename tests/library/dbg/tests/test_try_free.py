@@ -5,8 +5,6 @@ import os
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
@@ -220,9 +218,6 @@ async def test_try_free_corrupted_consolidate_backward(ctrl: Controller) -> None
     os.remove(OUTPUT_FILE)
 
 
-@pytest.mark.skip(
-    reason="Needs review. In the heap.py on the line 972 the condition is true always. The heap_bug.c file has the function: corrupted_unsorted_chunks()"
-)
 @pwndbg_test
 async def test_try_free_corrupted_unsorted_chunks(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 14)
