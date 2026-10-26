@@ -1644,8 +1644,11 @@ def try_free(addr: str | int) -> None:
             else:
                 print(message.notice("Clearing next chunk's P bit"))
 
-            # unsorted bin fd->bk should be unsorted bean
-            unsorted_addr = int(arena.bins[0])
+            # unsorted bin fd->bk should be unsorted bin
+            # unsorted_chunks(av) is the address of bins[0] minus the prev_size and size fields
+            bins_addr = arena._gdbValue["bins"].address
+            assert bins_addr is not None
+            unsorted_addr = int(bins_addr) - 2 * size_sz
             try:
                 unsorted = read_chunk(unsorted_addr)
                 try:
