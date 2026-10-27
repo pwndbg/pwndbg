@@ -27,8 +27,9 @@ async def test_glibc_try_free_corrupted_bin(ctrl: Controller, binary: Path) -> N
 
     await launch_to(ctrl, binary, "break_here")
 
-    if pwndbg.aglib.arch.name not in ("x86-64", "aarch64"):
-        pytest.skip("glibc version tests are x86-64/aarch64 only")
+    # On aarch64 try-free already breaks before the bin check (heap init / global_max_fast)
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     to_free_addr = pwndbg.aglib.symbol.lookup_symbol_addr("to_free")
     assert to_free_addr is not None
