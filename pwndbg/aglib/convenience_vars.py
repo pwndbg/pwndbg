@@ -2,9 +2,13 @@
 Debugger convenience variables that hold the base address of common memory
 mappings, so `$libc + 0x1234` can be typed instead of `$base("libc") + 0x1234`.
 
-The values are refreshed after every stop from the (already cached) memory
-map, and cleared when the process starts or exits. A variable stays unset while
-its mapping does not exist, for example `$heap` before the first `brk`.
+The values come from the memory map. They are cleared when the process starts
+or exits and refreshed at the next stop after the process starts or a module is
+loaded. A variable stays unset while its mapping does not exist, for example
+`$heap` before the first `brk`, and is looked for again at most once a second.
+Once a mapping exists its base does not move, so there is nothing to do on the
+other stops. Reading the memory map and `show osabi` on every stop roughly
+doubled the cost of a single step (1.8 ms to 3.5 ms).
 
 GDB only: LLDB can only set a convenience variable by evaluating an expression,
 and the first expression of a session makes LLDB allocate scratch memory inside
@@ -17,6 +21,7 @@ Also, LLDB evaluates expressions as C++, which rejects `$libc + 0x10` on a
 from __future__ import annotations
 
 import re
+import time
 from collections.abc import Callable
 
 import pwndbg
@@ -52,6 +57,12 @@ _VARIABLES: dict[str, Callable[[str], bool]] = {
 # `None` means the variable is currently unset.
 _current: dict[str, int | None] = {}
 
+# The process started or a module was loaded since the last look at the memory map.
+_dirty = True
+_last_check = 0.0
+# How often to look again for a mapping that does not exist yet, such as the heap.
+_RECHECK_SECONDS = 1.0
+
 
 def _lowest_start(pages: tuple[Page, ...], matches: Callable[[str], bool]) -> int | None:
     starts = [page.start for page in pages if matches(page.objfile)]
@@ -79,9 +90,27 @@ def _supported() -> bool:
     return pwndbg.dbg.name() == DebuggerType.GDB
 
 
+def _needs_refresh() -> bool:
+    if _dirty:
+        return True
+    # A mapping that is still missing may have appeared. Looking costs a read of the
+    # memory map, so do it now and then instead of on every single step.
+    if any(address is None for address in _current.values()) or len(_current) < len(_VARIABLES):
+        return time.monotonic() - _last_check >= _RECHECK_SECONDS
+    return False
+
+
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
+def modules_changed() -> None:
+    global _dirty
+    _dirty = True
+
+
 @pwndbg.dbg.event_handler(EventType.START)
 @pwndbg.dbg.event_handler(EventType.EXIT)
 def clear() -> None:
+    global _dirty
+    _dirty = True
     if not _supported():
         return
 
@@ -92,8 +121,15 @@ def clear() -> None:
 
 @pwndbg.dbg.event_handler(EventType.STOP)
 def update() -> None:
+    global _dirty, _last_check
+
     if not _supported():
         return
+    if not _needs_refresh():
+        return
+    _dirty = False
+    _last_check = time.monotonic()
+
     if not pwndbg.aglib.proc.alive():
         return
     if not pwndbg.dbg.selected_inferior().is_linux():
