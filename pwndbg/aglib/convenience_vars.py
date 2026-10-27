@@ -5,6 +5,13 @@ mappings, so `$libc + 0x1234` can be typed instead of `$base("libc") + 0x1234`.
 The values are refreshed after every stop from the (already cached) memory
 map, and cleared when the process starts or exits. A variable stays unset while
 its mapping does not exist, for example `$heap` before the first `brk`.
+
+GDB only: LLDB can only set a convenience variable by evaluating an expression,
+and the first expression of a session makes LLDB allocate scratch memory inside
+the debugged process (three new mappings, one of them rwx), even with JIT off.
+Doing that on every stop would change the memory map of every LLDB session.
+Also, LLDB evaluates expressions as C++, which rejects `$libc + 0x10` on a
+`void*`.
 """
 
 from __future__ import annotations
@@ -17,6 +24,7 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
 import pwndbg.dbg_mod
+from pwndbg.dbg_mod import DebuggerType
 from pwndbg.dbg_mod import EventType
 from pwndbg.lib.memory import Page
 
@@ -67,9 +75,16 @@ def _set(name: str, address: int | None) -> None:
     _current[name] = address
 
 
+def _supported() -> bool:
+    return pwndbg.dbg.name() == DebuggerType.GDB
+
+
 @pwndbg.dbg.event_handler(EventType.START)
 @pwndbg.dbg.event_handler(EventType.EXIT)
 def clear() -> None:
+    if not _supported():
+        return
+
     for name in _VARIABLES:
         _set(name, None)
     _current.clear()
@@ -77,6 +92,8 @@ def clear() -> None:
 
 @pwndbg.dbg.event_handler(EventType.STOP)
 def update() -> None:
+    if not _supported():
+        return
     if not pwndbg.aglib.proc.alive():
         return
     if not pwndbg.dbg.selected_inferior().is_linux():
