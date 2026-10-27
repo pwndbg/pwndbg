@@ -35,6 +35,9 @@ async def test_glibc_try_free_corrupted_bin(ctrl: Controller, binary: Path) -> N
     to_free = pwndbg.aglib.memory.read_pointer_width(to_free_addr)
 
     result = await ctrl.execute_and_capture(f"try-free {to_free:#x}")
+    # The tcache bin for this size is full, so the chunk can't go there
+    assert "Using tcache_put" not in result
+    assert "Errors found!" in result
     if pwndbg.libc.version() >= (2, 41):
         assert "free(): chunks in smallbin corrupted" in result
         assert "free(): corrupted unsorted chunks" not in result
