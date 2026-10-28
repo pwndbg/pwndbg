@@ -3,8 +3,7 @@
 
 ```text
 usage: knft [-h]
-            {list-flowtables,list-objects,list-sets,list-exprs,list-rules,list-chains,list-tables,dump}
-            ...
+            {list-flowtables,list-objects,list-sets,list-exprs,list-rules,list-chains,list-tables,dump} ...
 
 ```
 

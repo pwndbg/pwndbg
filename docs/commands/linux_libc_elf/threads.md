@@ -2,7 +2,7 @@
 # threads
 
 ```text
-usage: threads [-h] [-c] [num_threads]
+usage: threads [-h] [-c | num_threads]
 
 ```
 

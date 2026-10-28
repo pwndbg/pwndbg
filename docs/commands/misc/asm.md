@@ -4,8 +4,7 @@
 ```text
 usage: asm [-h] [-f {hex,string}]
            [--arch {powerpc64,aarch64,powerpc,riscv32,riscv64,sparc64,mips64,msp430,alpha,amd64,sparc,thumb,cris,i386,ia64,m68k,mips,s390,none,avr,arm,vax}]
-           [-i INFILE]
-           [shellcode ...]
+           (-i INFILE | shellcode ...)
 
 ```
 

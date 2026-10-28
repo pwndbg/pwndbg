@@ -2,9 +2,8 @@
 # cyclic
 
 ```text
-usage: cyclic [-h] [-a charset] [-n length] [-t seconds] [-l lookup_value]
-              [-d]
-              [count] [filename]
+usage: cyclic [-h] [-a charset] [-n length] [-t seconds]
+              [-l lookup_value | -d | count] [filename]
 
 ```
 

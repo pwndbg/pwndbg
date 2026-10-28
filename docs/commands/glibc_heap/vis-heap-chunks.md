@@ -3,8 +3,7 @@
 
 ```text
 usage: vis-heap-chunks [-h] [--beyond-top] [--no-skip] [--no-truncate]
-                       [--all-chunks]
-                       [count] [addr]
+                       [--all-chunks | count] [addr]
 
 ```
 
