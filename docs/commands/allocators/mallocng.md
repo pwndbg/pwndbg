@@ -3,8 +3,7 @@
 
 ```text
 usage: mallocng [-h]
-                {explain,dump,vis,find,ctx,metaarea,ma,group,meta,slots,slotu}
-                ...
+                {explain,dump,vis,find,ctx,metaarea,ma,group,meta,slots,slotu} ...
 
 ```
 

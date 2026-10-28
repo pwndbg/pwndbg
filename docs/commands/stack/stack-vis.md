@@ -2,7 +2,7 @@
 # stack-vis
 
 ```text
-usage: stack-vis [-h] [--no-skip] [--no-truncate] [--all-frames] [count]
+usage: stack-vis [-h] [--no-skip] [--no-truncate] [--all-frames | count]
 
 ```
 
