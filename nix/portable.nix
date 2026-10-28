@@ -196,6 +196,9 @@ let
 
       "${wrapperBinPy "exe/lldb-server"}"
       "bin/lldb-server"
+
+      "${wrapperBin "exe/python3"}"
+      "bin/python3"
     ]
   );
   pwndbgBundled = if isLLDB then pwndbgLldbBundled else pwndbgGdbBundled;
