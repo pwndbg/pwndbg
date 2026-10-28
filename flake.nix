@@ -12,6 +12,8 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # nixpkgs dropped x86_64-darwin in 26.11, keep building it from the last release supporting it
+    nixpkgs-x86_64-darwin.url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
 
     pyproject-nix = {
       url = "github:pyproject-nix/pyproject.nix";
@@ -40,7 +42,11 @@
     }:
     let
       # Self contained packages for: Debian, RHEL-like (yum, rpm), Alpine, Arch packages
-      forAllSystems = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed;
+      forAllSystems = nixpkgs.lib.genAttrs (
+        nixpkgs.lib.unique (nixpkgs.lib.systems.flakeExposed ++ [ "x86_64-darwin" ])
+      );
+      nixpkgsForSystem =
+        system: if system == "x86_64-darwin" then inputs.nixpkgs-x86_64-darwin else nixpkgs;
       forPortables = nixpkgs.lib.genAttrs [
         "deb"
         "rpm"
@@ -82,7 +88,7 @@
         };
       pkgsBySystem = forAllSystems (
         system:
-        import nixpkgs {
+        import (nixpkgsForSystem system) {
           inherit system;
           overlays = [
             (final: prev: {
