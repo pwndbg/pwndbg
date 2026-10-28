@@ -127,7 +127,9 @@ async def test_command_nextcall_at_entry(ctrl: Controller) -> None:
 
     await ctrl.execute("nextcall")
 
-    assert pwndbg.aglib.disasm.disassembly.one().call_like
+    ins = pwndbg.aglib.disasm.disassembly.one()
+    assert ins is not None
+    assert ins.call_like
 
 
 @pwndbg_test
