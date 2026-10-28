@@ -43,6 +43,8 @@ let
       configureFlags = [
         "--enable-static"
         "--disable-shared"
+        # jemalloc_cpp.cpp doesn't build with gcc 16 libstdc++, tests don't use it (same as setup-dev.sh)
+        "--disable-cxx"
       ];
       # debug symbols currently required for jemalloc.py type resolution
       preBuild = ''
