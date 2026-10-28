@@ -6,8 +6,8 @@ PWNDBG_ABS_PATH=$(dirname $_COMMON_ABS_DIR)
 
 TESTING_KERNEL_IMAGES_DIR="${PWNDBG_ABS_PATH}/tests/library/qemu_system/kimages"
 
-# We run CI on ubuntu-latest which is currently 24.04
-CI_PYTHON="3.12.3"
+# We run CI on ubuntu-latest which is currently 26.04
+CI_PYTHON="3.14.4"
 
 if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
     PWNDBG_VENV_PATH="${PWNDBG_ABS_PATH}/.venv"
