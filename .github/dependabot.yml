@@ -1,9 +1,21 @@
 version: 2
 
+# Dependabot jobs run behind an egress proxy that only allows default public
+# hosts. Extra indexes used by pyproject.toml must be declared here, otherwise
+# the proxy blocks them ("egress not allowlisted"). See:
+# https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/resolve-a-blocked-host
+registries:
+  # Public index with loongarch64 wheels (see [[tool.uv.index]] in pyproject.toml)
+  loong64:
+    type: python-index
+    url: https://mirrors.loong64.com/pypi/simple
+
 updates:
   # Python dependencies via UV
   - package-ecosystem: "uv"
     directory: "/"
+    registries:
+      - loong64
     schedule:
       interval: "monthly"
       day: "tuesday"
