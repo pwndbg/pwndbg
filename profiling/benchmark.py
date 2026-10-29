@@ -134,9 +134,9 @@ def benchmark_large_telescope(name: str):
     # Telescope entire stack
     stack_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack))
     start = stack_page.start
-    len = stack_page.memsz
+    page_len = stack_page.memsz
 
     def print_all_stack():
-        pwndbg.commands.telescope.telescope(start, len // pwndbg.aglib.arch.ptrsize)
+        pwndbg.commands.telescope.telescope(start, page_len // pwndbg.aglib.arch.ptrsize)
 
     run_benchmark(name, "all-stack", print_all_stack, 4)
