@@ -1644,33 +1644,43 @@ def try_free(addr: str | int) -> None:
             else:
                 print(message.notice("Clearing next chunk's P bit"))
 
-            # unsorted bin fd->bk should be unsorted bin
-            # unsorted_chunks(av) is the address of bins[0] minus the prev_size and size fields
+            # Since glibc 2.41 small chunks go straight into their smallbin and only
+            # large chunks go into the unsorted bin. Either way bin->fd->bk should be bin.
+            smallbin_correction = int(malloc_alignment > 2 * size_sz)
+            min_large_size = (
+                pwndbg.aglib.heap.glibc.NSMALLBINS - smallbin_correction
+            ) * malloc_alignment
+            if pwndbg.libc.version() >= (2, 41) and chunk_size_unmasked < min_large_size:
+                bin_index = chunk_size_unmasked // malloc_alignment + smallbin_correction
+                bin_name = f"smallbin[{bin_index}]"
+                bin_err = "free(): chunks in smallbin corrupted"
+            else:
+                bin_index = 1
+                bin_name = "unsorted bin"
+                bin_err = "free(): corrupted unsorted chunks"
+
+            # bin_at(av, i) is the address of bins[(i - 1) * 2] minus the prev_size and size fields
             bins_addr = arena._gdbValue["bins"].address
             assert bins_addr is not None
-            unsorted_addr = int(bins_addr) - 2 * size_sz
+            bin_addr = int(bins_addr) + (bin_index - 1) * 2 * ptr_size - 2 * size_sz
             try:
-                unsorted = read_chunk(unsorted_addr)
+                bin_chunk = read_chunk(bin_addr)
                 try:
-                    if read_chunk(unsorted["fd"])["bk"] != unsorted_addr:
-                        err = "free(): corrupted unsorted chunks -> unsorted_chunk->fd->bk != unsorted_chunk\n"
-                        err += (
-                            "unsorted at 0x{:x}, unsorted->fd == 0x{:x}, unsorted->fd->bk == 0x{:x}"
-                        )
-                        err = err.format(
-                            unsorted_addr, unsorted["fd"], read_chunk(unsorted["fd"])["bk"]
-                        )
+                    fd_bk = read_chunk(bin_chunk["fd"])["bk"]
+                    if fd_bk != bin_addr:
+                        err = f"{bin_err} -> bin->fd->bk != bin\n"
+                        err += f"{bin_name} at 0x{bin_addr:x}, bin->fd == 0x{bin_chunk['fd']:x}, bin->fd->bk == 0x{fd_bk:x}"
                         print(message.error(err))
                         errors_found += 1
                 except (OverflowError, pwndbg.dbg_mod.DebuggerError):
                     print(
                         message.error(
-                            f"Can't read chunk at 0x{unsorted['fd']:x}, it is unsorted bin fd"
+                            f"Can't read chunk at 0x{bin_chunk['fd']:x}, it is {bin_name} fd"
                         )
                     )
                     errors_found += 1
             except (OverflowError, pwndbg.dbg_mod.DebuggerError):
-                print(message.error(f"Can't read unsorted bin chunk at 0x{unsorted_addr:x}"))
+                print(message.error(f"Can't read {bin_name} at 0x{bin_addr:x}"))
                 errors_found += 1
 
         else:
