@@ -113,6 +113,33 @@ def reset_context_shown(*a: Any) -> None:
         set_reloading_status(False)
 
 
+inferior_call_depth = 0
+context_shown_before_call = False
+stops_before_call = 0
+
+
+def on_inferior_call(event: Any) -> None:
+    global inferior_call_depth, context_shown_before_call, stops_before_call, context_shown
+
+    if isinstance(event, gdb.InferiorCallPreEvent):
+        if inferior_call_depth == 0:
+            context_shown_before_call = context_shown
+            stops_before_call = pwndbg.dbg_mod.number_of_stops_since_birth
+        inferior_call_depth += 1
+        return
+
+    if not isinstance(event, gdb.InferiorCallPostEvent) or inferior_call_depth == 0:
+        return
+
+    inferior_call_depth -= 1
+    if inferior_call_depth == 0 and stops_before_call == pwndbg.dbg_mod.number_of_stops_since_birth:
+        context_shown = context_shown_before_call
+
+
+if hasattr(gdb.events, "inferior_call"):
+    gdb.events.inferior_call.connect(on_inferior_call)
+
+
 @pwndbg.config.trigger(message.config_prompt_color, disable_colors)
 def set_prompt() -> None:
     prompt = "pwndbg> "
