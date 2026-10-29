@@ -51,7 +51,7 @@ jobs:
         id: diff
         run: |
           echo "DIFF<<EOF" >> $GITHUB_OUTPUT
-          dix ./before-update ./after-update >> $GITHUB_OUTPUT
+          dix diff ./before-update ./after-update >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           rm ./before-update
           rm ./after-update

@@ -36,9 +36,15 @@ let
         url = "https://github.com/jemalloc/jemalloc/releases/download/${finalAttrs.version}/${finalAttrs.pname}-${finalAttrs.version}.tar.bz2";
         sha256 = "sha256-LbgtHnEZ3z5xt2QCGbbf6EeJvAU3mDw7esT3GJrs/qo=";
       };
+      # release tarball ships a pre-generated configure; nixpkgs patches and
+      # autoreconfHook target the newer git source and break with this version
+      patches = [ ];
+      nativeBuildInputs = [ ];
       configureFlags = [
         "--enable-static"
         "--disable-shared"
+        # jemalloc_cpp.cpp doesn't build with gcc 16 libstdc++, tests don't use it (same as setup-dev.sh)
+        "--disable-cxx"
       ];
       # debug symbols currently required for jemalloc.py type resolution
       preBuild = ''
