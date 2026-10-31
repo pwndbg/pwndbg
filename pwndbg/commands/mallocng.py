@@ -684,10 +684,11 @@ def colorize_pointer(
 ) -> str:
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
     out = f"{ptrvalue:0{ptrsize * 2}x}"
+    prefix = "0x"
 
     if state != mallocng.SlotState.ALLOCATED:
         # Nothing to do.
-        return out
+        return prefix + out
 
     # Are we in user data?
     if slot.p <= address < slot.p + slot.nominal_size:
@@ -699,12 +700,14 @@ def colorize_pointer(
 
     # Are we in the p header of this slot?
     if address == slot.p - ptrsize:
+        prefix = color.colorize(prefix, vis_offset_color)
         offset_part = color.colorize(out[:4], vis_offset_color)
         pn3_part = color.colorize(out[4:6], vis_pn3_reserved_color)
         big_offset_part = color.colorize(out[6:8], vis_big_offset_check_color)
         plain_part = out[8:]
 
         out = offset_part + pn3_part + big_offset_part + plain_part
+        return prefix + out
 
     # Are we in the footer of this slot?
     if address == slot.start + slot.meta.stride - ptrsize:
@@ -714,7 +717,7 @@ def colorize_pointer(
             ftr_reserved_part = color.colorize(out[8:], vis_ftr_reserved_color)
             out = plain_part + ftr_reserved_part
 
-    return out
+    return prefix + out
 
 
 def colorize_start_header_line(shline: str, state: mallocng.SlotState, slot: mallocng.Slot) -> str:
@@ -729,17 +732,18 @@ def colorize_start_header_line(shline: str, state: mallocng.SlotState, slot: mal
     if slot.start != slot.p:
         # A cycled slot. The offset has completely different meaning
         # than in p header. The hdr_res has kinda~ different meaning.
-        offset_part = color.colorize(rightvalplus[:4], vis_cyclic_offset_color)
+        offset_color = vis_cyclic_offset_color
         sorpn3 = color.colorize(rightvalplus[4:6], vis_cycled_mark_color)
     else:
-        offset_part = color.colorize(rightvalplus[:4], vis_offset_color)
+        offset_color = vis_offset_color
         sorpn3 = color.colorize(rightvalplus[4:6], vis_pn3_reserved_color)
 
+    offset_part = color.colorize("0x" + rightvalplus[:4], offset_color)
     big_offset_part = color.colorize(rightvalplus[6:8], vis_big_offset_check_color)
     plain_part = rightvalplus[8:]
 
     out = (
-        f"{splitline[0]}0x{splitline[1]}0x{splitline[2]}0x"
+        f"{splitline[0]}0x{splitline[1]}0x{splitline[2]}"
         + offset_part
         + sorpn3
         + big_offset_part
@@ -900,8 +904,8 @@ def mallocng_visualize_slots(address: int, count: int | None = None):
             rightptr = pwndbg.aglib.arch.unpack(line_bytes[ptrsize:])
 
             line_out = f"{cur_address:#x}"
-            line_out += "\t0x" + colorize_pointer(cur_address, leftptr, slot_state, slot)
-            line_out += "\t0x" + colorize_pointer(cur_address + ptrsize, rightptr, slot_state, slot)
+            line_out += "\t" + colorize_pointer(cur_address, leftptr, slot_state, slot)
+            line_out += "\t" + colorize_pointer(cur_address + ptrsize, rightptr, slot_state, slot)
             line_out += f"\t{bin_ascii(line_bytes)}"
 
             line_out = color.colorize(line_out, cur_slot_color)
