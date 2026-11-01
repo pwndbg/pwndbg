@@ -1011,8 +1011,14 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def stopped_with_signal(self) -> bool:
+        # lldb-server reports the stop right after a launch or attach as SIGSTOP,
+        # which GDB doesn't count as a signal.
+        launch_stop = self.process.GetStopID() == self.dbg._start_stop_id
+        sigstop = self.process.GetUnixSignals().GetSignalNumberFromName("SIGSTOP")
         return self.process.GetState() == lldb.eStateStopped and any(
-            thread.GetStopReason() == lldb.eStopReasonSignal for thread in self.process.threads
+            thread.GetStopReason() == lldb.eStopReasonSignal
+            and not (launch_stop and thread.GetStopReasonDataAtIndex(0) == sigstop)
+            for thread in self.process.threads
         )
 
     @override
@@ -2193,6 +2199,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     # protocol. The REPL controls this field.
     _current_process_is_gdb_remote: bool
 
+    # Stop ID of the process when the START event was last fired.
+    _start_stop_id: int | None
+
     # Queued up process control coroutines from the last Pwndbg command. We
     # should run these in order as soon as the command is over, but before we
     # return control to the user.
@@ -2217,6 +2226,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.event_handlers = {}
         self.controllers = []
         self._current_process_is_gdb_remote = False
+        self._start_stop_id = None
         self._exception_relay = None
         self.lldb_python_state_callback = _default_lldb_python_state_callback
         self.should_suspend_ctx = False
