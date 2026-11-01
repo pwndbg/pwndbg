@@ -73,53 +73,94 @@ def decode_gdt_entry(value):
     base_high = (value >> 56) & 0xFF
     base = (base_high << 24) | (base_mid << 16) | base_low
 
-    access_byte = (value >> 40) & 0xFF
+    # Separate the top DWORD so the bit numbers match with the ones
+    # in the "Intel 64 and IA-32 Architectures Software Developer's Manual"
+    top_dword = value >> 32
 
-    flags = (value >> 52) & 0xF
 
-    # If GDT descriptor is stored in RO pages and this bit is 0
-    # the CPU trying to set this bit will trigger page fault
-    accessed_bit = access_byte & (1 << 0)
+    # Granularity flag
+    g_bit = (top_dword & (1 << 23)) >> 23
 
-    # If 0, read (code segment) or write (data segment) access is not allowed
-    # (Read is always allowed for data; write is never allowed for code segment)
-    rw_bit = (access_byte & (1 << 1)) >> 1
+    # Default operation size/default stack pointer size and/or upper bound flag
+    db_bit = (top_dword & (1 << 22)) >> 22
 
-    # Direction bit/Conforming bit
-    dc_bit = (access_byte & (1 << 2)) >> 2
+    # 64-bit code segment) flag
+    l_bit = (top_dword & (1 << 21)) >> 21
 
-    # If 0 == data segment, if 1 == code segment
-    exec_bit = (access_byte & (1 << 3)) >> 3
+    # The bit available for use by system software
+    avl_bit = (top_dword & (1 << 20)) >> 20
 
-    # Descriptor type; 0 == system segment, 1 == code or data segment
-    type_bit = (access_byte & (1 << 4)) >> 4
+
+    # Segment-present flag
+    # Must be set for a valid segment
+    p_bit = (top_dword & (1 << 15)) >> 15
 
     # Descriptor privilege level; 0 == kernel, 3 == userspace
-    dpl_bits = (access_byte & (0b11 << 5)) >> 5
+    dpl_bits = (top_dword & (0b11 << 13)) >> 13
 
-    # Must be set for a valid segment
-    present_bit = (access_byte & (1 << 7)) >> 7
+    # Descriptor type flag
+    s_bit = (top_dword & (1 << 12)) >> 12
+
+
+    # If 0 - data segment, if 1 - code segment
+    type_dc_bit = (top_dword & (1 << 11)) >> 11
+
+    # For data: expand-down bit
+    # For code: conforming bit
+    type_ec_bit = (top_dword & (1 << 10)) >> 10
+
+    # For data: if 0 - read-only, if 1 - read/write
+    # For code: if 0 - execute-only, if 1 - execute/read
+    type_wr_bit = (top_dword & (1 << 9)) >> 9
+
+    # Accessed bit
+    # If GDT descriptor is stored in RO pages and this bit is 0
+    # the CPU trying to set this bit will trigger page fault
+    type_aa_bit = (top_dword & (1 << 8)) >> 8
 
     colorme = lambda label, val: (color.green if val else color.red)(label)
 
-    access_str = "|".join(
-        (
-            colorme("P", present_bit),
-            f"DPL:{dpl_bits}",
-            colorme("S", type_bit),
-            colorme("E", exec_bit),
-            colorme("DC", dc_bit),
-            colorme("RW", rw_bit),
-            colorme("A", accessed_bit),
-        )
-    )
-
     flags_str = "|".join(
         (
-            colorme("G", (flags & (1 << 3)) >> 3),
-            colorme("DB", (flags & (1 << 2)) >> 2),
-            colorme("L", (flags & (1 << 1)) >> 1),
+            colorme("G", g_bit),
+            colorme("D/B", db_bit),
+            colorme("L", l_bit),
+            colorme("AVL", avl_bit),
         )
     )
 
-    return f"base={base:#4x}, limit={limit:#8x}, access={access_str}, flags={flags_str}"
+    access_str = "|".join(
+        (
+            colorme("P", p_bit),
+            f"DPL:{dpl_bits}",
+            colorme("S", s_bit),
+        )
+    )
+
+    type_str = ""
+
+    if type_dc_bit == 1:
+        type_str = "Code:" + "|".join(
+            (
+                #                  v
+                colorme("C", type_ec_bit),
+                colorme("R", type_wr_bit),
+                colorme("A", type_aa_bit),
+            )
+        )
+    else:
+        type_str = "Data:" + "|".join(
+            (
+                #                 v
+                colorme("E", type_ec_bit),
+                colorme("W", type_wr_bit),
+                colorme("A", type_aa_bit),
+            )
+        )
+
+    # If granularity bit if set, then the limit represents
+    # the number of 4KB pages
+    if g_bit == 1:
+        limit = (limit << 12) | 0xFFF
+
+    return f"base={base:#4x}, limit={limit:#8x}, flags={flags_str}, access={access_str}, type={type_str}"
