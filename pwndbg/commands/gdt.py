@@ -77,7 +77,6 @@ def decode_gdt_entry(value):
     # in the "Intel 64 and IA-32 Architectures Software Developer's Manual"
     top_dword = value >> 32
 
-
     # Granularity flag
     g_bit = (top_dword & (1 << 23)) >> 23
 
@@ -90,7 +89,6 @@ def decode_gdt_entry(value):
     # The bit available for use by system software
     avl_bit = (top_dword & (1 << 20)) >> 20
 
-
     # Segment-present flag
     # Must be set for a valid segment
     p_bit = (top_dword & (1 << 15)) >> 15
@@ -100,7 +98,6 @@ def decode_gdt_entry(value):
 
     # Descriptor type flag
     s_bit = (top_dword & (1 << 12)) >> 12
-
 
     # If 0 - data segment, if 1 - code segment
     type_dc_bit = (top_dword & (1 << 11)) >> 11
