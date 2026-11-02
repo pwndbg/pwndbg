@@ -160,4 +160,6 @@ def decode_gdt_entry(value):
     if g_bit == 1:
         limit = (limit << 12) | 0xFFF
 
-    return f"base={base:x}, limit={limit:x}, flags={flags_str}, access={access_str}, type={type_str}"
+    return (
+        f"base={base:x}, limit={limit:x}, flags={flags_str}, access={access_str}, type={type_str}"
+    )
