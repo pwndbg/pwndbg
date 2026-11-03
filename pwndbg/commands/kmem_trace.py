@@ -94,6 +94,11 @@ class KmemTracepointsData:
             prefix = "[SLAB FREE]"
         else:
             prefix = "[SLAB ALLOC]"
+
+        if is_free and objaddr == 0:
+            self.add_result(message.success(f"{prefix} kfree(NULL) is a no-op"))
+            return
+
         cache = None
         if objaddr:
             _, cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
