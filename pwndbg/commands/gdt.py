@@ -60,6 +60,10 @@ def gdt(address, count) -> None:
         idx += 1
 
 
+def colorize(label: str, val: int) -> str:
+    return (color.green if val else color.red)(label)
+
+
 def decode_gdt_entry(value):
     if value == 0:
         return "<NULL entry>"
@@ -115,22 +119,20 @@ def decode_gdt_entry(value):
     # the CPU trying to set this bit will trigger page fault
     type_aa_bit = (top_dword & (1 << 8)) >> 8
 
-    colorme = lambda label, val: (color.green if val else color.red)(label)
-
     flags_str = "|".join(
         (
-            colorme("G", g_bit),
-            colorme("D/B", db_bit),
-            colorme("L", l_bit),
-            colorme("AVL", avl_bit),
+            colorize("G", g_bit),
+            colorize("D/B", db_bit),
+            colorize("L", l_bit),
+            colorize("AVL", avl_bit),
         )
     )
 
     access_str = "|".join(
         (
-            colorme("P", p_bit),
+            colorize("P", p_bit),
             f"DPL:{dpl_bits}",
-            colorme("S", s_bit),
+            colorize("S", s_bit),
         )
     )
 
@@ -140,18 +142,18 @@ def decode_gdt_entry(value):
         type_str = "Code:" + "|".join(
             (
                 #                  v
-                colorme("C", type_ec_bit),
-                colorme("R", type_wr_bit),
-                colorme("A", type_aa_bit),
+                colorize("C", type_ec_bit),
+                colorize("R", type_wr_bit),
+                colorize("A", type_aa_bit),
             )
         )
     else:
         type_str = "Data:" + "|".join(
             (
                 #                 v
-                colorme("E", type_ec_bit),
-                colorme("W", type_wr_bit),
-                colorme("A", type_aa_bit),
+                colorize("E", type_ec_bit),
+                colorize("W", type_wr_bit),
+                colorize("A", type_aa_bit),
             )
         )
 
