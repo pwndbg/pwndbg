@@ -12,6 +12,8 @@ from pwndbg.commands import CommandCategory
 parser = argparse.ArgumentParser(
     description="""Decode X86-64 GDT entries at address
 
+Use `monitor info registers` to get the GDT address and size.
+
 See also:
 
 * https://wiki.osdev.org/Global_Descriptor_Table
@@ -28,8 +30,8 @@ parser.add_argument(
 parser.add_argument(
     "count",
     nargs="?",
-    default=8,
-    help="Number of entries to dump (should be (GDTR.size+1)/8)",
+    default=16,
+    help="Number of entries to dump (should be (GDTR.size+1)/8).",
     type=int,
 )
 
