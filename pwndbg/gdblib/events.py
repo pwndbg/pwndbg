@@ -221,8 +221,8 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
         if event_type == gdb.events.new_objfile:
             if not _is_safe_event_thread():
                 # Workaround around #4286. Sometimes this event causes us to reach code
-                # which tries to gdb.newest_frame() (or similar) which causes an
-                # 'Selected thread is running.' gdb exception.
+                # which tries to gdb.newest_frame() (or similar) while the inferior is running
+                # which causes a 'Selected thread is running.' gdb exception.
                 gdb.post_event(_loop_until_thread_ok)
                 return
 
