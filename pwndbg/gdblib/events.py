@@ -97,7 +97,7 @@ gdb.events.start = StartEvent()
 gdb.events.suspend_all = object()
 
 
-def _is_safe_event_packet():
+def _is_safe_event_packet() -> bool:
     try:
         gdb.selected_frame()
     except gdb.error as e:
@@ -106,7 +106,7 @@ def _is_safe_event_packet():
     return True
 
 
-def _is_safe_event_thread():
+def _is_safe_event_thread() -> bool:
     try:
         gdb.newest_frame()
     except gdb.error as e:
@@ -120,7 +120,7 @@ executing_event = False
 workaround_thread_conn = None
 
 
-def _update_start_event_state(event_type: Any):
+def _update_start_event_state(event_type: Any) -> None:
     """
     Update the state of the StartEvent appropriately
     (we emulate this event so we need to set it properly)
@@ -134,7 +134,7 @@ def _update_start_event_state(event_type: Any):
         gdb.events.start.on_exited()
 
 
-def _detect_deadlock():
+def _detect_deadlock() -> None:
     if not executing_event:
         # Not executing an event inside another event, so no deadlock
         return
@@ -218,11 +218,19 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
         _update_start_event_state(event_type)
 
         queued_events.append(lambda: event_handler(*a, **kw))
-        if event_type == gdb.events.new_objfile and not _is_safe_event_packet():
-            # Workaround to issue with gdbserver - Remote 'g' packet reply is too long
-            # https://github.com/pwndbg/pwndbg/issues/2576
-            gdb.post_event(_loop_until_thread_ok)
-            return
+        if event_type == gdb.events.new_objfile:
+            if not _is_safe_event_thread():
+                # Workaround around #4286. Sometimes this event causes us to reach code
+                # which tries to gdb.newest_frame() (or similar) while the inferior is running
+                # which causes a 'Selected thread is running.' gdb exception.
+                gdb.post_event(_loop_until_thread_ok)
+                return
+
+            if not _is_safe_event_packet():
+                # Workaround to issue with gdbserver - Remote 'g' packet reply is too long
+                # https://github.com/pwndbg/pwndbg/issues/2576
+                gdb.post_event(_loop_until_thread_ok)
+                return
         if event_type == gdb.events.stop:
             # Workaround to issue with gdb `commands \n continue \n end` - Selected thread is running
             # https://github.com/pwndbg/pwndbg/issues/425
