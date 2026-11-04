@@ -1,0 +1,49 @@
+# This dockerfile was created for development & testing purposes, for Alpine-based distro.
+#
+# Run using prebuilt image (pulls image and bind-mounts working dir into /pwndbg):
+#   docker compose run --rm -v $(pwd):/pwndbg alpine
+#
+# Update your prebuilt image:
+#   docker compose pull alpine
+
+ARG image=alpine:latest
+FROM $image
+
+WORKDIR /pwndbg
+
+ENV LANG=en_US.UTF-8
+ENV TZ=America/New_York
+ENV PWNDBG_VENV_PATH=/venv
+ENV UV_PROJECT_ENVIRONMENT=/venv
+
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache tzdata musl-locales musl-locales-lang doas bash uv openjdk21-jdk apache-ant && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    apk add --no-cache vim ccache
+
+# setup.sh needs scripts/common.sh
+COPY ./scripts/common.sh /pwndbg/scripts/
+
+COPY ./setup.sh /pwndbg/
+COPY ./uv.lock /pwndbg/
+COPY ./pyproject.toml /pwndbg/
+
+# pyproject.toml requires these files, pip install would fail
+RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
+
+RUN ./setup.sh
+
+# Comment these lines if you won't run the tests.
+COPY ./setup-dev.sh /pwndbg/
+RUN --mount=type=cache,id=ccache,target=/root/.ccache,sharing=locked \
+    CCACHE_DIR=/root/.ccache \
+    CC="ccache gcc" \
+    ./setup-dev.sh
+
+# Cleanup dummy files
+RUN rm README.md && rm -rf pwndbg
+
+COPY . /pwndbg/
+
+ENV PATH="${PWNDBG_VENV_PATH}/bin:${PATH}"

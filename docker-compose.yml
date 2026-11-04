@@ -63,6 +63,16 @@ services:
       args:
         image: archlinux:latest
 
+  alpine:
+    <<: *base-spec
+    image: ghcr.io/pwndbg/pwndbg:alpine
+    pull_policy: always
+    build:
+      context: .
+      dockerfile: Dockerfile.alpine
+      args:
+        image: alpine:latest
+
   fedora41:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:fedora41

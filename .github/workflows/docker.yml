@@ -48,6 +48,7 @@ jobs:
           - { image: ubuntu24.04, dockerfile: Dockerfile, base: ubuntu:24.04 }
           - { image: debian12, dockerfile: Dockerfile, base: debian:12 }
           - { image: archlinux, dockerfile: Dockerfile.arch, base: archlinux:latest }
+          - { image: alpine, dockerfile: Dockerfile.alpine, base: alpine:latest }
           - { image: fedora41, dockerfile: Dockerfile.dnf, base: fedora:41 }
           - { image: fedora42, dockerfile: Dockerfile.dnf, base: fedora:42 }
           - { image: fedora43, dockerfile: Dockerfile.dnf, base: fedora:43 }
@@ -147,6 +148,7 @@ jobs:
       matrix:
         include:
           - { image: ubuntu24.04, dockerfile: Dockerfile, base: ubuntu:24.04 }
+          - { image: alpine, dockerfile: Dockerfile.alpine, base: alpine:latest }
           - { image: fedora41, dockerfile: Dockerfile.dnf, base: fedora:41 }
           - { image: fedora42, dockerfile: Dockerfile.dnf, base: fedora:42 }
           - { image: fedora43, dockerfile: Dockerfile.dnf, base: fedora:43 }

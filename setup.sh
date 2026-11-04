@@ -82,6 +82,15 @@ install_freebsd() {
     which rustc || sudo pkg install rust
 }
 
+install_alpine() {
+    # Docker tests fail, caused by missing `/etc/doas.conf`; fixed by not using `doas` as root
+    if whoami | grep -q root; then
+        apk add git gdb python3-dev py3-virtualenv py3-setuptools build-base
+    else
+        doas apk add git gdb python3-dev py3-virtualenv py3-setuptools build-base
+    fi
+}
+
 usage() {
     echo "Usage: $0 [--update]"
     echo "  --update: Install/update dependencies without checking ~/.gdbinit"
@@ -147,6 +156,9 @@ if linux; then
             ;;
         "aosc")
             install_oma
+            ;;
+        "alpine")
+            install_alpine
             ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt', 'dnf' or 'pacman' package managers."
