@@ -64,12 +64,15 @@ def test_aarch64_branch_enhancement(qemu_assembly_run):
     qemu_assembly_run(SIMPLE_FUNCTION, "aarch64")
 
     instruction = pwndbg.aglib.disasm.disassembly.one_with_config()
+    assert instruction is not None
 
     assert instruction.id == AARCH64_INS_BL
     assert instruction.call_like
     assert not instruction.is_conditional_jump
     assert instruction.is_unconditional_jump
+    # target_string is normally colored, but colors are disabled in tests
     assert instruction.target_string == "my_function"
+    assert instruction.target_symbol == "my_function"
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
