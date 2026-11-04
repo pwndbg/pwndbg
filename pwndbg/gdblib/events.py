@@ -218,11 +218,19 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
         _update_start_event_state(event_type)
 
         queued_events.append(lambda: event_handler(*a, **kw))
-        if event_type == gdb.events.new_objfile and not _is_safe_event_packet():
-            # Workaround to issue with gdbserver - Remote 'g' packet reply is too long
-            # https://github.com/pwndbg/pwndbg/issues/2576
-            gdb.post_event(_loop_until_thread_ok)
-            return
+        if event_type == gdb.events.new_objfile:
+            if not _is_safe_event_thread():
+                # Workaround around #4286. Sometimes this event causes us to reach code
+                # which tries to gdb.newest_frame() (or similar) which causes an
+                # 'Selected thread is running.' gdb exception.
+                gdb.post_event(_loop_until_thread_ok)
+                return
+
+            if not _is_safe_event_packet():
+                # Workaround to issue with gdbserver - Remote 'g' packet reply is too long
+                # https://github.com/pwndbg/pwndbg/issues/2576
+                gdb.post_event(_loop_until_thread_ok)
+                return
         if event_type == gdb.events.stop:
             # Workaround to issue with gdb `commands \n continue \n end` - Selected thread is running
             # https://github.com/pwndbg/pwndbg/issues/425
