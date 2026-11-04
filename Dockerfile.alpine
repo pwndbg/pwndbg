@@ -17,7 +17,7 @@ ENV PWNDBG_VENV_PATH=/venv
 ENV UV_PROJECT_ENVIRONMENT=/venv
 
 RUN apk update && apk upgrade --no-cache && \
-    apk add --no-cache tzdata musl-locales musl-locales-lang doas bash uv openjdk21-jdk apache-ant && \
+    apk add --no-cache tzdata musl-locales musl-locales-lang doas bash uv openjdk21-jdk apache-ant linux-headers nasm go && \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     apk add --no-cache vim ccache

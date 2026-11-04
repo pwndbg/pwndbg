@@ -63,6 +63,10 @@ endif
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=123654
 HAVE_MUSL := $(shell printf 'int main(void){return 0;}' | $(MUSLCC) -x c -o /dev/null - >/dev/null 2>&1 && echo yes || echo no)
 
+# whether the host's own $(CC) links against musl.
+# distinctive from HAVE_MUSL above, which detects a musl-gcc cross-compiler.
+HOST_CC_IS_MUSL := $(shell $(CC) -print-file-name=libc.so 2>/dev/null | grep -qi musl && echo yes || echo no)
+
 ifeq ($(DEBUG), 1)
 CFLAGS         +=      -DDEBUG=1 -ggdb -O0 -gdwarf-4
 else
@@ -205,7 +209,11 @@ else
 ALL_MUSL_VERSION_TARGETS :=
 endif
 
-CUSTOM_TARGETS = heap_find_fake_fast.native.out reference_bin_plt_pie_no_relro.x86-64.out reference_bin_plt_no_pie_no_relro.i386.out reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_musl_dyn.native.out heap_musl_static.native.out heap_musl_static_stripped.native.out gosample.i386.out gosample.x86-64.out exithandlers.native.out weird_symbols.native.out weird_symbols_nodebug.native.out
+CUSTOM_TARGETS = heap_find_fake_fast.native.out reference_bin_plt_pie_no_relro.x86-64.out reference_bin_plt_no_pie_no_relro.i386.out reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_musl_dyn.native.out heap_musl_static.native.out heap_musl_static_stripped.native.out gosample.i386.out gosample.x86-64.out weird_symbols.native.out weird_symbols_nodebug.native.out
+ifeq ($(HOST_CC_IS_MUSL),no)
+	CUSTOM_TARGETS += exithandlers.native.out
+endif
+
 NATIVE_CUSTOM_TARGETS  := $(filter %.native.out %.$(HOST_ARCH).out %.$(HOST_ARCH_32).out,$(CUSTOM_TARGETS))
 
 ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(NATIVE_CUSTOM_TARGETS) \
@@ -444,9 +452,18 @@ reference_bin_nopie.i386.out: reference-binary.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} -fno-pie -target x86-linux-gnu -o $@ $?
 
+ifeq ($(HOST_LIBC_MUSL),no)
+
 static_ifunc.native.out: static_ifunc.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} -static -no-pie -fno-pie -nostdlib -o $@ $?
+
+else
+
+static_ifunc.native.out: static_ifunc.native.c
+	@echo "[!] Skip '$@' (ifunc resolution is glibc-specific, not supported on musl)"
+
+endif
 
 canary.x86-64.out: canary.x86-64.c
 	@echo "[+] Building '$@'"
@@ -469,6 +486,30 @@ pku.i386.out: pku.x86_64.c
 	-target x86_64-linux-gnu \
 	-o $@ $?
 
+ifeq ($(HOST_LIBC_MUSL),no)
+
+pku.x86-64.out: pku.x86-64.c
+	@echo "[+] Building '$@'"
+	${ZIGCC} ${CFLAGS} -w -o $@ $?
+
+else
+
+pku.x86-64.out: pku.x86-64.c
+	@echo "[!] Skip '$@' (pkey_alloc/pkey_mprotect are glibc-specific, not available on musl)"
+
+endif
+
+ifeq ($(HOST_LIBC_MUSL),no)
+
 exithandlers.native.out: exithandlers.native.c
 	@echo "[.] Building '$@'"
 	${CC} ${CFLAGS} -w -o $@ $? -pthread -lpthread
+
+else
+
+exithandlers.native.out: exithandlers.native.c
+	@echo "[!] Skip '$@' (on_exit is glibc-specific, not available on musl)"
+
+$(info [!] host libc is musl – skipping exithandlers target)
+
+endif
