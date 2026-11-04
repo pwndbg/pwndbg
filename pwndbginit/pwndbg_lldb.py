@@ -121,14 +121,6 @@ def prepend_venv_bin_to_path():
     os.environ["PATH"] = os.pathsep.join(path_elements)
 
 
-def parse_lldb_startup_commands(arguments: list[str]) -> list[str]:
-    """Parse the LLDB command-line options that Pwndbg supports after ``--``."""
-    parser = argparse.ArgumentParser(prog="pwndbg-lldb", add_help=False)
-    parser.add_argument("-o", "--one-line", action="append", nargs="+", metavar="COMMAND")
-    args = parser.parse_args(arguments)
-    return [" ".join(command) for command in args.one_line or []]
-
-
 def main() -> None:
     """
     Entry point for the pwndbg-lldb command line tool.
@@ -136,11 +128,7 @@ def main() -> None:
     prepend_venv_bin_to_path()
 
     # Parse the arguments we were given.
-    parser = argparse.ArgumentParser(
-        prog="pwndbg-lldb",
-        epilog="LLDB -o/--one-line commands can also be passed after '--', e.g. "
-        "pwndbg-lldb ./program -- -o 'gdb-remote localhost:1234'.",
-    )
+    parser = argparse.ArgumentParser(prog="pwndbg-lldb")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug output")
     parser.add_argument(
         "-o",
@@ -164,14 +152,7 @@ def main() -> None:
         help="Tells the debugger to wait for a process with the given pid or name to launch before attaching.",
     )
 
-    argv = sys.argv[1:]
-    lldb_argv = []
-    if "--" in argv:
-        separator = argv.index("--")
-        argv, lldb_argv = argv[:separator], argv[separator + 1 :]
-
-    args = parser.parse_args(argv)
-    lldb_startup_commands = parse_lldb_startup_commands(lldb_argv) if lldb_argv else []
+    args = parser.parse_args()
     debug = args.verbose
 
     # Prepare the startup commands based on those arguments.
@@ -205,7 +186,6 @@ def main() -> None:
         sys.exit(1)
 
     startup.extend(args.one_line or [])
-    startup.extend(lldb_startup_commands)
 
     if (args.attach_pid is not None or args.attach_name is not None) and args.target:
         print(
