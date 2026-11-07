@@ -93,7 +93,7 @@ endif
 # Versions come from the build-<version> stages in Dockerfile.glibc-test-libs (the source of truth).
 GLIBC_TEST_VERSIONS := $(shell sed -n 's/^FROM base-builder AS build-\([0-9][0-9.]*\).*/\1/p' $(PWD)/../../../Dockerfile.glibc-test-libs)
 # Add a binary by creating <stem>.native.c and listing it here; add a version via a Dockerfile stage.
-GLIBC_VERSION_BINARIES := heap_malloc_chunk heap_malloc_chunk_dump heap_bins heap_find_fake_fast
+GLIBC_VERSION_BINARIES := heap_malloc_chunk heap_malloc_chunk_dump heap_bins heap_find_fake_fast heap_try_free_bin
 
 AVAILABLE_GLIBC_VERSIONS := $(foreach ver,$(GLIBC_TEST_VERSIONS),\
     $(if $(wildcard $(PWD)/glibcs/$(ver)/$(GLIBC_LD_NAME)),$(ver)))
