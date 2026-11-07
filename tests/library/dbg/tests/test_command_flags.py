@@ -53,3 +53,35 @@ async def test_flags_command(ctrl: Controller) -> None:
 
     # Verify no flags have changed
     assert old_flags == pwndbg.aglib.regs.read_reg(register_name)
+
+
+@pwndbg_test
+async def test_flags_command_multibit(ctrl: Controller) -> None:
+    import pwndbg.aglib
+
+    await ctrl.launch(REFERENCE_BINARY)
+
+    arch = pwndbg.aglib.arch.name
+    if arch not in ("i386", "x86-64"):
+        pytest.skip(f"Architecture {arch} not supported.")
+
+    # AC (bit 18) is outside of the IOPL bits (12-13)
+    await ctrl.execute("setflag ac 1")
+
+    old_flags = pwndbg.aglib.regs.read_reg("eflags")
+    if old_flags is None:
+        pytest.skip("eflags register is missing")
+
+    # Verify AC is set
+    assert old_flags & (1 << 18)
+
+    await ctrl.execute("setflag iopl 0")
+
+    # Verify no other flags have changed
+    assert old_flags == pwndbg.aglib.regs.read_reg("eflags")
+
+    # Test setting an invalid value
+    await ctrl.execute("setflag iopl 4")
+
+    # Verify no flags have changed
+    assert old_flags == pwndbg.aglib.regs.read_reg("eflags")
