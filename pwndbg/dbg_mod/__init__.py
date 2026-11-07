@@ -430,6 +430,56 @@ class ExecutionController:
         raise NotImplementedError()
 
 
+class Section:
+    def module(self) -> Module:
+        "Returns the module this section belongs to."
+        raise NotImplementedError()
+
+    def address(self) -> int | None:
+        """
+        Returns the virtual address at which this section has been mapped, or
+        None if it has not been mapped.
+        """
+        raise NotImplementedError()
+
+    def offset(self) -> int:
+        "Returns the offset from the start of the module file."
+        raise NotImplementedError()
+
+    def name(self) -> str | None:
+        "Returns the name of this section, if it has one"
+        raise NotImplementedError()
+
+
+class Module:
+    def sections(self) -> Iterator[Section]:
+        raise NotImplementedError()
+
+    def path(self) -> str:
+        """
+        Returns the path of this module local to the process. This path may have
+        had its symbolic links resolved, so it may not be the same one as in the
+        vmmap.
+        """
+        raise NotImplementedError()
+
+    def local_path(self) -> str:
+        """
+        Returns the path of this module local to Pwndbg.
+
+        For local debugging, this is usually the same as path(), but for remote
+        scenarios, that is not usually the case.
+        """
+        raise NotImplementedError()
+
+    def entry_point(self) -> int | None:
+        """
+        Returns the mapped address of the entry point in this module, if it has
+        one and is mapped.
+        """
+        raise NotImplementedError()
+
+
 class Process:
     def threads(self) -> list[Thread]:
         """
@@ -679,30 +729,15 @@ class Process:
         """
         raise NotImplementedError()
 
-    # We probably want to expose a better module interface in the future, but,
-    # for now, this is good enough.
-    def module_section_locations(self) -> list[tuple[int, int, str, str]]:
+    def modules(self) -> Iterator[Module]:
         """
-        Return a list of (address, size, section_name, module_name) tuples for
-        the loaded sections in every module of this process.
-
-        The module name will have its full path resolved without following symlinks,
-        so it is not guaranteed to be the same string as in `/proc/<pid>/maps`
-        or vmmap.
+        Returns the list of modules of this process.
         """
         raise NotImplementedError()
 
-    def main_module_name(self) -> str | None:
+    def main_module(self) -> Module | None:
         """
-        Returns the name of the main module.
-
-        On remote targets, this may be prefixed with "target:" string.
-        """
-        raise NotImplementedError()
-
-    def main_module_entry(self) -> int | None:
-        """
-        Returns the entry point of the main module.
+        Returns the main module of this process.
         """
         raise NotImplementedError()
 
