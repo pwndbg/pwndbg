@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import gdb
 
-import pwndbg.aglib.disasm.disassembly
-import pwndbg.arguments
 import pwndbg.color
+
+from . import args_at_pc
+from . import syscalls_at_pc
 
 LOONGARCH64_PREAMBLE = """
 .text
@@ -84,27 +87,18 @@ write:
 """
 
 
-def test_loongarch64_function_arguments(qemu_assembly_run):
+def test_loongarch64_function_arguments(qemu_assembly_run: Callable[..., None]) -> None:
     qemu_assembly_run(LOONGARCH64_CALL_AND_SYSCALL, "loongarch64")
 
     gdb.execute("stepuntilasm bl")
-    args = pwndbg.arguments.get(pwndbg.aglib.disasm.disassembly.one())
 
-    assert [(arg.name, value) for arg, value in args] == [("fd", 1), ("buf", 2), ("n", 3)]
+    assert args_at_pc() == [("fd", 1), ("buf", 2), ("n", 3)]
 
 
-def test_loongarch64_syscall_annotation(qemu_assembly_run):
+def test_loongarch64_syscall_annotation(qemu_assembly_run: Callable[..., None]) -> None:
     qemu_assembly_run(LOONGARCH64_CALL_AND_SYSCALL, "loongarch64")
 
     gdb.execute("stepuntilasm syscall")
 
-    # Both for emulation and non-emulation, ensure a syscall at current PC gets enriched
-    for ins in (
-        pwndbg.aglib.disasm.disassembly.emulate_one(),
-        pwndbg.aglib.disasm.disassembly.no_emulate_one(),
-    ):
-        assert ins.syscall == 93
-        assert ins.syscall_name == "exit"
-
-    args = pwndbg.arguments.get(pwndbg.aglib.disasm.disassembly.one())
-    assert [(arg.name, value) for arg, value in args] == [("status", 0)]
+    assert syscalls_at_pc() == [(93, "exit"), (93, "exit")]
+    assert args_at_pc() == [("status", 0)]
