@@ -25,7 +25,7 @@ def check_doubleload() -> None:
         sys.exit(1)
 
 
-def main() -> None:
+def main(portable: bool = False) -> None:
     profiler, load_profile_start_time = setup_load_profiler()
     # Must be above `verify_venv()` as that function requires the logger
     # to be set up.
@@ -44,6 +44,7 @@ def main() -> None:
     import pwndbg  # noqa: F811
 
     pre_debugger_init()
+    pwndbg._is_portable = portable
 
     import pwndbg.dbg_mod.gdb
 
@@ -57,11 +58,11 @@ def main() -> None:
     gdb.execute("py import pwndbg")
 
 
-def main_try():
+def main_try(portable: bool = False) -> None:
     # We wrap everything in try/except so that we can exit GDB with an error code
     # This is used by tests to check if gdbinit.py failed
     try:
-        main()
+        main(portable)
     except Exception:
         print(traceback.format_exc(), file=sys.stderr, flush=True)
         os._exit(1)

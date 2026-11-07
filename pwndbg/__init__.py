@@ -18,6 +18,8 @@ __version__ = pwndbg.lib.version.__version__
 version = __version__
 """Pwndbg version."""
 _is_loaded_from_pwndbg: bool = False
+# True when GDB was started by the `pwndbg` launcher, which passes `-nx` itself.
+_is_portable: bool = False
 
 # Don't know where else to put this xd
 config.add_param("dev-debug-events", False, "display internal event debugging info")
