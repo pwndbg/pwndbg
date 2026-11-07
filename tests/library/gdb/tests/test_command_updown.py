@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import gdb
 
 from . import get_binary
@@ -7,7 +9,9 @@ from . import get_binary
 REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
-def test_up_updates_list_location_and_restores_frame_info(start_binary):
+def test_up_updates_list_location_and_restores_frame_info(
+    start_binary: Callable[..., None],
+) -> None:
     start_binary(REFERENCE_BINARY)
     gdb.execute("break break_here")
     gdb.execute("continue")
@@ -25,7 +29,7 @@ def test_up_updates_list_location_and_restores_frame_info(start_binary):
     assert gdb.parameter("print frame-info") == frame_info_before
 
 
-def test_down_restores_frame_info(start_binary):
+def test_down_restores_frame_info(start_binary: Callable[..., None]) -> None:
     start_binary(REFERENCE_BINARY)
     gdb.execute("break break_here")
     gdb.execute("continue")
