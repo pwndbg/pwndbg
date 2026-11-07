@@ -195,6 +195,17 @@ Number of lines to print in the backtrace context.
 
 ----------
 
+## **context-backtrace-retaddr**
+
+
+Whether to show where return addresses are stored in the backtrace.
+
+
+
+**Default:** off  
+
+----------
+
 ## **context-clear-screen**
 
 

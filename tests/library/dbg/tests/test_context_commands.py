@@ -776,3 +776,49 @@ async def test_regs_vector_register(ctrl: Controller) -> None:
 
     # xmm0 is the lower half of ymm0
     assert ymm_match.group(1).endswith(xmm_match.group(1))
+
+
+@pwndbg_test
+async def test_context_backtrace_retaddr_location(ctrl: Controller) -> None:
+    """
+    Tests that `context-backtrace-retaddr` shows where each return address is stored.
+
+    See issue #1288 .
+    """
+    import pwndbg
+    import pwndbg.aglib.memory
+    import pwndbg.commands.context
+
+    await launch_to(ctrl, STACK_VARS_BINARY, "inner_function")
+
+    # The location column is off by default.
+    out = pwndbg.commands.context.context_backtrace(with_banner=False)
+    assert re.match(r".*1\s+0x[0-9a-f]+\s+outer_function\+\d+$", out[1])
+
+    await ctrl.execute("set context-backtrace-retaddr on")
+    try:
+        out = pwndbg.commands.context.context_backtrace(with_banner=False)
+    finally:
+        await ctrl.execute("set context-backtrace-retaddr off")
+
+    # Example backtrace:
+    #
+    #  ► 0 0x555555555189                  inner_function+16
+    #    1 0x5555555551f5 @ 0x7fffffffe108 outer_function+18
+    #    2 0x555555555217 @ 0x7fffffffe118 main+30
+    #    3 0x7ffff7c2a1ca @ 0x7fffffffe128 __libc_start_call_main+122
+
+    # The innermost frame has no return address.
+    assert re.match(r".*0\s+0x[0-9a-f]+\s+inner_function(\+\d+)?$", out[0])
+
+    frame = pwndbg.dbg.selected_frame()
+    for i, name in ((1, "outer_function"), (2, "main")):
+        frame = frame.parent()
+        assert frame is not None
+
+        match = re.match(rf".*{i}\s+0x[0-9a-f]+\s+@ (0x[0-9a-f]+)\s+{name}\+\d+$", out[i])
+        assert match, out[i]
+
+        # The shown stack slot must really hold the return address into this frame.
+        location = int(match[1], 16)
+        assert pwndbg.aglib.memory.read_pointer_width(location) == frame.pc()
