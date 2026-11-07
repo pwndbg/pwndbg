@@ -70,6 +70,7 @@ def test_s390x_syscall_number_in_r1(qemu_assembly_run: Callable[..., None]) -> N
     future_syscall_ins = pwndbg.aglib.disasm.disassembly.near(
         address=instruction_at_pc().address, forward_count=3, emulate=True
     )[0][2]
+    assert future_syscall_ins.mnemonic == "svc"
     assert future_syscall_ins.syscall == 1
     assert future_syscall_ins.syscall_name == "exit"
 
