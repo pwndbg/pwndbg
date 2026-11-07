@@ -15,6 +15,29 @@ import pwndbg.commands.context
 import pwndbg.commands.decompiler_integration
 from pwndbg.commands import CommandCategory
 
+
+def _select_frame(f: gdb.Frame) -> None:
+    """
+    Select `f` the same way GDB's own `up`/`down` would.
+
+    `gdb.Frame.select()` alone does not update the current source line used by
+    `list` (see #632), so we also run `frame`. By default `frame` prints the
+    frame's source line, which makes GDB open (or, with debuginfod, try to
+    download) the source file every time. For frames in libraries without local
+    sources (libc, libstdc++, ...) this made `up`/`down` take hundreds of
+    milliseconds each (#4186). We throw that output away anyway, so ask GDB to
+    print only the location instead.
+    """
+    f.select()
+
+    old_frame_info = gdb.parameter("print frame-info")
+    gdb.execute("set print frame-info short-location", to_string=True)
+    try:
+        gdb.execute("frame", to_string=True)
+    finally:
+        gdb.execute(f"set print frame-info {old_frame_info}", to_string=True)
+
+
 parser = argparse.ArgumentParser(description="Select and print stack frame that called this one.")
 parser.add_argument(
     "n", nargs="?", default=1, type=int, help="The number of stack frames to go up."
@@ -32,10 +55,7 @@ def up(n: int = 1) -> None:
     for _ in range(int(n)):
         if f.older():
             f = f.older()
-    f.select()
-
-    # workaround for #632
-    gdb.execute("frame", to_string=True)
+    _select_frame(f)
 
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
     print("\n".join(bt))
@@ -65,10 +85,7 @@ def down(n: int = 1) -> None:
     for _ in range(n):
         if f.newer():
             f = f.newer()
-    f.select()
-
-    # workaround for #632
-    gdb.execute("frame", to_string=True)
+    _select_frame(f)
 
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
     print("\n".join(bt))
