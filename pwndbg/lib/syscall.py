@@ -36,8 +36,11 @@ def _get_pwntools_arch_module(arch_name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) ->
         "sparc": linux_sparc,
         "powerpc": linux_powerpc,
         "s390x": linux_s390x,
-        # shortcut: loongarch64 and riscv64 share the asm-generic syscall table, but pwnlib's riscv64 module lacks some
-        # newer syscalls (443+); use pwnlib's loongarch64 module once a pwntools release ships it (> 4.15.0)
+        # TODO: use pwnlib's loongarch64 module once a pwntools release ships it (> 4.15.0).
+        # Until then, use riscv64 as both use the asm-generic syscall table. Apart from the arch-specific
+        # placeholder 244, no number has two different names, but riscv64 also names 79/80
+        # (newfstatat/fstat, only on loongarch64 since Linux 6.11), 163/164 (getrlimit/setrlimit) and
+        # 259 (riscv_flush_icache), and lacks 443 and 448-456 (e.g. futex_wait).
         "loongarch64": linux_riscv64,
         # Note: sparc64 not available in pwnlib
     }.get(arch_name)
