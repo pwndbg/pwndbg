@@ -4,7 +4,6 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from capstone6pwndbg import *  # noqa: F403
-from pwnlib.constants import linux
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
@@ -29,6 +28,7 @@ from pwndbg.color import message
 from pwndbg.emu.emulator import EmulatorCrashData
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.regs import PseudoEmulatedRegisterFile
+from pwndbg.lib.syscall import syscall_number_to_name
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -637,39 +637,6 @@ class DisassemblyAssistant:
             enhance_string_len=enhance_string_len,
         )
 
-    @staticmethod
-    def _syscall_name(number: int, arch: str) -> str | None:
-        """
-        Given a syscall number and architecture, returns the name of the syscall.
-        E.g. execve == 59 on x86-64
-        """
-        arch_module = {
-            "arm": linux.arm,
-            "armcm": linux.arm,
-            "i386": linux.i386,
-            "mips": linux.mips,
-            "x86-64": linux.amd64,
-            "aarch64": linux.aarch64,
-            "rv32": linux.riscv64,
-            "rv64": linux.riscv64,
-        }.get(arch)
-
-        if arch_module is None:
-            return None
-
-        prefix = "__NR_"
-
-        for k, v in arch_module.__dict__.items():
-            if v != number:
-                continue
-
-            if not k.startswith(prefix):
-                continue
-
-            return k[len(prefix) :].lower()
-
-        return None
-
     def _enhance_syscall(self, instruction: PwndbgInstruction, emu: Emulator | None) -> None:
         if CS_GRP_INT not in instruction.groups:
             return
@@ -682,13 +649,13 @@ class DisassemblyAssistant:
         instruction.syscall = self._read_register_name(instruction, syscall_register, emu)
         if instruction.syscall is not None:
             instruction.syscall_name = (
-                DisassemblyAssistant._syscall_name(instruction.syscall, syscall_arch)
+                syscall_number_to_name(instruction.syscall, syscall_arch)
                 or f"<unk_{instruction.syscall}>"
             )
 
     def _get_syscall_arch_info(
         self, instruction: PwndbgInstruction
-    ) -> tuple[str, str] | tuple[None, None]:
+    ) -> tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, str] | tuple[None, None]:
         """
         Return tuple of (name of syscall architecture, syscall register name)
 

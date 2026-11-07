@@ -36,7 +36,10 @@ def _get_pwntools_arch_module(arch_name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) ->
         "sparc": linux_sparc,
         "powerpc": linux_powerpc,
         "s390x": linux_s390x,
-        # Note: loongarch64 and sparc64 not available in pwnlib
+        # shortcut: loongarch64 and riscv64 share the asm-generic syscall table, but pwnlib's riscv64 module lacks some
+        # newer syscalls (443+); use pwnlib's loongarch64 module once a pwntools release ships it (> 4.15.0)
+        "loongarch64": linux_riscv64,
+        # Note: sparc64 not available in pwnlib
     }.get(arch_name)
 
     return arch_module

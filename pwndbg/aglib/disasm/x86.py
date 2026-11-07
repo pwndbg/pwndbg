@@ -21,6 +21,7 @@ from pwndbg.aglib.disasm.instruction import MemoryDereferenceInfo
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import message
 from pwndbg.emu.emulator import EmulatorCrashReason
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -467,7 +468,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.assistant.DisassemblyAssistant
     @override
     def _get_syscall_arch_info(
         self, instruction: PwndbgInstruction
-    ) -> tuple[str, str] | tuple[None, None]:
+    ) -> tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, str] | tuple[None, None]:
         # Since this class handles both x86 and x86_64, we need to choose the correct
         # syscall arch depending on the instruction being executed.
 
