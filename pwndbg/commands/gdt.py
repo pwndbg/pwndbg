@@ -165,5 +165,5 @@ def decode_gdt_entry(value):
         limit = (limit << 12) | 0xFFF
 
     return (
-        f"base={base:x}, limit={limit:x}, flags={flags_str}, access={access_str}, type={type_str}"
+        f"base={base:#x}, limit={limit:#x}, flags={flags_str}, access={access_str}, type={type_str}"
     )
