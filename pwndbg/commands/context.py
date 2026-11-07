@@ -1694,7 +1694,7 @@ def context_backtrace(
     offset_regex = re.compile(r"^(.+)\+(\d+)$")
 
     # The frame called by the one being printed, which holds its return address.
-    callee = newest_frame.child() if show_retaddr else None
+    callee = newest_frame.child() if show_retaddr and newest_frame else None
 
     while True:
         pc = frame.pc()
@@ -1717,7 +1717,7 @@ def context_backtrace(
         ]
         if show_retaddr:
             # The innermost frame has no return address, its pc is where we stopped.
-            location = _find_retaddr_location(callee, frame) if callee else None
+            location = _find_retaddr_location(callee, frame) if callee and frame else None
             row.append(
                 Text.from_ansi(f"@ {mem_color.get(location)}") if location is not None else Text()
             )
