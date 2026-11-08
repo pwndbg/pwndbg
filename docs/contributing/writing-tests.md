@@ -60,6 +60,8 @@ options:
 
 Each test is a Python function that runs inside of an isolated debugger session which is dispatched through the [`@pwndbg_test`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/dbg/tests/__init__.py) decorator. The cross-arch-user QEMU tests are passed an appropriate starting function using [`pytest`](https://docs.pytest.org/en/latest/) [`fixtures`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu_user/conftest.py). Each test runs some commands and uses Python `assert` statements to verify correctness. We can access Pwndbg library code like `pwndbg.aglib.regs.sp`, execute common debugger actions through the test control API like `await ctrl.cont()`, or use the same to execute Pwndbg commands e.g. `await ctrl.execute_and_capture("telescope")`. Do not `ctrl.execute()` debugger-specific commands! - add a new function to the `Controller` in [`tests/host/__init__.py`](https://github.com/pwndbg/pwndbg/blob/dev/tests/host/__init__.py) if you need it.
 
+If sensible, prefer to make less big test functions rather than many smaller test functions. This makes the tests run faster because less debugger instances need to be spun up.
+
 We can take a look at [`tests/library/dbg/tests/test_mallocng.py`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/dbg/tests/test_mallocng.py)
 as an example test file.
 
