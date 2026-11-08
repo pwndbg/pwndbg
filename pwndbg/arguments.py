@@ -31,15 +31,14 @@ from pwndbg.aglib.nearpc import c as N
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.functions import Function, Argument
 from pwndbg.lib.functions import format_flags_argument
-from pwndbg.lib import abi
 
 syscall_data = None
 
-
 def get_all_syscall_data():
     global syscall_data
-    data_path = resources.files("lib") / "syscall_data" / "data.json"
-    syscall_data = json.load(data_path)
+    data_path = resources.files("pwndbg.lib") / "syscall_data" / "data.json"
+    with open(data_path) as file:
+        syscall_data = json.load(file)
     
 def parse_arg(arg: str) -> tuple[str, int, str]:
     """
@@ -65,11 +64,26 @@ def parse_arg(arg: str) -> tuple[str, int, str]:
     return (type_str, deref, name)
 
 def make_syscall_func_impl(name: str, abi: pwndbg.aglib.arch.syscall_abi) -> Function | None:
+    abi_lookup = {
+        pwndbg.lib.abi.linux_i386_syscall: "x86",
+        pwndbg.lib.abi.linux_amd64_syscall:"x64",
+        pwndbg.lib.abi.linux_arm_syscall: "arm",
+        pwndbg.lib.abi.linux_aarch64_syscall: "arm64",
+        pwndbg.lib.abi.linux_mips_syscall: "mipso32",
+        pwndbg.lib.abi.linux_mips64_syscall: "mips64",
+        pwndbg.lib.abi.linux_ppc_syscall: "ppc",
+        pwndbg.lib.abi.linux_ppc64_syscall: "ppc64",
+        pwndbg.lib.abi.linux_riscv32_syscall: None,
+        pwndbg.lib.abi.linux_riscv64_syscall: "riscv64",
+    }
     abi_name = abi_lookup.get(abi,None)
     if abi_name is None:
         return None
     call_data = [call for call in syscall_data["syscalls"][abi_name] if call["name"] == name]
     args = []
+    if len(call_data) == 0:
+        return None
+    call_data = call_data[0]
     nargs = call_data["nargs"]
     for i in range(nargs):
         t, d, n = parse_arg(call_data[f"arg{i}"])
@@ -82,21 +96,8 @@ def make_syscall_func_impl(name: str, abi: pwndbg.aglib.arch.syscall_abi) -> Fun
     )
     
 def make_syscall_func(name: str, abi: pwndbg.aglib.arch.syscall_abi) -> Function | None:
-    abi_lookup = {
-        abi.linux_i386_syscall: "x86",
-        abi.linux_amd64_syscall:"x64",
-        abi.linux_arm_syscall: "arm",
-        abi.linux_aarch64_syscall: "arm64",
-        abi.linux_mips_syscall: "mipso32",
-        abi.linux_mips64_syscall: "mips64",
-        abi.linux_ppc_syscall: "ppc",
-        abi.linux_ppc64_syscall: "ppc64",
-        abi.linux_riscv32_syscall: None,
-        abi.linux_riscv64_syscall: "riscv64",
-    }
     if syscall_data is None:
         get_all_syscall_data()
-    raise Exception
     return make_syscall_func_impl(name,abi)
 
 def get(instruction: PwndbgInstruction) -> list[tuple[pwndbg.lib.functions.Argument, int]]:
@@ -163,7 +164,9 @@ def get(instruction: PwndbgInstruction) -> list[tuple[pwndbg.lib.functions.Argum
         if name is None or abi is None:
             return []
         
-        func = make_syscall_func(nane,abi)
+        func = make_syscall_func(name,abi)
+        
+        original_name = name # allow fallback in case func is null
 
     else:
         return []
