@@ -1594,7 +1594,7 @@ backtrace_frame_label = theme.add_param(
 )
 config_backtrace_retaddr = pwndbg.config.add_param(
     "context-backtrace-retaddr",
-    False,
+    True,
     "whether to show where return addresses are stored in the backtrace",
 )
 

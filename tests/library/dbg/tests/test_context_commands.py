@@ -790,7 +790,12 @@ async def test_context_backtrace_retaddr_location(ctrl: Controller) -> None:
     import pwndbg.color
     import pwndbg.commands.context
 
-    await launch_to(ctrl, STACK_VARS_BINARY, "inner_function")
+    await ctrl.launch(STACK_VARS_BINARY)
+
+    # Break after the prologue of inner_function (by name, not by address), so that on
+    # architectures with a link register, inner_function has already saved it on the stack.
+    await ctrl.execute("b inner_function")
+    await ctrl.cont()
 
     def backtrace() -> list[str]:
         # The location is colored like other stack addresses, so strip the colors.
@@ -799,18 +804,15 @@ async def test_context_backtrace_retaddr_location(ctrl: Controller) -> None:
             for line in pwndbg.commands.context.context_backtrace(with_banner=False)
         ]
 
-    # The location column is off by default.
+    await ctrl.execute("set context-backtrace-retaddr off")
     assert not any("@ 0x" in line for line in backtrace())
 
     await ctrl.execute("set context-backtrace-retaddr on")
-    try:
-        out = backtrace()
-    finally:
-        await ctrl.execute("set context-backtrace-retaddr off")
+    out = backtrace()
 
-    # Example backtrace on x86-64:
+    # Example backtrace:
     #
-    #  ► 0 0x555555555179                  inner_function
+    #  ► 0 0x555555555189                  inner_function+16
     #    1 0x5555555551f5 @ 0x7fffffffe108 outer_function+18
     #    2 0x555555555217 @ 0x7fffffffe118 main+30
     #    3 0x7ffff7c2a1ca @ 0x7fffffffe128 __libc_start_call_main+122
@@ -829,13 +831,9 @@ async def test_context_backtrace_retaddr_location(ctrl: Controller) -> None:
         frame = frame.parent()
         assert frame is not None
 
-        line = line_of(name)
-        match = re.search(r"@ (0x[0-9a-f]+)\s", line)
-        # Other architectures may keep the return address in a register (e.g. a link register).
-        if pwndbg.aglib.arch.name == "x86-64":
-            assert match, out
+        match = re.search(r"@ (0x[0-9a-f]+)\s", line_of(name))
+        assert match, out
 
-        # A shown stack slot must really hold the return address into this frame.
-        if match:
-            location = int(match[1], 16)
-            assert pwndbg.aglib.memory.read_pointer_width(location) == frame.pc()
+        # The shown stack slot must really hold the return address into this frame.
+        location = int(match[1], 16)
+        assert pwndbg.aglib.memory.read_pointer_width(location) == frame.pc()

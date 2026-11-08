@@ -202,7 +202,7 @@ Whether to show where return addresses are stored in the backtrace.
 
 
 
-**Default:** off  
+**Default:** on  
 
 ----------
 
