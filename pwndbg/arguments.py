@@ -31,10 +31,10 @@ from pwndbg.lib.functions import Argument
 from pwndbg.lib.functions import Function
 from pwndbg.lib.functions import format_flags_argument
 
-syscall_data = None
+syscall_data: Any = None
 
 
-def get_all_syscall_data():
+def get_all_syscall_data() -> None:
     global syscall_data
     data_path = resources.files("pwndbg.lib") / "syscall_data" / "data.json"
     with data_path.open() as file:
