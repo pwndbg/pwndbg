@@ -70,8 +70,11 @@ def exe() -> str | None:
     If you need the locally referenced file use:
         `gdb.current_process().filename`
     """
+    main_module = pwndbg.dbg.selected_inferior().main_module()
+    if main_module is None:
+        return None
 
-    return pwndbg.dbg.selected_inferior().main_module_name()
+    return main_module.path()
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
@@ -112,12 +115,13 @@ def get_section_address_by_name(section_name: str) -> int:
     Find section address of current process by section name
     """
     selected = pwndbg.dbg.selected_inferior()
-    main = selected.main_module_name()
-
-    for address, _size, section, module in selected.module_section_locations():
-        if module != main:
-            continue
-        if section == section_name:
+    main = selected.main_module()
+    for section in main.sections():
+        if section.name() == section_name:
+            address = section.address()
+            if address is None:
+                # Not loaded.
+                continue
             return address
 
     return 0
