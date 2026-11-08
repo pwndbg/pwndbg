@@ -7,10 +7,8 @@ registers and stack values.
 
 from __future__ import annotations
 
-import re
-
 import json
-
+import re
 from importlib import resources
 
 from capstone6pwndbg import CS_GRP_INT
@@ -29,24 +27,27 @@ import pwndbg.lib.functions
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N
 from pwndbg.lib.arch import Platform
-from pwndbg.lib.functions import Function, Argument
+from pwndbg.lib.functions import Argument
+from pwndbg.lib.functions import Function
 from pwndbg.lib.functions import format_flags_argument
 
 syscall_data = None
 
+
 def get_all_syscall_data():
     global syscall_data
     data_path = resources.files("pwndbg.lib") / "syscall_data" / "data.json"
-    with open(data_path) as file:
+    with data_path.open() as file:
         syscall_data = json.load(file)
-    
+
+
 def parse_arg(arg: str) -> tuple[str, int, str]:
     """
     Returns [type name, deref count, name].
     """
-    
+
     _IDENT_RE = re.compile(r"([A-Za-z_]\w*)\s*(\[[^\]]*\])?\s*$")
-    
+
     arg = arg.strip()
 
     m = _IDENT_RE.search(arg)
@@ -63,10 +64,11 @@ def parse_arg(arg: str) -> tuple[str, int, str]:
 
     return (type_str, deref, name)
 
-def make_syscall_func_impl(name: str, abi: pwndbg.aglib.arch.syscall_abi) -> Function | None:
+
+def make_syscall_func_impl(name: str, abi: pwndbg.lib.abi.SyscallABI) -> Function | None:
     abi_lookup = {
         pwndbg.lib.abi.linux_i386_syscall: "x86",
-        pwndbg.lib.abi.linux_amd64_syscall:"x64",
+        pwndbg.lib.abi.linux_amd64_syscall: "x64",
         pwndbg.lib.abi.linux_arm_syscall: "arm",
         pwndbg.lib.abi.linux_aarch64_syscall: "arm64",
         pwndbg.lib.abi.linux_mips_syscall: "mipso32",
@@ -76,7 +78,7 @@ def make_syscall_func_impl(name: str, abi: pwndbg.aglib.arch.syscall_abi) -> Fun
         pwndbg.lib.abi.linux_riscv32_syscall: None,
         pwndbg.lib.abi.linux_riscv64_syscall: "riscv64",
     }
-    abi_name = abi_lookup.get(abi,None)
+    abi_name = abi_lookup.get(abi)
     if abi_name is None:
         return None
     call_data = [call for call in syscall_data["syscalls"][abi_name] if call["name"] == name]
@@ -88,17 +90,14 @@ def make_syscall_func_impl(name: str, abi: pwndbg.aglib.arch.syscall_abi) -> Fun
     for i in range(nargs):
         t, d, n = parse_arg(call_data[f"arg{i}"])
         args.append(Argument(type=t, derefcnt=d, name=n))
-    return Function(
-        type="long",
-        derefcnt=0,
-        name=f"SYS_{name}",
-        args=args
-    )
-    
-def make_syscall_func(name: str, abi: pwndbg.aglib.arch.syscall_abi) -> Function | None:
+    return Function(type="long", derefcnt=0, name=f"SYS_{name}", args=args)
+
+
+def make_syscall_func(name: str, abi: pwndbg.lib.abi.SyscallABI) -> Function | None:
     if syscall_data is None:
         get_all_syscall_data()
-    return make_syscall_func_impl(name,abi)
+    return make_syscall_func_impl(name, abi)
+
 
 def get(instruction: PwndbgInstruction) -> list[tuple[pwndbg.lib.functions.Argument, int]]:
     """
@@ -128,7 +127,7 @@ def get(instruction: PwndbgInstruction) -> list[tuple[pwndbg.lib.functions.Argum
         name = pwndbg.aglib.symbol.resolve_addr(target)
         if not name:
             return []
-        
+
         original_name = name or ""
 
         name = original_name.replace("isoc99_", "")  # __isoc99_sscanf
@@ -154,7 +153,7 @@ def get(instruction: PwndbgInstruction) -> list[tuple[pwndbg.lib.functions.Argum
             # If more specific call information can't be determined, use the regular
             # function resolution flow.
             func = pwndbg.lib.functions.functions.get(name, None)
-        
+
     elif CS_GRP_INT in instruction.groups:
         # Get the syscall number and name
         name = instruction.syscall_name
@@ -163,10 +162,10 @@ def get(instruction: PwndbgInstruction) -> list[tuple[pwndbg.lib.functions.Argum
 
         if name is None or abi is None:
             return []
-        
-        func = make_syscall_func(name,abi)
-        
-        original_name = name # allow fallback in case func is null
+
+        func = make_syscall_func(name, abi)
+
+        original_name = name  # allow fallback in case func is null
 
     else:
         return []
