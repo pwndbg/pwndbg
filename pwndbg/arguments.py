@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import re
 from importlib import resources
+from typing import Any
 
 from capstone6pwndbg import CS_GRP_INT
 
