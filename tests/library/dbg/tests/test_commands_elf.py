@@ -17,11 +17,21 @@ STATIC_BINARY_WITH_IFUNC = get_binary("static_ifunc.native.out")
 
 @pwndbg_test
 async def test_commands_plt_gotplt_got_when_no_sections(ctrl: Controller) -> None:
+    from pathlib import Path
+
     await ctrl.launch(NO_SECTS_BINARY)
 
     # elf.py commands
     assert (await ctrl.execute_and_capture("plt")) == "No .plt.* sections found\n"
     assert (await ctrl.execute_and_capture("gotplt")) == "Could not find section .got.plt\n"
+
+    # got.py command
+    out = (await ctrl.execute_and_capture("got")).splitlines()
+    assert len(out) == 4
+    assert out[0] == "Filtering out read-only entries (display them with -r or --show-readonly)"
+    assert out[1] == ""
+    assert out[2] == f"State of the GOT of {Path.cwd() / NO_SECTS_BINARY}:"
+    assert out[3] == "GOT protection: No RELRO | Found 0 GOT entries passing the filter"
 
 
 @pytest.mark.parametrize(
