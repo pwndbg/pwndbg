@@ -47,6 +47,7 @@ _arch_mapping: dict[
     ("s390x", "big", 8): "s390x",
 }
 
+
 def additional_flags(arch: ArchDefinition) -> list[str]:
     """
     To compile some architectures, it's not enough to use the correct target triple,
@@ -123,7 +124,10 @@ def invocation_with_target(arch: ArchDefinition) -> ToolchainInvocation:
             "cc",
             "-target",
             zig_target,
-        ] + additional_flags(arch),
-        freestanding_assembler=[zig_executable, "cc", "-target", freestanding_target] + additional_flags(arch) + ["-c"],
+        ]
+        + additional_flags(arch),
+        freestanding_assembler=[zig_executable, "cc", "-target", freestanding_target]
+        + additional_flags(arch)
+        + ["-c"],
         objcopy=[zig_executable, "objcopy"],  # it is cross-arch by default
     )
