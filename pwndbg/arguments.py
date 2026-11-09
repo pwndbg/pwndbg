@@ -7,10 +7,7 @@ registers and stack values.
 
 from __future__ import annotations
 
-import json
 import re
-from importlib import resources
-from typing import Any
 
 from capstone6pwndbg import CS_GRP_INT
 
@@ -25,21 +22,13 @@ import pwndbg.dbg_mod
 import pwndbg.enhance
 import pwndbg.lib.abi
 import pwndbg.lib.functions
+import pwndbg.lib.syscall
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.functions import Argument
 from pwndbg.lib.functions import Function
 from pwndbg.lib.functions import format_flags_argument
-
-syscall_data: Any = None
-
-
-def get_all_syscall_data() -> None:
-    global syscall_data
-    data_path = resources.files("pwndbg.lib") / "syscall_data" / "data.json"
-    with data_path.open() as file:
-        syscall_data = json.load(file)
 
 
 def parse_arg(arg: str) -> tuple[str, int, str]:
@@ -84,7 +73,11 @@ def make_syscall_func_impl(name: str, abi: pwndbg.lib.abi.SyscallABI) -> Functio
     abi_name = abi_lookup.get(abi)
     if abi_name is None:
         return None
-    call_data = [call for call in syscall_data["syscalls"][abi_name] if call["name"] == name]
+    call_data = [
+        call
+        for call in pwndbg.lib.syscall.syscall_data()["syscalls"][abi_name]
+        if call["name"] == name
+    ]
     args = []
     if len(call_data) == 0:
         return None
@@ -97,8 +90,6 @@ def make_syscall_func_impl(name: str, abi: pwndbg.lib.abi.SyscallABI) -> Functio
 
 
 def make_syscall_func(name: str, abi: pwndbg.lib.abi.SyscallABI) -> Function | None:
-    if syscall_data is None:
-        get_all_syscall_data()
     return make_syscall_func_impl(name, abi)
 
 
