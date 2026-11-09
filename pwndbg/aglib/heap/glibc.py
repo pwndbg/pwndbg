@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 if sys.version_info >= (3, 11):
     # Python 3.11, see https://docs.python.org/3/whatsnew/3.11.html#enum
-    from enum import ReprEnum as Enum
+    from enum import ReprEnum as Enum  # novermin
 else:
     from enum import Enum
 

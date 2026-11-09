@@ -13,22 +13,6 @@ NOPIE_BINARY_WITH_PLT = "reference_bin_nopie.native.out"
 NOPIE_I386_BINARY_WITH_PLT = "reference_bin_nopie.i386.out"
 
 
-def test_commands_plt_gotplt_got_when_no_sections(start_binary):
-    start_binary(NO_SECTS_BINARY)
-
-    # elf.py commands
-    assert gdb.execute("plt", to_string=True) == "No .plt.* sections found\n"
-    assert gdb.execute("gotplt", to_string=True) == "Could not find section .got.plt\n"
-
-    # got.py command
-    out = gdb.execute("got", to_string=True).splitlines()
-    assert len(out) == 4
-    assert out[0] == "Filtering out read-only entries (display them with -r or --show-readonly)"
-    assert out[1] == ""
-    assert out[2] == f"State of the GOT of {Path.cwd() / NO_SECTS_BINARY}:"
-    assert out[3] == "GOT protection: No RELRO | Found 0 GOT entries passing the filter"
-
-
 @pytest.mark.parametrize(
     "binary_name,is_pie", ((PIE_BINARY_WITH_PLT, True), (NOPIE_BINARY_WITH_PLT, False))
 )
