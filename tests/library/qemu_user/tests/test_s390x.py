@@ -55,7 +55,7 @@ def test_s390x_syscall_number_in_immediate(qemu_assembly_run: Callable[..., None
     break_at("write_syscall")
 
     assert syscalls_at_pc() == [(4, "write"), (4, "write")]
-    assert args_at_pc() == [("fd", 1), ("buf", 2), ("n", 3)]
+    assert args_at_pc() == [("fd", 1), ("buf", 2), ("count", 3)]
 
 
 def test_s390x_syscall_number_in_r1(qemu_assembly_run: Callable[..., None]) -> None:
@@ -77,7 +77,7 @@ def test_s390x_syscall_number_in_r1(qemu_assembly_run: Callable[..., None]) -> N
     gdb.execute("stepuntilasm svc")
 
     assert syscalls_at_pc() == [(1, "exit"), (1, "exit")]
-    assert args_at_pc() == [("status", 0)]
+    assert args_at_pc() == [("error_code", 0)]
 
 
 def test_s390x_stepsyscall_number_in_immediate(qemu_assembly_run: Callable[..., None]) -> None:

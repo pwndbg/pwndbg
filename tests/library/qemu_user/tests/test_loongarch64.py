@@ -101,4 +101,4 @@ def test_loongarch64_syscall_annotation(qemu_assembly_run: Callable[..., None]) 
     gdb.execute("stepuntilasm syscall")
 
     assert syscalls_at_pc() == [(93, "exit"), (93, "exit")]
-    assert args_at_pc() == [("status", 0)]
+    assert args_at_pc() == [("error_code", 0)]

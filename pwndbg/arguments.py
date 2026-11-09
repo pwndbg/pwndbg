@@ -78,6 +78,8 @@ def make_syscall_func_impl(name: str, abi: pwndbg.lib.abi.SyscallABI) -> Functio
         pwndbg.lib.abi.linux_ppc64_syscall: "ppc64",
         pwndbg.lib.abi.linux_riscv32_syscall: None,
         pwndbg.lib.abi.linux_riscv64_syscall: "riscv64",
+        pwndbg.lib.abi.linux_loongarch64_syscall: "loongarch64",
+        pwndbg.lib.abi.linux_s390x_syscall: "s390x",
     }
     abi_name = abi_lookup.get(abi)
     if abi_name is None:
