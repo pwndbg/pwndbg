@@ -123,6 +123,12 @@ def set_prompt() -> None:
         else:
             prompt = message.readline_escape(message.prompt, prompt)
 
+    # gdb.execute() strips trailing whitespace from the command string (an
+    # upstream GDB quirk, see #3353), which would eat the prompt's trailing
+    # space. Protect it with readline's non-printing markers around nothing.
+    if prompt.endswith(" "):
+        prompt += "\001\002"
+
     gdb.execute(f"set prompt {prompt}")
 
 
