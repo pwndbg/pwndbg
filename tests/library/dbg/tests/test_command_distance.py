@@ -10,19 +10,24 @@ REFERENCE_BINARY = get_binary("reference-binary.native.out")
 @pwndbg_test
 async def test_command_distance(ctrl: Controller):
     import pwndbg.aglib
+    import pwndbg.aglib.symbol
 
     await ctrl.launch(REFERENCE_BINARY)
 
     # Test against regs
     sp = pwndbg.aglib.regs.sp
+    assert sp is not None
     result = await ctrl.execute_and_capture("distance $sp $sp+0x10")
     assert result == f"{sp:#x}->{sp + 0x10:#x} is 0x10 bytes (0x2 words)\n"
 
     # Test if it works with symbols
     pc = pwndbg.aglib.regs.pc
+    assert pc is not None
 
     main = pwndbg.aglib.symbol.lookup_symbol_addr("main")
     break_here = pwndbg.aglib.symbol.lookup_symbol_addr("break_here")
+    assert main is not None
+    assert break_here is not None
 
     diff = break_here - main
 
