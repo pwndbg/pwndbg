@@ -91,10 +91,16 @@ FUNC_SYMBOLS: list[tuple[str, str, str | None]] = [
     LLDB_UNESCAPABLE_FUNC_SYMBOL,
 ]
 
-# nice for testing because it never has debug info, even when compiled with -g
 VTABLE: tuple[str, str, None] = (
     "_ZTVN5outer5inner6SquareE",
     "vtable for outer::inner::Square",
+    None,
+)
+
+# nice for testing because it never has debug info, even when compiled with -g
+TYPEINFO_NAME: tuple[str, str, None] = (
+    "_ZTSN5outer5inner6SquareE",
+    "typeinfo name for outer::inner::Square",
     None,
 )
 
@@ -363,7 +369,7 @@ async def test_command_argument_parsing(
     # = Lexing with a wacky data symbol
 
     # There is no type for this variable even in a binary with debug info
-    linkage_name, name, lldb_name = VTABLE
+    linkage_name, name, lldb_name = TYPEINFO_NAME
     name = debugger_name(name, lldb_name)
     addr = symbol_address(linkage_name)
 
