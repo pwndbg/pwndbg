@@ -158,3 +158,33 @@ async def test_fetch_struct_as_dictionary_exclude_filter(ctrl: Controller) -> No
     )
 
     assert result == expected_result
+
+
+@pwndbg_test
+async def test_memory_pointer_arithmetic(ctrl: Controller) -> None:
+    """
+    ptr + n and ptr[n] should step by the size of the pointee, like in C
+    """
+    import pwndbg
+    import pwndbg.aglib.memory
+    import pwndbg.aglib.typeinfo
+
+    await ctrl.launch(REFERENCE_BINARY)
+
+    sp = pwndbg.aglib.regs.sp
+    assert sp is not None
+    data = bytes(range(16))
+    pwndbg.aglib.memory.write(sp, data)
+
+    inf = pwndbg.dbg.selected_inferior()
+    for t, size in (
+        (pwndbg.aglib.typeinfo.uint8, 1),
+        (pwndbg.aglib.typeinfo.uint16, 2),
+        (pwndbg.aglib.typeinfo.uint32, 4),
+    ):
+        ptr = inf.create_value(sp).cast(t.pointer())
+        assert int(ptr + 3) == sp + 3 * size
+        assert int(ptr[3]) == int.from_bytes(data[3 * size : 4 * size], pwndbg.aglib.arch.endian)
+
+    void_ptr = inf.create_value(sp).cast(pwndbg.aglib.typeinfo.void.pointer())
+    assert int(void_ptr + 3) == sp + 3
