@@ -8,8 +8,10 @@ from .utils import run_gdb_with_script
 
 HELLO = [
     "pwndbg: loaded ### pwndbg commands. Type pwndbg [filter] for a list.",
-    "pwndbg: created xxx GDB functions (can be used with print/break)."
-    " Type help function to see them.",
+    (
+        "pwndbg: created xxx GDB functions (can be used with print/break)."
+        " Type help function to see them."
+    ),
 ]
 
 BINARY = get_binary("div_zero.native.out")
