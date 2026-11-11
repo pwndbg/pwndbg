@@ -129,7 +129,7 @@ class PageTableScan:
             if prev and prev == entry:
                 # be aware to not use continue
                 pass
-            elif not entry & 1: # check present bit
+            elif not entry & 1:  # check present bit
                 # not even a valid pointer (mitigation against "L1 Terminal Fault")
                 if curr_off is not None:
                     append((curr_off, curr_sz, curr_flags))
@@ -211,7 +211,7 @@ class PageTableScan:
             levels[i].idx = idx
             levels[i].entry = entry
             levels[i].level = i + 1
-            if not entry & 1: # check present bit
+            if not entry & 1:  # check present bit
                 break
             offset_mask = (1 << shift) - 1
             resolved = (entry & self.PAGE_ENTRY_MASK, offset_mask)
