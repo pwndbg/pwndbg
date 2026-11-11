@@ -140,7 +140,7 @@ ignore = [
     # We want to unignore the below lints, but they currently return too many errors
     "PLR0913", # pylint-refactor too-many-arguments
     "PLR0915", # pylint-refactor too-many-return-statements
-    "PLR0917", # pylint-refactor too-many-positional-arguments)
+    "PLR0917", # pylint-refactor too-many-positional-arguments
     "PLR1704", # pylint-refactor redefined-argument-from-local (this will probably also catch some bugs)
     "PLR2004", # pylint-refactor magic-value-comparison
     "B008",    # flake8-bugbear function-call-in-default-argument
