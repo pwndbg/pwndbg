@@ -17,12 +17,12 @@ dependencies = [
     "pygments>=2.19.2,<3",
     "psutil>=7.0.0,<8",
     # We install uv to the venv
-    "uv>=0.12.0",
+    "uv>=0.13.7",
     # Optional? only for 'ipi' command
     "ipython>=8.39.0,<9 ; python_full_version < '3.12'",
     "ipython>=8.39.0,<10 ; python_full_version >= '3.12'",
     # Optional? only for 'ropgadget' command
-    "ropgadget==7.6",
+    "ropgadget==7.7",
     # Optional? only for 'ai' commands
     "requests>=2.34.2,<3",
     # Optional? only for pretty print traceback
@@ -67,13 +67,13 @@ dev = [
 ]
 lint = [
     "mypy>=1.18.2,<2",
-    "ruff==0.15.9",
-    "vermin>=1.8.0,<2",
+    "ruff==0.17.4",
+    "vermin>=1.9.2,<2",
 ]
 tests = [
     # Newer versions of pytest break CI on GitHub
     "pytest==8.0.2",
-    "coverage[toml]>=7.5.0,<8",
+    "coverage[toml]>=7.16.2,<8",
 ]
 docs = [
     "mdutils",
@@ -140,6 +140,7 @@ ignore = [
     # We want to unignore the below lints, but they currently return too many errors
     "PLR0913", # pylint-refactor too-many-arguments
     "PLR0915", # pylint-refactor too-many-return-statements
+    "PLR0917", # pylint-refactor too-many-positional-arguments
     "PLR1704", # pylint-refactor redefined-argument-from-local (this will probably also catch some bugs)
     "PLR2004", # pylint-refactor magic-value-comparison
     "B008",    # flake8-bugbear function-call-in-default-argument
