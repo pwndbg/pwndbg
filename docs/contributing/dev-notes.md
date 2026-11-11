@@ -147,9 +147,10 @@ If porting a public tool to Pwndbg, please make a point of crediting the origina
 
 ## Minimum Supported Versions
 
-Our goal is to fully support all Ubuntu LTS releases that have not reached end-of-life, with support for other
-platforms on a best-effort basis. Currently that means all code should work on Ubuntu 22.04, and 24.04 with GDB
-12.1 and later. This means that the minimum supported Python version is 3.10, and we cannot use any newer
+Our goal is to fully support all Ubuntu LTS releases that have not reached end-of-life and whose default Python
+version is still [supported upstream](https://devguide.python.org/versions/), with support for other platforms on
+a best-effort basis. Currently that means all code should work on Ubuntu 24.04 with GDB 12.1 and later. The
+minimum supported Python version is 3.11 (the version shipped with Debian 12), and we cannot use any newer
 Python features unless those features are backported to this minimum version.
 
 Note that while all code should run without errors on these supported LTS versions, it's fine if older versions
@@ -159,4 +160,4 @@ provide alternative implementations for in older versions, and so in these cases
 the functionality can't be provided due to the version of GDB.
 
 The `lint.sh` script described in the previous section runs [`vermin`](https://github.com/netromdk/vermin) to
-ensure that our code does not use any features that aren't supported on Python 3.10.
+ensure that our code does not use any features that aren't supported on Python 3.11.

@@ -11,7 +11,7 @@ import functools
 import logging
 import re
 from collections.abc import Callable
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from typing import TypeVar
 
@@ -41,7 +41,7 @@ commands: list[CommandObj] = []
 command_names: set[str] = set()
 
 
-class CommandCategory(str, Enum):
+class CommandCategory(StrEnum):
     START = "Start"
     NEXT = "Step/Next/Continue"
     CONTEXT = "Context"

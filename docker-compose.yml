@@ -10,16 +10,6 @@ services:
     volumes:
       - .:/pwndbg
 
-  ubuntu22.04:
-    <<: *base-spec
-    image: ghcr.io/pwndbg/pwndbg:ubuntu22.04
-    pull_policy: always
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        image: ubuntu:22.04
-
   ubuntu24.04:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:ubuntu24.04
