@@ -2,20 +2,13 @@ from __future__ import annotations
 
 import copy
 import importlib
-import sys
 import types
-from collections import OrderedDict
-
-if sys.version_info >= (3, 11):
-    # Python 3.11, see https://docs.python.org/3/whatsnew/3.11.html#enum
-    from enum import ReprEnum as Enum  # novermin
-else:
-    from enum import Enum
-
 import typing
+from collections import OrderedDict
 from collections import OrderedDict as OrderedDictType
 from collections.abc import Callable
 from contextlib import suppress
+from enum import ReprEnum as Enum
 from typing import Any
 
 import pwndbg

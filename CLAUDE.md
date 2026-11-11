@@ -196,7 +196,7 @@ def test_gdb_only_feature(start_binary):
 
 **Read `docs/contributing/index.md#linting` for full details.**
 
-- Runs: ruff, shfmt, vermin (Python 3.10+ compat), mypy, custom-lint.py
+- Runs: ruff, shfmt, vermin (Python 3.11+ compat), mypy, custom-lint.py
 - Both `mypy` and `mypy --strict` must pass (or not increase error count)
 - Use type checker in your editor (mypy --strict, pyright, etc.)
 - Pre-push hook runs lint automatically after `./setup-dev.sh`
@@ -212,10 +212,10 @@ def test_gdb_only_feature(start_binary):
 
 ## Compatibility
 
-- **Python**: 3.10+ (Ubuntu 22.04 baseline)
+- **Python**: 3.11+ (Debian 12 baseline)
 - **GDB**: 12.1+
 - **LLDB**: 19+ (requires Python 3.12+)
-- `vermin` enforces Python 3.10 compatibility in lint
+- `vermin` enforces Python 3.11 compatibility in lint
 
 ## Common Patterns
 

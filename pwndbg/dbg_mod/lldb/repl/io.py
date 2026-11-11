@@ -504,30 +504,22 @@ class IODriverPseudoTerminal(IODriver):
         # Put the manager in nonblocking mode.
         os.set_blocking(self.manager, False)
 
-        # We could support querying the terminal size in older versions of Python,
-        # too, but, for now, this should be good enough.
-        #
-        # TODO: Properly support terminal size queries in Python 3.10 and older.
         # Handle terminal resizes.
-        if sys.version_info >= (3, 11):
-            # The way we currently handle terminal resizing absolutely does not
-            # support multipleinstances of IODriverPseudoTerminal, but we
-            # shouldn't have more than one object live at a time anyway for the
-            # REPL, so this is fine.
-            try:
-                terminal = open("/dev/tty", "rb")
+        #
+        # The way we currently handle terminal resizing absolutely does not
+        # support multipleinstances of IODriverPseudoTerminal, but we
+        # shouldn't have more than one object live at a time anyway for the
+        # REPL, so this is fine.
+        try:
+            terminal = open("/dev/tty", "rb")
 
-                def handle_sigwinch(_sig, _frame):
-                    # Tell vermin to ignore these. This block is
-                    # gated behind Python 3.11.
-                    size = termios.tcgetwinsize(terminal.fileno())  # novm
-                    termios.tcsetwinsize(self.manager, size)  # novm
+            def handle_sigwinch(_sig, _frame):
+                size = termios.tcgetwinsize(terminal.fileno())
+                termios.tcsetwinsize(self.manager, size)
 
-                signal.signal(signal.SIGWINCH, handle_sigwinch)
-            except (FileNotFoundError, PermissionError, OSError):
-                print(
-                    "warning: no terminal device in /dev/tty, expect no support for terminal sizes"
-                )
+            signal.signal(signal.SIGWINCH, handle_sigwinch)
+        except (FileNotFoundError, PermissionError, OSError):
+            print("warning: no terminal device in /dev/tty, expect no support for terminal sizes")
 
         self.stop_requested = threading.Event()
         self.input_buffer = b""
