@@ -506,6 +506,61 @@ async def test_context_all_sections_flag(ctrl: Controller) -> None:
 
 
 @pwndbg_test
+async def test_register_snapshots_are_lazy_and_stable_within_stop(ctrl: Controller) -> None:
+    import pwndbg.aglib
+
+    await ctrl.launch(REFERENCE_BINARY)
+
+    regs = pwndbg.aglib.regs
+    await ctrl.execute_and_capture("regs")
+    previous = regs.previous.copy()
+    last = regs.last.copy()
+
+    # Hidden register output should leave snapshots alone.
+    await ctrl.execute("set context-sections disasm")
+    await ctrl.execute("stepi")
+    await ctrl.execute("stepi")
+
+    assert regs.previous == previous
+    assert regs.last == last
+
+    # `context -a` still displays registers.
+    context_output = await ctrl.execute_and_capture("context -a")
+    assert "REGISTERS" in context_output
+    assert regs.previous == last
+    assert regs.last == {reg: regs.read_reg(reg) for reg in regs.common}
+
+    previous = regs.previous.copy()
+    last = regs.last.copy()
+
+    # Repeated displays at one stop keep changes highlighted.
+    reg = regs.gpr[0]
+    old_value = regs.read_reg(reg)
+    if old_value is None:
+        pytest.skip(f"Register {reg} is not readable")
+    new_value = (old_value + 1) & pwndbg.aglib.arch.ptrmask
+    if new_value == regs.previous.get(reg):
+        new_value = (old_value + 2) & pwndbg.aglib.arch.ptrmask
+    regs.write_reg(reg, new_value)
+    assert reg in regs.changed
+
+    await ctrl.execute_and_capture("regs")
+    await ctrl.execute_and_capture("context regs")
+
+    assert regs.previous == previous
+    assert regs.last == last
+    assert reg in regs.changed
+
+    # The standalone command refreshes a stale snapshot too.
+    await ctrl.execute("stepi")
+    assert regs.previous == previous
+    assert regs.last == last
+    await ctrl.execute_and_capture("regs")
+    assert regs.previous == last
+    assert regs.last == {register: regs.read_reg(register) for register in regs.common}
+
+
+@pwndbg_test
 async def test_context_history_prev_next(ctrl: Controller) -> None:
     import pwndbg
 
