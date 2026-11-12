@@ -274,6 +274,7 @@ class PwndbgInstruction(Protocol):
     next: int
     target: int
     target_string: str | None
+    target_symbol: str | None
     target_const: bool | None
 
     target_memory_operand: MemoryDereferenceInfo | None
@@ -422,6 +423,15 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         String representation of the target address.
 
         Colorized symbol if a symbol exists at address, else colorized address
+        """
+
+        self.target_symbol: str | None = None
+        """
+        Symbol name of the target address, without colors.
+
+        Ex: "malloc", "main+12"
+
+        Set together with target_string. None if no symbol exists at the address.
         """
 
         self.target_const: bool | None = None
@@ -676,7 +686,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Raw asm: f"{self.mnemonic:-<6} {self.op_str}"
         New asm: {self.asm_string}
         Next: {self.next:#x}
-        Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}
+        Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, Target symbol={self.target_symbol or ""}, const={self.target_const}
         Target from memory address: {hex(self.target_memory_operand.address) if self.target_memory_operand is not None else None}, {self.target_memory_operand.address_string if self.target_memory_operand is not None else None}, value: {self.target_memory_operand.value if self.target_memory_operand is not None and self.target_memory_operand.value is not None else None}
         Condition: {self.condition.name}
         Groups: {[CS_GRP.get(group, group) for group in self.groups]}
@@ -876,6 +886,7 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.next = address + self.size
         self.target = self.next
         self.target_string = None
+        self.target_symbol = None
         self.target_const = None
 
         self.target_memory_operand = None
