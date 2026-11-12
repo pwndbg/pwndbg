@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import gdb
 
 import pwndbg.color
+
+from . import args_at_pc
+from . import syscalls_at_pc
 
 LOONGARCH64_PREAMBLE = """
 .text
@@ -63,3 +68,37 @@ def test_loongarch64_simple_branches(qemu_assembly_run):
     )
 
     assert dis == expected
+
+
+LOONGARCH64_CALL_AND_SYSCALL = f"""
+{LOONGARCH64_PREAMBLE}
+    li.d $a0, 1
+    li.d $a1, 2
+    li.d $a2, 3
+    bl write
+    li.d $a0, 0
+    li.d $a7, 93
+    syscall 0
+    nop
+    nop
+
+write:
+    jr $ra
+"""
+
+
+def test_loongarch64_function_arguments(qemu_assembly_run: Callable[..., None]) -> None:
+    qemu_assembly_run(LOONGARCH64_CALL_AND_SYSCALL, "loongarch64")
+
+    gdb.execute("stepuntilasm bl")
+
+    assert args_at_pc() == [("fd", 1), ("buf", 2), ("n", 3)]
+
+
+def test_loongarch64_syscall_annotation(qemu_assembly_run: Callable[..., None]) -> None:
+    qemu_assembly_run(LOONGARCH64_CALL_AND_SYSCALL, "loongarch64")
+
+    gdb.execute("stepuntilasm syscall")
+
+    assert syscalls_at_pc() == [(93, "exit"), (93, "exit")]
+    assert args_at_pc() == [("error_code", 0)]
