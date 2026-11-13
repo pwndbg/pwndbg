@@ -578,6 +578,9 @@ async def test_context_backtrace_show_proper_symbol_names(ctrl: Controller) -> N
     """
     await ctrl.launch(WEIRD_SYMBOLS_BINARY)
 
+    # This test is about symbol names, so hide the return address locations.
+    await ctrl.execute("set context-backtrace-retaddr off")
+
     # The first call to bump() is from the coroutine
     await ctrl.execute("b bump")
     await ctrl.cont()
