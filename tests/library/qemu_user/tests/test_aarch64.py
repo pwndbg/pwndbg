@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import gdb
 import pytest
 from capstone6pwndbg.aarch64_const import AARCH64_INS_BL
@@ -957,7 +959,7 @@ __stack_chk_guard:
 """
 
 
-def test_aarch64_canary(qemu_assembly_run):
+def test_aarch64_canary(qemu_assembly_run: Callable[[str, str], None]) -> None:
     """
     On aarch64 the canary lives in the global __stack_chk_guard, not in TLS.
     """

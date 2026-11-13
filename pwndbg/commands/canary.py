@@ -144,8 +144,8 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def canary(all) -> None:
     """
-    Display information about the stack canary, including its location in TLS
-    and any copies found on the stack.
+    Display information about the stack canary, including where it is stored
+    (TLS or __stack_chk_guard) and any copies found on the stack.
     """
     if pwndbg.libc.which() not in (LibcType.GLIBC, LibcType.UNKNOWN):
         print(message.error("Supported only on glibc for now. PRs welcome!"))
