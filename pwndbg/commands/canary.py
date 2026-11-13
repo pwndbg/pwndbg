@@ -63,9 +63,9 @@ def canary_from_at_random() -> tuple[int | None, int | None]:
     return global_canary, at_random
 
 
-def find_tls_canary_addr() -> int | None:
+def find_canary_addr() -> int | None:
     """
-    Find the address of the canary in the Thread Local Storage (TLS).
+    Find the address of the global canary.
 
     The canary is stored at a fixed offset from the TLS base, which varies by architecture.
     The TLS base can be accessed through architecture-specific registers:
@@ -81,16 +81,17 @@ def find_tls_canary_addr() -> int | None:
     if arch in GLOBAL_CANARY_ARCHES:
         return pwndbg.aglib.symbol.lookup_symbol_addr("__stack_chk_guard")
 
-    offset = TLS_CANARY_OFFSETS.get(arch)
-    if offset is None:
-        return None
-
     # Get TLS base address
     tls_base = (
         pwndbg.aglib.tls.find_address_with_register()
         or pwndbg.aglib.tls.find_address_with_pthread_self()
     )
     if not tls_base:
+        return None
+
+    # Get architecture-specific offset
+    offset = TLS_CANARY_OFFSETS.get(arch)
+    if offset is None:
         return None
 
     return tls_base + offset
@@ -103,7 +104,7 @@ def canary_from_tls() -> tuple[int | None, int | None]:
     Returns:
         tuple: (canary_value | None, canary_addr | None)
     """
-    canary_addr = find_tls_canary_addr()
+    canary_addr = find_canary_addr()
     if canary_addr is None:
         return None, None
 

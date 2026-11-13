@@ -11,7 +11,6 @@ from . import pwndbg_test
 
 CANARY_X86_64_BINARY = get_binary("canary.x86-64.out")
 CANARY_I386_BINARY = get_binary("canary.i386.out")
-USE_FDS_BINARY = get_binary("use-fds.native.out")
 
 
 @pwndbg_test
@@ -51,7 +50,7 @@ async def test_command_canary(ctrl: Controller, binary: Path, reg_name: str, ski
 
     mask: int = pwndbg.aglib.arch.ptrmask ^ 0xFF
 
-    tls_addr = pwndbg.commands.canary.find_tls_canary_addr()
+    tls_addr = pwndbg.commands.canary.find_canary_addr()
     assert tls_addr is not None
     raw_tls = pwndbg.aglib.memory.read_pointer_width(tls_addr) & mask
 
@@ -72,37 +71,3 @@ async def test_command_canary(ctrl: Controller, binary: Path, reg_name: str, ski
         masked_raw = raw & mask
         assert masked_raw == at_random_canary
         assert at_random_canary == canary_value
-
-
-@pwndbg_test
-@pytest.mark.integration
-async def test_command_canary_aarch64(ctrl: Controller) -> None:
-    """
-    Tests that the canary is read from __stack_chk_guard on aarch64
-    """
-    import pwndbg.aglib
-    import pwndbg.aglib.memory
-    import pwndbg.aglib.symbol
-    import pwndbg.commands.canary
-    import pwndbg.libc
-
-    await launch_to(ctrl, USE_FDS_BINARY, "main")
-    if pwndbg.aglib.arch.name != "aarch64":
-        pytest.skip("Only aarch64 keeps the canary in __stack_chk_guard")
-
-    guard_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__stack_chk_guard")
-    assert guard_addr is not None
-    assert pwndbg.commands.canary.find_tls_canary_addr() == guard_addr
-
-    canary_value = pwndbg.commands.canary.canary_value()
-    assert canary_value == pwndbg.aglib.memory.read_pointer_width(guard_addr)
-
-    if pwndbg.libc.version() < (2, 44):
-        at_random_canary, _ = pwndbg.commands.canary.canary_from_at_random()
-        assert at_random_canary == canary_value
-
-    out = await ctrl.execute_and_capture("canary")
-    assert f"__stack_chk_guard @ {guard_addr:#x}" in out
-    assert f"Canary     = {canary_value:#x}" in out
-    assert "doesn't match" not in out
-    assert "Found valid canaries" in out

@@ -6,6 +6,7 @@ from capstone6pwndbg.aarch64_const import AARCH64_INS_BL
 
 import pwndbg
 import pwndbg.aglib.disasm.disassembly
+import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.dbg_mod
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -936,3 +937,40 @@ def test_memory_read_error_handling(qemu_assembly_run):
         assert False, "Expected Error due to inaccessible memory address."
     except pwndbg.dbg_mod.DebuggerError:
         pass
+
+
+AARCH64_CANARY = f"""
+{AARCH64_PREAMBLE}
+    adrp x0, __stack_chk_guard
+    ldr x0, [x0, :lo12:__stack_chk_guard]
+    str x0, [sp, #-16]!
+    nop
+check:
+    nop
+{AARCH64_GRACEFUL_EXIT}
+
+.data
+.balign 8
+.globl __stack_chk_guard
+__stack_chk_guard:
+    .quad 0x1122334455667700
+"""
+
+
+def test_aarch64_canary(qemu_assembly_run):
+    """
+    On aarch64 the canary lives in the global __stack_chk_guard, not in TLS.
+    """
+    qemu_assembly_run(AARCH64_CANARY, "aarch64")
+
+    gdb.execute("b check")
+    gdb.execute("c")
+
+    guard_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__stack_chk_guard")
+    assert guard_addr is not None
+    assert pwndbg.aglib.memory.read_pointer_width(guard_addr) == 0x1122334455667700
+
+    out = pwndbg.color.strip(gdb.execute("canary", to_string=True))
+    assert f"__stack_chk_guard @ {guard_addr:#x}" in out
+    assert "Canary     = 0x1122334455667700" in out
+    assert "Found valid canary" in out
