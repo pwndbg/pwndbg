@@ -5,7 +5,7 @@ source "$(dirname "$0")/scripts/common.sh"
 
 echo "# --------------------------------------"
 echo "# Install testing tools."
-echo "# Only works with Ubuntu / APT or Arch / Pacman."
+echo "# Supports Ubuntu / APT, Arch / Pacman, Fedora / DNF, and Void / XBPS."
 echo "# --------------------------------------"
 
 help_and_exit() {
@@ -176,6 +176,35 @@ install_dnf() {
     fi
 }
 
+install_xbps() {
+    # glibc-dbg is in Void's official debug repository.
+    sudo xbps-install -Sy void-repo-debug
+    sudo xbps-install -Sy \
+        nasm \
+        base-devel \
+        gdb \
+        python3-devel \
+        glibc-dbg \
+        curl \
+        wget \
+        parallel \
+        qemu-system-amd64 \
+        qemu-system-i386 \
+        qemu-system-arm \
+        qemu-system-aarch64 \
+        qemu-user \
+        iproute2 \
+        musl-bootstrap \
+        shfmt
+
+    # The multilib repository is optional and must be enabled by the user.
+    if uname -m | grep -q x86_64 && xbps-query -R -p pkgver glibc-32bit &> /dev/null; then
+        sudo xbps-install -Sy glibc-32bit libgcc-32bit
+    fi
+
+    command -v go &> /dev/null || sudo xbps-install -Sy go
+}
+
 install_jemalloc() {
     JEMALLOC_STAGE="${HOME}/.cache/pwndbg/jemalloc"
 
@@ -287,6 +316,9 @@ if linux; then
                 echo ${VERSION_ID} version
             )
             install_dnf $fedora_version
+            ;;
+        "void")
+            install_xbps
             ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'pacman' package managers."
