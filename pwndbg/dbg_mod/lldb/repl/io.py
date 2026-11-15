@@ -50,25 +50,12 @@ class OpportunisticTerminalControl:
     fd: int
     supported: bool
 
-    def __init__(self, fd: int = -1):
-        """
-        Creates an opportunistic terminal control object for the given file
-        descriptor. If no file descriptor is given, this class will try to open
-        '/dev/tty', and use that.
-        """
+    def __init__(self, fd: int):
         if not TERM_CONTROL_AVAILABLE:
             # Preemptively disable this class if terminal control isn't possible
             # in this target, and do nothing else.
             self.supported = False
             return
-
-        if fd == -1:
-            try:
-                fd = os.open("/dev/tty", os.O_RDWR)
-            except (FileNotFoundError, PermissionError, OSError):
-                # Flop and die.
-                self.supported = False
-                return
 
         self.fd = fd
 
@@ -497,9 +484,7 @@ class IODriverPseudoTerminal(IODriver):
         self.worker = worker
 
         # Try to set up our opportunistic control of the input terminal.
-        self.termcontrol = OpportunisticTerminalControl()
-        if not self.termcontrol.supported:
-            print("warning: could not set up terminal control")
+        self.termcontrol = OpportunisticTerminalControl(sys.stdin.fileno())
 
         # Put the manager in nonblocking mode.
         os.set_blocking(self.manager, False)
