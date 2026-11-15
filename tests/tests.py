@@ -58,20 +58,12 @@ def main() -> None:
         )
         sys.exit(1)
 
-    force_serial = False
     assert args.driver in (Driver.GDB, Driver.LLDB)
     match args.driver:
         case Driver.GDB:
             host = get_gdb_host(args, local_pwndbg_root)
         case Driver.LLDB:
             host = get_lldb_host(args, local_pwndbg_root)
-
-            # LLDB does not properly support having its tests run in parallel,
-            # so we forcibly disable it, for now.
-            print(
-                "WARNING: LLDB tests always run in series, even when parallel execution is requested."
-            )
-            force_serial = True
 
     # Handle the case in which the user only wants the collection to run.
     if args.collect_only:
@@ -84,7 +76,7 @@ def main() -> None:
         host,
         args.test_name_filter,
         args.pdb,
-        force_serial or args.serial,
+        args.serial,
         args.verbose,
         coverage_out,
     )
