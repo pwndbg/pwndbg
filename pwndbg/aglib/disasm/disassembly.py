@@ -22,6 +22,7 @@ import pwndbg.aglib.disasm.m68k
 import pwndbg.aglib.disasm.mips
 import pwndbg.aglib.disasm.ppc
 import pwndbg.aglib.disasm.riscv
+import pwndbg.aglib.disasm.s390x
 import pwndbg.aglib.disasm.sparc
 import pwndbg.aglib.disasm.x86
 import pwndbg.aglib.memory
@@ -1070,6 +1071,7 @@ ALL_DISASSEMBLY_ASSISTANTS: dict[
     ),
     "powerpc": lambda: pwndbg.aglib.disasm.ppc.PowerPCDisassemblyAssistant("powerpc"),
     "sparc": lambda: pwndbg.aglib.disasm.sparc.SparcDisassemblyAssistant("sparc"),
+    "s390x": lambda: pwndbg.aglib.disasm.s390x.S390xDisassemblyAssistant("s390x"),
     "m68k": lambda: pwndbg.aglib.disasm.m68k.M68kDisassemblyAssistant("m68k"),
 }
 

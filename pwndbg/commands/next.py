@@ -9,6 +9,7 @@ from collections.abc import Callable
 
 from capstone6pwndbg import CS_GRP_RET
 
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.next
 import pwndbg.aglib.proc
 import pwndbg.commands
@@ -167,19 +168,20 @@ def _get_syscall_predicate(
     Helper function to build a predicate function for filtering syscalls based on syscall number and/or condition.
     """
     if syscall_num is not None:
-        syscall_abi = pwndbg.aglib.arch.syscall_abi
-        if syscall_abi is None:
+        if pwndbg.aglib.arch.syscall_abi is None:
             print("Cannot determine syscall ABI for current architecture")
             return None
-        syscall_reg = syscall_abi.syscall_register
 
+        # Use the syscall number resolved by the disassembler, as it is not always held
+        # in the syscall register (e.g. s390x `svc N` encodes it in the instruction)
         def check_syscall() -> bool:
-            return pwndbg.aglib.regs.read_reg(syscall_reg) == syscall_num
+            ins = pwndbg.aglib.disasm.disassembly.one()
+            return ins is not None and ins.syscall == syscall_num
 
         if condition is not None:
 
             def check_syscall_and_condition() -> bool:
-                return pwndbg.aglib.regs.read_reg(syscall_reg) == syscall_num and bool(condition())
+                return check_syscall() and bool(condition())
 
             return check_syscall_and_condition
         return check_syscall
