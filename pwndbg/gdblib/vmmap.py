@@ -20,6 +20,7 @@ import pwndbg.aglib.qemu
 import pwndbg.gdblib.info
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+from pwndbg.lib.arch import Platform
 
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
@@ -57,6 +58,11 @@ def get_known_maps() -> tuple[pwndbg.lib.memory.Page, ...] | None:
 
     if is_corefile():
         return tuple(coredump_maps())
+
+    if pwndbg.aglib.arch.platform == Platform.DARWIN:
+        # There is no /proc on Darwin, but the native target implements
+        # `info proc mappings`.
+        return info_proc_maps()
 
     return proc_tid_maps()
 
