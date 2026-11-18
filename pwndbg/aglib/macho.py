@@ -636,7 +636,28 @@ class DyldSharedCache:
         return DyldSharedCacheHashSet(ptr)
 
 
-_global_new_variable_id = 0
+# `struct dyld_all_image_infos` from <mach-o/dyld_images.h>. This is the
+# public, versioned ABI that dyld exposes to debuggers, so its layout is stable.
+# `sharedCacheBaseAddress` was added in version 15.
+_DYLD_ALL_IMAGE_INFOS_SHARED_CACHE_BASE_MIN_VERSION = 15
+
+
+def _dyld_all_image_infos_shared_cache_base_offset(ptrsize: int) -> int:
+    # struct dyld_all_image_infos {
+    #     uint32_t version;                          // 0
+    #     uint32_t infoArrayCount;                   // 4
+    #     const struct dyld_image_info* infoArray;   // 8
+    #     dyld_image_notifier notification;          // 8 + p
+    #     bool processDetachedFromSharedRegion;      // 8 + 2p
+    #     bool libSystemInitialized;                 // 8 + 2p + 1
+    #     const struct mach_header* dyldImageLoadAddress;  // 8 + 3p (aligned)
+    #     ... 14 more pointer-sized fields ...
+    #     uintptr_t sharedCacheSlide;                // 8 + 18p
+    #     uint8_t sharedCacheUUID[16];               // 8 + 19p
+    #     uintptr_t sharedCacheBaseAddress;          // 24 + 19p
+    #     ...
+    # };
+    return 24 + 19 * ptrsize
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -644,40 +665,67 @@ def shared_cache() -> DyldSharedCache | None:
     """
     Base address of the Darwin shared cache.
 
-    In Darwin, the way the Objective-C Runtime queries for this value is to call
-    `_dyld_get_shared_cache_range` from libdyld[1], which then calls a routine
-    that lives inside dyld itself, and that returns the values after poking into
-    internal C++ structures.
-
-    From our perspective, that kind of sucks. Calling routines from debuggers
-    can be quite unreliable, and so ideally we'd always be peeking into the data
-    structures directly. But, in this case, even for Apple these are considered
-    entirely private to dyld[2], and so there's even less of a stability guarantee
-    for the layout of these structures than normal.
-
-    Because of this, a level of care must be taken before calling this function,
-    as it must be assumed that the state of the inferior can be changed by it.
+    The Objective-C Runtime queries this value by calling
+    `_dyld_get_shared_cache_range` from libdyld[1]. Calling functions in the
+    inferior is unreliable (and not possible at all with some debugger
+    backends), so instead we read `sharedCacheBaseAddress` out of dyld's
+    `dyld_all_image_infos` structure[2], which is the interface dyld provides
+    for debuggers and holds the same value.
 
     [1]: https://github.com/apple-oss-distributions/objc4/blob/f126469408dc82bd3f327217ae678fd0e6e3b37c/runtime/objc-opt.mm#L434
-    [2]: https://github.com/apple-oss-distributions/dyld/blob/main/doc/dyld4.md#libdylddylib
+    [2]: https://github.com/apple-oss-distributions/dyld/blob/main/include/mach-o/dyld_images.h
     """
-    if pwndbg.aglib.symbol.lookup_symbol("_dyld_get_shared_cache_range") is None:
-        return None
-
-    # Due to bug: https://github.com/llvm/llvm-project/issues/84806#issuecomment-1995055683
-    # we have to create new variable on each call
-    global _global_new_variable_id
-    _global_new_variable_id += 1
-    var = f"$_pwndbg_internal_shared_cache_size{_global_new_variable_id}"
-
-    base = pwndbg.dbg.selected_inferior().evaluate_expression(
-        f"size_t {var} = 0; (const void*)_dyld_get_shared_cache_range(&{var})"
-    )
-    if base.is_optimized_out:
-        return None
-
-    base = int(base)
-    if base == 0:
+    base = _shared_cache_base_from_all_image_infos()
+    if base is None:
+        base = _shared_cache_base_from_memory_map()
+    if base is None:
         return None
 
     return DyldSharedCache(base)
+
+
+def _shared_cache_base_from_all_image_infos() -> int | None:
+    # dyld may not be visible to the debugger as a module (e.g. when it is
+    # loaded from the shared cache itself and the debugger doesn't list it),
+    # in which case this symbol can't be found.
+    infos = pwndbg.aglib.symbol.lookup_symbol_addr("dyld_all_image_infos")
+    if infos is None:
+        return None
+
+    try:
+        version = pwndbg.aglib.memory.u32(infos)
+        if version < _DYLD_ALL_IMAGE_INFOS_SHARED_CACHE_BASE_MIN_VERSION:
+            return None
+
+        ptrsize: int = pwndbg.aglib.arch.ptrsize
+        base = pwndbg.aglib.memory.u(
+            infos + _dyld_all_image_infos_shared_cache_base_offset(ptrsize), ptrsize * 8
+        )
+    except pwndbg.dbg_mod.DebuggerError:
+        return None
+
+    return base or None
+
+
+_DYLD_SHARED_CACHE_MAGIC = b"dyld_v1"
+
+
+def _shared_cache_base_from_memory_map() -> int | None:
+    # Every shared cache file (the main cache and each of its subcaches) maps
+    # its `dyld_cache_header` at the start of its first mapping, and the main
+    # cache is always placed first in the shared region. So the main cache is
+    # the lowest mapping that starts with the shared cache magic.
+    #
+    # This uses the debugger's raw memory map, rather than `pwndbg.aglib.vmmap`,
+    # because the latter uses this function to refine its result.
+    for page in sorted(pwndbg.dbg.selected_inferior().vmmap().ranges(), key=lambda p: p.start):
+        if not page.read:
+            continue
+        try:
+            magic = pwndbg.aglib.memory.read(page.start, len(_DYLD_SHARED_CACHE_MAGIC))
+        except pwndbg.dbg_mod.DebuggerError:
+            continue
+        if magic == _DYLD_SHARED_CACHE_MAGIC:
+            return page.start
+
+    return None
