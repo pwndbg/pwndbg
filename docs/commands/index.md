@@ -185,6 +185,7 @@
 
 ## Process
 
+-  [archinfo](process/archinfo.md) - Display information about the running architecture.
 -  [killthreads](process/killthreads.md) - Kill all or given threads.
 -  [pid](process/pid.md) - Gets the pid.
 -  [procinfo](process/procinfo.md) - Display information about the running process.
