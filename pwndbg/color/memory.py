@@ -68,6 +68,15 @@ def attempt_colorized_symbol(
     Convert address to colorized symbol (if symbol is there), else None
     """
     symbol = pwndbg.aglib.symbol.resolve_addr(address)
+    return attempt_colorized_resolved_symbol(address, symbol, decompiler_stack_variables)
+
+
+def attempt_colorized_resolved_symbol(
+    address: int, symbol: str | None, decompiler_stack_variables: dict[int, str]
+) -> str | None:
+    """
+    Same as attempt_colorized_symbol, with the symbol already resolved by the caller
+    """
     if symbol:
         return get(address, symbol)
     var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
