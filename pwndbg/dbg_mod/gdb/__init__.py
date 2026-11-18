@@ -1097,6 +1097,8 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
         arch = arch.lower()
 
+        platform = self._platform()
+
         arch_attributes = []
 
         if arch.startswith("mips:"):
@@ -1141,7 +1143,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     name=match,  # type: ignore[arg-type]
                     ptrsize=ptrsize,
                     endian=endian,
-                    platform=Platform.LINUX,
+                    platform=platform,
                     attributes=arch_attributes,
                 )
 
@@ -1149,7 +1151,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             name=arch,  # type: ignore[arg-type]
             ptrsize=ptrsize,
             endian=endian,
-            platform=Platform.LINUX,
+            platform=platform,
             attributes=arch_attributes,
         )
 
@@ -1220,8 +1222,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
         FinishpointAdapter(stop_handler, internal)
 
-    @override
-    def is_linux(self) -> bool:
+    def _current_osabi(self) -> str:
         # Detect current ABI of client side by 'show osabi'
         #
         # Examples of strings returned by `show osabi`:
@@ -1229,17 +1230,28 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         # 'The current OS ABI is "GNU/Linux".\nThe default OS ABI is "GNU/Linux".\n'
         # 'El actual SO ABI es «auto» (actualmente «GNU/Linux»).\nEl SO ABI predeterminado es «GNU/Linux».\n'
         # 'The current OS ABI is "auto" (currently "none")'
+        # 'The current OS ABI is "auto" (currently "Darwin").\nThe default OS ABI is "Darwin".\n'
         #
         # As you can see, there might be GDBs with different language versions
         # and so we have to support it there too.
         # Lets assume and hope that `current osabi` is returned in first line in all languages...
-        abi = gdb.execute("show osabi", to_string=True).split("\n")[0]
+        abi: str = gdb.execute("show osabi", to_string=True).split("\n")[0]
+        return abi
 
+    def _platform(self) -> Platform:
+        # Currently we support those osabis:
+        # 'Darwin': macOS/iOS (Mach-O)
+        # anything else ('GNU/Linux', 'none', ...): treated as Linux
+        if "Darwin" in self._current_osabi():
+            return Platform.DARWIN
+        return Platform.LINUX
+
+    @override
+    def is_linux(self) -> bool:
         # Currently we support those osabis:
         # 'GNU/Linux': linux
         # 'none': bare metal
-
-        return "GNU/Linux" in abi
+        return "GNU/Linux" in self._current_osabi()
 
     @override
     def disasm(self, address: int) -> pwndbg.dbg_mod.DisassembledInstruction | None:

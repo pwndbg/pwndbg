@@ -933,13 +933,19 @@ def recover_ktask_typeinfo() -> str:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def get_filepath(file: int | pwndbg.dbg_mod.Value) -> str:
+def get_filepath(file_addr: int) -> str:
+    # note: we can't accept `int | gdb.Value` because `gdb.Value` doesn't get cached
     ptrsize = pwndbg.aglib.arch.ptrsize
-    file = pwndbg.aglib.memory.get_typed_pointer("struct file", file)
-    if int(file) == 0:
+    if file_addr == 0:
         return ""
+    file = pwndbg.aglib.memory.get_typed_pointer("struct file", file_addr)
     dentry = file["f_path"]["dentry"]
-    if not dentry.dereference().type.has_field("d_name"):
+    try:
+        # check that we have good dentry info
+        # checking this way rather than `.has_field()` allows the debugger
+        # to go through anon unions/structs
+        dentry["d_name"]["name"]
+    except pwndbg.dbg_mod.DebuggerError:
         return "?"
     mount = pwndbg.aglib.memory.get_typed_pointer(
         "struct mount", int(file["f_path"]["mnt"]) - 4 * ptrsize
@@ -981,7 +987,7 @@ def resolve_addr_if_file(mm: int | pwndbg.dbg_mod.Value, addr: int) -> str:
     for _vma in vmafinder:
         vma = pwndbg.aglib.memory.get_typed_pointer("struct vm_area_struct", _vma)
         if int(vma["vm_start"]) <= addr < int(vma["vm_end"]):
-            return get_filepath(vma["vm_file"])
+            return get_filepath(int(vma["vm_file"]))
     return ""
 
 

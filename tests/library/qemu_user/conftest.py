@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import time
 import typing
 from pathlib import Path
 from typing import Any
@@ -120,6 +121,18 @@ def ensure_qemu_port():
         print(f"Reserved port {QEMU_PORT} for QEMU")
 
 
+def _connect_to_qemu() -> None:
+    attempts = 20
+    for attempt in range(attempts):
+        try:
+            gdb.execute(f"target remote :{QEMU_PORT}")
+            return
+        except gdb.error:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.1)
+
+
 @pytest.fixture
 def qemu_assembly_run():
     """
@@ -187,7 +200,7 @@ def qemu_assembly_run():
         gdb.execute("set width 80")
         gdb.execute("set heuristic-backwards-disasm off")
         gdb.execute("set context-disasm-back-linear-lines 0")
-        gdb.execute(f"target remote :{QEMU_PORT}")
+        _connect_to_qemu()
 
         global _start_binary_called
         # if _start_binary_called:
@@ -235,7 +248,7 @@ def qemu_start_binary():
         gdb.execute("set exception-verbose on")
         gdb.execute("set context-reserve-lines never")
         gdb.execute("set width 80")
-        gdb.execute(f"target remote :{QEMU_PORT}")
+        _connect_to_qemu()
 
         global _start_binary_called
         # if _start_binary_called:

@@ -305,6 +305,11 @@ def install_ghidra_plugin() -> None:
 
     print(
         message.warn("\nIMPORTANT: ")
+        + "only Ghidra version 11.3.1 is supported right now, please make sure you have this version installed before loading the plugin."
+    )
+
+    print(
+        message.warn("\nIMPORTANT: ")
         + "Because the Ghidra plugin is not shipped compiled in the decomp2dbg python package, there is no symlink"
     )
     print("and " + message.warn("the plugin will not be automatically updated.\n"))
