@@ -68,7 +68,6 @@ let
     "types-requests"
     "types-tabulate"
     "types-pygments"
-    "types-docutils"
     "types-psutil"
     "types-gdb"
     "types-setuptools"
@@ -82,17 +81,18 @@ let
     "vermin"
     # decomp2dbg deps
     "decomp2dbg"
-    "ghidra-bridge"
-    "jfx-bridge"
+    "declib"
+    "inversion"
+    "pyghidra"
     "tqdm"
     "toml"
     "libbs"
     "networkx"
     "jpype1"
-    "pyhidra"
     "ply"
     # end of decomp2dbg deps
     "niche-elf"
+    "tzdata"
   ];
   pkgsNeedFlitcore = [
     "typing-extensions"
@@ -121,6 +121,7 @@ let
     "pt"
     "rich"
     "sortedcontainers-stubs"
+    "tomlkit"
   ];
 
   genPkgsNeeded =
@@ -288,16 +289,6 @@ let
       })
     ) { };
 
-    jfx-bridge = pkgs.callPackage (
-      { stdenv }:
-      prev.jfx-bridge.overrideAttrs (old: {
-        postPatch = ''
-          substituteInPlace ./setup.py \
-            --replace-fail 'git describe --tags' 'echo ${old.version}'
-        '';
-      })
-    ) { };
-
     jpype1 = pkgs.callPackage (
       {
         python3,
@@ -325,16 +316,6 @@ let
             ++ final.resolveBuildSystem { scikit-build-core = [ ]; };
         }
       )
-    ) { };
-
-    ghidra-bridge = pkgs.callPackage (
-      { }:
-      prev.ghidra-bridge.overrideAttrs (old: {
-        postPatch = ''
-          substituteInPlace ./setup.py \
-            --replace-fail 'git describe --tags' 'echo ${old.version}'
-        '';
-      })
     ) { };
 
     gdb-for-pwndbg = pkgs.callPackage (
