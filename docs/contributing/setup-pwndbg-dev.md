@@ -61,6 +61,13 @@ After installing Pwndbg like described above, there are a few ways to set up the
 ```
 but you can also use the [docker container](#development-from-docker) or [develop using nix](#development-using-nix).
 
+On Void Linux (glibc), the script enables Void's debug repository for `glibc-dbg`. To run optional 32-bit glibc tests on x86_64, enable the multilib repository yourself and rerun the script:
+```{.bash .copy}
+sudo xbps-install -Sy void-repo-multilib
+./setup-dev.sh
+```
+The script then installs `glibc-32bit` and `libgcc-32bit`. Void's musl variant has not been verified.
+
 !!! note
     For a proper development environment you must be able to run Pwndbg with both GDB and LLDB, otherwise you won't be able to use some important development features (like doc generation).
 
