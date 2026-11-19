@@ -1461,15 +1461,21 @@ def try_free(addr: str | int) -> None:
 
             # May be an array, and tc_idx may be negative, so always cast to a
             # pointer before we index into it.
-            # counts was renamed to num_slots in newer version of GLIBC 2.42
+            # In GLIBC 2.42 counts was replaced by num_slots, which counts the free
+            # slots left in the bin instead of the chunks in it
             tcache = allocator.get_tcache()
             try:
                 counts = tcache["num_slots"]
+                is_num_slots = True
             except Exception:
                 counts = tcache["counts"]
-            if int(counts.address.cast(counts.type.target().pointer())[tc_idx]) < int(
-                allocator.mp["tcache_count"]
-            ):
+                is_num_slots = False
+            count = int(counts.address.cast(counts.type.target().pointer())[tc_idx])
+            if is_num_slots:
+                tcache_has_room = count != 0
+            else:
+                tcache_has_room = count < int(allocator.mp["tcache_count"])
+            if tcache_has_room:
                 print(message.success("Using tcache_put"))
                 if errors_found == 0:
                     returned_before_error = True
