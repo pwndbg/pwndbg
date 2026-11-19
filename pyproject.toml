@@ -52,7 +52,7 @@ lldb = [
     "lldb-for-pwndbg==23.1.0.post2",
 ]
 gdb = [
-    "gdb-for-pwndbg==18.1.0.post1",
+    "gdb-for-pwndbg==18.1.0.post3",
 ]
 
 [dependency-groups]
