@@ -39,6 +39,10 @@ async def test_cache_single_value(ctrl: Controller) -> None:
     assert foo() == x == 3
     assert foo() == x == 3
 
+    # Check that a normal process exit also clears stop-caches.
+    await ctrl.cont()
+    assert foo() == x == 4
+
 
 @pwndbg_test
 async def test_cache_args_kwargs_properly(ctrl: Controller) -> None:
