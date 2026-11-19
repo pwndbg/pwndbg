@@ -44,6 +44,7 @@ async def test_cache_single_value(ctrl: Controller) -> None:
     assert foo() == x == 4
     assert foo() == x == 4
 
+
 @pwndbg_test
 async def test_cache_args_kwargs_properly(ctrl: Controller) -> None:
     from pwndbg.lib import cache
