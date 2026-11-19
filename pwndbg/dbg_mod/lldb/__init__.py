@@ -819,7 +819,9 @@ class LLDBValue(pwndbg.dbg_mod.Value):
             )
 
         ptrval = self.inner.unsigned
-        elmlen = self.inner.type.size
+        # Step by the size of the pointee like C does, not by the size of the pointer.
+        # void has no size, GDB steps by one byte for void * so we do the same.
+        elmlen = self.inner.type.GetPointeeType().GetByteSize() or 1
 
         ptrval += elmlen * val
 
