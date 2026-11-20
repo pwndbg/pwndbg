@@ -776,3 +776,64 @@ async def test_regs_vector_register(ctrl: Controller) -> None:
 
     # xmm0 is the lower half of ymm0
     assert ymm_match.group(1).endswith(xmm_match.group(1))
+
+
+@pwndbg_test
+async def test_context_backtrace_retaddr_location(ctrl: Controller) -> None:
+    """
+    Tests that `context-backtrace-retaddr` shows where each return address is stored.
+
+    See issue #1288 .
+    """
+    import pwndbg
+    import pwndbg.aglib.memory
+    import pwndbg.color
+    import pwndbg.commands.context
+
+    await ctrl.launch(STACK_VARS_BINARY)
+
+    # Break after the prologue of inner_function (by name, not by address), so that on
+    # architectures with a link register, inner_function has already saved it on the stack.
+    await ctrl.execute("b inner_function")
+    await ctrl.cont()
+
+    def backtrace() -> list[str]:
+        # The location is colored like other stack addresses, so strip the colors.
+        return [
+            pwndbg.color.strip(line)
+            for line in pwndbg.commands.context.context_backtrace(with_banner=False)
+        ]
+
+    await ctrl.execute("set context-backtrace-retaddr off")
+    assert not any("@ 0x" in line for line in backtrace())
+
+    await ctrl.execute("set context-backtrace-retaddr on")
+    out = backtrace()
+
+    # Example backtrace:
+    #
+    #  ► 0 0x555555555189                  inner_function+16
+    #    1 0x5555555551f5 @ 0x7fffffffe108 outer_function+18
+    #    2 0x555555555217 @ 0x7fffffffe118 main+30
+    #    3 0x7ffff7c2a1ca @ 0x7fffffffe128 __libc_start_call_main+122
+
+    def line_of(name: str) -> str:
+        line = next((line for line in out if re.search(rf"\s{name}(\+\w+)?$", line)), None)
+        assert line is not None, out
+        return line
+
+    # The innermost frame has no return address.
+    assert "@ 0x" not in line_of("inner_function")
+
+    frame = pwndbg.dbg.selected_frame()
+    assert frame is not None
+    for name in ("outer_function", "main"):
+        frame = frame.parent()
+        assert frame is not None
+
+        match = re.search(r"@ (0x[0-9a-f]+)\s", line_of(name))
+        assert match, out
+
+        # The shown stack slot must really hold the return address into this frame.
+        location = int(match[1], 16)
+        assert pwndbg.aglib.memory.read_pointer_width(location) == frame.pc()

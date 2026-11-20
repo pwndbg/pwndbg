@@ -26,6 +26,7 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.kernel
+import pwndbg.aglib.memory
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.signal
@@ -1591,6 +1592,54 @@ backtrace_lines = pwndbg.config.add_param(
 backtrace_frame_label = theme.add_param(
     "backtrace-frame-label", "", "frame number label for backtrace"
 )
+config_backtrace_retaddr = pwndbg.config.add_param(
+    "context-backtrace-retaddr",
+    True,
+    "whether to show where return addresses are stored in the backtrace",
+)
+
+# How many bytes of a frame we are willing to scan when looking for its return address.
+_RETADDR_SCAN_LIMIT = 0x10000
+
+
+def _find_retaddr_location(
+    callee: pwndbg.dbg_mod.Frame, caller: pwndbg.dbg_mod.Frame
+) -> int | None:
+    """
+    Return the stack address that holds the return address from `callee` into `caller`.
+
+    The return address is searched for between the stack pointers of the two frames,
+    going downwards from the caller's one, as that is where it is closest to on most
+    architectures (e.g. right below the CFA on x86-64).
+
+    Returns None if it is not stored on the stack, e.g. when it only lives
+    in a link register.
+    """
+    ptrsize = pwndbg.aglib.arch.ptrsize
+
+    try:
+        retaddr = caller.pc()
+        low = callee.sp()
+        high = caller.sp()
+    except pwndbg.dbg_mod.DebuggerError:
+        return None
+
+    high -= high % ptrsize
+    low = max(low, high - _RETADDR_SCAN_LIMIT)
+    if low >= high:
+        return None
+
+    try:
+        data = pwndbg.aglib.memory.read(low, high - low)
+    except pwndbg.dbg_mod.DebuggerError:
+        return None
+
+    for slot in range(high - ptrsize, low - 1, -ptrsize):
+        offset = slot - low
+        if pwndbg.aglib.arch.unpack(data[offset : offset + ptrsize]) == retaddr:
+            return slot
+
+    return None
 
 
 @serve_context_history
@@ -1637,9 +1686,15 @@ def context_backtrace(
     table.add_column(no_wrap=True)  # active indicator
     table.add_column(justify="right")  # frame number
     table.add_column(justify="right", overflow="ignore", no_wrap=True)  # address
+    show_retaddr = bool(config_backtrace_retaddr)
+    if show_retaddr:
+        table.add_column(no_wrap=True)  # stack location of the return address
     table.add_column(overflow="fold")  # symbol
 
     offset_regex = re.compile(r"^(.+)\+(\d+)$")
+
+    # The frame called by the one being printed, which holds its return address.
+    callee = newest_frame.child() if show_retaddr and newest_frame else None
 
     while True:
         pc = frame.pc()
@@ -1655,16 +1710,24 @@ def context_backtrace(
                     symbol = f"{parts[1]}+{int(parts[2]):#x}"
             symbol_cell = Text.from_ansi(c.symbol(symbol))
 
-        table.add_row(
+        row = [
             prefix,
             Text.from_ansi(c.frame_label(f"{backtrace_frame_label}{i}")),
             address,
-            symbol_cell,
-        )
+        ]
+        if show_retaddr:
+            # The innermost frame has no return address, its pc is where we stopped.
+            location = _find_retaddr_location(callee, frame) if callee and frame else None
+            row.append(
+                Text.from_ansi(f"@ {mem_color.get(location)}") if location is not None else Text()
+            )
+        row.append(symbol_cell)
+        table.add_row(*row)
 
         if frame == oldest_frame:
             break
 
+        callee = frame
         frame = frame.parent()
         i += 1
 
