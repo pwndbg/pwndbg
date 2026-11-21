@@ -41,6 +41,7 @@ def load_aglib():
     # we could get rid of this function.
 
     import pwndbg.aglib.argv
+    import pwndbg.aglib.convenience_vars
     import pwndbg.aglib.dynamic
     import pwndbg.aglib.elf
     import pwndbg.aglib.file
