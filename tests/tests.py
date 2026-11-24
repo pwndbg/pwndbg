@@ -11,6 +11,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import threading
 import time
 from enum import Enum
 from pathlib import Path
@@ -116,10 +117,12 @@ def run_tests_and_print_stats(
         print("\nRunning tests in parallel")
 
         interrupted = False
+        lock = threading.Lock()
 
         def on_done(test: str, future: concurrent.futures.Future[TestResult]) -> None:
-            if not interrupted:
-                stats.handle_test_result(test, future.result(), verbose)
+            with lock:
+                if not interrupted:
+                    stats.handle_test_result(test, future.result(), verbose)
 
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count())
         try:
