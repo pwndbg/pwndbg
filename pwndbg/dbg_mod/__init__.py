@@ -5,6 +5,7 @@ The abstracted debugger interface.
 from __future__ import annotations
 
 import contextlib
+import copy
 from collections.abc import Awaitable
 from collections.abc import Callable
 from collections.abc import Coroutine
@@ -16,6 +17,8 @@ from typing import Any
 from typing import Literal
 from typing import TypedDict
 from typing import TypeVar
+
+from typing_extensions import Self
 
 import pwndbg.lib.cache
 import pwndbg.lib.memory
@@ -361,6 +364,14 @@ class MemoryMap:
 
     def __init__(self, pages: Sequence[pwndbg.lib.memory.Page]):
         self.pages = tuple(pages)
+
+    def with_pages(self, pages: Sequence[pwndbg.lib.memory.Page]) -> Self:
+        """
+        Returns a copy of this memory map, with its ranges replaced by `pages`.
+        """
+        new = copy.copy(self)
+        new.pages = tuple(pages)
+        return new
 
     def is_qemu(self) -> bool:
         """

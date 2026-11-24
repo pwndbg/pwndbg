@@ -72,7 +72,7 @@ def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
     ptrsize: int = pwndbg.aglib.arch.ptrsize
 
     for page in pages.ranges():
-        if page.end < shared_cache_start or page.start >= shared_cache_end:
+        if page.end <= shared_cache_start or page.start >= shared_cache_end:
             # No overlap with the shared cache.
             final_pages.append(page)
             continue
@@ -125,7 +125,7 @@ def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
 
             one_past_index += 1
 
-    return type(pages)(final_pages)
+    return pages.with_pages(final_pages)
 
 
 _persistent_memory_map: MemoryMap | None = None
