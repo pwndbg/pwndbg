@@ -3,7 +3,7 @@ name = "pwndbg"
 version = "2026.10.28"
 description = "Exploit Development and Reverse Engineering with GDB Made Easy"
 authors = [{ name = "Dominik 'disconnect3d' Czarnota", email = "dominik.b.czarnota+dc@gmail.com" }]
-requires-python = ">=3.10, <4"
+requires-python = ">=3.11, <4"
 readme = "README.md"
 dependencies = [
     "capstone6pwndbg==8.0.0",
@@ -31,8 +31,7 @@ dependencies = [
     "pt @ git+https://github.com/martinradev/gdb-pt-dump@50227bda0b6332e94027f811a15879588de6d5cb",
     # Optional? 'ziglang' must be optional, as it is not available on every platform.
     # It is only used for the 'cymbol' command and some `asm` functionality.
-    # we need to skip 0.16.0 because it has a bug, 0.17.0 will fix it (6a37df00ec)
-    "ziglang==0.15.2 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
+    "ziglang==0.17.1 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
     # Used for symbol syncing (e.g. klookup --apply and decompiler integration)
     "niche-elf==0.3.7",
     # This dep is optional.
@@ -53,7 +52,7 @@ lldb = [
     "lldb-for-pwndbg==23.1.0.post2",
 ]
 gdb = [
-    "gdb-for-pwndbg==18.1.0.post1",
+    "gdb-for-pwndbg==18.1.0.post3",
 ]
 
 [dependency-groups]

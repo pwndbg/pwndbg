@@ -1,0 +1,3 @@
+data.json is fetched and decoded from https://github.com/guitmz/syscall.el/blob/main/syscall-data.el
+- update from the same source as needed, by using scripts/fetch-syscall-data.py
+- the syscall-data is under MIT License, while the Linux kernel itself is GPL-2.0-only, however as we are only doing "mere aggregation" of the data we should be safe from licensing issues

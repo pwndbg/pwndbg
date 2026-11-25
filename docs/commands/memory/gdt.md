@@ -8,6 +8,8 @@ usage: gdt [-h] address [count]
 
 Decode X86-64 GDT entries at address
 
+Use `monitor info registers` to get the GDT address and size.
+
 See also:
 
 * https://wiki.osdev.org/Global_Descriptor_Table
@@ -17,7 +19,7 @@ See also:
 |Positional Argument|Help|
 | :--- | :--- |
 |address|x86-64 GDTR base address (e.g. read from sgdt instruction from [16:79] bits)|
-|count|Number of entries to dump (should be (GDTR.size+1)/8) (default: 8)|
+|count|Number of entries to dump (should be (GDTR.size+1)/8). (default: 16)|
 
 ### Optional arguments
 

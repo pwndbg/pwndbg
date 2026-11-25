@@ -63,7 +63,7 @@ async def test_command_procinfo_net(ctrl: Controller, ip_connect: str) -> None:
     result = await ctrl.execute_and_capture("procinfo")
     res_list = result.split("\n")
 
-    assert bin_path in res_list[0]
+    assert bin_path is not None and bin_path in res_list[0]
     assert pid in res_list[3]
 
     if ":" in ip_connect:

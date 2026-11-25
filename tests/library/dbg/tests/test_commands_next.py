@@ -38,7 +38,9 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
     exec_bin_pages = [
         p for p in pwndbg.aglib.vmmap.get() if p.objfile == pwndbg.aglib.proc.exe() and p.execute
     ]
-    assert any(pwndbg.aglib.regs.pc in p for p in exec_bin_pages)
+    pc = pwndbg.aglib.regs.pc
+    assert pc is not None
+    assert any(pc in p for p in exec_bin_pages)
     main_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc)
 
     break_at_sym("puts")
@@ -49,7 +51,9 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
 
     # Execute nextproginstr and see if we came back to the same vmmap page
     await ctrl.execute("nextproginstr")
-    assert pwndbg.aglib.regs.pc in main_page
+    pc = pwndbg.aglib.regs.pc
+    assert pc is not None and main_page is not None
+    assert pc in main_page
 
     # Ensure that nextproginstr won't jump now
     out = await ctrl.execute_and_capture("nextproginstr")
@@ -72,13 +76,16 @@ async def test_command_nextproginstr_at_ret(ctrl: Controller) -> None:
     await ctrl.cont()
 
     # Sanity check that we are in libc
-    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc).objfile
+    foundpage = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc)
+    assert foundpage is not None and "libc" in foundpage.objfile
 
     await ctrl.execute("nextret")
 
     # Execute nextproginstr and see if we came back to the same vmmap page
     await ctrl.execute("nextproginstr")
-    assert pwndbg.aglib.regs.pc in main_page
+    pc = pwndbg.aglib.regs.pc
+    assert pc is not None and main_page is not None
+    assert pc in main_page
 
 
 @pytest.mark.parametrize("command", NEXT_COMMANDS)

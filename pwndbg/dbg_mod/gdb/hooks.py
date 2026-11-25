@@ -134,6 +134,7 @@ pwndbg.lib.cache.connect_clear_caching_events(
             pwndbg.dbg.event_handler(EventType.START, EventHandlerPriority.CACHE_CLEAR),
         ),
         CacheUntilEvent.STOP: (
+            pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.CACHE_CLEAR),
             pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.CACHE_CLEAR),
             pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED, EventHandlerPriority.CACHE_CLEAR),
             pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED, EventHandlerPriority.CACHE_CLEAR),

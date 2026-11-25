@@ -11,6 +11,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import threading
 import time
 from enum import Enum
 from pathlib import Path
@@ -58,20 +59,12 @@ def main() -> None:
         )
         sys.exit(1)
 
-    force_serial = False
     assert args.driver in (Driver.GDB, Driver.LLDB)
     match args.driver:
         case Driver.GDB:
             host = get_gdb_host(args, local_pwndbg_root)
         case Driver.LLDB:
             host = get_lldb_host(args, local_pwndbg_root)
-
-            # LLDB does not properly support having its tests run in parallel,
-            # so we forcibly disable it, for now.
-            print(
-                "WARNING: LLDB tests always run in series, even when parallel execution is requested."
-            )
-            force_serial = True
 
     # Handle the case in which the user only wants the collection to run.
     if args.collect_only:
@@ -84,7 +77,7 @@ def main() -> None:
         host,
         args.test_name_filter,
         args.pdb,
-        force_serial or args.serial,
+        args.serial,
         args.verbose,
         coverage_out,
     )
@@ -124,10 +117,12 @@ def run_tests_and_print_stats(
         print("\nRunning tests in parallel")
 
         interrupted = False
+        lock = threading.Lock()
 
         def on_done(test: str, future: concurrent.futures.Future[TestResult]) -> None:
-            if not interrupted:
-                stats.handle_test_result(test, future.result(), verbose)
+            with lock:
+                if not interrupted:
+                    stats.handle_test_result(test, future.result(), verbose)
 
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count())
         try:

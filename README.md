@@ -75,7 +75,7 @@ Pwndbg ensures a consistent experience across both, so switching between them is
 ### Compatibility Table
 | Feature     | Supported Version               | Notes                                |
 |-------------|---------------------------------|--------------------------------------|
-| pwndbg-gdb  | - Python 3.10+ <br/>- GDB 12.1+ | Battle-tested on Ubuntu 22.04/24.04  |
+| pwndbg-gdb  | - Python 3.11+ <br/>- GDB 12.1+ | Battle-tested on Ubuntu 24.04        |
 | pwndbg-lldb | - Python 3.12+ <br/>- LLDB 19+  | Experimental/early-stage support     |
 | qemu-user   | QEMU 8.1+                       | vFile API is needed for vmmap        |
 | qemu-system | QEMU 6.2+                       | Supported version since Ubuntu 22.04 |

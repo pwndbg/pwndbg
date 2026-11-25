@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -8,6 +9,7 @@ from subprocess import CompletedProcess
 
 from ...host import TestHost
 from ...host import TestResult
+from ...host import TestStatus
 from ...host import _collection_from_pytest
 from ...host import _result_from_pytest
 
@@ -24,6 +26,7 @@ class GDBTestHost(TestHost):
         self._pytest_root = pytest_root
         self._binaries_root = binaries_root
         self._gdb_path = gdb_path
+        self._skip_reasons: dict[str, str] = {}
 
     def _run_gdb(
         self,
@@ -59,6 +62,9 @@ class GDBTestHost(TestHost):
         coverage_out: Path | None,
         interactive: bool,
     ) -> TestResult:
+        if case in self._skip_reasons:
+            return TestResult(TestStatus.SKIPPED, 0, "", "", self._skip_reasons[case])
+
         gdb_args_before = []
         if coverage_out is not None:
             gdb_args_before = [
@@ -70,8 +76,9 @@ class GDBTestHost(TestHost):
         env = os.environ.copy()
         env["LANG"] = "en_US.UTF-8"
         env["SRC_DIR"] = str(self._pwndbg_root)
-        env["COVERAGE_FILE"] = str(coverage_out)
-        env["COVERAGE_PROCESS_START"] = str(self._pwndbg_root / "pyproject.toml")
+        if coverage_out is not None:
+            env["COVERAGE_FILE"] = str(coverage_out)
+            env["COVERAGE_PROCESS_START"] = str(self._pwndbg_root / "pyproject.toml")
         env["PWNDBG_LAUNCH_TEST"] = case
         env["NO_COLOR"] = "1"
         env["GDB_BIN_PATH"] = str(self._gdb_path)
@@ -104,6 +111,7 @@ class GDBTestHost(TestHost):
 
         result = self._run_gdb("tests.host.gdb.pytests_collect", env=env)
         names = _collection_from_pytest(result, self._pwndbg_root, self._pytest_root)
+        self._skip_reasons = dict(re.findall(r"^Skip: (.*?)\t(.*)$", result.stderr, re.MULTILINE))
 
         # We execute from Pwndbg root, so we need to prepend tests/ to the names.
         return [f"tests/{name}" for name in names]

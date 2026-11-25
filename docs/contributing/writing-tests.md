@@ -8,25 +8,30 @@
 In Pwndbg we have four types of tests: extensive (mostly x86_64) userspace tests, cross-architecture tests, linux kernel tests
 and unit-tests. They are all located in subdirectories of [`./tests`](https://github.com/pwndbg/pwndbg/tree/dev/tests).
 
-The userspace tests encompass most of the Pwndbg testing suite. If your tests do not belong in any of the other
+The **userspace tests** encompass most of the Pwndbg testing suite. If your tests do not belong in any of the other
 categories, they should go here. We run the same tests under both GDB and LLDB, and thus they use an abstraction layer to
 perform stuff like "set a breakpoint" or "continue execution". They are located in the [`./tests/library/dbg`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/dbg) directory and can be run with `./tests.sh --driver gdb --group dbg` and `./tests.sh -d lldb -g dbg`.
 
-These tests are also run on an aarch64 host in the Pwndbg CI, and most of them should be architecture agnostic. There are also
-gdb tests which you can run with `./tests.sh --driver gdb --group gdb`, located in the [`./tests/library/gdb`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/gdb) folder. These are mostly tests which have simply not yet been ported over to the new `./tests/library/dbg` system. We would
-ideally like to reduce the `gdb/` tests to only a minimal set which test truly gdb-only features. If you encounter a function which
-is implemented equivalently in both `gdb/` and `dbg/`, you should remove it from the `gdb/` file, there is no need to run the same
-test twice (duplicates were left during the porting process, to ensure it goes smoothly).
+These tests are also run on an aarch64 host in the Pwndbg CI, so most of them should be architecture agnostic.
 
-The cross-architecture tests are run using qemu-user emulation. They test architecture-specific logic and
+The tests which are run with `--group gdb` (in [`./tests/library/gdb`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/gdb))
+are legacy code. No new tests should go here, all of these tests should be ported to `./tests/library/dbg` eventually. If you implement
+some GDB-only functionality, put it in `./tests/library/dbg` and gate it behind something like this:
+```python
+if pwndbg.dbg.name() != DebuggerType.GDB:
+    pytest.skip("track-heap hooks a GDB-only event (inferior_call_post)")
+    return
+```
+
+The **cross-architecture tests** are run using qemu-user emulation. They test architecture-specific logic and
 are located in the [`./tests/library/qemu_user`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu_user)
 directory. They can be run with `./tests.sh -d gdb -g cross-arch-user`.
 
-The linux kernel tests are run using qemu-system emulation. They are located in the
+The **linux kernel tests** are run using qemu-system emulation. They are located in the
 [`./tests/library/qemu_system`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu_system)
 directory and run for a variety kernel configurations and architectures.
 
-The unit tests are not run from within a debugger, but rather directly with pytest. They are located
+The **unit tests** are not run from within a debugger, but rather directly with pytest. They are located
 in the [`./tests/unit_tests/`](https://github.com/pwndbg/pwndbg/tree/dev/tests/unit_tests)
 directory.
 
@@ -54,6 +59,8 @@ options:
 ## Writing tests
 
 Each test is a Python function that runs inside of an isolated debugger session which is dispatched through the [`@pwndbg_test`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/dbg/tests/__init__.py) decorator. The cross-arch-user QEMU tests are passed an appropriate starting function using [`pytest`](https://docs.pytest.org/en/latest/) [`fixtures`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu_user/conftest.py). Each test runs some commands and uses Python `assert` statements to verify correctness. We can access Pwndbg library code like `pwndbg.aglib.regs.sp`, execute common debugger actions through the test control API like `await ctrl.cont()`, or use the same to execute Pwndbg commands e.g. `await ctrl.execute_and_capture("telescope")`. Do not `ctrl.execute()` debugger-specific commands! - add a new function to the `Controller` in [`tests/host/__init__.py`](https://github.com/pwndbg/pwndbg/blob/dev/tests/host/__init__.py) if you need it.
+
+If sensible, prefer to make less big test functions rather than many smaller test functions. This makes the tests run faster because less debugger instances need to be spun up.
 
 We can take a look at [`tests/library/dbg/tests/test_mallocng.py`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/dbg/tests/test_mallocng.py)
 as an example test file.
