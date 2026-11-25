@@ -173,6 +173,7 @@ select = [
 
 [tool.uv]
 default-groups = []
+exclude-newer-package = { gdb-for-pwndbg = false, lldb-for-pwndbg = false, uv = false, ruff = false }
 
 [tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = [
