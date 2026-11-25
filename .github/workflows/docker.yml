@@ -44,7 +44,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { image: ubuntu22.04, dockerfile: Dockerfile, base: ubuntu:22.04 }
           - { image: ubuntu24.04, dockerfile: Dockerfile, base: ubuntu:24.04 }
           - { image: debian12, dockerfile: Dockerfile, base: debian:12 }
           - { image: archlinux, dockerfile: Dockerfile.arch, base: archlinux:latest }
@@ -261,7 +260,7 @@ jobs:
           done
 
           # amd64-only images
-          for image in ubuntu22.04 debian12 archlinux; do
+          for image in debian12 archlinux; do
             docker buildx imagetools create -t ghcr.io/pwndbg/pwndbg:$image \
               ghcr.io/pwndbg/pwndbg:$image-amd64
           done

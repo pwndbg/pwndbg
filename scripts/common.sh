@@ -38,9 +38,9 @@ else
     UV_RUN_LINT="${UV_RUN} --group lint"
     # If we don't do this, we get inconsistencies because argparse is unstable.
     UV_RUN_DOCS="${UV_RUN} --python ${CI_PYTHON} --group docs --extra gdb --extra lldb"
-    # Ideally we would run this with `--python 3.10.12` (which is from ubuntu 22:04, which is
-    # what we are actually running in the lint CI), but running that python version requires
-    # an extra system dependancy on some distros (e.g. libxcrypt-compat on arch).
+    # Ideally we would run this with `--python 3.12.3` (which is from ubuntu 24.04, which is
+    # what we are actually running in the lint CI), but we don't want to make every contributor
+    # install an extra python version just for this.
     # Requires `--all-groups --all-extras` because it needs to be able to resolve every import in
     # the project.
     UV_RUN_MYPY="${UV_RUN} --all-groups --all-extras"

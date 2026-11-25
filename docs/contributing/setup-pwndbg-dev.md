@@ -4,7 +4,7 @@
 
 To run pwndbg from source, please see [these instructions](../setup.md#install-pwndbg-from-source)
 
-Officially supported is Ubuntu 22.04 and later, but the setup script also supports the following distributions:
+Officially supported is Ubuntu 24.04 and later, but the setup script also supports the following distributions:
 
 * Debian-based OSes (via apt-get)
 * Fedora and Red Hat (via dnf)
@@ -17,6 +17,7 @@ Officially supported is Ubuntu 22.04 and later, but the setup script also suppor
 !!! tip
     If you have an older ubuntu version you may still use Pwndbg:
 
+    - for Ubuntu 22.04 use the [2026.10.28 release](https://github.com/pwndbg/pwndbg/releases/tag/2026.10.28)
     - for Ubuntu 20.04 use the [2024.08.29 release](https://github.com/pwndbg/pwndbg/releases/tag/2024.08.29)
     - for Ubuntu 18.04 use the [2023.07.17: ubuntu18.04-final release](https://github.com/pwndbg/pwndbg/releases/tag/2023.07.17)
 

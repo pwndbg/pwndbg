@@ -3,7 +3,7 @@ name = "pwndbg"
 version = "2026.10.28"
 description = "Exploit Development and Reverse Engineering with GDB Made Easy"
 authors = [{ name = "Dominik 'disconnect3d' Czarnota", email = "dominik.b.czarnota+dc@gmail.com" }]
-requires-python = ">=3.10, <4"
+requires-python = ">=3.11, <4"
 readme = "README.md"
 dependencies = [
     "capstone6pwndbg==8.0.0",
