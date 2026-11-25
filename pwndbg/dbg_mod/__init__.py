@@ -499,20 +499,38 @@ class Process:
 
     def read_memory(self, address: int, size: int, partial: bool = False) -> bytearray:
         """
-        Reads the requested number of bytes from the address given in the memory
-        space of this process. Will read as many bytes as possible starting at
-        that location, and returns how many were read.
+        Reads as many bytes as possible up to `size`, starting from `address`.
 
-        Throws an exception if reading fails and partial is False.
+        Arguments:
+            address: the start address of the read
+            size: the length of the read in bytes
+            partial: True if it is fine to read less than `size` (possibly zero) bytes
+
+        Raises:
+            DebuggerException: if we could not read `size` bytes and partial is False
+
+        Returns:
+            The array of read bytes (possibly empty).
         """
         raise NotImplementedError()
 
     def write_memory(self, address: int, data: bytearray, partial: bool = False) -> int:
         """
-        Writes as many bytes from the given data buffer as possible into the
-        given address in the memory space of this process.
+        Writes as many bytes of `data` as possible into the memory starting at
+        `address`.
 
-        Throws an exception if writing fails and partial is False.
+        (note: partial=True is currently unsupported by GDB, don't use it)
+
+        Arguments:
+            address: the start address of the write
+            data: the bytes to write
+            partial: True if it is fine to write less than `size` (possibly zero) bytes
+
+        Raises:
+            DebuggerException: if we could not write all `data` bytes and partial is False.
+
+        Returns:
+            The amount of bytes written (possibly zero).
         """
         raise NotImplementedError()
 
@@ -749,6 +767,13 @@ class Process:
     def add_symbol_file(self, path: str, base: int | None = None) -> None:
         """
         Adds a symbol file at base.
+        """
+        raise NotImplementedError()
+
+    def rebase_symbol_file(self, path: str, offset: int) -> None:
+        """
+        Replaces the symbols of the current session with the ones from `path`, with every
+        section of it shifted by `offset`.
         """
         raise NotImplementedError()
 
