@@ -841,6 +841,12 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
         try:
             return bytearray(gdb.selected_inferior().read_memory(address, size))
+        except OverflowError as e:
+            if partial:
+                return bytearray()
+            raise pwndbg.dbg_mod.DebuggerError(
+                f"Cannot access memory at address {address:#x}"
+            ) from e
         except gdb.error as e:
             if not partial:
                 raise pwndbg.dbg_mod.DebuggerError(e)
@@ -861,6 +867,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         try:
             # Throws an exception if can't access memory
             gdb.selected_inferior().write_memory(address, data)
+        except OverflowError as e:
+            raise pwndbg.dbg_mod.DebuggerError(
+                f"Cannot access memory at address {address:#x}"
+            ) from e
         except gdb.MemoryError as e:
             if partial:
                 raise NotImplementedError("partial writes are currently not supported under gdb")
