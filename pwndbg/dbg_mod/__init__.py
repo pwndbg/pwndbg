@@ -15,10 +15,9 @@ from collections.abc import Sequence
 from enum import Enum
 from typing import Any
 from typing import Literal
+from typing import Self
 from typing import TypedDict
 from typing import TypeVar
-
-from typing_extensions import Self
 
 import pwndbg.lib.cache
 import pwndbg.lib.memory
