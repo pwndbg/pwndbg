@@ -161,7 +161,7 @@ def rebase_symbols() -> None:
         _rebasing_symbols = False
 
     if offset:
-        print(message.notice(f"Rebased vmlinux by {offset:#x} to match the KASLR"))
+        print(message.notice(f"Rebased vmlinux by {offset:#x} to match the KASLR."))
 
     return
 
