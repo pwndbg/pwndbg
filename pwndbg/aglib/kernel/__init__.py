@@ -346,6 +346,21 @@ def num_numa_nodes() -> int:
     return val
 
 
+def _per_cpu_kernel_ptr(addr: int, cpu: int | None) -> int | None:
+    """
+    Read value for per-cpu variable at `addr` held by `cpu`'s slot,
+    and make sure it is a valid kernel pointer.
+    """
+    try:
+        pcp = per_cpu(addr, cpu=cpu)
+        if pcp is None:
+            return None
+        task = pwndbg.aglib.memory.read_pointer_width(int(pcp))
+    except pwndbg.dbg_mod.DebuggerError:
+        return None
+    return task if pwndbg.aglib.memory.is_kernel(task) else None
+
+
 @pwndbg.lib.cache.cache_until("stop")
 def current_task(cpu: int | None = None) -> int | None:
     result = symbol.current_task
@@ -354,8 +369,19 @@ def current_task(cpu: int | None = None) -> int | None:
     if pwndbg.aglib.arch.name == "aarch64":
         # TODO: how to get the kcurrent for different cpus
         return int(result)
-    ptr = int(per_cpu(result, cpu=cpu))
-    return pwndbg.aglib.memory.read_pointer_width(ptr)
+
+    task = _per_cpu_kernel_ptr(result, cpu)
+    if task is not None:
+        return task
+
+    # the _current_task() heuristic may have accidentally pulled out
+    # an invalid constant as the task address
+
+    # try symbol lookup as fallback
+    sym = pwndbg.aglib.symbol.lookup_symbol_addr("current_task")
+    if sym is not None and sym != result:
+        return _per_cpu_kernel_ptr(sym, cpu)
+    return None
 
 
 POSSIBLE_ZONE_NAMES = (

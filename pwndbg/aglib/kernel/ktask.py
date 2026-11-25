@@ -1176,7 +1176,7 @@ class Kthread:
     def __str__(self) -> str:
         prefix = str(pwndbg.config.backtrace_prefix)
         kcurrent = select_kthread_from_pid(None)
-        if kcurrent and int(kcurrent.thread) != int(self.thread):
+        if kcurrent is None or int(kcurrent.thread) != int(self.thread):
             prefix = " " * len(prefix)
         prefix = color.blue(prefix)
         thread = color.blue(hex(int(self.thread)))
