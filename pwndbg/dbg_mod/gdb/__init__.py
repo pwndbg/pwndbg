@@ -799,55 +799,78 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
         return result
 
+    def _how_many_readable_bytes(self, addr: int, count: int, gdbe: gdb.error) -> int:
+        """
+        Given we tried to read `count` bytes at `addr` and got error `gdbe`,
+        how many bytes can we *actually* read?
+        """
+
+        # Handle the case of remote debugging, where GDB's remote protocol
+        # returns the start address as the failed read address instead of the stop address.
+        # This is a limitation in how GDB handles the remote protocol, and while it could
+        # be fixed, it currently behaves this way.
+        #
+        # To work around this, we perform a binary search in the `_find_memory_last_readable` method
+        # to find the correct stop address that avoids the failure.
+        #
+        # For local debugging, this issue does not occur, and we proceed with the normal flow.
+        if self.is_remote():
+            return min(self._find_memory_last_readable(addr, count) + 1 - addr, count - 1)
+
+        message = str(gdbe)
+        match = re.search(r"Memory at address (\w+) unavailable\.", message)
+        if match:
+            stop_addr = int(match.group(1), 0)
+        else:
+            # can this raise a ValueError?
+            stop_addr = int(message.split()[-1], 0)
+
+        # Handle case of memory read that wraps around the memory space back to 0,
+        # where high memory was readable but memory at 0 was not.
+        # Example: 2-byte read at 0xFFFF_FFFF in a 32-bit address space.
+        # GDB returns error: "Cannot access memory at address 0x0"
+        if stop_addr == 0 and addr > 0:
+            return pwndbg.aglib.arch.ptrmask + 1 - addr
+
+        return stop_addr - addr
+
     @override
     def read_memory(self, address: int, size: int, partial: bool = False) -> bytearray:
-        count = max(int(size), 0)
-        addr = address
+        if size <= 0:
+            return bytearray()
 
         try:
-            result = gdb.selected_inferior().read_memory(addr, count)
-            return bytearray(result)
+            return bytearray(gdb.selected_inferior().read_memory(address, size))
+        except OverflowError as e:
+            if partial:
+                return bytearray()
+            raise pwndbg.dbg_mod.DebuggerError(
+                f"Cannot access memory at address {address:#x}"
+            ) from e
         except gdb.error as e:
             if not partial:
                 raise pwndbg.dbg_mod.DebuggerError(e)
 
-            if not pwndbg.aglib.remote.is_remote():
-                message = str(e)
-                match = re.search(r"Memory at address (\w+) unavailable\.", message)
-                if match:
-                    stop_addr = int(match.group(1), 0)
-                else:
-                    stop_addr = int(message.split()[-1], 0)
+            size = self._how_many_readable_bytes(address, size, e)
 
-                # Handle case of memory read that wraps around the memory space back to 0, where high memory was readable but memory at 0 was not.
-                # Example: 2-byte read at 0xFFFF_FFFF in a 32-bit address space.
-                # GDB returns error: "Cannot access memory at address 0x0"
-                if stop_addr == 0 and stop_addr < addr:
-                    # We could read from the top-portion of memory, but not after wrapping around
-                    # Because we are doing a partial read, read until the max address
-                    return self.read_memory(addr, pwndbg.aglib.arch.ptrmask - addr + 1)
+        if size <= 0:
+            return bytearray()
 
-                if stop_addr > addr:
-                    return self.read_memory(addr, stop_addr - addr)
-            # Handle the case of remote debugging, where GDB's remote protocol
-            # returns the start address as the failed read address instead of the stop address.
-            # This is a limitation in how GDB handles the remote protocol, and while it could
-            # be fixed, it currently behaves this way.
-            #
-            # To work around this, we perform a binary search in the `_find_memory_last_readable` method
-            # to find the correct stop address that avoids the failure.
-            #
-            # For local debugging, this issue does not occur, and we proceed with the normal flow.
-            elif (stop_addr := self._find_memory_last_readable(addr, count)) > 0:
-                return self.read_memory(addr, stop_addr - addr + 1)
-
-            raise pwndbg.dbg_mod.DebuggerError(e)
+        # try a partial read
+        try:
+            return bytearray(gdb.selected_inferior().read_memory(address, size))
+        except gdb.error:
+            return bytearray()
 
     @override
     def write_memory(self, address: int, data: bytearray, partial: bool = False) -> int:
         try:
             # Throws an exception if can't access memory
             gdb.selected_inferior().write_memory(address, data)
+        except OverflowError as e:
+            raise pwndbg.dbg_mod.DebuggerError(
+                f"Cannot access memory at address {address:#x}"
+            ) from e
         except gdb.MemoryError as e:
             if partial:
                 raise NotImplementedError("partial writes are currently not supported under gdb")
@@ -932,6 +955,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 start += len(pattern)
 
     @override
+    @pwndbg.lib.cache.cache_until("start")
     def is_remote(self) -> bool:
         # Example:
         # pwndbg> maintenance print target-stack
@@ -1342,6 +1366,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             gdb.execute(f"add-symbol-file {path}", to_string=True)
             return
         gdb.execute(f"add-symbol-file {path} {base}", to_string=True)
+
+    @override
+    def rebase_symbol_file(self, path: str, offset: int) -> None:
+        gdb.execute(f"symbol-file {path} -o {offset:#x}", to_string=True)
 
     @override
     def remove_symbol_file(self, path: str) -> bool:

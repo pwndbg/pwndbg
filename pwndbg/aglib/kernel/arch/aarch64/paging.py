@@ -9,6 +9,7 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.regs
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -284,20 +285,25 @@ class aarch64Paging(Paging):
         address_markers = pwndbg.aglib.symbol.lookup_symbol_addr("address_markers")
         if address_markers is not None:
             sections: list[tuple[str | None, int | None]] = [(self.USERLAND, 0)]
-            value = 0
-            name = None
-            for i in range(20):
-                value = pwndbg.aglib.memory.u64(address_markers + i * 0x10)
-                name_ptr = pwndbg.aglib.memory.u64(address_markers + i * 0x10 + 8)
+            try:
+                value = 0
                 name = None
-                if name_ptr > 0:
-                    name = pwndbg.aglib.memory.string(name_ptr).decode()
-                    name = self.adjust(name)
-                if value > 0:
-                    sections.append((name, value))
-                if value == pwndbg.aglib.arch.unsigned(-1):
-                    break
-            return tuple(sections)
+                for i in range(20):
+                    value = pwndbg.aglib.memory.u64(address_markers + i * 0x10)
+                    name_ptr = pwndbg.aglib.memory.u64(address_markers + i * 0x10 + 8)
+                    name = None
+                    if name_ptr > 0:
+                        name = pwndbg.aglib.memory.string(name_ptr).decode()
+                        name = self.adjust(name)
+                    if value > 0:
+                        sections.append((name, value))
+                    if value == pwndbg.aglib.arch.unsigned(-1):
+                        break
+                return tuple(sections)
+            except pwndbg.dbg_mod.DebuggerError:
+                # memory is unreadable - likely the symbols are wrong
+                # fall through
+                pass
         vmalloc_end = None
         if self.vmemmap and self.pci and self.fixmap:
             vmalloc_end = min(self.vmemmap, self.pci, self.fixmap)

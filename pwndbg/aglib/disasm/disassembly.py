@@ -553,6 +553,9 @@ def get_one_instruction(
 
     md = get_disassembler(cs_info)
     data = pwndbg.aglib.memory.read(address, pwndbg.aglib.arch.max_instruction_size, partial=True)
+    if not data:
+        return None
+
     for ins in md.disasm(bytes(data), address, 1):
         # Some architectures m68k) may return an invalid instruction, which has id 0,
         # if the instruction cannot be disassembled
