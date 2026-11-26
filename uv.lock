@@ -2,14 +2,14 @@ version = 1
 revision = 5
 requires-python = ">=3.11, <4"
 resolution-markers = [
-    "(python_full_version >= '3.13' and platform_machine == 'aarch64') or (python_full_version >= '3.13' and platform_machine == 'arm64') or (python_full_version >= '3.13' and platform_machine == 'x86_64')",
-    "(python_full_version == '3.12.*' and platform_machine == 'aarch64') or (python_full_version == '3.12.*' and platform_machine == 'arm64') or (python_full_version == '3.12.*' and platform_machine == 'x86_64')",
-    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
-    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
+    "python_full_version >= '3.13' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version >= '3.13' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
     "python_full_version >= '3.13' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version == '3.12.*' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
     "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
-    "(python_full_version < '3.12' and platform_machine == 'aarch64') or (python_full_version < '3.12' and platform_machine == 'arm64') or (python_full_version < '3.12' and platform_machine == 'x86_64')",
-    "(python_full_version < '3.12' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version < '3.12' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
+    "python_full_version < '3.12' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version < '3.12' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
     "python_full_version < '3.12' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 
@@ -331,7 +331,7 @@ name = "colored-traceback"
 version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "(os_name == 'nt' and platform_machine != 'loongarch64') or (os_name == 'nt' and sys_platform != 'linux')" },
+    { name = "colorama", marker = "os_name == 'nt'" },
     { name = "pygments" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/07/80/afcf567031ab8565f8f8d2bd14b007d313ea3258e50394e85b10a405099c/colored-traceback-0.4.2.tar.gz", hash = "sha256:ecbc8e41f0712ea81931d7cd436b8beb9f3eff1595d2498f183e0ef69b56fe84", size = 4707, upload-time = "2024-07-13T19:49:37.027Z" }
@@ -556,12 +556,12 @@ name = "gdb-for-pwndbg"
 version = "18.1.0.post3"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "(python_full_version >= '3.13' and platform_machine == 'aarch64') or (python_full_version >= '3.13' and platform_machine == 'arm64') or (python_full_version >= '3.13' and platform_machine == 'x86_64')",
-    "(python_full_version == '3.12.*' and platform_machine == 'aarch64') or (python_full_version == '3.12.*' and platform_machine == 'arm64') or (python_full_version == '3.12.*' and platform_machine == 'x86_64')",
-    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
-    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
-    "(python_full_version < '3.12' and platform_machine == 'aarch64') or (python_full_version < '3.12' and platform_machine == 'arm64') or (python_full_version < '3.12' and platform_machine == 'x86_64')",
-    "(python_full_version < '3.12' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version < '3.12' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
+    "python_full_version >= '3.13' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version >= '3.13' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
+    "python_full_version == '3.12.*' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version == '3.12.*' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
+    "python_full_version < '3.12' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version < '3.12' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/14/cf/865482bb326a06c314e8fa7b8665fd2b3ffac38e59ef8bb5a7fdd8f1bad1/gdb_for_pwndbg-18.1.0.post3-cp311-cp311-macosx_10_13_x86_64.whl", hash = "sha256:5608aa39f0113a054c9f20594ac6b3fb86c9f0ce223175d968c5c6d90aa3db3a", size = 11294028, upload-time = "2026-11-17T14:55:14.625Z" },
@@ -801,8 +801,8 @@ name = "ipython"
 version = "8.39.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "(python_full_version < '3.12' and platform_machine == 'aarch64') or (python_full_version < '3.12' and platform_machine == 'arm64') or (python_full_version < '3.12' and platform_machine == 'x86_64')",
-    "(python_full_version < '3.12' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version < '3.12' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
+    "python_full_version < '3.12' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version < '3.12' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
     "python_full_version < '3.12' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
@@ -827,11 +827,11 @@ name = "ipython"
 version = "9.15.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "(python_full_version >= '3.13' and platform_machine == 'aarch64') or (python_full_version >= '3.13' and platform_machine == 'arm64') or (python_full_version >= '3.13' and platform_machine == 'x86_64')",
-    "(python_full_version == '3.12.*' and platform_machine == 'aarch64') or (python_full_version == '3.12.*' and platform_machine == 'arm64') or (python_full_version == '3.12.*' and platform_machine == 'x86_64')",
-    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
-    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
+    "python_full_version >= '3.13' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version >= '3.13' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
     "python_full_version >= '3.13' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version == '3.12.*' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
     "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
@@ -902,11 +902,11 @@ name = "jpype1"
 version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
-    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
+    "python_full_version >= '3.13' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
     "python_full_version >= '3.13' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
     "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
-    "(python_full_version < '3.12' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version < '3.12' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
+    "python_full_version < '3.12' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
     "python_full_version < '3.12' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
@@ -939,9 +939,9 @@ name = "jpype1"
 version = "1.7.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "(python_full_version >= '3.13' and platform_machine == 'aarch64') or (python_full_version >= '3.13' and platform_machine == 'arm64') or (python_full_version >= '3.13' and platform_machine == 'x86_64')",
-    "(python_full_version == '3.12.*' and platform_machine == 'aarch64') or (python_full_version == '3.12.*' and platform_machine == 'arm64') or (python_full_version == '3.12.*' and platform_machine == 'x86_64')",
-    "(python_full_version < '3.12' and platform_machine == 'aarch64') or (python_full_version < '3.12' and platform_machine == 'arm64') or (python_full_version < '3.12' and platform_machine == 'x86_64')",
+    "python_full_version >= '3.13' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version == '3.12.*' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version < '3.12' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
 ]
 dependencies = [
     { name = "packaging" },
@@ -1085,12 +1085,12 @@ name = "lldb-for-pwndbg"
 version = "23.1.0.post2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "(python_full_version >= '3.13' and platform_machine == 'aarch64') or (python_full_version >= '3.13' and platform_machine == 'arm64') or (python_full_version >= '3.13' and platform_machine == 'x86_64')",
-    "(python_full_version == '3.12.*' and platform_machine == 'aarch64') or (python_full_version == '3.12.*' and platform_machine == 'arm64') or (python_full_version == '3.12.*' and platform_machine == 'x86_64')",
-    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
-    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
-    "(python_full_version < '3.12' and platform_machine == 'aarch64') or (python_full_version < '3.12' and platform_machine == 'arm64') or (python_full_version < '3.12' and platform_machine == 'x86_64')",
-    "(python_full_version < '3.12' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version < '3.12' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
+    "python_full_version >= '3.13' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version >= '3.13' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
+    "python_full_version == '3.12.*' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version == '3.12.*' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
+    "python_full_version < '3.12' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version < '3.12' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a9/19/c10f70f8180a607dca6ca23eb347584ecfd32392a6c8633f4abd3dc8c759/lldb_for_pwndbg-23.1.0.post2-cp310-abi3-macosx_10_13_x86_64.whl", hash = "sha256:cf00676ca301a4e8cd6ea937551e8d36bba838d0f234733cfe2cbbc30b4209f7", size = 59613165, upload-time = "2026-08-27T19:40:23.734Z" },
@@ -1840,14 +1840,14 @@ requires-dist = [
     { name = "capstone6pwndbg", specifier = "==8.0.0" },
     { name = "decomp2dbg", specifier = "==3.14.1" },
     { name = "gdb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", specifier = "==18.1.0.post3", index = "https://mirrors.loong64.com/pypi/simple" },
-    { name = "gdb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'gdb') or (sys_platform != 'linux' and extra == 'gdb')", specifier = "==18.1.0.post3" },
+    { name = "gdb-for-pwndbg", marker = "(platform_machine != 'loongarch64' or sys_platform != 'linux') and extra == 'gdb'", specifier = "==18.1.0.post3" },
     { name = "gnureadline", marker = "sys_platform != 'win32' and extra == 'lldb'", specifier = ">=8.2.13,<9" },
     { name = "ipython", marker = "python_full_version < '3.12'", specifier = ">=8.39.0,<9" },
     { name = "ipython", marker = "python_full_version >= '3.12'", specifier = ">=8.39.0,<10" },
     { name = "jpype1", marker = "platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'x86_64'", specifier = "==1.6.0" },
     { name = "jpype1", marker = "platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64'", specifier = "==1.7.1" },
     { name = "lldb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", specifier = "==23.1.0.post2", index = "https://mirrors.loong64.com/pypi/simple" },
-    { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'lldb') or (sys_platform != 'linux' and extra == 'lldb')", specifier = "==23.1.0.post2" },
+    { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' or sys_platform != 'linux') and extra == 'lldb'", specifier = "==23.1.0.post2" },
     { name = "niche-elf", specifier = "==0.3.7" },
     { name = "psutil", specifier = ">=7.0.0,<8" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
@@ -2342,12 +2342,12 @@ name = "ruff"
 version = "0.15.9"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "(python_full_version >= '3.13' and platform_machine == 'aarch64') or (python_full_version >= '3.13' and platform_machine == 'arm64') or (python_full_version >= '3.13' and platform_machine == 'x86_64')",
-    "(python_full_version == '3.12.*' and platform_machine == 'aarch64') or (python_full_version == '3.12.*' and platform_machine == 'arm64') or (python_full_version == '3.12.*' and platform_machine == 'x86_64')",
-    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
-    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
-    "(python_full_version < '3.12' and platform_machine == 'aarch64') or (python_full_version < '3.12' and platform_machine == 'arm64') or (python_full_version < '3.12' and platform_machine == 'x86_64')",
-    "(python_full_version < '3.12' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version < '3.12' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
+    "python_full_version >= '3.13' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version >= '3.13' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
+    "python_full_version == '3.12.*' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version == '3.12.*' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
+    "python_full_version < '3.12' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version < '3.12' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e6/97/e9f1ca355108ef7194e38c812ef40ba98c7208f47b13ad78d023caa583da/ruff-0.15.9.tar.gz", hash = "sha256:29cbb1255a9797903f6dde5ba0188c707907ff44a9006eb273b5a17bfa0739a2", size = 4617361, upload-time = "2026-04-02T18:17:20.829Z" }
 wheels = [
@@ -2665,12 +2665,12 @@ name = "uv"
 version = "0.13.6"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "(python_full_version >= '3.13' and platform_machine == 'aarch64') or (python_full_version >= '3.13' and platform_machine == 'arm64') or (python_full_version >= '3.13' and platform_machine == 'x86_64')",
-    "(python_full_version == '3.12.*' and platform_machine == 'aarch64') or (python_full_version == '3.12.*' and platform_machine == 'arm64') or (python_full_version == '3.12.*' and platform_machine == 'x86_64')",
-    "(python_full_version >= '3.13' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version >= '3.13' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
-    "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
-    "(python_full_version < '3.12' and platform_machine == 'aarch64') or (python_full_version < '3.12' and platform_machine == 'arm64') or (python_full_version < '3.12' and platform_machine == 'x86_64')",
-    "(python_full_version < '3.12' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (python_full_version < '3.12' and platform_machine == 'loongarch64' and sys_platform != 'linux')",
+    "python_full_version >= '3.13' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version >= '3.13' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
+    "python_full_version == '3.12.*' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version == '3.12.*' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
+    "python_full_version < '3.12' and (platform_machine == 'aarch64' or platform_machine == 'arm64' or platform_machine == 'x86_64')",
+    "python_full_version < '3.12' and ((platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'loongarch64' and platform_machine != 'x86_64') or (platform_machine == 'loongarch64' and sys_platform != 'linux'))",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/08/d5/88d43310d425f6e3a43997ad771658ded3237d0ed78c16a89b2353eddf56/uv-0.13.6.tar.gz", hash = "sha256:d762215478854f6cf20c3faed8f1eb30c8101d568e7bc32a3abafc063929d5c5", size = 7545242, upload-time = "2026-10-27T00:45:57.605Z" }
 wheels = [
