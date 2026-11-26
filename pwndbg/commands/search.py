@@ -15,7 +15,9 @@ import pwndbg.aglib.vmmap
 import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.enhance
+import pwndbg.lib.memory
 from pwndbg.color import message
+from pwndbg.commands import AddrRange
 from pwndbg.commands import CommandCategory
 
 if pwndbg.dbg.is_gdblib_available():
@@ -45,6 +47,39 @@ def print_search_hit(address: int) -> None:
     addr = mem_color.get(address)
     display = pwndbg.enhance.enhance(address)
     print(region, addr, display)
+
+
+def clip_pages_to_selection(
+    pages: list[pwndbg.lib.memory.Page], ranges: list[AddrRange]
+) -> list[pwndbg.lib.memory.Page]:
+    """
+    Cut `pages` down to the parts of them covered by `ranges`.
+    """
+    clipped = []
+
+    for page in pages:
+        for rng in ranges:
+            start = max(page.start, rng.begin)
+            end = min(page.end, rng.end)
+
+            if start >= end:
+                continue
+
+            clipped.append(
+                pwndbg.lib.memory.Page(
+                    start,
+                    end - start,
+                    page.flags,
+                    page.offset + (start - page.start),
+                    page.arch_ptrsize,
+                    page.objfile,
+                    page.in_darwin_shared_cache,
+                    page.protection_key,
+                    page.vm_flags,
+                )
+            )
+
+    return clipped
 
 
 auto_save = pwndbg.config.add_param(
@@ -142,7 +177,11 @@ parser.add_argument(
 )
 parser.add_argument("value", type=str, help="Value to search for")
 parser.add_argument(
-    "mapping_name", type=str, nargs="?", default=None, help="Mapping to search [e.g. libc]"
+    "mapping",
+    type=pwndbg.commands.parse_address_range,
+    nargs="?",
+    default=None,
+    help='Mapping name (as shown in vmmap), an explicit "begin:end" address range, or "any"/"*" for all mappings.',
 )
 parser.add_argument(
     "--save",
@@ -167,7 +206,22 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MEMORY,
+    examples="""
+>search -t string /bin/sh
+    Search every mapping for a null-terminated string.
+>search -p 0x4141414141414141 stack
+    Search the stack for a pointer-width integer.
+>search -4 0xdeadbeef libc
+    Search libc for a 4-byte integer.
+>search -p 0xdeadbeefcafebabe 0x7ffff7c24000:0x7ffff7d9f000
+    Search an explicit address range for a 4-byte integer.
+>search --asm "leave" chal
+    Find a leave instruction in the binary.
+""",
+)
 @pwndbg.commands.OnlyWhenRunning
 def search(
     type: str,
@@ -181,7 +235,7 @@ def search(
     limit: int | None = None,
     aligned: int | None = None,
     step: int | None = None,
-    mapping_name: str | None = None,
+    mapping: list[AddrRange] | None = None,
     save: bool | None = None,
 ) -> None:
     global saved
@@ -263,14 +317,15 @@ def search(
             )
             return
 
-    # Find the mappings that we're looking for
-    mappings = pwndbg.aglib.vmmap.get()
+    # we search all pages by default
+    mappings: list[pwndbg.lib.memory.Page] = list(pwndbg.aglib.vmmap.get())
 
-    if mapping_name:
-        mappings = [m for m in mappings if mapping_name in m.objfile]
+    if mapping is not None:
+        # unless the user provided a selector
+        mappings = clip_pages_to_selection(mappings, mapping)
 
     if not mappings:
-        print(message.error(f"Could not find mapping {mapping_name!r}"))
+        print(message.error("Could not find any mapped memory to search"))
         return
 
     # Output appropriate messages based on the detected search type for better clarity
