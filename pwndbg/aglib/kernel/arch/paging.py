@@ -348,12 +348,13 @@ class Paging:
         for mapping in pwndbg.aglib.kernel.vmmap.kernel_vmmap_pages():
             # should be page aligned -- either from pt-dump or info mem
 
-            # only search in kernel mappings:
-            # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
-            if not pwndbg.aglib.memory.is_kernel(mapping.vaddr):
+            # checking this before is_kernel() is a significant perf opt.
+            if address not in mapping:
                 continue
 
-            if address in mapping:
+            # only search in kernel mappings:
+            # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
+            if pwndbg.aglib.memory.is_kernel(mapping.vaddr):
                 return mapping.vaddr
 
         return None
