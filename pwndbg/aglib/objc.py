@@ -13,8 +13,8 @@ from collections.abc import Callable
 from collections.abc import Generator
 from typing import Generic
 from typing import TypeVar
+from typing import assert_never
 
-from typing_extensions import assert_never
 from typing_extensions import override
 
 import pwndbg

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import time
 import typing
 from pathlib import Path
 from typing import Any
@@ -54,7 +55,8 @@ COMPILE_AND_RUN_INFO: dict[COMPILATION_TARGETS_TYPE, tuple[str, tuple[str, ...],
     "mips64el": ("mips64el-freestanding", (), "mips64el"),
     "loongarch64": ("loongarch64-freestanding", (), "loongarch64"),
     "s390x": ("s390x-freestanding", (), "s390x"),
-    "sparc64": ("sparc64-freestanding", (), "sparc64"),
+    # -flto forces the use of lld, instead of Zigs linker (which has non-determinism)
+    "sparc64": ("sparc64-freestanding", ("-flto",), "sparc64"),
     "powerpc32": ("powerpc-freestanding", (), "ppc"),
     "powerpc64": ("powerpc64-freestanding", (), "ppc64"),
     "powerpc64le": ("powerpc64le-freestanding", (), "ppc64le"),
@@ -117,6 +119,18 @@ def ensure_qemu_port():
     if QEMU_PORT is None:
         QEMU_PORT = reserve_port()
         print(f"Reserved port {QEMU_PORT} for QEMU")
+
+
+def _connect_to_qemu() -> None:
+    attempts = 20
+    for attempt in range(attempts):
+        try:
+            gdb.execute(f"target remote :{QEMU_PORT}")
+            return
+        except gdb.error:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.1)
 
 
 @pytest.fixture
@@ -186,7 +200,7 @@ def qemu_assembly_run():
         gdb.execute("set width 80")
         gdb.execute("set heuristic-backwards-disasm off")
         gdb.execute("set context-disasm-back-linear-lines 0")
-        gdb.execute(f"target remote :{QEMU_PORT}")
+        _connect_to_qemu()
 
         global _start_binary_called
         # if _start_binary_called:
@@ -234,7 +248,7 @@ def qemu_start_binary():
         gdb.execute("set exception-verbose on")
         gdb.execute("set context-reserve-lines never")
         gdb.execute("set width 80")
-        gdb.execute(f"target remote :{QEMU_PORT}")
+        _connect_to_qemu()
 
         global _start_binary_called
         # if _start_binary_called:

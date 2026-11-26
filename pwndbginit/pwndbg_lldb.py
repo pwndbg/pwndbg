@@ -130,6 +130,13 @@ def main() -> None:
     # Parse the arguments we were given.
     parser = argparse.ArgumentParser(prog="pwndbg-lldb")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug output")
+    parser.add_argument(
+        "-o",
+        "--one-line",
+        action="append",
+        metavar="COMMAND",
+        help="Execute an LLDB command at startup. May be repeated.",
+    )
     parser.add_argument("target", nargs="?")
     parser_attach = parser.add_mutually_exclusive_group()
     parser_attach.add_argument(
@@ -177,6 +184,8 @@ def main() -> None:
         )
         parser.print_usage()
         sys.exit(1)
+
+    startup.extend(args.one_line or [])
 
     if (args.attach_pid is not None or args.attach_name is not None) and args.target:
         print(

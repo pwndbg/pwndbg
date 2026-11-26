@@ -17,11 +17,21 @@ STATIC_BINARY_WITH_IFUNC = get_binary("static_ifunc.native.out")
 
 @pwndbg_test
 async def test_commands_plt_gotplt_got_when_no_sections(ctrl: Controller) -> None:
+    from pathlib import Path
+
     await ctrl.launch(NO_SECTS_BINARY)
 
     # elf.py commands
     assert (await ctrl.execute_and_capture("plt")) == "No .plt.* sections found\n"
     assert (await ctrl.execute_and_capture("gotplt")) == "Could not find section .got.plt\n"
+
+    # got.py command
+    out = (await ctrl.execute_and_capture("got")).splitlines()
+    assert len(out) == 4
+    assert out[0] == "Filtering out read-only entries (display them with -r or --show-readonly)"
+    assert out[1] == ""
+    assert out[2] == f"State of the GOT of {Path.cwd() / NO_SECTS_BINARY}:"
+    assert out[3] == "GOT protection: No RELRO | Found 0 GOT entries passing the filter"
 
 
 @pytest.mark.parametrize(
@@ -78,8 +88,8 @@ async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> 
         pytest.skip("TODO multiarch")
 
     out = (await ctrl.execute_and_capture("elf")).splitlines()
-    # Newer versions of gcc emit an additional `.sframe` section.
-    assert len(out) == 25 or len(out) == 26
+    # Depending on the host libc version, the number of sections can slightly vary
+    assert len(out) in (25, 26, 27, 28, 29)
 
     # test for default
     for section in out[2:]:
@@ -96,7 +106,7 @@ async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> 
     if is_pie:
         out = (await ctrl.execute_and_capture("elf -R")).splitlines()
         # Never versions of gcc emit an additional `.sframe` section.
-        assert len(out) == 25 or len(out) == 26
+        assert len(out) in (25, 26, 27, 28, 29)
 
         for section in out[2:]:
             assert re.match(

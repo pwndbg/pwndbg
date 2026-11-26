@@ -23,10 +23,12 @@ async def test_mprotect_executes_properly(ctrl: Controller) -> None:
     # and to set page permissions to RWX
     await ctrl.execute(f"mprotect {pc} 4096 PROT_EXEC|PROT_READ|PROT_WRITE")
     vm = pwndbg.aglib.vmmap.find(pc)
+    assert vm is not None
     assert vm.read and vm.write and vm.execute
 
     # Check if we can use mprotect with address provided as register
     # and to set page permissions back to RX
     await ctrl.execute("mprotect $pc 0x1000 PROT_EXEC|PROT_READ")
     vm = pwndbg.aglib.vmmap.find(pc)
+    assert vm is not None
     assert vm.read and vm.execute and not vm.write

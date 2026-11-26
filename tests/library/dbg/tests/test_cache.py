@@ -11,6 +11,7 @@ TELESCOPE_BINARY = get_binary("telescope_binary.native.out")
 
 @pwndbg_test
 async def test_cache_single_value(ctrl: Controller) -> None:
+    import pwndbg.aglib.proc
     from pwndbg.lib import cache
 
     x = 0
@@ -38,6 +39,13 @@ async def test_cache_single_value(ctrl: Controller) -> None:
     await ctrl.launch(BINARY)
     assert foo() == x == 3
     assert foo() == x == 3
+
+    # Check that a normal process exit also clears stop-caches
+    assert pwndbg.aglib.proc.alive()
+    await ctrl.cont()
+    assert not pwndbg.aglib.proc.alive()
+    assert foo() == x == 4
+    assert foo() == x == 4
 
 
 @pwndbg_test

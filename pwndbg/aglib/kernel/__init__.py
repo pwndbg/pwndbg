@@ -20,6 +20,7 @@ import pwndbg.aglib.symbol
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
+from pwndbg.color import message
 from pwndbg.lib.err import SymbolNotRecoveredError
 
 if TYPE_CHECKING:
@@ -54,6 +55,115 @@ def has_debug_info() -> bool:
     vmlinux = open(path, "rb")
     elf = ELFFile(vmlinux)
     return any(section.name == ".debug_info" for section in elf.iter_sections())
+
+
+_BANNER = b"Linux version"
+
+
+def _is_banner_at(offset: int) -> bool:
+    """
+    Whether `&linux_banner + offset` points to the "Linux version" string
+    """
+    addr = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
+    if addr is None:
+        return False
+    try:
+        data = pwndbg.aglib.memory.read(pwndbg.aglib.arch.unsigned(addr + offset), len(_BANNER))
+    except pwndbg.dbg_mod.DebuggerError:
+        return False
+    return data == _BANNER
+
+
+@pwndbg.lib.cache.cache_until("stop", "objfile")
+def kaslr_symbols_offset() -> int | None:
+    """
+    If the user does `gdb vmlinux` or `(gdb) file vmlinux`, the symbols will be mapped
+    to a constant address (e.g. 0xffffffff81000000) regardless of the actual kaslr.
+
+    This function returns `kbase - where_vmlinux_starts`.
+
+    Zero means all is good, None means no symbols are loaded.
+    """
+    if pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner") is None:
+        return None
+
+    if _is_banner_at(0):
+        return 0
+
+    base = paging.kbase
+    if base is None:
+        return None
+
+    # yes `_text` is a symbol
+    # kernel uses `_stext` on newer arm kernels
+    for kbase_symbol in ("_text", "_stext"):
+        sym = pwndbg.aglib.symbol.lookup_symbol_addr(kbase_symbol)
+        if sym is None:
+            continue
+        offset = base - sym
+        if _is_banner_at(offset):
+            return offset
+
+    return None
+
+
+_rebasing_symbols = False
+
+
+def rebase_symbols() -> None:
+    """
+    Shifts every section of the loaded symbol file so that it lines up with the running kernel.
+
+    Does nothing if the file already matches it, or if the offset cannot be determined.
+
+    This is run every STOP event because if we run it on a NEW_MODULE event, GDB overwrites
+    what we do here. Takes about 0.0001s.
+
+    If the user does `symbol-file -o <bogus-offset>` stuff like vmmap annotation will be wrong
+    until the next STOP.
+    """
+    global _rebasing_symbols
+
+    # prevent recursion
+    if _rebasing_symbols:
+        return
+
+    # make sure there is a live kernel
+    if not pwndbg.aglib.proc.alive() or not pwndbg.aglib.qemu.is_qemu_kernel():
+        return
+
+    offset = kaslr_symbols_offset()
+    if not offset:  # 0 or None
+        return
+
+    symbol_file = pwndbg.aglib.proc.exe()
+    if symbol_file is None:
+        return
+
+    # rebase_symbol_file() causes a NEW_MODULE event
+    _rebasing_symbols = True
+    try:
+        inf = pwndbg.dbg.selected_inferior()
+
+        # kaslr_symbols_offset() sees where the symbols are now
+        # rebase_symbol_file() (i.e. `(gdb) symbol-file -o`) takes an offset from the addresses
+        #   in the ELF
+        # these two can differ if the user already did symbol-file -o or add-symbol-file,
+        #   but ended up mapping the vmlinux to the wrong address
+        # reset the mapping here, so the symbols agree with the ELF
+        inf.rebase_symbol_file(symbol_file, 0)
+
+        # now fix them
+        offset = kaslr_symbols_offset()
+        if offset:
+            inf.rebase_symbol_file(symbol_file, offset)
+    finally:
+        _rebasing_symbols = False
+
+    if offset:
+        print(message.notice(f"Rebased vmlinux by {offset:#x} to match the KASLR."))
+
+    return
 
 
 def requires_debug_symbols(
@@ -236,6 +346,21 @@ def num_numa_nodes() -> int:
     return val
 
 
+def _per_cpu_kernel_ptr(addr: int, cpu: int | None) -> int | None:
+    """
+    Read value for per-cpu variable at `addr` held by `cpu`'s slot,
+    and make sure it is a valid kernel pointer.
+    """
+    try:
+        pcp = per_cpu(addr, cpu=cpu)
+        if pcp is None:
+            return None
+        task = pwndbg.aglib.memory.read_pointer_width(int(pcp))
+    except pwndbg.dbg_mod.DebuggerError:
+        return None
+    return task if pwndbg.aglib.memory.is_kernel(task) else None
+
+
 @pwndbg.lib.cache.cache_until("stop")
 def current_task(cpu: int | None = None) -> int | None:
     result = symbol.current_task
@@ -244,8 +369,19 @@ def current_task(cpu: int | None = None) -> int | None:
     if pwndbg.aglib.arch.name == "aarch64":
         # TODO: how to get the kcurrent for different cpus
         return int(result)
-    ptr = int(per_cpu(result, cpu=cpu))
-    return pwndbg.aglib.memory.read_pointer_width(ptr)
+
+    task = _per_cpu_kernel_ptr(result, cpu)
+    if task is not None:
+        return task
+
+    # the _current_task() heuristic may have accidentally pulled out
+    # an invalid constant as the task address
+
+    # try symbol lookup as fallback
+    sym = pwndbg.aglib.symbol.lookup_symbol_addr("current_task")
+    if sym is not None and sym != result:
+        return _per_cpu_kernel_ptr(sym, cpu)
+    return None
 
 
 POSSIBLE_ZONE_NAMES = (
@@ -369,3 +505,13 @@ def set_paging_and_symbol_on_start() -> None:
     global paging, symbol
     paging = pwndbg.aglib.kernel.arch.select_paging()
     symbol = pwndbg.aglib.kernel.arch.select_symbol()
+    # make sure the symbols are usable ASAP, before anything else tries
+    # to use them
+    rebase_symbols()
+
+
+@pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.NEW_MODULE)
+@pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.STOP)
+def rebase_symbols_when_needed() -> None:
+    # running only on NEW_MODULE is not enough, see docstring \/
+    rebase_symbols()

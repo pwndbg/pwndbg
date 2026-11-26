@@ -33,7 +33,7 @@ Your PR will not be merged without passing the testing CI. Moreover, it is highl
 To run the tests in the same environment as the testing CI, you can use the following docker commands.
 ```{.bash .copy}
 # General (x86_64) test suite
-docker compose run --rm ubuntu24.04-mount ./tests.sh -d gdb -g gdb
+docker compose run --rm ubuntu24.04-mount ./tests.sh -d gdb -g dbg
 # Cross-architecture tests
 docker compose run --rm ubuntu24.04-mount ./tests.sh -d gdb -g cross-arch-user
 # Kernel tests (x86_64 and aarch64)
@@ -64,7 +64,7 @@ If you wish to improve Pwndbg support for your distribution (or the testing infr
 The commands are analogous to the docker commands.
 ```{.bash .copy}
 # General (x86_64) test suite
-./tests.sh -d gdb -g gdb
+./tests.sh -d gdb -g dbg
 # Cross-architecture tests
 ./tests.sh -d gdb -g cross-arch-user
 # Kernel tests (x86_64 and aarch64)
