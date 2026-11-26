@@ -1216,7 +1216,14 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         # Try to read exactly the requested size.
         e = lldb.SBError()
-        buffer = self.process.ReadMemory(address, size, e)
+        try:
+            buffer = self.process.ReadMemory(address, size, e)
+        except OverflowError as ovf:
+            if partial:
+                return bytearray()
+            raise pwndbg.dbg_mod.DebuggerError(
+                f"Cannot access memory at address {address:#x}"
+            ) from ovf
         if buffer:
             return bytearray(buffer)
         if not partial:
@@ -1280,7 +1287,12 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             return 0
 
         e = lldb.SBError()
-        count = self.process.WriteMemory(address, data, e)
+        try:
+            count = self.process.WriteMemory(address, data, e)
+        except OverflowError as ovf:
+            raise pwndbg.dbg_mod.DebuggerError(
+                f"Cannot access memory at address {address:#x}"
+            ) from ovf
         if (count < len(data) or not e.success) and not partial:
             raise pwndbg.dbg_mod.DebuggerError(f"could not write {len(data)} bytes: {e}")
 

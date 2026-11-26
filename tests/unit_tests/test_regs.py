@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import PseudoEmulatedRegisterFile
 from pwndbg.lib.regs import aarch64
+from pwndbg.lib.regs import aarch64_sctlr_flags
 from pwndbg.lib.regs import amd64
 from pwndbg.lib.regs import mips
 
@@ -230,3 +232,16 @@ def test_emulated_register_set_mips():
     new.write_register("v0", 0xFF_FFFF_AABB)
 
     assert new.read_register("v0") == 0xFF_FFFF_AABB
+
+
+def test_bitflags_aarch64_sctlr_tcf() -> None:
+    flags = BitFlags(list(aarch64_sctlr_flags.items()))
+
+    # TCF is bits 40-41, TCF0 is bits 38-39
+    flags.value = 0b11 << 40
+    assert flags["TCF"] == 0b11
+    assert flags["TCF0"] == 0
+
+    flags.value = 0b10 << 38
+    assert flags["TCF"] == 0
+    assert flags["TCF0"] == 0b10

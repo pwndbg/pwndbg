@@ -11,7 +11,7 @@ import functools
 import logging
 import re
 from collections.abc import Callable
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from typing import TypeVar
 
@@ -23,6 +23,7 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.remote
+import pwndbg.aglib.vmmap
 import pwndbg.color
 import pwndbg.dbg_mod
 import pwndbg.dintegration
@@ -41,7 +42,7 @@ commands: list[CommandObj] = []
 command_names: set[str] = set()
 
 
-class CommandCategory(str, Enum):
+class CommandCategory(StrEnum):
     START = "Start"
     NEXT = "Step/Next/Continue"
     CONTEXT = "Context"
@@ -808,6 +809,59 @@ def parse_command_argument_to_int_or_str(arg: str) -> int | str:
         return int_res
     except argparse.ArgumentTypeError:
         return arg
+
+
+class AddrRange:
+    """A half-open address range, `[begin, end)`."""
+
+    def __init__(self, begin: int, end: int) -> None:
+        self.begin = begin
+        self.end = end
+
+    def __repr__(self) -> str:
+        return (self.begin, self.end).__repr__()
+
+
+def all_address_ranges() -> list[AddrRange]:
+    return [AddrRange(page.start, page.end) for page in pwndbg.aglib.vmmap.get()]
+
+
+def parse_address_range(section: str) -> list[AddrRange]:
+    """
+    Takes an argument describing a region of memory like:
+        + "any"/"*"     all pages
+        + "BEGIN:END"   the memory in [BEGIN, END)
+        + "some string" all pages whose objfile has "some string" as the substring
+
+    Returns a list of all ranges that match the description.
+
+    TODO: Maybe also allow "BEGIN-END" since bata24/gef uses that?
+
+    Raises:
+        ArgumentTypeError: if the parsing fails or there are no results
+    """
+    if section in ("*", "any"):
+        return all_address_ranges()
+
+    # TODO: handle page names that contain ':'.
+    if ":" in section:
+        try:
+            begin, end = section.split(":")
+            return [AddrRange(int(begin, 0), int(end, 0))]
+        except Exception:
+            raise argparse.ArgumentTypeError(
+                f'invalid address range "{pwndbg.color.red(section)}". expected format "BEGIN_ADDRESS:END_ADDRESS"'
+            )
+
+    # find all pages whose objfile contains the substring `section`
+    pages = [page for page in pwndbg.aglib.vmmap.get() if section in page.objfile]
+
+    if not pages:
+        raise argparse.ArgumentTypeError(
+            f'no page which contains "{pwndbg.color.red(section)}" in its name'
+        )
+
+    return [AddrRange(page.start, page.end) for page in pages]
 
 
 def func_name(function: Callable[P, T]) -> str:

@@ -1,6 +1,6 @@
 # This dockerfile was created for development & testing purposes, for APT-based distros.
 # images available:
-#   ubuntu24.04 | ubuntu22.04 | debian12
+#   ubuntu24.04 | debian12
 #
 # Run using prebuilt image (pulls image and bind-mounts working dir into /pwndbg):
 #   docker compose run --rm -v $(pwd):/pwndbg ubuntu24.04
@@ -8,7 +8,7 @@
 # Update your prebuilt image:
 #   docker compose pull ubuntu24.04
 
-ARG image=mcr.microsoft.com/devcontainers/base:jammy
+ARG image=mcr.microsoft.com/devcontainers/base:noble
 FROM $image AS base
 
 WORKDIR /pwndbg

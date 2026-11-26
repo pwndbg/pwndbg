@@ -22,25 +22,26 @@ MMAP_MIN_ADDR = 0x8000
 
 
 def read(addr: int, count: int, partial: bool = False) -> bytearray:
-    """read(addr, count, partial=False) -> bytearray
-
-    Read memory from the program being debugged.
+    """
+    Reads as many bytes as possible up to `size`, starting from `address`,
+    from the program being debugged.
 
     Arguments:
-        addr: Address to read
-        count: Number of bytes to read
-        partial: Whether less than ``count`` bytes can be returned
+        address: the start virtual address of the read
+        size: the length of the read in bytes
+        partial: True if it is fine to read less than `size` (possibly zero) bytes
+
+    Raises:
+        DebuggerException: if we could not read `size` bytes and partial is False
 
     Returns:
-        `bytearray` The memory at the specified address,
-        or ``None``.
+        The array of read bytes (possibly empty).
     """
     return pwndbg.dbg.selected_inferior().read_memory(address=addr, size=count, partial=partial)
 
 
 def readtype(type: pwndbg.dbg_mod.Type, addr: int) -> int:
-    """readtype(type, addr) -> int
-
+    """
     Reads an integer-type (e.g. ``uint64``) and returns a Python
     native integer representation of the same.
 
@@ -58,13 +59,16 @@ def readtype(type: pwndbg.dbg_mod.Type, addr: int) -> int:
 
 
 def write(addr: int, data: str | bytes | bytearray) -> None:
-    """write(addr, data)
-
-    Writes data into the memory of the process being debugged.
+    """
+    Writes as many bytes of `data` as possible into the memory starting at
+    `address`.
 
     Arguments:
-        addr: Address to write
-        data: Data to write
+        address: the start address of the write
+        data: the bytes to write
+
+    Raises:
+        DebuggerException: if we could not write all `data` bytes
     """
     if isinstance(data, str):
         data = bytes(data, "utf8")
@@ -86,7 +90,7 @@ def peek(address: int) -> bytearray | None:
     """
     try:
         return read(address, 1)
-    except Exception:
+    except pwndbg.dbg_mod.DebuggerError:
         pass
     return None
 
@@ -132,7 +136,7 @@ def poke(address: int) -> bool:
         # by `aglib.disasm.clear_on_reg_mem_change`
         pwndbg.dbg.suspend_events(EventType.MEMORY_CHANGED)
         write(address, c)
-    except Exception:
+    except pwndbg.dbg_mod.DebuggerError:
         return False
     finally:
         pwndbg.dbg.resume_events(EventType.MEMORY_CHANGED)

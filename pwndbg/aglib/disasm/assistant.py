@@ -417,12 +417,12 @@ class DisassemblyAssistant:
                     instruction, op, emu
                 )
 
+                if op.after_value is not None:
+                    op.after_value &= pwndbg.aglib.arch.ptrmask
+
                 op.after_value_resolved = self._resolve_used_value(
                     op.after_value, instruction, op, emu
                 )
-
-                if op.after_value is not None:
-                    op.after_value &= pwndbg.aglib.arch.ptrmask
 
         # Set .str value of operands, after emulation has been completed
         for op in instruction.operands:

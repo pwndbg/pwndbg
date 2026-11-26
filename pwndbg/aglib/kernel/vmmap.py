@@ -80,7 +80,7 @@ def _get_kernel_stacks() -> list[tuple[int, int, str]]:
 
 def _handle_user_stack_and_filepaths(pages: pwndbg.dbg_mod.MemoryMap) -> None:
     _task = pwndbg.aglib.kernel.current_task()
-    if _task is None:
+    if not pwndbg.aglib.memory.is_kernel(_task):
         return
     task = pwndbg.aglib.kernel.ktask.Kthread(_task)
     user_stack = task.user_stack
