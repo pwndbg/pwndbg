@@ -240,3 +240,44 @@ async def test_command_set_breakpoint_search_asm(ctrl: Controller) -> None:
         if line.startswith("Breakpoint"):
             result_count += 1
     assert result_count > 2
+
+
+def _hit_addresses(output: str) -> list[int]:
+    return [int(line.split()[1], 16) for line in output.splitlines()[1:] if line.strip()]
+
+
+@pwndbg_test
+async def test_command_search_mapping(ctrl: Controller) -> None:
+    """
+    Tests restricting the search to a mapping name, an address range or "any"
+    """
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
+
+    hits = _hit_addresses(await ctrl.execute_and_capture(f"search -8 {SEARCH_PATTERN2}"))
+    assert len(hits) > 1
+
+    # "any" and "*" search every mapping
+    # which is the same as not passing any mapping (do we want this at all then?)
+    for name in ("any", "*"):
+        result = await ctrl.execute_and_capture(f"search -8 {SEARCH_PATTERN2} {name}")
+        assert _hit_addresses(result) == hits
+
+    # correct range
+    result = await ctrl.execute_and_capture(
+        f"search -8 {SEARCH_PATTERN2} {hits[0]:#x}:{hits[0] + 8:#x}"
+    )
+    assert _hit_addresses(result) == [hits[0]]
+
+    # unmapped range
+    result = await ctrl.execute_and_capture(f"search -8 {SEARCH_PATTERN2} 0x10:0x20")
+    assert "Could not find any mapped memory to search" in result
+
+    # non-existant mapping
+    result = await ctrl.execute_and_capture(f"search -8 {SEARCH_PATTERN2} nosuchmapping")
+    assert "no page which contains" in result
+    assert "Traceback" not in result
+
+    # invalid range
+    result = await ctrl.execute_and_capture(f"search -8 {SEARCH_PATTERN2} 0x1000:nope")
+    assert "invalid address range" in result
+    assert "Traceback" not in result
