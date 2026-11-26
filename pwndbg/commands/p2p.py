@@ -4,55 +4,12 @@ import argparse
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.vmmap
-import pwndbg.color
 import pwndbg.commands
 import pwndbg.commands.telescope
+from pwndbg.commands import AddrRange
 from pwndbg.commands import CommandCategory
 
 ts = pwndbg.commands.telescope.telescope
-
-
-class AddrRange:
-    def __init__(self, begin: int, end: int) -> None:
-        self.begin = begin
-        self.end = end
-
-    def __repr__(self) -> str:
-        return (self.begin, self.end).__repr__()
-
-
-def get_addrrange_any_named() -> list[AddrRange]:
-    return [AddrRange(page.start, page.end) for page in pwndbg.aglib.vmmap.get()]
-
-
-def address_range_explicit(section: str) -> AddrRange:
-    try:
-        begin, end = section.split(":")
-
-        return AddrRange(int(begin, 0), int(end, 0))
-    except Exception:
-        parser.error(
-            f'"{pwndbg.color.red(section)}" - Bad format of explicit address range!'
-            ' Expected format: "BEGIN_ADDRESS:END_ADDRESS"'
-        )
-
-
-def address_range(section: str) -> list[AddrRange] | None:
-    if section in ("*", "any"):
-        return get_addrrange_any_named()
-
-    # User can use syntax: "begin:end" to specify explicit address range instead of named page.
-    # TODO: handle page names that contains ':'.
-    if ":" in section:
-        return [address_range_explicit(section)]
-
-    pages = list(filter(lambda page: section in page.objfile, pwndbg.aglib.vmmap.get()))
-
-    if pages:
-        return [AddrRange(page.start, page.end) for page in pages]
-    parser.error(f'Memory page with name "{pwndbg.color.red(section)}" does not exist!')
-
 
 parser = argparse.ArgumentParser(
     description="""Pointer to pointer chain search. Searches given mapping for all pointers that point to specified mapping.
@@ -62,7 +19,7 @@ Any chain length greater than 0 is valid. If only one mapping is given it just l
 
 parser.add_argument(
     "mapping_names",
-    type=address_range,
+    type=pwndbg.commands.parse_address_range,
     nargs="+",
     help='Mapping name (as shown in vmmap), an explicit "begin:end" address range, or "any"/"*" for all mappings.',
 )
@@ -118,7 +75,7 @@ def p2p(mapping_names: list[list[AddrRange]] | None = None) -> None:
         return
 
     if len(mapping_names) == 1:
-        mapping_names.append(get_addrrange_any_named())
+        mapping_names.append(pwndbg.commands.all_address_ranges())
 
     for rng in mapping_names[0]:
         for addr in range(rng.begin, rng.end):
