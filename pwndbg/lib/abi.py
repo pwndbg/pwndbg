@@ -62,6 +62,8 @@ linux_ppc = ABI(("r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10"), 4, 0)
 linux_ppc64 = ABI(("r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10"), 8, 0)
 linux_riscv32 = ABI(("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"), 4, 0)
 linux_riscv64 = ABI(("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"), 8, 0)
+linux_loongarch64 = ABI(("a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"), 8, 0)
+linux_s390x = ABI(("r2", "r3", "r4", "r5", "r6"), 8, 0)
 
 linux_i386_syscall = SyscallABI(("eax", "ebx", "ecx", "edx", "esi", "edi", "ebp"), 4, 0)
 linux_amd64_syscall = SyscallABI(("rax", "rdi", "rsi", "rdx", "r10", "r8", "r9"), 8, 0)
@@ -73,6 +75,9 @@ linux_ppc_syscall = SyscallABI(("r0", "r3", "r4", "r5", "r6", "r7", "r8", "r9"),
 linux_ppc64_syscall = SyscallABI(("r0", "r3", "r4", "r5", "r6", "r7", "r8"), 8, 0)
 linux_riscv32_syscall = SyscallABI(("a7", "a0", "a1", "a2", "a3", "a4", "a5", "a6"), 4, 0)
 linux_riscv64_syscall = SyscallABI(("a7", "a0", "a1", "a2", "a3", "a4", "a5", "a6"), 8, 0)
+linux_loongarch64_syscall = SyscallABI(("a7", "a0", "a1", "a2", "a3", "a4", "a5", "a6"), 8, 0)
+# r1 only holds the syscall number for `svc 0`; `svc N` encodes it in the instruction
+linux_s390x_syscall = SyscallABI(("r1", "r2", "r3", "r4", "r5", "r6", "r7"), 8, 0)
 
 linux_i386_sigreturn = SigreturnABI(("eax",), 4, 0)
 linux_amd64_sigreturn = SigreturnABI(("rax",), 4, 0)
@@ -95,6 +100,8 @@ DEFAULT_ABIS: dict[tuple[int, str, str], ABI] = {
     (64, "powerpc", "linux"): linux_ppc64,
     (32, "rv32", "linux"): linux_riscv32,
     (64, "rv64", "linux"): linux_riscv64,
+    (64, "loongarch64", "linux"): linux_loongarch64,
+    (64, "s390x", "linux"): linux_s390x,
 }
 
 SYSCALL_ABIS: dict[tuple[int, str, str], SyscallABI] = {
@@ -109,6 +116,8 @@ SYSCALL_ABIS: dict[tuple[int, str, str], SyscallABI] = {
     (64, "powerpc", "linux"): linux_ppc64_syscall,
     (32, "rv32", "linux"): linux_riscv32_syscall,
     (64, "rv64", "linux"): linux_riscv64_syscall,
+    (64, "loongarch64", "linux"): linux_loongarch64_syscall,
+    (64, "s390x", "linux"): linux_s390x_syscall,
 }
 
 SIGRETURN_ABIS: dict[tuple[int, str, str], SigreturnABI] = {

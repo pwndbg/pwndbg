@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import functools
+import json
+from importlib import resources
 from typing import Any
 
 from pwnlib.constants.constant import Constant
@@ -36,10 +39,28 @@ def _get_pwntools_arch_module(arch_name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) ->
         "sparc": linux_sparc,
         "powerpc": linux_powerpc,
         "s390x": linux_s390x,
-        # Note: loongarch64 and sparc64 not available in pwnlib
+        # Note: sparc64 not available in pwnlib
     }.get(arch_name)
 
     return arch_module
+
+
+@functools.cache
+def syscall_data() -> Any:
+    """
+    Loads the syscall database from syscall_data/data.json (see its README).
+    """
+    with (resources.files("pwndbg.lib") / "syscall_data" / "data.json").open() as file:
+        return json.load(file)
+
+
+@functools.cache
+def _syscall_data_numbers(arch_name: str) -> dict[str, int]:
+    return {call["name"]: call["nr"] for call in syscall_data()["syscalls"][arch_name]}
+
+
+# No pwntools release has loongarch64 syscall constants yet, so use data.json for it
+_SYSCALL_DATA_ARCHES = ("loongarch64",)
 
 
 def syscall_number_to_name(num: int, arch_name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> str | None:
@@ -48,6 +69,12 @@ def syscall_number_to_name(num: int, arch_name: PWNDBG_SUPPORTED_ARCHITECTURES_T
 
     Returns None if the syscall number is not found or architecture is unsupported.
     """
+    if arch_name in _SYSCALL_DATA_ARCHES:
+        for name, nr in _syscall_data_numbers(arch_name).items():
+            if nr == num:
+                return name
+        return None
+
     arch_module = _get_pwntools_arch_module(arch_name)
     if arch_module is None:
         return None
@@ -65,12 +92,15 @@ def syscall_name_to_number(name: str, arch_name: PWNDBG_SUPPORTED_ARCHITECTURES_
 
     Returns None if the syscall name is not found or architecture is unsupported.
     """
+    # Strip SYS_ prefix if present
+    name = name.removeprefix("SYS_")
+
+    if arch_name in _SYSCALL_DATA_ARCHES:
+        return _syscall_data_numbers(arch_name).get(name)
+
     arch_module = _get_pwntools_arch_module(arch_name)
     if arch_module is None:
         return None
-
-    # Strip SYS_ prefix if present
-    name = name.removeprefix("SYS_")
 
     attr_name = f"__NR_{name}"
     value = getattr(arch_module, attr_name, None)
