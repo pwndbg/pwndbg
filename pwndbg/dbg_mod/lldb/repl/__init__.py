@@ -156,6 +156,7 @@ class EventRelay(EventHandler):
 
     @override
     def created(self) -> None:
+        self.dbg._start_stop_id = self.dbg._any_inferior().process.GetStopID()
         self.dbg._trigger_event(EventType.START)
 
     @override
