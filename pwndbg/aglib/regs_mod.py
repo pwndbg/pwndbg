@@ -31,6 +31,24 @@ ARCH_GET_GS = 0x1004
 class RegisterManager:
     previous: dict[str, int | None] = {}
     last: dict[str, int | None] = {}
+    _last_snapshot_stop: int | None = None
+
+    def update_last(self) -> None:
+        stop = pwndbg.dbg_mod.number_of_stops_since_birth
+        if self._last_snapshot_stop == stop:
+            return
+
+        self.previous = self.last
+        self.last = {k: self.read_reg(k) for k in self.common}
+        self._last_snapshot_stop = stop
+        # TODO: Uncomment this once the LLDB command port PR for `context` is merged
+        # if pwndbg.config.show_retaddr_reg:
+        #    self.last.update({k: self.read_reg(k) for k in self.retaddr})
+
+    def reset_last(self) -> None:
+        self.previous = {}
+        self.last = {}
+        self._last_snapshot_stop = None
 
     @pwndbg.lib.cache.cache_until("stop")
     def regs_in_frame(self, frame: pwndbg.dbg_mod.Frame) -> pwndbg.dbg_mod.Registers:
@@ -310,11 +328,7 @@ class RegisterManager:
 regs: RegisterManager = RegisterManager()
 
 
-@pwndbg.dbg.event_handler(EventType.CONTINUE)
-@pwndbg.dbg.event_handler(EventType.STOP)
-def update_last() -> None:
-    regs.previous = regs.last
-    regs.last = {k: regs.read_reg(k) for k in regs.common}
-    # TODO: Uncomment this once the LLDB command port PR for `context` is merged
-    # if pwndbg.config.show_retaddr_reg:
-    #    M.last.update({k: M[k] for k in M.retaddr})
+@pwndbg.dbg.event_handler(EventType.START)
+@pwndbg.dbg.event_handler(EventType.EXIT)
+def reset_last() -> None:
+    regs.reset_last()

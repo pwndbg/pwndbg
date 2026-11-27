@@ -1309,6 +1309,7 @@ class RegisterContext(RegisterContextProtocol):
 
 
 def get_regs(in_regs: list[str] | None = None) -> list[str]:
+    pwndbg.aglib.regs.update_last()
     rc = RegisterContext()
     result: list[str | None] = []
 
