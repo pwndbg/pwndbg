@@ -130,13 +130,11 @@ def __get_libc() -> tuple[Path, Path, LibcProvider]:
     seen: set[str] = set()
 
     # Skip the executable
-    maybe_main_module = inf.main_module_name()
-    if maybe_main_module is not None:
-        maybe_main_module = pwndbg.lib.path.clean_path(maybe_main_module)
-        seen.add(maybe_main_module)
-
-    all_sections: list[tuple[int, int, str, str]] = inf.module_section_locations()
-    all_module_names: list[str] = [sec[3] for sec in all_sections]
+    maybe_main_module_obj = inf.main_module()
+    maybe_main_module_path: str | None = None
+    if maybe_main_module_obj is not None:
+        maybe_main_module_path = maybe_main_module_obj.path()
+        seen.add(maybe_main_module_path)
 
     exact_libc_basename_matches: list[str] = [
         # glibc
@@ -158,15 +156,13 @@ def __get_libc() -> tuple[Path, Path, LibcProvider]:
     certain_libc_path: str | None = None
     certain_ld_path: str | None = None
 
-    for path in all_module_names:
+    for module in inf.modules():
+        path = module.path()
         if path in seen:
             continue
         seen.add(path)
 
-        basename = os.path.basename(
-            # Strip "target:" prefix used for remote debugging
-            path.removeprefix("target:")
-        )
+        basename = os.path.basename(path)
 
         # Get absolute path and resolve symlinks if it seems plausible.
         # See #3641.
@@ -199,10 +195,10 @@ def __get_libc() -> tuple[Path, Path, LibcProvider]:
     # If we are statically linked, pass in the main module as it will contain
     # some libc stuff inside it (only the stuff that is actaully used).
     if not pwndbg.dbg.selected_inferior().is_dynamically_linked():
-        # maybe_main_module should be non-None if the process is alive.
-        assert maybe_main_module is not None
-        possible_libc_paths = [maybe_main_module]
-        possible_ld_paths = [maybe_main_module]
+        # maybe_main_module_path should be non-None if the process is alive.
+        assert maybe_main_module_path is not None
+        possible_libc_paths = [maybe_main_module_path]
+        possible_ld_paths = [maybe_main_module_path]
 
     # Let's see if any libc implementation verifies any of the
     # candidate paths we found.
@@ -406,14 +402,17 @@ def section_address_by_name(section_name: str) -> int:
     """
     # TODO: If we are debugging a remote process, this might not work if GDB cannot load the so file
     libc_path: str = str(filepath())
-    for (
-        address,
-        _size,
-        candidate_section_name,
-        module_name,
-    ) in pwndbg.dbg.selected_inferior().module_section_locations():
-        if section_name == candidate_section_name and module_name == libc_path:
-            return address
+    for module in pwndbg.dbg.selected_inferior().modules():
+        if module.path() != libc_path:
+            continue
+
+        for section in module.sections():
+            if section.name() == section_name:
+                address = section.address()
+                if address is None:
+                    return 0
+                return address
+
     return 0
 
 
