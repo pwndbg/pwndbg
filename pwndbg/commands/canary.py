@@ -31,7 +31,7 @@ TLS_CANARY_OFFSETS = {
 
 # Architectures where glibc keeps the canary in the global __stack_chk_guard instead
 # (https://elixir.bootlin.com/glibc/glibc-2.41.9000/source/csu/libc-start.c#L289)
-GLOBAL_CANARY_ARCHES = {"aarch64"}
+GLOBAL_CANARY_ARCHES = {"aarch64", "arm", "mips", "rv32", "rv64", "loongarch64"}
 
 
 def canary_from_at_random() -> tuple[int | None, int | None]:
@@ -72,7 +72,7 @@ def find_canary_addr() -> int | None:
     - x86_64: fs register
     - i386: gs register
 
-    On aarch64 glibc stores the canary in __stack_chk_guard instead.
+    On the architectures in GLOBAL_CANARY_ARCHES the canary is in __stack_chk_guard instead.
 
     Returns:
         int: The virtual address of the canary, or None if not found/supported
