@@ -144,25 +144,6 @@ def setup_load_profiler() -> tuple[cProfile.Profile, float | None]:
     return (profiler, load_profile_start_time)
 
 
-def set_debuginfod_timeouts() -> None:
-    """
-    The default value for DEBUGINFOD_TIMEOUT is 90 seconds. Since
-    https://debuginfod.ubuntu.com/ is often broken, the download can
-    stall for a while.
-
-    This is a double-problem because GDB / gnu libdebuginfod does not
-    serve a Ctrl-C during this time. See #4079 for extra info.
-
-    Set more sane values if the user did not already touch them.
-    """
-    if "DEBUGINFOD_TIMEOUT" not in os.environ:
-        # default is 90
-        os.environ["DEBUGINFOD_TIMEOUT"] = "5"
-    if "DEBUGINFOD_RETRY_LIMIT" not in os.environ:
-        # default is 2
-        os.environ["DEBUGINFOD_RETRY_LIMIT"] = "0"
-
-
 def init_logger() -> logging.StreamHandler[TextIO]:
     log_level_env = os.environ.get("PWNDBG_LOGLEVEL", "WARNING")
     log_level = getattr(logging, log_level_env.upper())
@@ -192,8 +173,6 @@ def pre_debugger_init() -> None:
     # but renaming it now will cause desync for users who have different versions
     # of pwndbg installed.
     pwndbg._is_loaded_from_pwndbg = True
-
-    set_debuginfod_timeouts()
 
 
 def post_debugger_init(
