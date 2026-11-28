@@ -7,6 +7,7 @@ import pwndbg.aglib.auxv
 import pwndbg.aglib.memory
 import pwndbg.aglib.search
 import pwndbg.aglib.stack
+import pwndbg.aglib.symbol
 import pwndbg.aglib.tls
 import pwndbg.commands
 import pwndbg.commands.telescope
@@ -23,12 +24,14 @@ DEFAULT_NUM_CANARIES_TO_DISPLAY = 1
 # References:
 # - x86_64: fs:0x28 (https://elixir.bootlin.com/glibc/glibc-2.41.9000/source/sysdeps/x86_64/nptl/tls.h)
 # - i386: gs:0x14 (https://elixir.bootlin.com/glibc/glibc-2.41.9000/source/sysdeps/i386/nptl/tls.h)
-# - aarch64: tpidr_el0 + 0x28 (https://elixir.bootlin.com/glibc/glibc-2.41.9000/source/sysdeps/aarch64/nptl/tls.h)
 TLS_CANARY_OFFSETS = {
     "x86-64": 0x28,
     "i386": 0x14,
-    "aarch64": 0x28,
 }
+
+# Architectures where glibc keeps the canary in the global __stack_chk_guard instead
+# (https://elixir.bootlin.com/glibc/glibc-2.41.9000/source/csu/libc-start.c#L289)
+GLOBAL_CANARY_ARCHES = {"aarch64"}
 
 
 def canary_from_at_random() -> tuple[int | None, int | None]:
@@ -60,20 +63,23 @@ def canary_from_at_random() -> tuple[int | None, int | None]:
     return global_canary, at_random
 
 
-def find_tls_canary_addr() -> int | None:
+def find_canary_addr() -> int | None:
     """
-    Find the address of the canary in the Thread Local Storage (TLS).
+    Find the address of the global canary.
 
     The canary is stored at a fixed offset from the TLS base, which varies by architecture.
     The TLS base can be accessed through architecture-specific registers:
     - x86_64: fs register
     - i386: gs register
-    - aarch64: tpidr_el0 register
+
+    On aarch64 glibc stores the canary in __stack_chk_guard instead.
 
     Returns:
-        int: The virtual address of the canary in TLS, or None if not found/supported
+        int: The virtual address of the canary, or None if not found/supported
     """
     arch = pwndbg.aglib.arch.name
+    if arch in GLOBAL_CANARY_ARCHES:
+        return pwndbg.aglib.symbol.lookup_symbol_addr("__stack_chk_guard")
 
     # Get TLS base address
     tls_base = (
@@ -98,7 +104,7 @@ def canary_from_tls() -> tuple[int | None, int | None]:
     Returns:
         tuple: (canary_value | None, canary_addr | None)
     """
-    canary_addr = find_tls_canary_addr()
+    canary_addr = find_canary_addr()
     if canary_addr is None:
         return None, None
 
@@ -138,8 +144,8 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def canary(all) -> None:
     """
-    Display information about the stack canary, including its location in TLS
-    and any copies found on the stack.
+    Display information about the stack canary, including where it is stored
+    (TLS or __stack_chk_guard) and any copies found on the stack.
     """
     if pwndbg.libc.which() not in (LibcType.GLIBC, LibcType.UNKNOWN):
         print(message.error("Supported only on glibc for now. PRs welcome!"))
@@ -170,11 +176,16 @@ def canary(all) -> None:
     # Check whether we can recover the canary from TLS
     tls_canary, tls_addr = canary_from_tls()
 
+    in_global = pwndbg.aglib.arch.name in GLOBAL_CANARY_ARCHES
+    location = "__stack_chk_guard" if in_global else "TLS Canary"
+
     tls_canary_msg: str = ""
     if tls_addr is None:
-        tls_canary_msg = message.error("Could not find canary in TLS.")
+        tls_canary_msg = message.error(
+            "Could not find __stack_chk_guard." if in_global else "Could not find canary in TLS."
+        )
     else:
-        tls_canary_msg = message.notice(f"TLS Canary @ {tls_addr:#x}")
+        tls_canary_msg = message.notice(f"{location} @ {tls_addr:#x}")
         if tls_canary is None:
             tls_canary_msg += message.error(" (unreadable?)")
 
@@ -191,7 +202,7 @@ def canary(all) -> None:
     if tls_canary is not None and global_canary is not None and tls_canary != global_canary:
         print(
             message.warn(
-                f"Warning: TLS canary value {tls_canary:#x} doesn't match global canary {global_canary:#x}!"
+                f"Warning: {'__stack_chk_guard' if in_global else 'TLS canary'} value {tls_canary:#x} doesn't match global canary {global_canary:#x}!"
             )
         )
         # Let's trust TLS more /shrug

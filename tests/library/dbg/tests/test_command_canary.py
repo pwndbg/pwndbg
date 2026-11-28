@@ -50,7 +50,7 @@ async def test_command_canary(ctrl: Controller, binary: Path, reg_name: str, ski
 
     mask: int = pwndbg.aglib.arch.ptrmask ^ 0xFF
 
-    tls_addr = pwndbg.commands.canary.find_tls_canary_addr()
+    tls_addr = pwndbg.commands.canary.find_canary_addr()
     assert tls_addr is not None
     raw_tls = pwndbg.aglib.memory.read_pointer_width(tls_addr) & mask
 
